@@ -7,11 +7,12 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "check": "bun build ./src/index.ts ./src/protocol/cbor.ts ./src/protocol/bootstrap.ts ./src/protocol/extension.ts --target=browser --outdir=./dist",
+    "check": "bun build ./src/index.ts ./src/protocol/cbor.ts ./src/protocol/bootstrap.ts ./src/protocol/extension.ts ./src/protocol/control.ts --target=browser --outdir=./dist",
     "test": "bun test",
     "test:cbor": "bun test ./src/protocol/cbor.test.ts",
     "test:bootstrap": "bun test ./src/protocol/bootstrap.test.ts",
     "test:extension": "bun test ./src/protocol/extension.test.ts",
-    "build": "bun build ./src/index.ts ./src/protocol/cbor.ts ./src/protocol/bootstrap.ts ./src/protocol/extension.ts --target=browser --outdir=./dist"
+    "test:control": "bun test ./src/protocol/control.test.ts",
+    "build": "bun build ./src/index.ts ./src/protocol/cbor.ts ./src/protocol/bootstrap.ts ./src/protocol/extension.ts ./src/protocol/control.ts --target=browser --outdir=./dist"
   }
 }
