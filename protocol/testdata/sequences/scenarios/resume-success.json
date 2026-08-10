@@ -1,0 +1,249 @@
+{
+  "id": "resume-success",
+  "coverage": [
+    "capability_resume",
+    "credential",
+    "ready_transition",
+    "resume_success",
+    "session_resume"
+  ],
+  "initial": {
+    "processes": {
+      "proc-H-FT": {
+        "support_row": "H-FT",
+        "gateway_instance_id": "gateway-H-FT"
+      }
+    },
+    "sessions": {
+      "sess-H-FT": {
+        "phase": "awaiting_client_hello",
+        "process_id": "proc-H-FT",
+        "selected_version": null,
+        "extension_capabilities": [],
+        "gateway_instance_id": null,
+        "session_id_hex": null,
+        "support_row": null,
+        "entry_path": null,
+        "pending_resume_claim": null,
+        "ready": false,
+        "terminal": false,
+        "channels": {},
+        "sequences": {},
+        "server_wire_versions": [
+          0
+        ],
+        "server_gateway_instance_id": "gateway-H-FT",
+        "server_support_row": "H-FT"
+      }
+    }
+  },
+  "events": [
+    {
+      "event_id": "evt-client-hello-v0",
+      "session_id": "sess-H-FT",
+      "expected": {
+        "status": "success",
+        "registry_code": null,
+        "registry_name": null,
+        "disposition_code": null,
+        "disposition_name": null,
+        "plane": null,
+        "step": null,
+        "reason": null
+      },
+      "state_after": {
+        "processes": {
+          "proc-H-FT": {
+            "support_row": "H-FT",
+            "gateway_instance_id": "gateway-H-FT"
+          }
+        },
+        "sessions": {
+          "sess-H-FT": {
+            "phase": "awaiting_server_hello",
+            "process_id": "proc-H-FT",
+            "selected_version": null,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-FT",
+            "server_support_row": "H-FT"
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-server-hello-v0",
+      "session_id": "sess-H-FT",
+      "expected": {
+        "status": "success",
+        "registry_code": null,
+        "registry_name": null,
+        "disposition_code": null,
+        "disposition_name": null,
+        "plane": null,
+        "step": null,
+        "reason": null
+      },
+      "state_after": {
+        "processes": {
+          "proc-H-FT": {
+            "support_row": "H-FT",
+            "gateway_instance_id": "gateway-H-FT"
+          }
+        },
+        "sessions": {
+          "sess-H-FT": {
+            "phase": "awaiting_entry",
+            "process_id": "proc-H-FT",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-FT",
+            "server_support_row": "H-FT"
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-session-resume",
+      "session_id": "sess-H-FT",
+      "expected": {
+        "status": "success",
+        "registry_code": null,
+        "registry_name": null,
+        "disposition_code": null,
+        "disposition_name": null,
+        "plane": null,
+        "step": null,
+        "reason": null
+      },
+      "state_after": {
+        "processes": {
+          "proc-H-FT": {
+            "support_row": "H-FT",
+            "gateway_instance_id": "gateway-H-FT"
+          }
+        },
+        "sessions": {
+          "sess-H-FT": {
+            "phase": "awaiting_entry_response",
+            "process_id": "proc-H-FT",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": "resume",
+            "pending_resume_claim": {
+              "gateway_instance_id": "gateway-H-FT",
+              "support_row": "H-FT",
+              "previous_session_id_hex": "4200000000000000000000000000000000000000000000000000000000000000",
+              "channel_acks": [
+                {
+                  "channel_id": 1,
+                  "acknowledged_sequence": 1
+                }
+              ]
+            },
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-FT",
+            "server_support_row": "H-FT"
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-resume-result-accept",
+      "session_id": "sess-H-FT",
+      "expected": {
+        "status": "success",
+        "registry_code": null,
+        "registry_name": null,
+        "disposition_code": null,
+        "disposition_name": null,
+        "plane": null,
+        "step": null,
+        "reason": null
+      },
+      "state_after": {
+        "processes": {
+          "proc-H-FT": {
+            "support_row": "H-FT",
+            "gateway_instance_id": "gateway-H-FT"
+          }
+        },
+        "sessions": {
+          "sess-H-FT": {
+            "phase": "ready",
+            "process_id": "proc-H-FT",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-FT",
+            "session_id_hex": "4200000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-FT",
+            "entry_path": "resume",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {
+              "1": {
+                "phase": "active",
+                "domain_id": 0,
+                "operation_kind": "subscribe",
+                "data_direction": "gateway_to_browser",
+                "reliability": "reliable"
+              }
+            },
+            "sequences": {
+              "1:gateway_to_browser": {
+                "next_expected": 2,
+                "highest_accepted": 1
+              }
+            },
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-FT",
+            "server_support_row": "H-FT"
+          }
+        }
+      }
+    }
+  ]
+}

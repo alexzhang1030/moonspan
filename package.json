@@ -15,7 +15,7 @@
     "protocol-check": "bun run scripts/protocol-check.ts",
     "protocol-fixtures:write": "bun run scripts/protocol-fixtures.ts --write",
     "protocol-fixtures:check": "bun run scripts/protocol-fixtures.ts --check",
-    "check": "bun run docs:check && bun run protocol-check && bun run protocol-fixtures:check && bun run protocol-malformed-fixtures:check",
+    "check": "bun run docs:check && bun run protocol-check && bun run protocol-fixtures:check && bun run protocol-malformed-fixtures:check && bun run protocol-sequence-fixtures:check",
     "test:docs": "bun test scripts/docs-check.test.ts",
     "test:protocol": "bun test scripts/protocol-check.test.ts",
     "test:protocol-fixtures": "bun test scripts/protocol-fixtures.test.ts",
@@ -24,6 +24,9 @@
     "test": "bun test",
     "protocol-malformed-fixtures:write": "bun run scripts/protocol-malformed-fixtures.ts --write",
     "protocol-malformed-fixtures:check": "bun run scripts/protocol-malformed-fixtures.ts --check",
-    "test:protocol-malformed-fixtures": "bun test scripts/protocol-malformed-fixtures.test.ts"
+    "test:protocol-malformed-fixtures": "bun test scripts/protocol-malformed-fixtures.test.ts",
+    "protocol-sequence-fixtures:write": "bun run scripts/protocol-sequence-fixtures.ts --write",
+    "protocol-sequence-fixtures:check": "bun run scripts/protocol-sequence-fixtures.ts --check",
+    "test:protocol-sequence-fixtures": "bun test scripts/protocol-sequence-fixtures.test.ts"
   }
 }

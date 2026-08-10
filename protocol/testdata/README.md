@@ -10,6 +10,7 @@ Valid and boundary golden fixtures for wire version 0. Generated and checked by
 | `manifest.json` | Versioned index of every fixture: id, kind, path, lengths, SHA-256, coverage, executable tagged semantic `source`, expected success and roundtrip mode |
 | `valid/*.bin` | Materialized exact wire bytes for small and medium fixtures |
 | `malformed/` | Static malformed wire corpus (M0-03e1); own manifest + `*.bin` |
+| `sequences/` | Receiver state-sequence corpus (M0-03e2); scenarios + events |
 
 ## Representations
 
@@ -73,7 +74,7 @@ bun test scripts/protocol-fixtures.test.ts
 ```
 
 Root `bun run check` and `just check` include `protocol-fixtures:check` after
-`protocol-check`, then `protocol-malformed-fixtures:check`.
+`protocol-check`, then `protocol-malformed-fixtures:check`, then `protocol-sequence-fixtures:check`.
 
 Malformed corpus commands:
 
@@ -82,6 +83,21 @@ bun run protocol-malformed-fixtures:write
 bun run protocol-malformed-fixtures:check
 bun test scripts/protocol-malformed-fixtures.test.ts
 ```
+
+State-sequence corpus commands (M0-03e2):
+
+```bash
+bun run protocol-sequence-fixtures:write   # regenerate sequences/{manifest,scenarios,events}
+bun run protocol-sequence-fixtures:check   # parse + replay on-disk corpus (creates nothing)
+bun test scripts/protocol-sequence-fixtures.test.ts
+just protocol-sequence-fixtures-write
+just protocol-sequence-fixtures-check
+```
+
+`--check` is disk-first: it bounded-reads `manifest.json`, closed-validates schema,
+loads every referenced scenario JSON and event bytes, verifies length/sha256, then
+replays event bytes through codecs and the state oracle comparing stored outcomes
+and full `state_after` projections. `buildCorpus` is the write-side reference only.
 
 ## Coverage highlights
 

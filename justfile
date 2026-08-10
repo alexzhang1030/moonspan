@@ -34,6 +34,14 @@ protocol-malformed-fixtures-write: toolchain-check
 protocol-malformed-fixtures-check: toolchain-check
     cd "{{root}}" && bun run protocol-malformed-fixtures:check
 
+# Write R2WP v0 state-sequence fixtures.
+protocol-sequence-fixtures-write: toolchain-check
+    cd "{{root}}" && bun run protocol-sequence-fixtures:write
+
+# Check R2WP v0 state-sequence fixtures.
+protocol-sequence-fixtures-check: toolchain-check
+    cd "{{root}}" && bun run protocol-sequence-fixtures:check
+
 # Toolchain identity, Bun docs + protocol validation, Rust fmt/clippy, MoonBit format/check, TypeScript check.
 [group('quality')]
 check: toolchain-check
