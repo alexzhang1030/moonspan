@@ -14,6 +14,8 @@ The mainline produces these release artifacts:
 
 The release path advances in dependency order: contracts and fixtures, core data path, complete ROS semantics, production qualification, release.
 
+Exact first-stage distro, RMW, image, browser, and network pins live in the [support matrix](./support-matrix.md). Matrix rows start as **Qualification targets** and become **Qualified** through reviewed reports.
+
 ## People and jobs
 
 - Robotics developers need typed browser access to topics, services, actions, parameters, clocks, schemas, graph state, and QoS.
@@ -27,14 +29,14 @@ The release path advances in dependency order: contracts and fixtures, core data
 - **ROS 2 semantics in browser Wasm:** N2 behavior covers Node, Executor, Graph, QoS, Clock, Service, Action, and Parameter workflows.
 - **Binary data with visible budgets:** CDR remains on the hot path; every queue carries sample and byte limits; telemetry correlates source, network, queue, decode, and delivery stages.
 - **Controlled robot attachment:** identity, SROS2 policy, operation ACLs, resource budgets, and audit converge at `rclwebd`.
-- **Portable application contract:** WebTransport and WSS share R2WP; generated and dynamic schemas share one type registry; SDK behavior remains stable across declared browser tiers.
-- **Evidence-backed support:** each supported ROS distro, RMW, browser, and topology has an explicit matrix row and reproducible qualification report.
+- **Portable application contract:** WebTransport and WSS share R2WP; generated and dynamic schemas share one type registry keyed by schema identity `(scheme, value)`; SDK behavior remains stable across declared browser tiers.
+- **Evidence-backed support:** Each release support claim has an explicit **Qualified** matrix row and reproducible reviewed report.
 
 ## Native levels
 
 | Level | Definition | Evidence | Project role |
 |---|---|---|---|
-| N1 Wire-native | CDR, type hash, graph, QoS, and ROS time agree across the wire | Golden bytes plus Fast DDS, Cyclone DDS, and selected Zenoh interoperability | Mainline foundation |
+| N1 Wire-native | CDR, schema identity `(scheme, value)`, graph, QoS, and ROS time agree across the wire | Golden bytes plus Humble/Jazzy Fast DDS and Cyclone DDS interoperability | Mainline foundation |
 | N2 Runtime-native | Browser Wasm provides the planned ROS runtime semantics | `rclmbt` conformance plus bidirectional operation in a real ROS graph | Mainline runtime |
 | N3 Package-native | Selected upstream `rcl` or `rclcpp` packages run in Wasm | Reproducible package builds, custom-message demo, size, startup, and runtime limits | Post-release compatibility experiment |
 

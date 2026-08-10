@@ -34,6 +34,7 @@ The planning baseline uses five core engineers, 18 weeks for the mainline, and 6
 | Edge gateway | [`rclwebd`](../docs/gateway/rclwebd.md) |
 | Security and policy | [Security](../docs/security.md) |
 | Platform tiers | [Compatibility](../docs/compatibility.md) |
+| Exact first-stage pins and row status | [Support matrix](../docs/support-matrix.md) |
 | Evidence and targets | [Validation](../docs/validation.md) |
 | Existing solution roles | [Landscape](../docs/landscape.md) |
 | Common UI side project | [Common Studio prototype](../docs/prototypes/studio-ui.md) |
@@ -41,18 +42,19 @@ The planning baseline uses five core engineers, 18 weeks for the mainline, and 6
 
 ## 4. Working decisions
 
-ADRs 0001 and 0002 accept the mainline/prototype sequence and Bun. M0-01 and U0-01 record the remaining decisions:
+ADRs 0001–0007 accept the mainline/prototype sequence, Bun, monorepo ownership, browser/Wasm boundary, R2WP wire versioning, edge/ROS C ABI, and Humble/Jazzy schema identity. The [support matrix](../docs/support-matrix.md) pins first-stage rows as **Qualification targets**. M0-01 still owns licensing and remaining open support-profile acceptance. U0-01 records prototype frontend decisions.
 
 1. Use one monorepo for Rust, MoonBit, TypeScript, protocol fixtures, conformance, deployment, and documentation.
-2. Treat R2WP framing, schemas, type hashes, queue limits, errors, and telemetry as shared versioned contracts.
+2. Treat R2WP framing, schemas with identity `(scheme, value)`, queue limits, errors, and telemetry as shared versioned contracts.
 3. Keep deterministic runtime state and CDR work in MoonBit/Wasm; keep browser async APIs in the TypeScript Worker host.
 4. Use Rust for gateway concurrency and policy; isolate ROS distro variation behind a narrow serialized C ABI.
-5. Deliver N1 and N2 as the mainline native surface.
+5. Deliver N1 and N2 as the mainline native surface on first-stage Humble/Jazzy Fast DDS and Cyclone DDS rows.
 6. Support WebTransport and binary WSS through one R2WP semantic envelope.
 7. Give every queue explicit sample and byte budgets and emit stable disposition reasons.
 8. Use Bun for JavaScript workspaces, dependencies, lockfile, scripts, tests, builds, and one-shot tools.
 9. Schedule the common Studio prototype after the M3 release gate.
 10. Schedule the N3 package sandbox as a bounded post-release experiment.
+11. Keep Kilted, Lyrical, Rolling, `rmw_zenoh`, and Zenoh router topologies as post-first-stage expansion candidates in the [support matrix](../docs/support-matrix.md).
 
 ## 5. Planned repository layout
 
@@ -99,7 +101,7 @@ Shared contracts freeze before dependent implementation. Later changes include v
 |---|---:|---|---|
 | M0 Foundation | Weeks 1–2 | Accepted contracts, support profile, toolchains, fixtures, and evidence schema | Contract baseline approval |
 | M1 Core data path | Weeks 3–6 | N1 graph and publish/subscribe path through R2WP, `rclmbt`, `rclwebd`, and SDK | Core architecture approval |
-| M2 ROS semantics | Weeks 7–12 | Complete planned N2 surface, dynamic types, recording, and topology support | Semantic capability approval |
+| M2 ROS semantics | Weeks 7–12 | Complete planned N2 surface, dynamic types, recording, and multi-domain DDS isolation | Semantic capability approval |
 | M3 Production release | Weeks 13–18 | Security, compatibility, operations, SDK package, and signed release | Mainline release approval |
 | U0 Common prototype | Weeks 19–24 | Generic Studio UI over the released SDK | Prototype acceptance |
 | X0 N3 experiment | Post-release | Measured selected-package Wasm sandbox | Experiment continuation decision |
@@ -139,8 +141,8 @@ Every task clears these conditions:
 
 **Acceptance criteria:**
 
-- [ ] Existing ADRs cover mainline sequencing and Bun; new ADRs cover monorepo ownership, browser/Wasm boundary, R2WP versioning, and edge/ROS boundary.
-- [ ] The support profile names ROS image, RMW, OS, CPU, browser, Wasm mode, GPU where relevant, and 1 GbE network.
+- [ ] Existing ADRs cover mainline sequencing, Bun, monorepo ownership, browser/Wasm boundary, R2WP versioning, edge/ROS boundary, and Humble/Jazzy schema identity ([ADR 0007](../docs/adr/0007-humble-jazzy-schema-identity.md)).
+- [ ] The [support matrix](../docs/support-matrix.md) names first-stage Humble/Jazzy Fast DDS and Cyclone DDS rows, image digests, OS, CPU variants, browser reference, Wasm mode, buffer paths, and 1 GbE network as **Qualification targets**.
 - [ ] Repository license and third-party licensing policy have an owner and decision date.
 - [ ] Each open technical choice has an owner, evidence requirement, and decision date.
 
@@ -193,9 +195,11 @@ Every task clears these conditions:
 **Acceptance criteria:**
 
 - [ ] Fixtures cover primitives, endian cases, arrays, strings, wide strings, nesting, bounds, PointCloud2, Service, and Action types.
-- [ ] Each fixture carries values, type description, RIHS hash, serialized bytes, ROS image, RMW, and generator revision.
+- [ ] Each fixture carries values, type description, schema identity `(scheme, value)`, type name, encoding, schema generation, serialized bytes, ROS image, RMW, and generator revision.
+- [ ] Jazzy fixtures use scheme `rep2011-rihs`; Humble fixtures use scheme `moonspan-schema-v1` with recursive bundle metadata.
+- [ ] Corpus includes canonical bundle bytes and Jazzy provenance-mapping fixtures between `rep2011-rihs` and `moonspan-schema-v1`.
 - [ ] Corpus generation reproduces the manifest hashes in the pinned environment.
-- [ ] Fast DDS and Cyclone DDS rows expose any byte or semantic differences explicitly.
+- [ ] Fast DDS and Cyclone DDS rows on Humble and Jazzy expose any byte or semantic differences explicitly.
 
 **Verification:** `just cdr-corpus-check` regenerates metadata and matches the committed manifest.
 
@@ -249,12 +253,12 @@ Every task clears these conditions:
 
 #### M1-02 — Implement generated types and the type registry core
 
-**Description:** Generate MoonBit and TypeScript types from ROS interfaces and register codecs by RIHS hash.
+**Description:** Generate MoonBit and TypeScript types from ROS interfaces and register codecs by schema identity `(scheme, value)`.
 
 **Acceptance criteria:**
 
 - [ ] `.msg`, `.srv`, `.action`, and recursive descriptions generate deterministic source.
-- [ ] Generated bindings carry type name, RIHS hash, field metadata, and codec registration.
+- [ ] Generated bindings carry type name, schema identity `(scheme, value)`, encoding, field metadata, and codec registration.
 - [ ] Duplicate, conflicting, missing, and stale registrations produce stable errors.
 - [ ] Source regeneration is reproducible in CI.
 
@@ -289,8 +293,8 @@ Every task clears these conditions:
 **Acceptance criteria:**
 
 - [ ] Adapter lifecycle, graph snapshot/delta, subscribe, take, publish, buffer release, and errors use versioned fixed-width structures.
-- [ ] Lyrical and Jazzy adapter builds share one ABI conformance suite.
-- [ ] Fast DDS and Cyclone DDS run the graph and sample fixtures.
+- [ ] Humble and Jazzy adapter builds share one ABI conformance suite.
+- [ ] Fast DDS and Cyclone DDS run the graph and sample fixtures on both distros across support-matrix CPU variants.
 - [ ] Ownership, thread, callback, and shutdown rules are documented and tested.
 
 **Verification:** C ABI contract tests and ROS container integration tests pass for the declared M1 matrix.
@@ -301,12 +305,12 @@ Every task clears these conditions:
 
 #### M1-05 — Build `rclwebd` graph, schema, and bounded scheduler core
 
-**Description:** Connect the ROS adapter to Rust graph generations, RIHS schema cache, channel state, and queue scheduling.
+**Description:** Connect the ROS adapter to Rust graph generations, schema cache keyed by `(scheme, value, type name, encoding, schema generation)`, channel state, and queue scheduling.
 
 **Acceptance criteria:**
 
 - [ ] Graph snapshots and deltas have monotonic generations and stable ordering.
-- [ ] Schema cache entries carry RIHS identity, source, encoding, and generation.
+- [ ] Schema cache entries carry schema identity `(scheme, value)`, type name, encoding, source, and generation.
 - [ ] Channels enforce sample, byte, message-size, rate, bandwidth, priority, and deadline budgets.
 - [ ] Admission, send, eviction, expiry, cancellation, and adapter errors emit stable reasons and metrics.
 - [ ] The gateway exposes liveness, readiness, structured logs, and a metrics endpoint.
@@ -387,9 +391,10 @@ Every task clears these conditions:
 
 **Acceptance criteria:**
 
-- [ ] Gateway schema acquisition and R2WP advertisement preserve type name, RIHS hash, source, and generation.
-- [ ] Runtime validates recursion, bounds, hashes, and cache generations.
+- [ ] Gateway schema acquisition and R2WP advertisement preserve type name, schema identity `(scheme, value)`, encoding, source, and generation.
+- [ ] Runtime validates recursion, bounds, identity scheme and value, and cache generations.
 - [ ] Field projection decodes requested fields across nested custom interfaces.
+- [ ] Missing required Humble bundles produce stable `schema_unavailable` before channel activation.
 - [ ] Cache pressure, schema changes, and stale channels produce stable behavior and metrics.
 
 **Verification:** Custom-message fixtures and generated-versus-dynamic differential tests pass.
@@ -489,7 +494,7 @@ Every task clears these conditions:
 
 **Acceptance criteria:**
 
-- [ ] Recording preserves channel identity, schema, RIHS hash, source time, and trace context.
+- [ ] Recording preserves channel identity, schema identity `(scheme, value)`, type name, encoding, schema generation, source time, and trace context.
 - [ ] Replay supports indexed seek, rate, pause, ranges, checksum, and bounded buffering.
 - [ ] Live and replay samples use the same typed SDK event contract.
 - [ ] Reliable transfer supports quotas, ranges, resume, and integrity verification.
@@ -500,21 +505,22 @@ Every task clears these conditions:
 - **Likely files:** `rclwebd/crates/recording/`, `sdk/typescript/src/recording/`, `conformance/mcap/`
 - **Scope:** L
 
-#### M2-08 — Validate multi-domain sessions and Zenoh topologies
+#### M2-08 — Validate multi-domain DDS sessions
 
-**Description:** Preserve domain identity across gateway aggregation and qualify selected `rmw_zenoh` and router profiles.
+**Description:** Preserve domain identity across gateway aggregation when one process selects exactly one distro/RMW adapter support row and multiple ROS domain IDs.
 
 **Acceptance criteria:**
 
-- [ ] Graph, schema, channel, policy, and audit records retain domain identity.
-- [ ] Session isolation holds across duplicate ROS names and type identities.
-- [ ] Each domain uses one declared DDS or Zenoh mapping.
-- [ ] WAN-shaped tests publish discovery, latency, throughput, reconnect, and failure results.
+- [ ] One test run selects exactly one support-matrix adapter row (H-FT, H-CY, J-FT, or J-CY) and multiple ROS domain IDs under that row.
+- [ ] Graph, schema, channel, policy, and audit records retain domain identity within the selected row.
+- [ ] Session isolation holds across duplicate ROS names and schema identities within the selected row.
+- [ ] Reconnect and fault isolation hold within the selected row.
+- [ ] The matrix runner repeats the multi-domain suite independently for H-FT, H-CY, J-FT, and J-CY and for declared CPU variants; the report compares all rows.
 
-**Verification:** Multi-domain and Zenoh topology suites pass and produce a mapping report.
+**Verification:** Multi-domain DDS suites pass per row and produce a comparative mapping report.
 
 - **Dependencies:** M2-02, M2-06
-- **Likely files:** `rclwebd/crates/gateway/`, `deploy/zenoh/`, `conformance/topology/`
+- **Likely files:** `rclwebd/crates/gateway/`, `conformance/topology/`
 - **Scope:** L
 
 #### M2-09 — Stabilize the public browser SDK contract
@@ -541,8 +547,8 @@ Every task clears these conditions:
 
 **Acceptance criteria:**
 
-- [ ] Graph, dynamic types, QoS, Service, Action, Parameter, Clock, recording, and multi-domain suites have raw evidence.
-- [ ] Supported ROS/RMW/transport rows have explicit results and limits.
+- [ ] Graph, dynamic types, QoS, Service, Action, Parameter, Clock, recording, and multi-domain DDS suites have raw evidence.
+- [ ] Declared first-stage Humble/Jazzy Fast DDS and Cyclone DDS rows and transport paths have explicit results and limits.
 - [ ] SDK contract review and migration baseline are complete.
 - [ ] Remediation items have owner, scope, and gate disposition.
 
@@ -557,7 +563,7 @@ Every task clears these conditions:
 - [ ] The planned N2 conformance surface passes.
 - [ ] Dynamic and generated types agree across the declared corpus.
 - [ ] Recording and live transport share one SDK event model.
-- [ ] Multi-domain isolation and selected Zenoh profiles pass.
+- [ ] Multi-domain DDS isolation across declared first-stage rows passes.
 - [ ] Human review approves M3 execution.
 
 ### M3 — Production release, Weeks 13–18
@@ -616,13 +622,14 @@ Every task clears these conditions:
 
 #### M3-04 — Automate compatibility endpoints and the support matrix
 
-**Description:** Qualify ROS adapters, RMWs, browsers, buffer paths, transports, proxies, Foxglove, and rosbridge through one matrix runner.
+**Description:** Qualify Humble and Jazzy adapters, Fast DDS and Cyclone DDS rows, the pinned Chrome reference, later browser tier assignment, transports, buffer paths, proxies, Foxglove, and rosbridge through one matrix runner.
 
 **Acceptance criteria:**
 
-- [ ] Lyrical and Jazzy adapters build and run the declared semantic rows.
-- [ ] Fast DDS, Cyclone DDS, and selected Zenoh rows publish results.
-- [ ] Chrome, Edge, Safari, and Firefox receive explicit SDK capability tiers.
+- [ ] Humble and Jazzy adapters build and run the declared semantic rows on support-matrix CPU variants.
+- [ ] Every row included in the release support set reaches **Qualified** through a reviewed report.
+- [ ] Rows that retain **Qualification target** status stay in the future qualification set.
+- [ ] The pinned Playwright-managed Chrome for Testing reference qualifies; Edge, Safari, and Firefox receive explicit SDK capability tiers from M3 evidence.
 - [ ] WebTransport, WSS, reverse-proxy, and both buffer paths have environment-qualified results.
 - [ ] Foxglove WSS/CDR and rosbridge JSON/CBOR-RAW expose independent policy and telemetry.
 
@@ -758,7 +765,7 @@ Every U0 task depends directly or transitively on M3-08.
 
 - [ ] Graph snapshots and churn preserve selection, expansion, focus, and stable ordering.
 - [ ] Search and filters cover names, kinds, types, QoS, and domains.
-- [ ] Inspector shows schema, RIHS, QoS, rate, latency, drops, queues, transport, permission, and budget fields.
+- [ ] Inspector shows schema identity scheme/value (including `rep2011-rihs` when that scheme is active), type name, QoS, rate, latency, drops, queues, transport, permission, and budget fields.
 - [ ] Capability and compatibility explanations use SDK-provided structured data.
 
 **Verification:** Component tests, 1000-endpoint churn tests, keyboard tests, and end-to-end selection tests pass.
@@ -902,7 +909,7 @@ Every U0 task depends directly or transitively on M3-08.
 
 - Type and QoS work begins with M2-01 and M2-02.
 - Service, Action, and Parameter proceed in dependency order through M2-03, M2-04, and M2-05.
-- Clock, recording, and topology work proceed through M2-06, M2-07, and M2-08.
+- Clock, recording, and multi-domain DDS work proceed through M2-06, M2-07, and M2-08.
 - SDK stabilization and gate reporting close M2 through M2-09 and M2-10.
 
 ### Weeks 13–18
@@ -925,7 +932,7 @@ Every U0 task depends directly or transitively on M3-08.
 | Risk | Early evidence | Planned response | Decision point |
 |---|---|---|---|
 | MoonBit/Wasm host maturity | M1-03 batching, clocks, jitter, copies, allocations | Keep a synchronous Wasm state machine with a TypeScript scheduler and bounded ABI | M1 gate |
-| CDR/XCDR2 and custom type coverage | M0-04 corpus and M1-01 differential results | Generated codecs plus dynamic projection keyed by RIHS | M1 and M2 gates |
+| CDR/XCDR2 and custom type coverage | M0-04 corpus and M1-01 differential results | Generated codecs plus dynamic projection keyed by schema identity `(scheme, value)` | M1 and M2 gates |
 | QoS semantic drift | M1 baseline and M2-02 cross-RMW matrix | Explicit QoS state, stable trace events, per-RMW suites | M1 and M2 gates |
 | WebTransport network coverage | M1-06 proxy, handshake, path, and resume data | One R2WP envelope over binary WSS | M1 and M3 gates |
 | Large-message memory pressure | M1-08 queue, lease, copy, allocation, and memory traces | Byte budgets, sample streams, latest-wins policy, bounded pools | M1 gate |

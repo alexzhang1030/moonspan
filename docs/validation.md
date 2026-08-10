@@ -2,11 +2,13 @@
 
 Moonspan converts architecture targets into release authority through reproducible conformance, benchmark, security, and operations evidence. Every claim moves from a documented target to raw measurement, reviewed report, and named gate decision.
 
+First-stage environment rows and status vocabulary live in the [support matrix](./support-matrix.md). Rows start as **Qualification targets** and become **Qualified** only through reviewed evidence reports.
+
 ## Native evidence levels
 
 | Level | Required evidence | Delivery point |
 |---|---|---|
-| N1 Wire-native | CDR golden bytes, RIHS identity, graph, QoS, and ROS time interoperability across declared RMWs | M1 core data-path gate |
+| N1 Wire-native | CDR golden bytes, schema identity `(scheme, value)`, graph, QoS, and ROS time interoperability across declared first-stage RMWs | M1 core data-path gate |
 | N2 Runtime-native | `rclmbt` conformance for Context, Node, Executor, graph, publish/subscribe, Service, Action, Parameter, QoS, and Clock plus real ROS operation | M2 semantic gate |
 | N3 Package-native | Reproducible selected-package Wasm builds, custom-message operation, size, startup, memory, and supported-API report | Post-release experiment |
 
@@ -86,15 +88,15 @@ Generated reports derive from raw artifacts through checked-in scripts. Release 
 |---|---|---|
 | M0 Foundation | Accepted support profile, ADRs, pinned toolchains, R2WP draft fixtures, CDR corpus, evidence schema | Contract baseline approval |
 | M1 Core data path | N1 agreement, graph and publish/subscribe, both transports, both browser buffer paths, PointCloud2 headless run | Core architecture approval |
-| M2 ROS semantics | Complete planned N2 surface, dynamic types, QoS matrix, recording, multi-domain and Zenoh evidence | Semantic capability approval |
-| M3 Production release | Identity, ACL, SROS2, audit, budgets, compatibility, deployment, soak, fault, SDK, signed artifacts | Mainline release approval |
+| M2 ROS semantics | Complete planned N2 surface, dynamic types, QoS matrix, recording, multi-domain DDS evidence | Semantic capability approval |
+| M3 Production release | Identity, ACL, SROS2, audit, budgets, compatibility with **Qualified** release support rows, deployment, soak, fault, SDK, signed artifacts | Mainline release approval |
 | U0 Common prototype | Released SDK integration, planned panels and workflows, rendering/media budgets, accessibility, command safety | Prototype acceptance |
 
 ## M1 core gate
 
 - CDR corpus agreement reaches 100% for the declared M1 set.
 - Real ROS graph and publish/subscribe operate bidirectionally.
-- Sensor-data and reliable QoS profiles interoperate across the declared RMW rows.
+- Sensor-data and reliable QoS profiles interoperate across the declared first-stage RMW rows.
 - PointCloud2 4 MiB at 10 Hz runs for 30 minutes within queue, memory, copy, and allocation budgets.
 - R2WP reaches the transport-efficiency target on the reference profiles.
 - Reconnect, malformed input, stalled consumer, and Worker restart produce bounded recovery and stable reasons.
@@ -105,9 +107,12 @@ Generated reports derive from raw artifacts through checked-in scripts. Release 
 - Wi-Fi roam, sleep/wake, proxy path, latency, packet loss, reordering, and constrained bandwidth.
 - Gateway restart, Worker crash, session expiry, policy revision, clock jump, and schema change.
 - Oversized samples, rate pressure, command concurrency, cache pressure, and audit sink failure.
-- Lyrical and Jazzy across Fast DDS, Cyclone DDS, and selected Zenoh profiles.
-- Declared Chrome, Edge, Safari, and Firefox SDK capability tiers.
+- Humble and Jazzy across Fast DDS and Cyclone DDS. Multi-domain DDS isolation runs one adapter support row at a time (H-FT, H-CY, J-FT, or J-CY) with multiple ROS domain IDs; the matrix runner repeats per row and CPU variant and compares results.
+- Declared Chrome, Edge, Safari, and Firefox SDK capability tiers, with the Playwright-managed Chrome for Testing reference from the support matrix as the first-stage browser pin.
 - Install, upgrade, rollback, certificate rotation, SROS2 rotation, and disaster recovery.
+- Release support claims require every included matrix row to reach **Qualified** through a reviewed report; rows that retain **Qualification target** status stay in the future qualification set.
+
+Post-first-stage expansion candidates (Kilted, Lyrical, Rolling, `rmw_zenoh`, Zenoh router topologies) follow independent qualification through the [support matrix](./support-matrix.md) after M0–M3 mainline gates.
 
 Every injected event maps to observable product state, a stable metric or error reason, and correlated browser, gateway, and ROS trace identity.
 

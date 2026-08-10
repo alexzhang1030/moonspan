@@ -46,7 +46,7 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
 - [ ] M2-05 Deliver Parameter semantics.
 - [ ] M2-06 Complete Clock and simulation-time behavior.
 - [ ] M2-07 Add MCAP recording and replay adapters.
-- [ ] M2-08 Validate multi-domain sessions and Zenoh topologies.
+- [ ] M2-08 Validate multi-domain DDS sessions.
 - [ ] M2-09 Stabilize the public browser SDK contract.
 - [ ] M2-10 Issue the N2 semantic gate report.
 
@@ -55,7 +55,7 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
 - [ ] The planned N2 conformance surface passes.
 - [ ] Dynamic and generated types agree across the declared corpus.
 - [ ] Recording and live transport share one SDK event model.
-- [ ] Multi-domain isolation and selected Zenoh profiles pass.
+- [ ] Multi-domain DDS isolation across declared first-stage rows passes.
 - [ ] Human review approves M3.
 
 ## M3 — Production release, Weeks 13–18

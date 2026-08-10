@@ -6,10 +6,10 @@ The detailed targets, workloads, artifact schema, qualification scenarios, and g
 
 ## Mainline evidence order
 
-1. M0 fixes support profiles, toolchains, contract fixtures, CDR corpus, and report schemas.
-2. M1 proves N1 wire agreement, graph and publish/subscribe, both transports, both browser buffer paths, and a headless PointCloud2 data path.
-3. M2 proves the complete planned N2 runtime surface, dynamic types, QoS, recording, and topology behavior.
-4. M3 proves identity, SROS2, ACLs, audit, resource policy, compatibility, deployment, soak, faults, SDK usability, and release reproducibility.
+1. M0 fixes support profiles, toolchains, contract fixtures, CDR corpus, and report schemas. Exact first-stage rows and **Qualification target** status live in the [support matrix](../../docs/support-matrix.md).
+2. M1 proves N1 wire agreement with schema identity `(scheme, value)`, graph and publish/subscribe, both transports, both browser buffer paths, and a headless PointCloud2 data path.
+3. M2 proves the complete planned N2 runtime surface, dynamic types, QoS, recording, and multi-domain DDS behavior. Each multi-domain run selects one adapter support row (H-FT, H-CY, J-FT, or J-CY) with multiple ROS domain IDs; the matrix repeats per row and CPU variant.
+4. M3 proves identity, SROS2, ACLs, audit, resource policy, compatibility with **Qualified** release support rows, deployment, soak, faults, SDK usability, and release reproducibility.
 5. U0 proves the common prototype's panels, rendering, media, accessibility, command presentation, and workspace performance on the released SDK.
 
 ## Why the split matters

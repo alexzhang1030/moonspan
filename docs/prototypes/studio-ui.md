@@ -35,7 +35,7 @@ The prototype delivers:
 1. **Top command bar, 56 px:** robot and domain identity, Live/Replay state, RTT, loss, clock skew, bandwidth, recording, and command palette.
 2. **Graph Explorer, 248 px:** Robot → Namespace → Node → Topic/Service/Action hierarchy, search, type filters, QoS filters, rates, and selection state.
 3. **Dockable canvas:** 3D, Camera, Map, Plot, Raw Inspector, TF, Diagnostics, Log, Service Console, and Action Console.
-4. **Context Inspector, 292 px:** schema, RIHS hash, QoS, rate, latency, drops, queue, permissions, transport, decode, GPU, and rendering budgets.
+4. **Context Inspector, 292 px:** schema identity scheme/value (including `rep2011-rihs` when that scheme is active), type name, QoS, rate, latency, drops, queue, permissions, transport, decode, GPU, and rendering budgets.
 5. **Timeline, 104 px:** live rolling buffer, MCAP replay, event markers, clock state, skew, playhead, loop, session comparison, and replay speed.
 
 An 8 px base rhythm governs panel spacing, with 4 px increments for compact internal alignment. Desktop qualification starts at a 1208 × 748 px content frame and expands through the declared browser tier matrix.
