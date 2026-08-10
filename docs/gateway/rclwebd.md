@@ -4,7 +4,7 @@
 
 **Status:** design baseline. M1 proves generic serialized graph and publish/subscribe; M2 expands ROS semantics; M3 qualifies production controls and operations.
 
-Schema identity follows [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md). First-stage distro, RMW, image, and row status live in the [support matrix](../support-matrix.md).
+Schema identity follows [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md). Process and support-row topology follows [ADR 0008](../adr/0008-one-adapter-row-per-gateway-process.md). First-stage distro, RMW, image, and row status live in the [support matrix](../support-matrix.md).
 
 ## Responsibilities
 
@@ -35,6 +35,19 @@ rclwebd/
   tests/                 fixtures, fault tests, topology integration
 ```
 
+## Process and support-row binding
+
+- One `rclwebd` process binds to exactly one adapter support row: H-FT, H-CY, J-FT, or J-CY.
+- That process may create multiple ROS contexts and domain IDs under the same selected row.
+- The four first-stage rows ship as separate process and image variants, each with its distro adapter, RMW selection, adapter ABI version, and support-row identity.
+- `support_row_id` is immutable for the running artifact and profile.
+- `gateway_instance_id` is a deployment-provided stable identifier for one logical gateway instance. It persists across ordinary process restart and in-place upgrade when resumable state is preserved. A replacement deployment or intentionally fresh instance receives a new identifier. Matching `gateway_instance_id` supports restart resume; a replacement instance drives a clean session.
+- Startup validates configured `support_row_id`, ROS distro, selected RMW implementation identifier, adapter ABI version, and artifact profile.
+- A mismatch yields stable readiness and startup status `adapter_profile_mismatch` on the readiness endpoint and in logs. A profile mismatch keeps the gateway outside the ready state.
+- Graph, schema, channel, policy, metrics, logs, audit, and evidence records carry `gateway_instance_id`, `support_row_id`, and `domain_id` where applicable.
+- One R2WP session terminates at one gateway instance and one support row; the session may expose multiple domain IDs under that row.
+- Cross-row fleet views use multiple independent SDK sessions and retain gateway, support-row, and domain provenance in the application layer.
+
 ## Narrow ROS C ABI
 
 The adapter exposes generic serialized operations and explicit ownership. The planned surface covers:
@@ -60,10 +73,10 @@ The ABI uses fixed-width types, versioned structures, explicit lengths, opaque h
 
 ## Process and data path
 
-The initial implementation uses one gateway process and a bounded SPSC exchange with the ROS adapter:
+The initial implementation uses one gateway process bound to one support row and a bounded SPSC exchange with the ROS adapter:
 
 1. The adapter polls ROS readiness and places serialized events into a bounded ring.
-2. Rust consumes events, resolves graph and schema identity `(scheme, value)`, evaluates session policy, and admits each event to a channel queue.
+2. Rust consumes events, resolves graph and schema identity `(scheme, value)`, attaches `gateway_instance_id`, `support_row_id`, and `domain_id`, evaluates session policy, and admits each event to a channel queue.
 3. The scheduler selects control, reliable stream, datagram, or sample-stream work according to priority and deadlines.
 4. Transport completion releases or recycles the buffer through its recorded owner.
 5. Browser-originated operations follow the reverse path after policy and schema validation.
@@ -87,11 +100,11 @@ The scheduler gives control and cancellation traffic bounded latency, applies fa
 ## Graph and schema registry
 
 - Graph state has a monotonic generation and ordered deltas.
-- Endpoint records carry name, kind, type name, schema identity `(scheme, value)`, encoding where relevant, schema generation, QoS, liveliness, domain, and adapter source.
+- Endpoint records carry name, kind, type name, schema identity `(scheme, value)`, encoding where relevant, schema generation, QoS, liveliness, `domain_id`, `support_row_id`, `gateway_instance_id`, and adapter source.
 - Schema identity is exactly `(scheme, value)`. The schema cache key is `(scheme, value, type name, encoding, schema generation)`.
 - Cached schema records include the normalized recursive type description, applicable source-bundle entries, encoding, source, and cache generation.
 - Session policy filters the graph and schema view before transmission.
-- Channel setup pins its graph generation, schema identity, and schema generation.
+- Channel setup pins its graph generation, schema identity, schema generation, domain, and support-row provenance.
 - Missing required Humble bundles surface `schema_unavailable` at channel open.
 - Cache invalidation produces a structured channel transition and observable reason.
 
@@ -102,23 +115,26 @@ TLS connection
   -> hello and capability negotiation
   -> short-lived identity validation
   -> effective policy and resource envelope
+  -> SessionReady with gateway/support-row profile
   -> graph/schema synchronization
   -> channel operations
   -> graceful close or resumable interruption
 ```
 
-Resume state includes session identity, selected wire version, compatible negotiated capabilities, acknowledged channel sequences, graph generation, schema generation, policy revision, and expiry. A policy or schema generation change can require channel reauthorization during resume.
+Resume state includes session identity, selected wire version, compatible negotiated capabilities, matching `gateway_instance_id` and immutable `support_row_id`, acknowledged channel sequences, graph generation, schema generation, policy revision, and expiry. Ordinary restart with the same `gateway_instance_id` and preserved resumable state may continue the session. A replacement `gateway_instance_id` or a `support_row_id` change requires a clean session and fresh authorization. A policy revision or schema generation change may require channel reauthorization during an otherwise valid resume.
 
 ## ROS domain and fleet topology
 
 ### First-stage domain mappings
 
-A first-stage ROS domain selects one mapping from the [support matrix](../support-matrix.md) **Qualification target** rows:
+A first-stage gateway process selects one support-matrix **Qualification target** row and may open multiple ROS domain IDs under that row:
 
-- Humble or Jazzy with `rmw_fastrtps_cpp` (reference and default row on each distro);
-- Humble or Jazzy with `rmw_cyclonedds_cpp` (second qualification row on each distro).
+- H-FT: Humble + `rmw_fastrtps_cpp` (reference / default on Humble);
+- H-CY: Humble + `rmw_cyclonedds_cpp`;
+- J-FT: Jazzy + `rmw_fastrtps_cpp` (reference / default on Jazzy);
+- J-CY: Jazzy + `rmw_cyclonedds_cpp`.
 
-Gateway sessions aggregate multiple configured domains and retain domain identity on graph, schema, channel, policy, and audit records.
+Each row is a separate process and image variant. Gateway sessions retain `gateway_instance_id`, `support_row_id`, and `domain_id` on graph, schema, channel, policy, audit, and evidence records.
 
 ### Later-expansion topologies
 
@@ -141,22 +157,23 @@ These profiles form the post-first-stage expansion set and enter through indepen
 
 The gateway exposes:
 
-- liveness and readiness for process, ROS attachment, transport, identity provider, and policy source;
+- liveness and readiness for process, ROS attachment, transport, identity provider, policy source, and adapter profile validation;
 - Prometheus-style counters, gauges, histograms, and stable reason labels;
-- structured logs carrying session, channel, operation, goal, domain, schema identity, and trace identity;
-- audit output with integrity and retention controls;
+- structured logs carrying session, channel, operation, goal, `gateway_instance_id`, `support_row_id`, `domain_id`, schema identity, and trace identity;
+- audit output with integrity and retention controls, including gateway, support-row, and domain provenance;
 - configuration validation and effective-configuration output;
 - graceful drain, restart, session expiry, and bounded recovery behavior.
 
-Deployment artifacts cover container images, reverse proxy and UDP 443 setup, TLS certificates, SROS2 enclave mounting, OIDC configuration, COOP/COEP headers, storage, observability, upgrade, rollback, and recovery.
+Deployment artifacts cover per-row container images, reverse proxy and UDP 443 setup, TLS certificates, SROS2 enclave mounting, OIDC configuration, COOP/COEP headers, storage, observability, upgrade, rollback, and recovery.
 
 ## Required evidence
 
 - cross-language R2WP fixture agreement;
-- serialized ROS interoperability across the declared first-stage distro/RMW matrix;
+- serialized ROS interoperability across the declared first-stage distro/RMW matrix, with multi-domain suites repeated independently per support row and CPU variant;
 - schema identity handling for `rep2011-rihs` and `moonspan-schema-v1`, including missing-bundle behavior;
+- startup validation and `adapter_profile_mismatch` behavior;
 - bounded-memory behavior under sustained load and stalled consumers;
 - fairness and deadline behavior across mixed channel classes;
-- reconnect and resume behavior across gateway restart and network transitions;
+- reconnect and resume behavior across gateway restart and network transitions, including gateway instance and support-row matching;
 - policy and audit conformance for every operation kind;
 - fault injection across adapter, schema, identity, transport, and storage dependencies.

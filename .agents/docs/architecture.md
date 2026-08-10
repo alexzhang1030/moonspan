@@ -2,7 +2,7 @@
 
 Moonspan places ROS-facing application semantics in browser Wasm and robot trust at the edge. This split gives application teams a portable typed SDK while concentrating ROS distro adaptation, private credentials, policy, resource control, and audit in `rclwebd`.
 
-Detailed system structure lives in [formal architecture](../../docs/architecture.md). Protocol, runtime, and gateway contracts live in [R2WP](../../docs/protocol/r2wp.md), [`rclmbt`](../../docs/runtime/rclmbt.md), and [`rclwebd`](../../docs/gateway/rclwebd.md). First-stage Humble/Jazzy rows, exact pins, and later topology expansion live in the [support matrix](../../docs/support-matrix.md).
+Detailed system structure lives in [formal architecture](../../docs/architecture.md). Protocol, runtime, and gateway contracts live in [R2WP](../../docs/protocol/r2wp.md), [`rclmbt`](../../docs/runtime/rclmbt.md), and [`rclwebd`](../../docs/gateway/rclwebd.md). First-stage Humble/Jazzy rows, exact pins, and later topology expansion live in the [support matrix](../../docs/support-matrix.md). Process topology follows [ADR 0008](../../docs/adr/0008-one-adapter-row-per-gateway-process.md).
 
 ## Mainline shape
 
@@ -12,13 +12,20 @@ Browser application or conformance harness
                  |
                  | R2WP / CDR
                  v
-Robot edge: rclwebd + schema/policy + ROS C ABI adapter
+Robot edge: one rclwebd process
+  one selected adapter support row
+  schema/policy + ROS C ABI adapter
                  |
                  v
-ROS 2 domain through one selected first-stage DDS mapping
+ROS 2 domains under that support row
+  multiple domain IDs, one DDS mapping per process
 ```
 
 The common Studio prototype attaches as an application layer over the released SDK after the mainline release gate.
+
+One process may expose multiple domains within its support row. Cross-row fleet views compose independent SDK sessions and retain gateway, support-row, and domain provenance.
+
+`gateway_instance_id` is a deployment-provided stable identifier for one logical gateway instance. It persists across ordinary process restart and in-place upgrade when resumable state is preserved. A replacement deployment or intentionally fresh instance receives a new identifier. Matching `gateway_instance_id` supports restart resume; a replacement instance drives a clean session. `support_row_id` is immutable for the running artifact and profile.
 
 ## Why these boundaries
 
@@ -26,20 +33,21 @@ The common Studio prototype attaches as an application layer over the released S
 - MoonBit/Wasm owns deterministic state, codecs, graph, QoS, and executor behavior.
 - JavaScript Workers own browser async APIs, scheduling, timers, transport, and buffer ownership transfer.
 - Rust owns concurrent transport and scheduling under explicit resource budgets.
-- The C ABI concentrates ROS distro and RMW variation in one adapter surface.
+- The C ABI concentrates ROS distro and RMW variation in one adapter surface per process support row.
 - R2WP gives WebTransport and WSS one semantic contract.
 - Schema identity `(scheme, value)` keeps Humble bundle digests and Jazzy RIHS values explicit across protocol, runtime, and gateway caches.
+- One support row per process is a Moonspan deployment policy grounded in ROS runtime selection through `RMW_IMPLEMENTATION` and the usual process-local graph-cache model; Moonspan holds the selected support-row profile constant for the gateway process lifetime.
 - The browser SDK isolates applications from Worker, buffer, transport, and reconnect mechanics.
 
 ## Stable ownership
 
 | Unit | Durable ownership |
 |---|---|
-| R2WP | Frames, control plane, channel semantics, schema identity `(scheme, value)`, QoS mapping, errors, versioning |
+| R2WP | Frames, control plane, channel semantics, schema identity `(scheme, value)`, gateway/support-row provenance, QoS mapping, errors, versioning |
 | `rclmbt` | N2 state and behavior, CDR, type registry keyed by schema identity, host poll contract |
 | Browser SDK | Public typed API, Worker lifecycle, async completion, telemetry |
-| `rclwebd` | ROS attachment, schema cache by `(scheme, value)`, sessions, scheduling, policy, audit, operations |
-| ROS adapter | Versioned serialized C ABI, distro/RMW integration, and schema acquisition |
+| `rclwebd` | One support-row process, ROS attachment, schema cache by `(scheme, value)`, sessions, scheduling, policy, audit, operations |
+| ROS adapter | Versioned serialized C ABI, distro/RMW integration, and schema acquisition for the bound row |
 | Conformance system | Fixtures, workloads, environment identity, raw evidence and reports |
 | Common Studio prototype | Workspace, panels, rendering, media, accessibility and command presentation |
 

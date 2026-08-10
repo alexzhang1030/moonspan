@@ -13,6 +13,7 @@ ADRs capture accepted decisions that carry significant reversal cost. Technical 
 | [0005](./0005-r2wp-wire-versioning.md) | Accepted | Version R2WP as complete negotiated wire contracts with server-selected versions. |
 | [0006](./0006-edge-ros-c-abi-boundary.md) | Accepted | Isolate ROS integration behind a versioned serialized C ABI at the edge. |
 | [0007](./0007-humble-jazzy-schema-identity.md) | Accepted | Lock phase-one Humble/Jazzy schema identity with `rep2011-rihs` and `moonspan-schema-v1`. |
+| [0008](./0008-one-adapter-row-per-gateway-process.md) | Accepted | Bind each gateway process to one ROS adapter support row with multi-domain contexts inside that row. |
 
 ## Convention
 

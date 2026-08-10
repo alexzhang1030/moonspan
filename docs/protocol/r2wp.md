@@ -4,7 +4,7 @@ R2WP is Moonspan's versioned browser transport for ROS 2 semantics and serialize
 
 **Status:** design baseline. Task M0-03 freezes R2WP v0 through normative text, numeric registries, cross-language fixtures, and compatibility review.
 
-Schema identity follows [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md). First-stage distro, RMW, and image pins live in the [support matrix](../support-matrix.md). Wire versioning follows [ADR 0005](../adr/0005-r2wp-wire-versioning.md).
+Schema identity follows [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md). Gateway process and support-row binding follows [ADR 0008](../adr/0008-one-adapter-row-per-gateway-process.md). First-stage distro, RMW, and image pins live in the [support matrix](../support-matrix.md). Wire versioning follows [ADR 0005](../adr/0005-r2wp-wire-versioning.md).
 
 ## Design goals
 
@@ -37,6 +37,15 @@ First-stage schemes:
 Jazzy deployments may also record a provenance mapping from `rep2011-rihs` to a `moonspan-schema-v1` digest. The schemes remain independent identities.
 
 When a required Humble deployment bundle is absent, channel open returns the stable error `schema_unavailable`. M0-03 assigns its numeric registry value.
+
+## Gateway process and support-row binding
+
+- One R2WP connection binds one gateway instance and one adapter support row (H-FT, H-CY, J-FT, or J-CY).
+- That session may expose multiple ROS domain IDs under the bound support row.
+- Cross-row fleet views use independent R2WP sessions and retain gateway, support-row, and domain provenance in the application layer.
+- `gateway_instance_id` is a deployment-provided stable identifier for one logical gateway instance. It persists across ordinary process restart and in-place upgrade when resumable state is preserved. A replacement deployment or intentionally fresh instance receives a new identifier. Matching `gateway_instance_id` supports restart resume; a replacement instance drives a clean session.
+- `support_row_id` is immutable for the running artifact and profile.
+- `SessionReady` is emitted only by a ready gateway and carries the validated profile.
 
 ## Frame layout
 
@@ -74,13 +83,13 @@ M0-03 assigns byte order, numeric opcode values, flag bits, clock values, extens
 A reliable ordered control stream owns session and channel state. R2WP v0 defines these operations:
 
 - `ClientHello` and `ServerHello`: bounded ordered supported wire-version set, transport capabilities, browser buffer capabilities, limits, and session-resume material. `ServerHello` selects exactly one common wire version before session, graph, schema, or channel state begins.
-- `Authenticate` and `SessionReady`: short-lived credential exchange, effective identity, policy revision, and session budgets.
-- `GraphSnapshot` and `GraphDelta`: node, endpoint, type name, schema identity `(scheme, value)`, QoS, liveliness, and generation state.
+- `Authenticate` and `SessionReady`: short-lived credential exchange, effective identity, policy revision, and session budgets. After policy and auth context is established on a ready gateway, `SessionReady` carries the validated profile: `gateway_instance_id`, `support_row_id`, ROS distro, RMW identifier, and adapter ABI version.
+- `GraphSnapshot` and `GraphDelta`: node, endpoint, type name, schema identity `(scheme, value)`, QoS, liveliness, generation state, `domain_id`, and support-row provenance where applicable.
 - `SchemaRequest`: requested type name and schema identity `(scheme, value)`.
-- `SchemaAdvertise` and `SchemaResponse`: type name, schema identity `(scheme, value)`, normalized recursive type description, applicable source-bundle entries, encoding, schema generation, and cache lifetime.
-- `OpenChannel`, `ChannelReady`, and `CloseChannel`: operation kind, target, type name, schema identity `(scheme, value)`, encoding, schema generation, QoS, priority, queue budgets, and policy result.
+- `SchemaAdvertise` and `SchemaResponse`: type name, schema identity `(scheme, value)`, normalized recursive type description, applicable source-bundle entries, encoding, schema generation, cache lifetime, and support-row provenance where applicable.
+- `OpenChannel`, `ChannelReady`, and `CloseChannel`: operation kind, target, type name, schema identity `(scheme, value)`, encoding, schema generation, QoS, priority, queue budgets, policy result, `domain_id`, and support-row provenance where applicable.
 - `ClockSync` and `Heartbeat`: clock mapping, skew estimate, liveliness, and round-trip samples.
-- `SessionResume`: previous session identity, selected wire version, compatible capabilities, acknowledged channel sequences, graph generation, schema generation, policy revision, and resumed channel results.
+- `SessionResume`: previous session identity, selected wire version, compatible capabilities, matching `gateway_instance_id` and `support_row_id`, acknowledged channel sequences, graph generation, schema generation, policy revision, and resumed channel results. Resume mismatch on gateway instance or support row is an R2WP semantic result; M0-03 freezes the exact code.
 - `Error`: stable code, scope, channel, operation correlation, retry class, and diagnostic detail. Codes include `schema_unavailable` for a missing required Humble bundle.
 
 Control messages receive a machine-readable schema under `protocol/` and matching Rust, MoonBit, and TypeScript fixtures.
@@ -122,11 +131,12 @@ Binary WSS carries the same frames in one connection. Its internal scheduler pre
 
 ## Errors and telemetry
 
-The v0 registry includes semantic codes for malformed frames, unsupported versions, unsupported opcodes, unknown channels, schema mismatch, schema identity mismatch, `schema_unavailable`, QoS incompatibility, permission denial, resource exhaustion, deadline expiry, cancellation, transport closure, and stale generation. M0-03 freezes numeric values, including `schema_unavailable`.
+The v0 registry includes semantic codes for malformed frames, unsupported versions, unsupported opcodes, unknown channels, schema mismatch, schema identity mismatch, `schema_unavailable`, QoS incompatibility, permission denial, resource exhaustion, deadline expiry, cancellation, transport closure, stale generation, and resume mismatch on gateway instance or support row. M0-03 freezes numeric values, including `schema_unavailable` and the resume-mismatch code. Only a ready gateway emits `SessionReady`.
 
 Every frame or control operation can carry a trace extension. Implementations correlate:
 
 - session, channel, sequence, operation, and goal identity;
+- `gateway_instance_id`, `support_row_id`, and `domain_id` where applicable;
 - schema identity `(scheme, value)`, type name, encoding, and schema generation where applicable;
 - source, gateway ingress, gateway egress, browser ingress, decode, and delivery time;
 - queue admission, queue delay, copy count, payload size, and stable disposition reason.
@@ -162,6 +172,10 @@ R2WP v0 ships golden fixtures for:
 - schema identity for `rep2011-rihs` and `moonspan-schema-v1`;
 - Jazzy provenance mapping between `rep2011-rihs` and a bundle digest;
 - identity mismatch and missing required Humble bundle (`schema_unavailable`);
+- gateway profile identity in `SessionReady` (`gateway_instance_id`, `support_row_id`, distro, RMW, adapter ABI) from a ready gateway;
+- multi-domain same-row sessions under one support row;
+- cross-row independent sessions;
+- resume mismatch on gateway instance or support row;
 - truncation, overflow, unknown registry values, stale generations, and schema mismatch;
 - session open, channel open, cancellation, reconnect, resume, and terminal close sequences.
 
@@ -170,9 +184,9 @@ Rust, MoonBit, and TypeScript parsers consume the same bytes and produce the sam
 ## Contract items assigned to M0-03
 
 - byte order and integer encoding;
-- opcode, flag, clock, priority, and error registries, including `schema_unavailable`;
-- control schema serialization for `(scheme, value)` identity fields;
+- opcode, flag, clock, priority, and error registries, including `schema_unavailable` and resume-mismatch on gateway instance or support row;
+- control schema serialization for `(scheme, value)` identity fields and gateway/support-row provenance;
 - extension layout and trace fields;
 - fragmentation and maximum frame policy;
-- version negotiation and session-resume behavior;
+- version negotiation and session-resume behavior, including gateway instance and support-row matching;
 - canonical fixture encoding and manifest format.
