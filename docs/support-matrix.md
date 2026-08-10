@@ -1,6 +1,6 @@
 # Reference support profile
 
-This document is the authoritative first-stage support matrix for Moonspan. Exact support-profile image, browser, and environment pins, schema identity schemes, and promotion rules live here. M0-02 pins Rust, MoonBit, and Bun in repository manifests; qualification reports record those resolved versions. [Compatibility](./compatibility.md) owns strategy and tier language. [ADR 0007](./adr/0007-humble-jazzy-schema-identity.md) owns the Humble/Jazzy schema identity decision.
+This document is the authoritative first-stage support matrix for Moonspan. Exact support-profile image, browser, and environment pins, schema identity schemes, and promotion rules live here. M0-02 pins Rust, MoonBit, and Bun in repository manifests; qualification reports record those resolved versions. [Compatibility](./compatibility.md) owns strategy and tier language. [ADR 0007](./adr/0007-humble-jazzy-schema-identity.md) owns the Humble/Jazzy schema identity decision. [ADR 0008](./adr/0008-one-adapter-row-per-gateway-process.md) owns gateway process and support-row topology.
 
 **Status:** design baseline. Every first-stage row below is a **Qualification target** until a linked qualification report promotes it.
 
@@ -17,7 +17,7 @@ Documentation uses **Qualification target** for every first-stage row until evid
 
 ## First-stage ROS distro and RMW rows
 
-Each row below qualifies independently on `amd64` and `arm64`. Fast DDS (`rmw_fastrtps_cpp`) is the reference and default row on each distro. Cyclone DDS (`rmw_cyclonedds_cpp`) is the second qualification row.
+Each row below is one independently qualified per-process artifact and image profile. Each row qualifies independently on `amd64` and `arm64`. Fast DDS (`rmw_fastrtps_cpp`) is the reference and default row on each distro. Cyclone DDS (`rmw_cyclonedds_cpp`) is the second qualification row.
 
 | Row ID | Distro | RMW | Host OS | Status | Role |
 |---|---|---|---|---|---|
@@ -28,6 +28,14 @@ Each row below qualifies independently on `amd64` and `arm64`. Fast DDS (`rmw_fa
 
 CPU variants for every row: `amd64`, `arm64`.
 
+### Process and identity topology
+
+- `support_row_id` is immutable for the running artifact and profile (H-FT, H-CY, J-FT, or J-CY).
+- `gateway_instance_id` is a deployment-provided stable identifier for one logical gateway instance. It persists across ordinary process restart and in-place upgrade when resumable state is preserved. A replacement deployment or intentionally fresh instance receives a new identifier.
+- One gateway process binds exactly one support row and may host multiple `domain_id` values within that row.
+- Cross-row fleet views use independent SDK sessions and retain gateway, support-row, and domain provenance through application aggregation.
+- Topology ownership lives in [ADR 0008](./adr/0008-one-adapter-row-per-gateway-process.md).
+
 ### Pinned ROS images
 
 | Distro | Host | Image pin |
@@ -35,7 +43,7 @@ CPU variants for every row: `amd64`, `arm64`.
 | Humble | Ubuntu 22.04 Jammy | `docker.io/library/ros:humble-ros-base-jammy@sha256:7bea3d9aa2483d3ca34c8e30d921b79273b0913bd7dc64bebf51d082b5d107e4` |
 | Jazzy | Ubuntu 24.04 Noble | `docker.io/library/ros:jazzy-ros-base-noble@sha256:da725acf8b0f9f30c683e33ffbdcd6482d077af96d6fdc7688c5f4f280b7d923` |
 
-These multi-architecture digests were resolved from Docker Hub on **2026-08-10**. Each qualification report records the per-architecture manifest digest for the exercised platform plus the installed ROS and RMW package versions.
+These multi-architecture digests were resolved from Docker Hub on **2026-08-10**. Each qualification report records the per-architecture manifest digest for the exercised platform plus the installed ROS and RMW package versions. Per-row gateway images add adapter, RMW selection, adapter ABI version, and support-row identity on top of the ROS base.
 
 ### Schema identity by distro
 
@@ -69,7 +77,8 @@ U0 owns later rendering GPU profiles for the common Studio prototype. M3 assigns
 Every qualification report for a matrix row records:
 
 - release and code revision;
-- row ID, ROS distro, multi-arch image digest, per-architecture manifest digest, RMW, and installed package versions;
+- `support_row_id`, ROS distro, multi-arch image digest, per-architecture manifest digest, RMW, installed package versions, and adapter ABI/profile identity;
+- `gateway_instance_id`, exercised `domain_id` values, and readiness/profile-validation results; a deliberately mismatched configuration or profile produces readiness status `adapter_profile_mismatch`;
 - OS, CPU architecture, browser runner, browser image, browser binary, Wasm mode, and buffer path;
 - gateway transport, proxy, TLS, network profile, and deployment headers;
 - graph, type identity (`scheme` + `value`), QoS, publish/subscribe, Service, Action, Parameter, Clock, reconnect, and policy results;
@@ -100,7 +109,10 @@ Each candidate enters through adapter build evidence, semantic conformance, faul
 - [Docker Hub tag API: humble-ros-base-jammy](https://hub.docker.com/v2/repositories/library/ros/tags/humble-ros-base-jammy)
 - [Docker Hub tag API: jazzy-ros-base-noble](https://hub.docker.com/v2/repositories/library/ros/tags/jazzy-ros-base-noble)
 - [Official ROS Docker images](https://hub.docker.com/_/ros)
+- [Working with multiple RMW implementations (Humble)](https://docs.ros.org/en/humble/How-To-Guides/Working-with-multiple-RMW-implementations.html)
+- [Creating an RMW implementation (Jazzy)](https://docs.ros.org/en/ros2_documentation/jazzy/Tutorials/Advanced/Creating-An-RMW-Implementation.html)
 - [Playwright release notes](https://playwright.dev/docs/release-notes)
 - [Playwright Docker](https://playwright.dev/docs/docker)
 - [MoonBit toolchain commands](https://docs.moonbitlang.com/en/latest/toolchain/moon/commands.html)
 - [ADR 0007: Humble/Jazzy schema identity](./adr/0007-humble-jazzy-schema-identity.md)
+- [ADR 0008: one adapter row per gateway process](./adr/0008-one-adapter-row-per-gateway-process.md)

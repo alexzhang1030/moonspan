@@ -21,7 +21,7 @@ Isolate ROS integration behind a versioned serialized C ABI.
 - The browser reaches ROS through the TypeScript SDK and R2WP contracts. ROS libraries and credentials stay in the edge environment.
 - The adapter ABI uses versioned structs, fixed-width values, explicit lengths, opaque handles, stable error codes, and explicit buffer ownership and release operations.
 - CDR bytes cross the ABI for topics, Service, and Action payloads. Graph, QoS, type, Parameter, Clock, and operation metadata use versioned ABI records.
-- The initial process model uses one gateway process and adapter-owned ROS execution.
+- The initial process model uses one gateway process unit bound to one adapter support row ([ADR 0008](./0008-one-adapter-row-per-gateway-process.md)) with adapter-owned ROS execution.
 - The initial SPSC topology uses one bounded adapter-to-Rust event queue and one bounded Rust-to-adapter command queue, with one producer and one consumer in each direction. Each queue declares sample and byte limits.
 - ABI startup performs an explicit compatibility check. Each ROS distro/RMW combination builds and qualifies as an adapter support row.
 - Each side contains panics or exceptions and converts failures into stable status records before returning across the ABI.

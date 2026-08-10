@@ -72,6 +72,8 @@ Every conformance, benchmark, security, or operations claim carries:
 
 - environment identity and pinned toolchain versions;
 - code revision, package or image digest, and fixture manifest hash;
+- `gateway_instance_id`, `support_row_id`, exercised `domain_id` values, and adapter ABI/artifact profile identity where a gateway process is under test;
+- readiness and profile-validation results; a deliberately mismatched configuration or profile produces readiness status `adapter_profile_mismatch`;
 - exact invocation and workload configuration;
 - raw machine-readable results;
 - generated human-readable tables;
@@ -106,8 +108,11 @@ Generated reports derive from raw artifacts through checked-in scripts. Release 
 - Eight-hour representative load with graph churn.
 - Wi-Fi roam, sleep/wake, proxy path, latency, packet loss, reordering, and constrained bandwidth.
 - Gateway restart, Worker crash, session expiry, policy revision, clock jump, and schema change.
+- Startup profile validation and readiness status `adapter_profile_mismatch` when configuration and artifact identity diverge.
+- Stable-ID restart resume with preserved resumable state, and replacement-ID clean session behavior.
 - Oversized samples, rate pressure, command concurrency, cache pressure, and audit sink failure.
-- Humble and Jazzy across Fast DDS and Cyclone DDS. Multi-domain DDS isolation runs one adapter support row at a time (H-FT, H-CY, J-FT, or J-CY) with multiple ROS domain IDs; the matrix runner repeats per row and CPU variant and compares results.
+- Humble and Jazzy across Fast DDS and Cyclone DDS. Same-row multi-domain DDS isolation runs one adapter support row at a time (H-FT, H-CY, J-FT, or J-CY) with multiple ROS domain IDs; the matrix runner repeats per row and CPU variant and compares results.
+- Cross-row composition through independent SDK sessions that retain gateway, support-row, and domain provenance.
 - Declared Chrome, Edge, Safari, and Firefox SDK capability tiers, with the Playwright-managed Chrome for Testing reference from the support matrix as the first-stage browser pin.
 - Install, upgrade, rollback, certificate rotation, SROS2 rotation, and disaster recovery.
 - Release support claims require every included matrix row to reach **Qualified** through a reviewed report; rows that retain **Qualification target** status stay in the future qualification set.

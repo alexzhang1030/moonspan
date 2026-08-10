@@ -42,19 +42,20 @@ The planning baseline uses five core engineers, 18 weeks for the mainline, and 6
 
 ## 4. Working decisions
 
-ADRs 0001–0007 accept the mainline/prototype sequence, Bun, monorepo ownership, browser/Wasm boundary, R2WP wire versioning, edge/ROS C ABI, and Humble/Jazzy schema identity. The [support matrix](../docs/support-matrix.md) pins first-stage rows as **Qualification targets**. M0-01 still owns licensing and remaining open support-profile acceptance. U0-01 records prototype frontend decisions.
+ADRs 0001–0008 accept the mainline/prototype sequence, Bun, monorepo ownership, browser/Wasm boundary, R2WP wire versioning, edge/ROS C ABI, Humble/Jazzy schema identity, and one adapter support row per gateway process. The [support matrix](../docs/support-matrix.md) pins first-stage rows as **Qualification targets**. M0-01 still owns licensing and remaining open support-profile acceptance. U0-01 records prototype frontend decisions.
 
 1. Use one monorepo for Rust, MoonBit, TypeScript, protocol fixtures, conformance, deployment, and documentation.
 2. Treat R2WP framing, schemas with identity `(scheme, value)`, queue limits, errors, and telemetry as shared versioned contracts.
 3. Keep deterministic runtime state and CDR work in MoonBit/Wasm; keep browser async APIs in the TypeScript Worker host.
 4. Use Rust for gateway concurrency and policy; isolate ROS distro variation behind a narrow serialized C ABI.
-5. Deliver N1 and N2 as the mainline native surface on first-stage Humble/Jazzy Fast DDS and Cyclone DDS rows.
-6. Support WebTransport and binary WSS through one R2WP semantic envelope.
-7. Give every queue explicit sample and byte budgets and emit stable disposition reasons.
-8. Use Bun for JavaScript workspaces, dependencies, lockfile, scripts, tests, builds, and one-shot tools.
-9. Schedule the common Studio prototype after the M3 release gate.
-10. Schedule the N3 package sandbox as a bounded post-release experiment.
-11. Keep Kilted, Lyrical, Rolling, `rmw_zenoh`, and Zenoh router topologies as post-first-stage expansion candidates in the [support matrix](../docs/support-matrix.md).
+5. Bind each gateway process to one adapter support row with multiple domain IDs under that row ([ADR 0008](../docs/adr/0008-one-adapter-row-per-gateway-process.md)).
+6. Deliver N1 and N2 as the mainline native surface on first-stage Humble/Jazzy Fast DDS and Cyclone DDS rows.
+7. Support WebTransport and binary WSS through one R2WP semantic envelope.
+8. Give every queue explicit sample and byte budgets and emit stable disposition reasons.
+9. Use Bun for JavaScript workspaces, dependencies, lockfile, scripts, tests, builds, and one-shot tools.
+10. Schedule the common Studio prototype after the M3 release gate.
+11. Schedule the N3 package sandbox as a bounded post-release experiment.
+12. Keep Kilted, Lyrical, Rolling, `rmw_zenoh`, and Zenoh router topologies as post-first-stage expansion candidates in the [support matrix](../docs/support-matrix.md).
 
 ## 5. Planned repository layout
 
@@ -141,8 +142,9 @@ Every task clears these conditions:
 
 **Acceptance criteria:**
 
-- [ ] Existing ADRs cover mainline sequencing, Bun, monorepo ownership, browser/Wasm boundary, R2WP versioning, edge/ROS boundary, and Humble/Jazzy schema identity ([ADR 0007](../docs/adr/0007-humble-jazzy-schema-identity.md)).
-- [ ] The [support matrix](../docs/support-matrix.md) names first-stage Humble/Jazzy Fast DDS and Cyclone DDS rows, image digests, OS, CPU variants, browser reference, Wasm mode, buffer paths, and 1 GbE network as **Qualification targets**.
+- [ ] Existing ADRs cover mainline sequencing, Bun, monorepo ownership, browser/Wasm boundary, R2WP versioning, edge/ROS boundary, Humble/Jazzy schema identity ([ADR 0007](../docs/adr/0007-humble-jazzy-schema-identity.md)), and one adapter support row per gateway process ([ADR 0008](../docs/adr/0008-one-adapter-row-per-gateway-process.md)).
+- [ ] The [support matrix](../docs/support-matrix.md) names first-stage Humble/Jazzy Fast DDS and Cyclone DDS rows as independently qualified per-process artifact/image profiles, image digests, OS, CPU variants, browser reference, Wasm mode, buffer paths, and 1 GbE network as **Qualification targets**.
+- [ ] Support-row topology documents immutable `support_row_id`, deployment-provided `gateway_instance_id` lifecycle, multi-domain IDs within a row, and independent sessions for cross-row composition.
 - [ ] Repository license and third-party licensing policy have an owner and decision date.
 - [ ] Each open technical choice has an owner, evidence requirement, and decision date.
 
@@ -177,12 +179,12 @@ Every task clears these conditions:
 **Acceptance criteria:**
 
 - [ ] Byte order, header offsets, opcodes, flags, clocks, priorities, extensions, limits, errors, and version negotiation have normative definitions.
-- [ ] Control schemas cover hello, identity, graph, schema, channels, clocks, resume, and errors.
+- [ ] Control schemas cover hello, identity, graph, schema, channels, clocks, resume, and errors, including `SessionReady` gateway/support-row profile fields.
 - [ ] Channel and QoS mappings cover topics, Service, Action, media, recording, and assets.
-- [ ] Golden fixtures cover valid, boundary, malformed, stale-generation, and recovery sequences.
+- [ ] Golden fixtures cover valid, boundary, malformed, stale-generation, recovery, gateway/support-row resume mismatch, multi-domain same-row, and cross-row independent-session sequences.
 - [ ] WebTransport and WSS share one semantic fixture set.
 
-**Verification:** Rust and TypeScript reference parsers produce identical semantic records and stable errors for every fixture.
+**Verification:** Rust, MoonBit, and TypeScript reference parsers produce identical semantic records and stable errors for every fixture.
 
 - **Dependencies:** M0-01, M0-02
 - **Likely files:** `protocol/r2wp-v0.md`, `protocol/schema/`, `protocol/registry/`, `protocol/testdata/`
@@ -214,6 +216,7 @@ Every task clears these conditions:
 **Acceptance criteria:**
 
 - [ ] Machine-readable schemas cover environment, invocation, workload, samples, budgets, metrics, errors, raw artifact hashes, and review metadata.
+- [ ] Environment and result schemas record `gateway_instance_id`, `support_row_id`, exercised `domain_id` values, adapter ABI/artifact identity, and readiness/profile-validation results.
 - [ ] A deterministic sample run produces raw output and a generated Markdown report.
 - [ ] Workload definitions cover the transport matrix, graph churn, fault scenarios, and soak tests.
 - [ ] Artifact retention and publication locations are documented.
@@ -293,7 +296,8 @@ Every task clears these conditions:
 **Acceptance criteria:**
 
 - [ ] Adapter lifecycle, graph snapshot/delta, subscribe, take, publish, buffer release, and errors use versioned fixed-width structures.
-- [ ] Humble and Jazzy adapter builds share one ABI conformance suite.
+- [ ] Humble and Jazzy adapter builds share one ABI conformance suite and produce independently testable per-row adapter artifacts (H-FT, H-CY, J-FT, J-CY).
+- [ ] Each per-row artifact ships an immutable adapter profile descriptor with `support_row_id`, ROS distro, RMW identifier, and adapter ABI version.
 - [ ] Fast DDS and Cyclone DDS run the graph and sample fixtures on both distros across support-matrix CPU variants.
 - [ ] Ownership, thread, callback, and shutdown rules are documented and tested.
 
@@ -311,8 +315,10 @@ Every task clears these conditions:
 
 - [ ] Graph snapshots and deltas have monotonic generations and stable ordering.
 - [ ] Schema cache entries carry schema identity `(scheme, value)`, type name, encoding, source, and generation.
+- [ ] Graph, schema, channel, policy, metrics, logs, and audit records carry `gateway_instance_id`, immutable `support_row_id`, and `domain_id` where applicable.
 - [ ] Channels enforce sample, byte, message-size, rate, bandwidth, priority, and deadline budgets.
 - [ ] Admission, send, eviction, expiry, cancellation, and adapter errors emit stable reasons and metrics.
+- [ ] At startup the gateway validates configuration and artifact profile against the adapter profile descriptor; divergence keeps readiness false with status `adapter_profile_mismatch`.
 - [ ] The gateway exposes liveness, readiness, structured logs, and a metrics endpoint.
 
 **Verification:** Rust unit/property tests, scheduler load tests, and adapter integration tests pass.
@@ -327,10 +333,11 @@ Every task clears these conditions:
 
 **Acceptance criteria:**
 
-- [ ] Hello, graph, schema, channel, sample, clock, error, close, and resume flows pass fixtures.
+- [ ] Hello, graph, schema, channel, sample, clock, error, close, and resume flows pass fixtures, including `SessionReady` gateway/support-row profile fields.
 - [ ] WebTransport maps reliable topics, datagrams, and sample streams according to the protocol.
 - [ ] WSS preserves control priority, fairness, deadlines, and channel metrics through one connection.
 - [ ] Reconnect, path changes, transport closure, and stale generations produce deterministic SDK events.
+- [ ] Resume matching covers selected wire version, capabilities, `gateway_instance_id`, and `support_row_id`; mismatch yields the R2WP resume-mismatch result.
 - [ ] Malformed, oversized, and pressure inputs stay within declared memory budgets.
 
 **Verification:** Rust/TypeScript interop tests and browser end-to-end transport tests pass under loss, delay, and stalled-consumer scenarios.
@@ -349,6 +356,7 @@ Every task clears these conditions:
 - [ ] Real ROS nodes observe browser publications and browser subscribers observe real ROS samples.
 - [ ] Sensor-data and reliable profiles expose compatibility and queue state.
 - [ ] Headless examples run through WebTransport and WSS.
+- [ ] SDK events and telemetry preserve `gateway_instance_id`, `support_row_id`, and `domain_id` provenance.
 - [ ] Traces correlate ROS, gateway, browser, runtime, and application events.
 
 **Verification:** `just e2e-pubsub` passes against each declared M1 ROS/RMW/transport row.
@@ -512,9 +520,10 @@ Every task clears these conditions:
 **Acceptance criteria:**
 
 - [ ] One test run selects exactly one support-matrix adapter row (H-FT, H-CY, J-FT, or J-CY) and multiple ROS domain IDs under that row.
-- [ ] Graph, schema, channel, policy, and audit records retain domain identity within the selected row.
+- [ ] Graph, schema, channel, policy, and audit records retain `gateway_instance_id`, immutable `support_row_id`, and `domain_id` within the selected row.
 - [ ] Session isolation holds across duplicate ROS names and schema identities within the selected row.
 - [ ] Reconnect and fault isolation hold within the selected row.
+- [ ] Cross-row composition uses independent SDK sessions and retains gateway, support-row, and domain provenance.
 - [ ] The matrix runner repeats the multi-domain suite independently for H-FT, H-CY, J-FT, and J-CY and for declared CPU variants; the report compares all rows.
 
 **Verification:** Multi-domain DDS suites pass per row and produce a comparative mapping report.
@@ -575,8 +584,9 @@ Every task clears these conditions:
 **Acceptance criteria:**
 
 - [ ] Issuer, audience, expiry, rotation, and revocation behavior are configurable and tested.
-- [ ] Effective identity, policy revision, resource envelope, and capability set reach the SDK.
-- [ ] Resume revalidates identity, policy generation, channel state, and expiry.
+- [ ] Effective identity, policy revision, resource envelope, and capability set reach the SDK with `gateway_instance_id` and `support_row_id` context.
+- [ ] Resume revalidates identity, policy generation, channel state, expiry, `gateway_instance_id`, and `support_row_id`.
+- [ ] Stable-ID restart with preserved resumable state may continue the session; a replacement `gateway_instance_id` or `support_row_id` change requires a clean session.
 - [ ] Identity service outages and cache expiry produce visible bounded behavior.
 
 **Verification:** Authentication integration tests cover valid, expired, replayed, wrong-audience, wrong-issuer, rotated, and outage scenarios.
@@ -591,9 +601,9 @@ Every task clears these conditions:
 
 **Acceptance criteria:**
 
-- [ ] Graph, subscribe, publish, Service, Action, Parameter, recording, asset, and diagnostic permissions have explicit rules.
+- [ ] Graph, subscribe, publish, Service, Action, Parameter, recording, asset, and diagnostic permissions have explicit rules scoped with `gateway_instance_id`, `support_row_id`, and `domain_id` where applicable.
 - [ ] SROS2 enclave, governance, permissions, keystore, and rotation procedures are reproducible.
-- [ ] Audit records contain the fields and integrity controls defined by the security model.
+- [ ] Audit records contain the fields and integrity controls defined by the security model, including the provenance trio.
 - [ ] Policy changes update graph visibility and channel authorization by generation.
 - [ ] Audit sink health and buffering follow a documented operation policy.
 
@@ -626,8 +636,8 @@ Every task clears these conditions:
 
 **Acceptance criteria:**
 
-- [ ] Humble and Jazzy adapters build and run the declared semantic rows on support-matrix CPU variants.
-- [ ] Every row included in the release support set reaches **Qualified** through a reviewed report.
+- [ ] Humble and Jazzy adapters build and run the declared semantic rows on support-matrix CPU variants as per-process artifact/image profiles.
+- [ ] Every row included in the release support set reaches **Qualified** through a reviewed report that records `gateway_instance_id`, `support_row_id`, domain IDs, adapter ABI/profile identity, and readiness/profile-validation results.
 - [ ] Rows that retain **Qualification target** status stay in the future qualification set.
 - [ ] The pinned Playwright-managed Chrome for Testing reference qualifies; Edge, Safari, and Firefox receive explicit SDK capability tiers from M3 evidence.
 - [ ] WebTransport, WSS, reverse-proxy, and both buffer paths have environment-qualified results.
@@ -645,9 +655,10 @@ Every task clears these conditions:
 
 **Acceptance criteria:**
 
-- [ ] Images and packages pin gateway, adapter, ROS, and runtime dependencies.
+- [ ] Images and packages pin gateway, adapter, ROS, and runtime dependencies as per-row profiles with immutable `support_row_id`.
+- [ ] Deployment assigns a stable `gateway_instance_id` that persists across ordinary restart and in-place upgrade when resumable state is preserved.
 - [ ] Proxy configuration covers HTTP/3, UDP 443, WSS, TLS, origin, COOP, and COEP.
-- [ ] Health, readiness, metrics, logs, traces, and audit have dashboards and alerts.
+- [ ] Health, readiness, metrics, logs, traces, and audit have dashboards and alerts, including readiness status `adapter_profile_mismatch`.
 - [ ] Install, configuration, drain, upgrade, rollback, backup, and recovery procedures are executable.
 - [ ] Effective configuration and secret mounting follow documented ownership.
 
@@ -667,7 +678,8 @@ Every task clears these conditions:
 - [ ] Eight-hour graph, sample, command, and recording workloads keep memory and queues within accepted envelopes.
 - [ ] Network shaping covers latency, loss, reordering, bandwidth, roam, sleep/wake, proxy, and path change.
 - [ ] Gateway, Worker, identity, policy, audit, schema, storage, and ROS failures have bounded recovery evidence.
-- [ ] Comparative performance reports include raw artifacts and environment identity.
+- [ ] Stable-ID restart resume, replacement-ID clean session, same-row multi-domain, and cross-row independent-session scenarios have evidence.
+- [ ] Comparative performance reports include raw artifacts and environment identity with gateway/support-row/domain provenance.
 
 **Verification:** `just qualify-mainline` validates every required artifact and threshold.
 

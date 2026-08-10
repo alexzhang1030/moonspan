@@ -4,7 +4,7 @@
 
 **Status:** design baseline. M1 establishes the host boundary and publish/subscribe core; M2 completes the N2 semantic surface.
 
-Schema identity follows [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md). First-stage environment pins live in the [support matrix](../support-matrix.md).
+Schema identity follows [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md). Gateway process and support-row topology follows [ADR 0008](../adr/0008-one-adapter-row-per-gateway-process.md). First-stage environment pins live in the [support matrix](../support-matrix.md).
 
 ## Runtime scope
 
@@ -80,7 +80,7 @@ Each host turn passes a bounded ready-event batch into `rclmbt.poll(batch)`. The
 
 ## Type and schema flow
 
-The browser runtime is distro-independent. It consumes normalized schema records from R2WP and the gateway. Adapters produce those records through two first-stage paths:
+The browser runtime is distro-independent. It consumes normalized schema records and session, graph, schema, and channel events from R2WP and the gateway. Those events carry `gateway_instance_id`, `support_row_id`, and `domain_id` provenance; the runtime preserves that provenance through SDK events and telemetry. Applications compose multiple independent contexts and sessions for cross-row fleet views. Adapters produce schema records through two first-stage paths:
 
 ### Jazzy path
 
@@ -160,6 +160,8 @@ The runtime suite covers:
 - schema identity for `rep2011-rihs` and `moonspan-schema-v1`;
 - Jazzy provenance mapping between `rep2011-rihs` and `moonspan-schema-v1`;
 - missing required Humble bundle (`schema_unavailable`);
+- same-row multi-domain provenance for `gateway_instance_id`, `support_row_id`, and `domain_id`;
+- stable-ID resume and replacement-ID clean-session transitions with gateway instance and support-row identity;
 - both browser buffer paths, Worker restart, batch limits, and memory stability.
 
 [Validation](../validation.md) defines evidence artifacts and release gates.

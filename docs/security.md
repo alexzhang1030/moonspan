@@ -18,6 +18,7 @@ Robot private keys stay in the edge enclave. Browser sessions receive scoped, sh
 Policy uses explicit allow rules over:
 
 - subject, group, tenant, robot, fleet, and ROS domain;
+- gateway-derived `gateway_instance_id` and `support_row_id`, and the channel-bound `domain_id`, where the rule scopes gateway process, support row, or domain;
 - operation kind: graph, subscribe, publish, service, action, parameter, recording, asset, diagnostics;
 - ROS name pattern, type name, and schema identity `(scheme, value)`;
 - QoS and durability class;
@@ -25,13 +26,14 @@ Policy uses explicit allow rules over:
 - command confirmation and audit requirements;
 - diagnostic detail and graph visibility.
 
-The gateway returns the effective capability set and policy revision to the SDK. Applications can render authorized operations and scoped denial reasons from that contract.
+Authorization and audit use gateway-derived `gateway_instance_id` and `support_row_id` together with the channel-bound `domain_id`. The gateway returns the effective capability set and policy revision to the SDK. Applications can render authorized operations and scoped denial reasons from that contract.
 
 ## Command safety
 
 Publish, Service, Action, and Parameter mutations carry:
 
 - authenticated subject and session;
+- gateway-derived `gateway_instance_id` and `support_row_id`, and the channel-bound `domain_id`;
 - target name, operation kind, type name, schema identity `(scheme, value)`, and payload summary;
 - deadline, concurrency key, and idempotency or correlation identity where supported;
 - capability decision and policy revision;
@@ -79,7 +81,7 @@ Deployment qualification records:
 
 ## Audit contract
 
-Audit records include timestamp and clock identity, subject, session, robot, domain, target, operation, type name, schema identity `(scheme, value)`, policy revision, decision, resource envelope, correlation identity, result, latency, and trace reference. Sensitive payload capture follows an explicit field policy and retention class.
+Audit records include timestamp and clock identity, subject, session, robot, gateway-derived `gateway_instance_id` and `support_row_id`, channel-bound `domain_id`, target, operation, type name, schema identity `(scheme, value)`, policy revision, decision, resource envelope, correlation identity, result, latency, and trace reference. Sensitive payload capture follows an explicit field policy and retention class.
 
 Audit sinks define integrity, availability, buffering, redaction, retention, export, and recovery behavior. A sink outage follows a configured operation policy with a visible health state.
 
@@ -92,6 +94,10 @@ Security qualification covers:
 - oversized, malformed, high-rate, and high-concurrency traffic;
 - unauthorized publish, Service, Action, Parameter, recording, and asset operations;
 - channel identity reuse, stale policy generations, and session resume after policy change;
+- profile and configuration mismatch readiness, with gateway startup/readiness status `adapter_profile_mismatch` keeping the process outside ready;
+- provenance confusion across `gateway_instance_id`, `support_row_id`, and `domain_id`;
+- client-supplied provenance tampering against gateway-derived and channel-bound identity fields;
+- stable-ID restart resume with preserved resumable state, and replacement-ID clean session behavior;
 - decompression, media, schema, and parser resource pressure;
 - gateway restart, audit sink failure, identity provider outage, and ROS enclave failure;
 - cross-origin and embedding configuration drift.

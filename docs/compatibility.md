@@ -2,14 +2,16 @@
 
 Moonspan publishes support as an explicit matrix across ROS distro, RMW, topology, browser capability, transport, recording, and compatibility endpoint. Each supported row links to a reproducible qualification report.
 
-Exact support-profile image, browser, and environment pins, first-stage row IDs, and promotion status live in the [reference support profile](./support-matrix.md). This document owns strategy, tier language, and compatibility behavior.
+Exact support-profile image, browser, and environment pins, first-stage row IDs, and promotion status live in the [reference support profile](./support-matrix.md). This document owns strategy, tier language, and compatibility behavior. Gateway process and support-row topology follows [ADR 0008](./adr/0008-one-adapter-row-per-gateway-process.md).
 
 ## ROS platform baseline
 
 - **First-stage distros:** ROS 2 Humble Hawksbill and ROS 2 Jazzy Jalisco.
 - **First-stage hosts:** Humble on Ubuntu 22.04 Jammy; Jazzy on Ubuntu 24.04 Noble; each on `amd64` and `arm64`.
-- **First-stage RMW rows:** `rmw_fastrtps_cpp` is the reference and default row on each distro; `rmw_cyclonedds_cpp` is the second qualification row. The four distro/RMW combinations are independent support rows.
-- **Domain rule:** one ROS domain selects one DDS mapping in the first-stage matrix; gateway sessions aggregate configured domains.
+- **First-stage RMW rows:** `rmw_fastrtps_cpp` is the reference and default row on each distro; `rmw_cyclonedds_cpp` is the second qualification row. The four distro/RMW combinations are independent support rows (H-FT, H-CY, J-FT, J-CY).
+- **Process and domain topology:** one gateway process binds exactly one support row; that process may host multiple ROS domain IDs under the selected row; cross-row composition uses independent SDK sessions.
+- **Provenance fields:** graph, schema, channel, policy, audit, and evidence records carry `gateway_instance_id`, `support_row_id`, and `domain_id` where applicable.
+- **Startup validation:** each process validates support-row profile identity at startup; readiness surfaces `adapter_profile_mismatch` when configuration and artifact identity diverge.
 - **Claim state:** every first-stage row is a **Qualification target** until a qualification report promotes it to **Qualified** under the rules in the [support matrix](./support-matrix.md).
 
 ROS distro variation stays inside the versioned C ABI adapter. R2WP, `rclmbt`, and the browser SDK remain shared across adapters.
@@ -66,6 +68,7 @@ MCAP schema and channel identity map to the same type registry used by live R2WP
 
 - R2WP uses explicit version negotiation and stable within-version registries.
 - The C ABI uses versioned structures and a compatibility check at gateway startup.
+- Each gateway process validates support-row profile identity at startup and keeps `support_row_id` immutable for the running artifact.
 - The browser SDK follows semantic versioning and publishes upgrade guidance for public API changes.
 - Schemas use `(scheme, value)` identity and generation tracking.
 - Release artifacts pin ROS image digests, browser runner, and fixture versions as recorded in the [support matrix](./support-matrix.md). M0-02 pins Rust, MoonBit, and Bun in repository manifests; qualification reports record those resolved versions.
@@ -75,7 +78,8 @@ MCAP schema and channel identity map to the same type registry used by live R2WP
 Every qualification report records:
 
 - release and code revision;
-- ROS distro, multi-arch image digest, per-architecture manifest digest, RMW, middleware version, and domain mapping;
+- `support_row_id`, ROS distro, multi-arch image digest, per-architecture manifest digest, RMW, middleware version, adapter ABI/profile identity, and exercised `domain_id` values;
+- `gateway_instance_id` and readiness/profile-validation results;
 - OS, CPU architecture, browser version, Wasm mode, and buffer path;
 - gateway transport, proxy, TLS, network profile, and deployment headers;
 - graph, type identity (`scheme` + `value`), QoS, publish/subscribe, Service, Action, Parameter, Clock, reconnect, and policy results;
@@ -92,7 +96,7 @@ These profiles form the post-first-stage expansion set and enter through indepen
 - broader browser tiers beyond the Playwright/Chrome reference;
 - additional WebTransport mappings and process or buffer experiments covered by later ADRs.
 
-Domain aggregation continues to allow one mapping per ROS domain when those topologies qualify.
+[ADR 0008](./adr/0008-one-adapter-row-per-gateway-process.md) is the first-stage process and support-row baseline. Each later candidate receives an explicit process and topology decision during its independent qualification. Router-backed or in-process multi-row topology changes require a dedicated ADR and evidence.
 
 ## Support changes
 
