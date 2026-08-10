@@ -59,7 +59,7 @@ Selected-version frame: 32-byte big-endian header; total length `32 + extension_
 
 Sequence: sender assigns contiguous sequences from 0 without wrap; reliable receivers require exact next; best-effort receivers allow gaps (`sequence_gap`) and drop stale sequences (`stale_sequence`); success disposition is `delivered`.
 
-Application fragmentation is prohibited; reserved fragment bit yields `unsupported_flags`. CONTROL_CBOR requires channel 0, priority CONTROL, reliable control stream, and control payload ceiling. Service frames and Action GOAL/CANCEL/RESULT use reliable streams with OPERATION_ID; Action FEEDBACK/STATUS select reliable stream or best-effort datagram/sample-scoped stream from their effective topic QoS, still with `(channel_id, OPERATION_ID, direction)`. KEYFRAME is MEDIA_CHUNK-only; RETAINED marks retained-history ROS_SAMPLE replay; ROS_RELIABLE matches negotiated QoS.
+Application fragmentation is prohibited; reserved fragment bit yields `unsupported_flags`. CONTROL_CBOR requires channel 0, priority CONTROL, reliable control stream, and control payload ceiling. The CONTROL priority check belongs to selected-frame **step 9**: both checks execute within step 9 in this order — first reject unassigned numeric priority (`0..4`), then enforce opcode-specific CONTROL_CBOR priority CONTROL (0); subsequent step numbers remain unchanged; both failures are `protocol_violation` (25). Service frames and Action GOAL/CANCEL/RESULT use reliable streams with OPERATION_ID; Action FEEDBACK/STATUS select reliable stream or best-effort datagram/sample-scoped stream from their effective topic QoS, still with `(channel_id, OPERATION_ID, direction)`. KEYFRAME is MEDIA_CHUNK-only; RETAINED marks retained-history ROS_SAMPLE replay; ROS_RELIABLE matches negotiated QoS.
 
 ## Session state machine (summary)
 
@@ -75,7 +75,7 @@ OPERATION_ID lifecycle: Service initiator allocates unique nonzero per-call IDs 
 
 Extension TLVs are strictly ascending by type. RETAINED marks retained-history replay (requires TRANSIENT_LOCAL; live samples may clear). ROS_RELIABLE remains iff reliability.
 
-Validation order is receiver/input only and single-valued. CONTROL_CBOR decode precedes ready-state and flat/embedded Error-scope checks. Early static flags split from post-channel QoS flag checks. Sender-local u64 exhaustion is outside that list.
+Validation order is receiver/input only and single-valued. CONTROL_CBOR decode precedes ready-state and flat/embedded Error-scope checks. Early static flags split from post-channel QoS flag checks. Step 9 covers assigned numeric priority then CONTROL_CBOR priority CONTROL (0). Sender-local u64 exhaustion is outside that list.
 
 ## Control plane
 

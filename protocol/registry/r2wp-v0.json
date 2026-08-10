@@ -2636,7 +2636,7 @@
     }
   },
   "validation_order": {
-    "precedence_note": "Stop at the first failing receiver/input check in order. Every Error row has exactly one error code. CONTROL_CBOR decode and CDDL shape complete before ready-state, Error scope (flat and embedded), and any check that needs control kind. Early static flag/opcode checks precede channel context; ROS_RELIABLE iff reliability and RETAINED requires_transient_local run only after active channel context. Sender-local sequence exhaustion is not in this list.",
+    "precedence_note": "Stop at the first failing receiver/input check in order. Every Error row has exactly one error code. CONTROL_CBOR decode and CDDL shape complete before ready-state, Error scope (flat and embedded), and any check that needs control kind. Early static flag/opcode checks precede channel context; ROS_RELIABLE iff reliability and RETAINED requires_transient_local run only after active channel context. Selected-frame step 9 covers numeric priority assigned (0..4) then, still within step 9, CONTROL_CBOR requires priority CONTROL (0); both map to protocol_violation (25). Sender-local sequence exhaustion is not in this list.",
     "bootstrap": [
       {
         "step": 1,
@@ -2763,7 +2763,12 @@
         "check": "numeric_priority_assigned",
         "error": "protocol_violation",
         "code": 25,
-        "step": 9
+        "step": 9,
+        "includes": [
+          "numeric_priority_assigned_0_to_4",
+          "control_cbor_requires_priority_control_0_after_assigned"
+        ],
+        "note": "Both checks execute within step 9 in this order: (1) reject unassigned numeric priority outside 0..4; (2) if opcode is CONTROL_CBOR, require priority CONTROL (0). Subsequent step numbers remain unchanged. Both failures use protocol_violation (25)."
       },
       {
         "check": "numeric_clock_assigned",
@@ -2986,7 +2991,8 @@
       },
       "numeric_priority": {
         "code": 25,
-        "name": "protocol_violation"
+        "name": "protocol_violation",
+        "note": "Selected-frame step 9: unassigned numeric priority and CONTROL_CBOR priority must be CONTROL (0). Internal order is assigned-range first, then opcode-specific CONTROL priority. Cross-bound to opcodes.assigned.1 (CONTROL_CBOR, priority CONTROL) and priorities.assigned.0 (CONTROL)."
       },
       "numeric_clock": {
         "code": 25,

@@ -876,6 +876,117 @@ function validateErrorRegistry(errors: Record<string, unknown>, diags: string[])
   }
 }
 
+/** Frozen selected-frame step 9 include tokens for CONTROL priority precedence. */
+export const SELECTED_FRAME_STEP9_REQUIRED_INCLUDES = [
+  "numeric_priority_assigned_0_to_4",
+  "control_cbor_requires_priority_control_0_after_assigned",
+] as const;
+
+export const SELECTED_FRAME_STEP9_CHECK = "numeric_priority_assigned";
+export const SELECTED_FRAME_STEP9_ERROR = "protocol_violation";
+export const SELECTED_FRAME_STEP9_CODE = 25;
+
+function validateSelectedFrameStep9Priority(
+  raw: Record<string, unknown>,
+  label: string,
+  diags: string[],
+): void {
+  if (raw.check !== SELECTED_FRAME_STEP9_CHECK) {
+    push(
+      diags,
+      `registry: ${label} check must be "${SELECTED_FRAME_STEP9_CHECK}", got ${JSON.stringify(raw.check)}`,
+    );
+  }
+  if (raw.error !== SELECTED_FRAME_STEP9_ERROR) {
+    push(
+      diags,
+      `registry: ${label} error must be "${SELECTED_FRAME_STEP9_ERROR}", got ${JSON.stringify(raw.error)}`,
+    );
+  }
+  if (raw.code !== SELECTED_FRAME_STEP9_CODE) {
+    push(
+      diags,
+      `registry: ${label} code must be ${SELECTED_FRAME_STEP9_CODE}, got ${JSON.stringify(raw.code)}`,
+    );
+  }
+  const includes = raw.includes;
+  if (!Array.isArray(includes)) {
+    push(diags, `registry: ${label} must declare includes as an exact ordered array of length 2`);
+    return;
+  }
+  // Exact ordered contract: index 0 then index 1; length exactly 2; both strings.
+  const expected = SELECTED_FRAME_STEP9_REQUIRED_INCLUDES;
+  if (includes.length !== expected.length) {
+    push(
+      diags,
+      `registry: ${label} includes must have length ${expected.length}, got ${includes.length}`,
+    );
+  }
+  for (let i = 0; i < expected.length; i++) {
+    const got = includes[i];
+    if (typeof got !== "string") {
+      push(
+        diags,
+        `registry: ${label} includes[${i}] must be string "${expected[i]}", got ${JSON.stringify(got)}`,
+      );
+      continue;
+    }
+    if (got !== expected[i]) {
+      push(
+        diags,
+        `registry: ${label} includes[${i}] must be "${expected[i]}", got ${JSON.stringify(got)}`,
+      );
+    }
+  }
+}
+
+/**
+ * Cross-validate opcodes.assigned.1 CONTROL_CBOR priority CONTROL and
+ * priorities.assigned.0 CONTROL against the step-9 CONTROL priority contract.
+ * Missing or non-object assigned maps produce deterministic diagnostics.
+ */
+function validateControlPriorityCrossBindings(
+  registry: Record<string, unknown>,
+  diags: string[],
+): void {
+  const opcodes = registry.opcodes;
+  if (!isPlainObject(opcodes)) {
+    push(diags, "registry: opcodes must be an object for CONTROL priority cross-binding");
+  } else if (!isPlainObject(opcodes.assigned)) {
+    push(diags, "registry: opcodes.assigned must be an object for CONTROL priority cross-binding");
+  } else {
+    const op1 = opcodes.assigned["1"];
+    if (!isPlainObject(op1)) {
+      push(diags, 'registry: opcodes.assigned["1"] must be an object (CONTROL_CBOR)');
+    } else {
+      if (op1.name !== "CONTROL_CBOR") {
+        push(
+          diags,
+          `registry: opcodes.assigned["1"].name must be "CONTROL_CBOR", got ${JSON.stringify(op1.name)}`,
+        );
+      }
+      if (op1.priority !== "CONTROL") {
+        push(
+          diags,
+          `registry: opcodes.assigned["1"].priority must be "CONTROL", got ${JSON.stringify(op1.priority)}`,
+        );
+      }
+    }
+  }
+
+  const priorities = registry.priorities;
+  if (!isPlainObject(priorities)) {
+    push(diags, "registry: priorities must be an object for CONTROL priority cross-binding");
+  } else if (!isPlainObject(priorities.assigned)) {
+    push(diags, "registry: priorities.assigned must be an object for CONTROL priority cross-binding");
+  } else if (priorities.assigned["0"] !== "CONTROL") {
+    push(
+      diags,
+      `registry: priorities.assigned["0"] must be "CONTROL", got ${JSON.stringify(priorities.assigned["0"])}`,
+    );
+  }
+}
+
 function validateErrorsAndValidationOrder(registry: Record<string, unknown>, diags: string[]): void {
   const errors = registry.errors;
   if (!isPlainObject(errors)) return;
@@ -978,7 +1089,7 @@ function validateErrorsAndValidationOrder(registry: Record<string, unknown>, dia
             `registry: ${label} error "${errName}" code ${raw.code} does not match registry code ${expected}`,
           );
         }
-        const regName = byCode.get(raw.code);
+        const regName = byCode.get(raw.code as number);
         if (regName && regName !== errName) {
           push(
             diags,
@@ -986,8 +1097,16 @@ function validateErrorsAndValidationOrder(registry: Record<string, unknown>, dia
           );
         }
       }
+
+      // selected_frame step 9: CONTROL priority precedence (machine-readable includes)
+      if (section === "selected_frame" && step === 9) {
+        validateSelectedFrameStep9Priority(raw, label, diags);
+      }
     }
   }
+
+  // Cross-bind CONTROL_CBOR priority CONTROL to priorities.assigned.0 and step 9 includes.
+  validateControlPriorityCrossBindings(registry, diags);
 
   // exact_codes: (code+name) XOR disposition; never code 20 / adapter_profile_mismatch
   if (!isPlainObject(vo.exact_codes)) {

@@ -202,6 +202,107 @@ describe("protocol-check intentional corruptions", () => {
     ).toBe(true);
   });
 
+  test("selected_frame step 9 missing CONTROL priority include fails", async () => {
+    const { registryText, cddlText } = await loadCanonical();
+    const bad = mutateRegistry(registryText, (o) => {
+      const vo = o.validation_order as { selected_frame: Array<Record<string, unknown>> };
+      const row = vo.selected_frame[8]; // step 9 is index 8
+      expect(row.step).toBe(9);
+      row.includes = ["numeric_priority_assigned_0_to_4"]; // drop CONTROL include
+    });
+    const result = validateProtocolContract(bad, cddlText);
+    expect(result.ok).toBe(false);
+    expect(
+      result.diagnostics.some(
+        (d) =>
+          d.includes("validation_order.selected_frame[8]") &&
+          (d.includes("length 2") || d.includes("includes[1]")),
+      ),
+    ).toBe(true);
+    // diagnostics remain lexicographically sorted
+    const sorted = [...result.diagnostics].sort((a, b) => a.localeCompare(b));
+    expect(result.diagnostics).toEqual(sorted);
+  });
+
+  test("selected_frame step 9 reversed includes order fails", async () => {
+    const { registryText, cddlText } = await loadCanonical();
+    const bad = mutateRegistry(registryText, (o) => {
+      const vo = o.validation_order as { selected_frame: Array<Record<string, unknown>> };
+      const row = vo.selected_frame[8];
+      expect(row.step).toBe(9);
+      row.includes = [
+        "control_cbor_requires_priority_control_0_after_assigned",
+        "numeric_priority_assigned_0_to_4",
+      ];
+    });
+    const result = validateProtocolContract(bad, cddlText);
+    expect(result.ok).toBe(false);
+    expect(
+      result.diagnostics.some(
+        (d) =>
+          d.includes("validation_order.selected_frame[8]") &&
+          d.includes("includes[0]") &&
+          d.includes("numeric_priority_assigned_0_to_4"),
+      ),
+    ).toBe(true);
+    const sorted = [...result.diagnostics].sort((a, b) => a.localeCompare(b));
+    expect(result.diagnostics).toEqual(sorted);
+  });
+
+  test("opcodes.assigned.1 priority drift fails cross-binding", async () => {
+    const { registryText, cddlText } = await loadCanonical();
+    const bad = mutateRegistry(registryText, (o) => {
+      const opcodes = o.opcodes as {
+        assigned: Record<string, Record<string, unknown>>;
+      };
+      opcodes.assigned["1"] = { ...opcodes.assigned["1"], priority: "DEFAULT" };
+    });
+    const result = validateProtocolContract(bad, cddlText);
+    expect(result.ok).toBe(false);
+    expect(
+      result.diagnostics.some(
+        (d) =>
+          d.includes('opcodes.assigned["1"].priority') && d.includes("CONTROL"),
+      ),
+    ).toBe(true);
+    const sorted = [...result.diagnostics].sort((a, b) => a.localeCompare(b));
+    expect(result.diagnostics).toEqual(sorted);
+  });
+
+  test("priorities.assigned.0 name drift fails cross-binding", async () => {
+    const { registryText, cddlText } = await loadCanonical();
+    const bad = mutateRegistry(registryText, (o) => {
+      const priorities = o.priorities as { assigned: Record<string, string> };
+      priorities.assigned["0"] = "DEFAULT";
+    });
+    const result = validateProtocolContract(bad, cddlText);
+    expect(result.ok).toBe(false);
+    expect(
+      result.diagnostics.some(
+        (d) => d.includes('priorities.assigned["0"]') && d.includes("CONTROL"),
+      ),
+    ).toBe(true);
+    const sorted = [...result.diagnostics].sort((a, b) => a.localeCompare(b));
+    expect(result.diagnostics).toEqual(sorted);
+  });
+
+  test("missing opcodes.assigned fails CONTROL priority cross-binding", async () => {
+    const { registryText, cddlText } = await loadCanonical();
+    const bad = mutateRegistry(registryText, (o) => {
+      const opcodes = o.opcodes as Record<string, unknown>;
+      delete opcodes.assigned;
+    });
+    const result = validateProtocolContract(bad, cddlText);
+    expect(result.ok).toBe(false);
+    expect(
+      result.diagnostics.some(
+        (d) => d.includes("opcodes.assigned must be an object for CONTROL priority cross-binding"),
+      ),
+    ).toBe(true);
+    const sorted = [...result.diagnostics].sort((a, b) => a.localeCompare(b));
+    expect(result.diagnostics).toEqual(sorted);
+  });
+
   test("unbounded CDDL array", async () => {
     const { registryText, cddlText } = await loadCanonical();
     const badCddl = cddlText + "\n\nbogus-list = [* uint32]\n";

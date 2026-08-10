@@ -193,6 +193,13 @@ Unknown flag bits → `unsupported_flags` (early).
 
 Assigned priorities: `0 CONTROL`, `1 INTERACTIVE`, `2 DEFAULT`, `3 SENSOR`, `4 BULK`. Unassigned numeric priority → `protocol_violation` (25).
 
+Selected-frame **step 9** applies both checks in this order (subsequent step numbers remain unchanged):
+
+1. Reject unassigned numeric priority outside `0..4` → `protocol_violation` (25).
+2. If opcode is **CONTROL_CBOR**, require priority **CONTROL (0)** → `protocol_violation` (25).
+
+Registry machine form: `validation_order.selected_frame` step 9 check `numeric_priority_assigned` with exact ordered includes `[numeric_priority_assigned_0_to_4, control_cbor_requires_priority_control_0_after_assigned]`. Cross-bound to `opcodes.assigned.1` (`CONTROL_CBOR`, `priority: CONTROL`) and `priorities.assigned.0` (`CONTROL`).
+
 Assigned clocks: `0 NONE`, `1 SYSTEM`, `2 STEADY`, `3 ROS`, `4 SIMULATION`. When `clock_id` is NONE, `source_time_ns` MUST be 0. Unassigned numeric clock → `protocol_violation` (25). Assigned clock that the peer cannot supply → `clock_unavailable` (28).
 
 ### Extension TLVs
@@ -430,7 +437,7 @@ CONTROL_CBOR decode and CDDL shape (step 16) complete **before** ready-state, Er
 | 6 | unknown flag bits | 6 | `unsupported_flags` |
 | 7 | early static flag/opcode (FRAGMENT; KEYFRAME opcode; ROS_RELIABLE/RETAINED opcode class only) | 6 | `unsupported_flags` |
 | 8 | channel 0 control / nonzero application class | 25 | `protocol_violation` |
-| 9 | numeric priority assigned | 25 | `protocol_violation` |
+| 9 | numeric priority assigned `0..4`, then CONTROL_CBOR requires priority CONTROL (0) | 25 | `protocol_violation` |
 | 10 | numeric clock assigned | 25 | `protocol_violation` |
 | 11 | clock NONE requires `source_time_ns` 0 | 25 | `protocol_violation` |
 | 12 | assigned clock unavailable | 28 | `clock_unavailable` |
