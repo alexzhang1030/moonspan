@@ -16,6 +16,16 @@ toolchain-check:
 protocol-check: toolchain-check
     cd "{{root}}" && bun run protocol-check
 
+# Regenerate R2WP v0 valid/boundary fixtures and manifest.
+[group('quality')]
+protocol-fixtures-write: toolchain-check
+    cd "{{root}}" && bun run protocol-fixtures:write
+
+# Reconstruct and verify R2WP v0 fixtures against the committed manifest and binaries.
+[group('quality')]
+protocol-fixtures-check: toolchain-check
+    cd "{{root}}" && bun run protocol-fixtures:check
+
 # Toolchain identity, Bun docs + protocol validation, Rust fmt/clippy, MoonBit format/check, TypeScript check.
 [group('quality')]
 check: toolchain-check

@@ -13,9 +13,12 @@
   "scripts": {
     "docs:check": "bun run scripts/docs-check.ts",
     "protocol-check": "bun run scripts/protocol-check.ts",
-    "check": "bun run docs:check && bun run protocol-check",
+    "protocol-fixtures:write": "bun run scripts/protocol-fixtures.ts --write",
+    "protocol-fixtures:check": "bun run scripts/protocol-fixtures.ts --check",
+    "check": "bun run docs:check && bun run protocol-check && bun run protocol-fixtures:check",
     "test:docs": "bun test scripts/docs-check.test.ts",
     "test:protocol": "bun test scripts/protocol-check.test.ts",
+    "test:protocol-fixtures": "bun test scripts/protocol-fixtures.test.ts",
     "test:toolchain": "bun test scripts/toolchain-check.test.ts",
     "toolchain-check": "bun run scripts/toolchain-check.ts",
     "test": "bun test"
