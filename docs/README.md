@@ -26,6 +26,7 @@ The scope ordering and Bun choice record human direction from 2026-08-10. Other 
 | Gateway, ROS adapter, scheduling, operations | [`rclwebd`](./gateway/rclwebd.md) |
 | Identity, policy, audit, resource controls | [Security](./security.md) |
 | ROS, RMW, transport, browser, recording tiers | [Compatibility](./compatibility.md) |
+| Exact first-stage pins, digests, and row status | [Support matrix](./support-matrix.md) |
 | Evidence contract, benchmarks, gates, targets | [Validation](./validation.md) |
 | Post-mainline UI concept and entry criteria | [Common Studio prototype](./prototypes/studio-ui.md) |
 | Visual tokens and interface rules | [Prototype design system](../.agents/docs/DESIGN.md) |
@@ -40,8 +41,8 @@ The scope ordering and Bun choice record human direction from 2026-08-10. Other 
 | `rclmbt/**` | [`rclmbt`](./runtime/rclmbt.md), [architecture](./architecture.md), [validation](./validation.md) |
 | `rclwebd/**` | [`rclwebd`](./gateway/rclwebd.md), [security](./security.md), [compatibility](./compatibility.md) |
 | `sdk/**` | [architecture](./architecture.md), [R2WP](./protocol/r2wp.md), [`rclmbt`](./runtime/rclmbt.md) |
-| `conformance/**`, `benchmarks/**` | [validation](./validation.md), [landscape](./landscape.md) |
-| `deploy/**` | [security](./security.md), [compatibility](./compatibility.md), [`rclwebd`](./gateway/rclwebd.md) |
+| `conformance/**`, `benchmarks/**` | [validation](./validation.md), [support matrix](./support-matrix.md), [landscape](./landscape.md) |
+| `deploy/**` | [security](./security.md), [support matrix](./support-matrix.md), [compatibility](./compatibility.md), [`rclwebd`](./gateway/rclwebd.md) |
 | `studio/**` | [common Studio prototype](./prototypes/studio-ui.md), [prototype design system](../.agents/docs/DESIGN.md) |
 
 ## Change discipline

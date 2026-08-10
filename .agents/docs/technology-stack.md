@@ -32,7 +32,9 @@ Vitest covers SDK units and contracts through Bun scripts. Playwright covers bro
 
 ### ROS platform
 
-ROS 2 Lyrical is the primary planning baseline, with Jazzy as the first compatibility adapter. Fast DDS and Cyclone DDS form the DDS matrix. Selected `rmw_zenoh` and Zenoh router profiles cover fleet and WAN topologies. [Compatibility](../../docs/compatibility.md) owns qualified support.
+First-stage ROS platforms are Humble Hawksbill and Jazzy Jalisco. Fast DDS (`rmw_fastrtps_cpp`) is the reference and default row on each distro; Cyclone DDS (`rmw_cyclonedds_cpp`) is the second qualification row. Humble uses the `moonspan-schema-v1` recursive deployment-bundle identity; Jazzy uses `rep2011-rihs` with native `GetTypeDescription`. Kilted, Lyrical, Rolling, `rmw_zenoh`, and Zenoh router topologies are later expansion candidates.
+
+Exact image digests, CPU variants, browser pins, and row status live in the [reference support profile](../../docs/support-matrix.md). [Compatibility](../../docs/compatibility.md) owns strategy and tier language. [ADR 0007](../../docs/adr/0007-humble-jazzy-schema-identity.md) owns schema identity.
 
 ### Repository and evidence tooling
 
