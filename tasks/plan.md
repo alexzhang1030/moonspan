@@ -18,6 +18,7 @@ The planning baseline uses five core engineers, 18 weeks for the mainline, and 6
 
 - The repository contains formal technical specifications, PCR records, polyglot workspace scaffolding, and this execution plan.
 - M0-02 has local root commands, pinned Bun/Rust/MoonBit/just identities, and a foundation CI workflow; hosted CI run evidence remains open.
+- M0-03a freezes the R2WP wire version 0 normative package (markdown, registry JSON, control CDDL, ADR 0009 Accepted); validator, codecs, fixtures, and language parsers follow in M0-03b–h.
 - Active mainline workspaces: `rclwebd/` (Cargo), `rclmbt/` (`moon.work`), `sdk/typescript/` (`@moonspan/sdk`). Studio workspace enrollment begins at U0.
 - R2WP, MoonBit/Wasm, Rust/C ABI, ROS support, and performance values are design baselines awaiting their named gates.
 - The mainline and UI side-project boundary is fixed in [product scope](../docs/product-scope.md).
@@ -42,7 +43,7 @@ The planning baseline uses five core engineers, 18 weeks for the mainline, and 6
 
 ## 4. Working decisions
 
-ADRs 0001–0008 accept the mainline/prototype sequence, Bun, monorepo ownership, browser/Wasm boundary, R2WP wire versioning, edge/ROS C ABI, Humble/Jazzy schema identity, and one adapter support row per gateway process. The [support matrix](../docs/support-matrix.md) pins first-stage rows as **Qualification targets**. M0-01 still owns licensing and remaining open support-profile acceptance. U0-01 records prototype frontend decisions.
+ADRs 0001–0009 accept the mainline/prototype sequence, Bun, monorepo ownership, browser/Wasm boundary, R2WP wire versioning, edge/ROS C ABI, Humble/Jazzy schema identity, one adapter support row per gateway process, and R2WP wire version 0 encoding/registries. The [support matrix](../docs/support-matrix.md) pins first-stage rows as **Qualification targets**. M0-01 still owns licensing and remaining open support-profile acceptance. U0-01 records prototype frontend decisions.
 
 1. Use one monorepo for Rust, MoonBit, TypeScript, protocol fixtures, conformance, deployment, and documentation.
 2. Treat R2WP framing, schemas with identity `(scheme, value)`, queue limits, errors, and telemetry as shared versioned contracts.
@@ -177,21 +178,134 @@ Every task clears these conditions:
 
 #### M0-03 — Freeze R2WP v0
 
-**Description:** Turn the R2WP design baseline into a normative v0 contract with registries and golden frames.
+**Description:** Turn the R2WP design baseline into a normative v0 contract with registries, control CDDL, validators, fixtures, and multi-language agreement. Delivery is sequential sub-batches M0-03a through M0-03h. Each sub-batch is Scope M or smaller with exact paths.
+
+##### M0-03a — Normative contract, ADR, registry, and CDDL
+
+**Description:** Publish wire version 0 normative prose, single JSON registry, control CDDL (root-first), ADR 0009, and documentation entry points.
 
 **Acceptance criteria:**
 
-- [ ] Byte order, header offsets, opcodes, flags, clocks, priorities, extensions, limits, errors, and version negotiation have normative definitions.
-- [ ] Control schemas cover hello, identity, graph, schema, channels, clocks, resume, and errors, including `SessionReady` gateway/support-row profile fields.
-- [ ] Channel and QoS mappings cover topics, Service, Action, media, recording, and assets.
-- [ ] Golden fixtures cover valid, boundary, malformed, stale-generation, recovery, gateway/support-row resume mismatch, multi-domain same-row, and cross-row independent-session sequences.
-- [ ] WebTransport and WSS share one semantic fixture set.
+- [x] Normative package freezes bootstrap, framing, sequence domains/dispositions, opcode/channel/transport invariants, extensions, bounds, SessionReady/Resume, capability negotiation, QoS/ChannelReady rules, Parameter composition, media/recording/asset contracts, and transport length rules with RFC 2119 keywords.
+- [x] Registry is exhaustive and machine-usable: scoped `control_field_keys` for bootstrap, every control message, and nested maps; enums, dispositions, source-entry encodings, non-ROS payload keys, bounds, single-valued `validation_order`, protocol state machine, and direction tables as source of truth.
+- [x] CDDL root is `r2wp-v0-control`; all collections are bounded; dead rules eliminated; channel/payload mappings cover topics, Service client **and** server, Action client **and** server (browser OpenChannel roles with inverted directions), Parameter composition, media, recording, and assets; graph endpoint roles remain independent.
+- [x] ADR 0009 Accepted after Codex review; phase-one support rows remain H-FT/H-CY/J-FT/J-CY only; Studio workspace enrollment and Jazzy+ expansion stay outside this batch (U0 / later expansion).
 
-**Verification:** Rust, MoonBit, and TypeScript reference parsers produce identical semantic records and stable errors for every fixture.
+**Verification (Codex acceptance evidence):** `bun run check` status=ok (34 markdown, 310 links); `bun test` 53/53; `git diff --check` clean; JSON parse OK; official `cddl` gem generated 100 instances; `just check`/`test`/`build` under Bun 1.3.14, Rust 1.97.1, MoonBit moonc 0.10.6+80dc50f24, just 1.50.0.
 
 - **Dependencies:** M0-01, M0-02
-- **Likely files:** `protocol/r2wp-v0.md`, `protocol/schema/`, `protocol/registry/`, `protocol/testdata/`
-- **Scope:** L
+- **Likely files:** `protocol/r2wp-v0.md`, `protocol/registry/r2wp-v0.json`, `protocol/schema/control-v0.cddl`, `docs/adr/0009-r2wp-v0-wire-encoding.md`, `docs/adr/README.md`, `docs/protocol/r2wp.md`, `docs/README.md`, `docs/references.md`, `.agents/docs/technology-stack.md`, `tasks/plan.md`, `tasks/todo.md`
+- **Scope:** M
+
+##### M0-03b — Contract validator and root command
+
+**Description:** Validate registry shape, CDDL/registry consistency, and absolute bounds from a root command.
+
+**Acceptance criteria:**
+
+- [ ] `scripts/protocol-check.ts` loads `protocol/registry/r2wp-v0.json` and rejects malformed shape, missing required registries, and unbound collections.
+- [ ] Root surface exposes the check (`just protocol-check` and/or package script) with deterministic diagnostics.
+- [ ] Unit tests cover success and intentional registry corruption.
+
+**Verification:** `bun test scripts/protocol-check.test.ts`; `just protocol-check` exit 0 on the tree.
+
+- **Dependencies:** M0-03a
+- **Likely files:** `scripts/protocol-check.ts`, `scripts/protocol-check.test.ts`, `justfile`, `package.json`
+- **Scope:** M
+
+##### M0-03c — TypeScript deterministic CBOR subset
+
+**Description:** Implement the R2WP v0 deterministic CBOR encode/decode subset inside the TypeScript SDK package.
+
+**Acceptance criteria:**
+
+- [ ] Encoder/decoder enforce definite lengths, shortest integers, sorted uint keys, and reject tags/floats/indefinite/duplicate keys/invalid UTF-8 with `invalid_control` semantics.
+- [ ] Nesting depth and map entry bounds match the registry.
+- [ ] Focused Bun tests cover accept and reject vectors without full frame fixtures yet.
+
+**Verification:** `bun test` for `sdk/typescript/src/protocol/**`.
+
+- **Dependencies:** M0-03b
+- **Likely files:** `sdk/typescript/src/protocol/cbor.ts`, `sdk/typescript/src/protocol/cbor.test.ts`, `sdk/typescript/package.json`
+- **Scope:** M
+
+##### M0-03d — TypeScript bootstrap/frame codec and valid/boundary fixtures
+
+**Description:** Build bootstrap and selected-version frame codecs on the CBOR subset and commit valid/boundary golden fixtures.
+
+**Acceptance criteria:**
+
+- [ ] Codecs cover 12-byte bootstrap prefix, 32-byte headers, extension TLVs, and CONTROL_CBOR maps.
+- [ ] Fixtures cover header boundaries, flags, schema identity pairs, SessionReady fields, and absolute limit boundaries.
+- [ ] Manifest records bytes, semantic JSON, and expected success.
+
+**Verification:** `bun test` codec suite; byte-stable re-encode of goldens under `protocol/testdata/valid/`.
+
+- **Dependencies:** M0-03c
+- **Likely files:** `sdk/typescript/src/protocol/frame.ts`, `sdk/typescript/src/protocol/bootstrap.ts`, `sdk/typescript/src/protocol/*.test.ts`, `protocol/testdata/valid/`, `protocol/testdata/manifest.json`
+- **Scope:** M
+
+##### M0-03e — Malformed, state-sequence, and transport parity fixtures
+
+**Description:** Extend fixtures for malformed frames, session sequences, resume mismatch, dispositions, and WT/WSS parity.
+
+**Acceptance criteria:**
+
+- [ ] Malformed cases cover truncation, overflow, bad extensions, duplicate CBOR keys, and zero common version.
+- [ ] Sequences cover open/resume success and `gateway_instance_mismatch` / `support_row_mismatch`, multi-domain same-row, cross-row independent sessions, `sequence_gap`, and `stale_sequence`.
+- [ ] Parity manifest states one semantic fixture set for WebTransport and binary WSS.
+
+**Verification:** Fixture suite expects stable codes; parity file under `protocol/testdata/parity.json`.
+
+- **Dependencies:** M0-03d
+- **Likely files:** `protocol/testdata/malformed/`, `protocol/testdata/sequences/`, `protocol/testdata/parity.json`, `sdk/typescript/src/protocol/*test*`
+- **Scope:** M
+
+##### M0-03f — Rust reference parser in rclwebd
+
+**Description:** Implement the wire version 0 parser inside the gateway crate.
+
+**Acceptance criteria:**
+
+- [ ] `rclwebd` parses valid fixtures into structured records and maps malformed fixtures to registry error codes.
+- [ ] Locked Cargo tests load committed fixture bytes from `protocol/testdata/`.
+
+**Verification:** `cargo test --locked -p rclwebd`.
+
+- **Dependencies:** M0-03e
+- **Likely files:** `rclwebd/src/protocol/mod.rs`, `rclwebd/src/protocol/frame.rs`, `rclwebd/src/protocol/bootstrap.rs`, `rclwebd/src/protocol/tests.rs`, `rclwebd/Cargo.toml`
+- **Scope:** M
+
+##### M0-03g — MoonBit reference parser in rclmbt
+
+**Description:** Implement the wire version 0 parser inside the MoonBit runtime module.
+
+**Acceptance criteria:**
+
+- [ ] `rclmbt` parses the same fixture set with matching error codes for assigned coverage.
+- [ ] Frozen `moon test --target wasm` covers the protocol package.
+
+**Verification:** `moon test --frozen --target wasm` for `rclmbt/protocol` sources.
+
+- **Dependencies:** M0-03e
+- **Likely files:** `rclmbt/protocol/moon.pkg`, `rclmbt/protocol/frame.mbt`, `rclmbt/protocol/bootstrap.mbt`, `rclmbt/protocol/frame_test.mbt`, `rclmbt/moon.mod`
+- **Scope:** M
+
+##### M0-03h — Cross-language agreement and M0-03 gate
+
+**Description:** Prove Rust, MoonBit, and TypeScript agreement on the fixture set and close M0-03 after review.
+
+**Acceptance criteria:**
+
+- [ ] Agreement report covers every golden fixture semantic record or stable error code across the three parsers.
+- [ ] WebTransport and WSS share the semantic fixture set in the report.
+- [ ] Plan/todo mark M0-03 complete only after review Accept.
+
+**Verification:** Root test or `just protocol-agree` runs multi-language agreement; docs updated.
+
+- **Dependencies:** M0-03f, M0-03g
+- **Likely files:** `scripts/protocol-agree.ts`, `protocol/testdata/agreement/`, `justfile`, `tasks/plan.md`, `tasks/todo.md`
+- **Scope:** M
 
 #### M0-04 — Generate the authoritative ROS CDR corpus
 

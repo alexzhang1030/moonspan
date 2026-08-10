@@ -6,7 +6,15 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
 
 - [~] M0-01 Complete architecture ADRs and the reference support profile.
 - [~] M0-02 Bootstrap the monorepo, polyglot workspaces, root commands, and CI (local workspace/commands/pins proven; foundation workflow implemented + local actionlint complete; hosted run pending).
-- [ ] M0-03 Freeze R2WP v0 and cross-language golden frames.
+- [~] M0-03 Freeze R2WP v0 and cross-language golden frames (sub-batches below).
+  - [x] M0-03a Normative contract, ADR 0009, registry, and control CDDL (verified; ADR 0009 Accepted).
+  - [~] M0-03b Contract validator and root command.
+  - [ ] M0-03c TypeScript deterministic CBOR subset (`sdk/typescript/src/protocol`).
+  - [ ] M0-03d TypeScript bootstrap/frame codec and valid/boundary fixtures.
+  - [ ] M0-03e Malformed/state-sequence fixtures and transport parity manifest.
+  - [ ] M0-03f Rust reference parser (`rclwebd/src/protocol`).
+  - [ ] M0-03g MoonBit reference parser (`rclmbt/protocol`).
+  - [ ] M0-03h Cross-language agreement and M0-03 gate.
 - [ ] M0-04 Generate the authoritative ROS CDR corpus.
 - [ ] M0-05 Establish the evidence harness and report schema.
 
