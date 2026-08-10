@@ -2,17 +2,18 @@
 
 R2WP is Moonspan's versioned browser transport for ROS 2 semantics and serialized data. It carries bootstrap negotiation, a fixed 32-byte selected-version frame header, deterministic CBOR control maps, and CDR or media payloads over WebTransport and binary WebSocket.
 
-**Status:** wire version **0** accepted normative freeze ([ADR 0009](../adr/0009-r2wp-v0-wire-encoding.md)); M0-03b–h implement validators, codecs, fixtures, and language parsers against this contract.
+**Status:** wire version **0** accepted normative freeze ([ADR 0009](../adr/0009-r2wp-v0-wire-encoding.md)); M0-03b contract validator complete; M0-03c–h implement codecs, fixtures, and language parsers against this contract.
 
-| Layer | Authoritative file |
+| Surface | File |
 |---|---|
 | Normative wire version 0 | [protocol/r2wp-v0.md](../../protocol/r2wp-v0.md) |
 | Numeric registries and layouts | [protocol/registry/r2wp-v0.json](../../protocol/registry/r2wp-v0.json) |
 | Control CDDL | [protocol/schema/control-v0.cddl](../../protocol/schema/control-v0.cddl) |
+| Contract validator (implementation) | [scripts/protocol-check.ts](../../scripts/protocol-check.ts) (`bun run protocol-check`, `just protocol-check`) |
 | Encoding ADR | [ADR 0009](../adr/0009-r2wp-v0-wire-encoding.md) |
 | Versioning model | [ADR 0005](../adr/0005-r2wp-wire-versioning.md) |
 
-This page is the design overview and documentation entry. Byte-level rules, registries, absolute limits, dispositions, and transport length rules are normative in the protocol package above.
+This page is the design overview and documentation entry. Byte-level rules, registries, absolute limits, dispositions, and transport length rules are normative in the protocol package above. The validator enforces those rules. Normative authority remains the three-file protocol package.
 
 Schema identity follows [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md). Gateway process and support-row binding follows [ADR 0008](../adr/0008-one-adapter-row-per-gateway-process.md). First-stage pins live in the [support matrix](../support-matrix.md).
 

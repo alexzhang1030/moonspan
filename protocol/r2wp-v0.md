@@ -19,6 +19,19 @@ Overview: [docs/protocol/r2wp.md](../docs/protocol/r2wp.md). [ADR 0005](../docs/
 
 All three surfaces MUST agree. Conflict is a specification defect.
 
+## Contract validation
+
+Machine validation of this package is [`scripts/protocol-check.ts`](../scripts/protocol-check.ts) (M0-03b verified).
+
+| Entry | Command |
+|---|---|
+| Direct Bun | `bun run protocol-check` |
+| Root just | `just protocol-check` |
+| Combined docs + protocol | `bun run check` (`docs:check` then `protocol-check`) |
+| Focused tests | `bun run test:protocol` |
+
+Coverage includes frozen v0 top-level registry shape; exact phase-one support rows **H-FT**, **H-CY**, **J-FT**, and **J-CY**; all 23 `absolute_limits` values; 21 directly owned CDDL bound surfaces; bounded arrays and maps; root-first, duplicate, dead, and undefined CDDL rules; exact wire and bootstrap error code sets with code 20 out-of-band; validation-order steps and error references; deterministic lexicographically sorted diagnostics. Phase-one stays limited to those four rows; Studio enrollment remains U0 after M3; Jazzy+ expansion remains later work.
+
 ## Conventions
 
 The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **NOT RECOMMENDED**, **MAY**, and **OPTIONAL** in this document are to be interpreted as described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119.html) and [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174.html) when, and only when, they appear in all capitals, as shown here.

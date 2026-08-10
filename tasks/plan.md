@@ -18,7 +18,8 @@ The planning baseline uses five core engineers, 18 weeks for the mainline, and 6
 
 - The repository contains formal technical specifications, PCR records, polyglot workspace scaffolding, and this execution plan.
 - M0-02 has local root commands, pinned Bun/Rust/MoonBit/just identities, and a foundation CI workflow; hosted CI run evidence remains open.
-- M0-03a freezes the R2WP wire version 0 normative package (markdown, registry JSON, control CDDL, ADR 0009 Accepted); validator, codecs, fixtures, and language parsers follow in M0-03b–h.
+- M0-03a freezes the R2WP wire version 0 normative package (markdown, registry JSON, control CDDL, ADR 0009 Accepted).
+- M0-03b is verified complete: `scripts/protocol-check.ts` validates the frozen contract; root entrypoints are `bun run protocol-check`, `just protocol-check`, and `bun run test:protocol`; `bun run check` runs `docs:check` then `protocol-check`. Codecs, fixtures, and language parsers continue in M0-03c–h.
 - Active mainline workspaces: `rclwebd/` (Cargo), `rclmbt/` (`moon.work`), `sdk/typescript/` (`@moonspan/sdk`). Studio workspace enrollment begins at U0.
 - R2WP, MoonBit/Wasm, Rust/C ABI, ROS support, and performance values are design baselines awaiting their named gates.
 - The mainline and UI side-project boundary is fixed in [product scope](../docs/product-scope.md).
@@ -167,7 +168,7 @@ Every task clears these conditions:
 - [x] The repository pins Bun `1.3.14` (`.bun-version`, `packageManager`, `engines`), Rust `1.97.1` (`rust-toolchain.toml`, workspace `rust-version`), MoonBit `moonc` `0.10.6+80dc50f24` (`.moon-version`), and just `1.50.0` (`.just-version`); `scripts/toolchain-check.ts` enforces exact installed identities (including `moon version --all` bundle coverage) and pin-file consistency.
 - [x] Cargo virtual workspace member `rclwebd`, `moon.work` member `rclmbt` (wasm), and committed `Cargo.lock` / `bun.lock` are present with empty public product APIs and package-identity smoke coverage only.
 - [ ] CI caches dependencies and publishes test and documentation artifacts (**workflow implemented**; local `actionlint` complete; **hosted run pending** — acceptance stays open until a reviewed hosted run records dual evidence artifacts).
-- [x] `bun run check` is the documentation static check (`docs:check`); `bun run toolchain-check` probes installed tools; `bun test` covers docs, toolchain unit tests, and SDK package-contract tests.
+- [x] M0-02 delivered the root Bun check entrypoint as the documentation static check (`docs:check`); `bun run toolchain-check` probes installed tools; `bun test` covers docs, toolchain unit tests, and SDK package-contract tests. M0-03b later extends `bun run check` to run `docs:check` then `protocol-check`.
 - [x] Foundation CI workflow (`.github/workflows/ci.yml`) pins Actions by full SHA, installs project tool pins on `ubuntu-24.04` (SHA256-verified MoonBit installer and just asset), caches dependency material only, initializes `artifacts/ci/` placeholders after checkout, runs frozen/locked root recipes with tee logs, and uploads available documentation + test-build evidence after checkout via `if: always()` (14-day retention). Foundation lane is generic M0 tooling evidence; Humble/Jazzy H-FT/H-CY/J-FT/J-CY stay with later ROS container qualification workflows; Studio enrollment begins at U0.
 
 **Verification:** A clean checkout executes the documented bootstrap and all root commands locally. Current CI evidence is local `actionlint` plus those pinned commands. CI acceptance requires a reviewed hosted workflow run with both evidence artifacts; the first hosted run will record artifact URLs.
@@ -203,11 +204,11 @@ Every task clears these conditions:
 
 **Acceptance criteria:**
 
-- [ ] `scripts/protocol-check.ts` loads `protocol/registry/r2wp-v0.json` and rejects malformed shape, missing required registries, and unbound collections.
-- [ ] Root surface exposes the check (`just protocol-check` and/or package script) with deterministic diagnostics.
-- [ ] Unit tests cover success and intentional registry corruption.
+- [x] `scripts/protocol-check.ts` loads the frozen v0 registry and control CDDL; rejects malformed shape, missing required fields, unbound collections, and related contract drift with deterministic sorted diagnostics.
+- [x] Root surface exposes the check: `bun run protocol-check`, `just protocol-check` (depends on `toolchain-check`), and `bun run check` chains `docs:check` then `protocol-check`. `just check` executes `protocol-check` exactly once through `bun run check`.
+- [x] Focused unit tests cover the valid repository contract and intentional corruptions (`bun run test:protocol`).
 
-**Verification:** `bun test scripts/protocol-check.test.ts`; `just protocol-check` exit 0 on the tree.
+**Verification (acceptance evidence):** focused `bun run test:protocol` 36/36; full `bun test` 89/89; 14 independent mutation probes rejected; `bun run protocol-check` and `bun run check` status=ok; pinned Bun 1.3.14 / Rust 1.97.1 / moonc 0.10.6+80dc50f24 / just 1.50.0 `just protocol-check` and `just check` pass; `git diff --check` clean. Coverage includes frozen top-level shape, exact phase-one profiles H-FT/H-CY/J-FT/J-CY, all 23 absolute limits, 21 directly owned CDDL bound surfaces, bounded arrays/maps, root-first/duplicate/dead/undefined CDDL rules, exact wire/bootstrap error sets with code 20 out-of-band, and validation-order references/steps.
 
 - **Dependencies:** M0-03a
 - **Likely files:** `scripts/protocol-check.ts`, `scripts/protocol-check.test.ts`, `justfile`, `package.json`

@@ -61,6 +61,7 @@ Installer version selectors use the exact tested pin arguments above: `0.10.6+80
 ```bash
 bun install --frozen-lockfile
 just toolchain-check
+just protocol-check
 just check
 just test
 just build
@@ -69,7 +70,8 @@ just build
 | Recipe | Covers |
 |---|---|
 | `just toolchain-check` | Exact bun / rustc / cargo / moon bundle / moonc / just identities vs pin files |
-| `just check` | Toolchain identity, `bun run check` (docs static check), `cargo fmt` + locked `clippy -D warnings`, frozen `moon check --fmt`, `@moonspan/sdk` browser build check |
+| `just protocol-check` | Toolchain identity, then R2WP v0 contract validation (`bun run protocol-check`) |
+| `just check` | Toolchain identity, `bun run check` (docs static check then protocol contract check), `cargo fmt` + locked `clippy -D warnings`, frozen `moon check --fmt`, `@moonspan/sdk` browser build check |
 | `just test` | Root/tooling/SDK `bun test` once, locked `cargo test --workspace`, frozen `moon test --target wasm` |
 | `just build` | Locked `cargo build --workspace`, frozen `moon build --target wasm`, `@moonspan/sdk` browser build |
 
@@ -77,10 +79,11 @@ Bun script meanings:
 
 | Script | Meaning |
 |---|---|
-| `bun run check` | Documentation static check only (`docs:check`) |
+| `bun run check` | `docs:check` then `protocol-check` (deterministic order) |
+| `bun run protocol-check` | R2WP v0 registry + control CDDL contract validator (`scripts/protocol-check.ts`) |
 | `bun run toolchain-check` | Installed-tool probe against project pins |
-| `bun test` | All Bun tests (docs, toolchain unit tests, SDK) |
-| `bun run test:docs` / `test:toolchain` | Focused Bun test entrypoints |
+| `bun test` | All Bun tests (docs, toolchain, protocol-check, SDK) |
+| `bun run test:docs` / `test:protocol` / `test:toolchain` | Focused Bun test entrypoints |
 
 The repository currently carries **zero external package dependencies**. Workspace members stay private at version `0.0.0`. Repository `LICENSE` / `NOTICE` wait on the [D-06](./tasks/plan.md#13-kickoff-decision-register) human ruling.
 

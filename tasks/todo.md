@@ -8,7 +8,7 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
 - [~] M0-02 Bootstrap the monorepo, polyglot workspaces, root commands, and CI (local workspace/commands/pins proven; foundation workflow implemented + local actionlint complete; hosted run pending).
 - [~] M0-03 Freeze R2WP v0 and cross-language golden frames (sub-batches below).
   - [x] M0-03a Normative contract, ADR 0009, registry, and control CDDL (verified; ADR 0009 Accepted).
-  - [~] M0-03b Contract validator and root command.
+  - [x] M0-03b Contract validator and root command (verified; `scripts/protocol-check.ts` + root wiring).
   - [ ] M0-03c TypeScript deterministic CBOR subset (`sdk/typescript/src/protocol`).
   - [ ] M0-03d TypeScript bootstrap/frame codec and valid/boundary fixtures.
   - [ ] M0-03e Malformed/state-sequence fixtures and transport parity manifest.

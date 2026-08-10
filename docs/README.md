@@ -22,7 +22,7 @@ The scope ordering and Bun choice record human direction from 2026-08-10. Other 
 | Accepted architecture decisions | [ADR register](./adr/README.md) |
 | Technical reference set | [References](./references.md) |
 | R2WP overview and design entry | [R2WP](./protocol/r2wp.md) |
-| R2WP wire version 0 normative contract | [protocol/r2wp-v0.md](../protocol/r2wp-v0.md), [registry](../protocol/registry/r2wp-v0.json), [control CDDL](../protocol/schema/control-v0.cddl), [ADR 0009](./adr/0009-r2wp-v0-wire-encoding.md) |
+| R2WP wire version 0 normative contract | [protocol/r2wp-v0.md](../protocol/r2wp-v0.md), [registry](../protocol/registry/r2wp-v0.json), [control CDDL](../protocol/schema/control-v0.cddl), [ADR 0009](./adr/0009-r2wp-v0-wire-encoding.md), [contract validator](../scripts/protocol-check.ts) |
 | MoonBit/Wasm runtime, schemas, host ABI | [`rclmbt`](./runtime/rclmbt.md) |
 | Gateway, ROS adapter, scheduling, operations | [`rclwebd`](./gateway/rclwebd.md) |
 | Identity, policy, audit, resource controls | [Security](./security.md) |
@@ -53,6 +53,7 @@ The scope ordering and Bun choice record human direction from 2026-08-10. Other 
 - Measured claims link to reproducible evidence carrying environment, commands, raw data, and revision identity.
 - Accepted human decisions live in the [ADR register](./adr/README.md); the [kickoff decision register](../tasks/plan.md#13-kickoff-decision-register) owns accountable role, required evidence, and decision deadline for remaining kickoff choices.
 - The PCR map under [`.agents/docs/`](../.agents/docs/README.md) records durable rationale and routes contributors to these specifications.
-- Run `bun run check` (alias of `docs:check`) to validate local Markdown links and images, heading anchors, AGENTS.md PCR markers, and formal enrollment from this map and the PCR map.
+- Run `bun run check` to run `docs:check` then `protocol-check` (local Markdown links/images/anchors/PCR enrollment, then R2WP v0 registry/CDDL contract validation).
+- Run `bun run protocol-check` or `just protocol-check` for the contract validator alone; `bun run test:protocol` for focused validator tests.
 - Run `bun run toolchain-check` to probe installed tool identities against project pins.
 - Run `just check`, `just test`, and `just build` for the full polyglot root command surface once pinned Bun, Rust, MoonBit, and just are on `PATH` (see repository [README](../README.md)).
