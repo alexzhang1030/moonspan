@@ -12,8 +12,10 @@
   ],
   "scripts": {
     "docs:check": "bun run scripts/docs-check.ts",
+    "check": "bun run docs:check",
     "test:docs": "bun test scripts/docs-check.test.ts",
-    "test": "bun test",
-    "check": "bun run docs:check && bun run test:docs"
+    "test:toolchain": "bun test scripts/toolchain-check.test.ts",
+    "toolchain-check": "bun run scripts/toolchain-check.ts",
+    "test": "bun test"
   }
 }

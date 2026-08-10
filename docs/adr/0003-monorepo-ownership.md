@@ -16,7 +16,13 @@ Moonspan spans Rust, MoonBit, TypeScript, shared protocol contracts, conformance
 
 Use one monorepo for Rust, MoonBit, TypeScript, R2WP contracts and fixtures, conformance, deployment, and documentation.
 
-- The repository root owns orchestration, version pins, and shared verification commands.
+- The repository root owns orchestration, version pins, and shared verification commands (`just toolchain-check` / `check` / `test` / `build`).
+- Mainline language workspaces for this phase:
+  - `rclwebd/` — Cargo workspace member (Rust gateway library).
+  - `rclmbt/` — `moon.work` member (MoonBit/Wasm runtime module).
+  - `sdk/typescript/` — Bun workspace package `@moonspan/sdk`.
+  - `examples/*` — reserved Bun workspace glob for mainline examples.
+- Studio workspace enrollment begins at U0 after M3; M0–M3 keep `studio/` free of source and active workspace entries.
 - Each language workspace owns its dependencies and internal package layout.
 - Cross-language sharing uses versioned protocols, schemas, fixtures, generated-artifact manifests, and stable ABIs.
 - Release units may version independently.
@@ -32,10 +38,10 @@ Use one monorepo for Rust, MoonBit, TypeScript, R2WP contracts and fixtures, con
 
 ## Consequences
 
-- M0-02 bootstraps root commands, workspace layout, and CI against this ownership model.
+- M0-02 records exact pin files (`.bun-version`, `.moon-version`, `.just-version`, `rust-toolchain.toml`), lockfiles (`Cargo.lock`, `bun.lock`), and root recipes in the `justfile`.
 - Shared-contract changes update fixtures and require review from every consuming owner.
-- Generated artifacts publish through versioned manifests with explicit consumer imports.
-- Dependency resolution follows each ecosystem's workspace-level lock and pin conventions; M0-02 records the exact owned files.
+- Generated artifacts publish through versioned manifests with explicit consumer imports; build outputs stay ignored (`target/`, `_build/`, `dist/`, `node_modules/`, `.mooncakes/`).
+- Dependency resolution follows each ecosystem's workspace-level lock and pin conventions; the current tree carries zero external package dependencies and omits repository `LICENSE`/`NOTICE` until D-06 resolves.
 - Conformance, deployment, and documentation live in-tree with the mainline delivery sequence.
 
 ## Revisit triggers

@@ -1,0 +1,14 @@
+{
+  "name": "@moonspan/sdk",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check": "bun build ./src/index.ts --target=browser --outdir=./dist",
+    "test": "bun test",
+    "build": "bun build ./src/index.ts --target=browser --outdir=./dist"
+  }
+}

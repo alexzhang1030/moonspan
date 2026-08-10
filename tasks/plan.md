@@ -16,9 +16,9 @@ The planning baseline uses five core engineers, 18 weeks for the mainline, and 6
 
 ## 2. Current baseline
 
-- The repository contains formal technical specifications, PCR records, and this execution plan.
-- Implementation scaffolding begins in M0-02.
-- Bun is the selected JavaScript package, workspace, lockfile, script, and test command surface.
+- The repository contains formal technical specifications, PCR records, polyglot workspace scaffolding, and this execution plan.
+- M0-02 has local root commands and pinned Bun, Rust, MoonBit, and just identities; CI remains pending.
+- Active mainline workspaces: `rclwebd/` (Cargo), `rclmbt/` (`moon.work`), `sdk/typescript/` (`@moonspan/sdk`). Studio workspace enrollment begins at U0.
 - R2WP, MoonBit/Wasm, Rust/C ABI, ROS support, and performance values are design baselines awaiting their named gates.
 - The mainline and UI side-project boundary is fixed in [product scope](../docs/product-scope.md).
 
@@ -161,16 +161,17 @@ Every task clears these conditions:
 
 **Acceptance criteria:**
 
-- [ ] `just check`, `just test`, and `just build` run from the repository root.
-- [x] Root `package.json` declares Bun workspaces (`sdk/*`, `examples/*`) and scripts; root-only install succeeds with zero external dependencies (text `bun.lock` deferred until the first package dependency; U0 adds exact `studio` workspace).
-- [x] The repository pins Bun (`1.3.14` via `.bun-version`, `packageManager`, and `engines`); Rust, MoonBit, and remaining tool pins stay queued.
+- [x] `just toolchain-check`, `just check`, `just test`, and `just build` run from the repository root under the pinned toolchains (Studio workspace enrollment begins at U0).
+- [x] Root `package.json` declares Bun workspaces (`sdk/*`, `examples/*`) and scripts; private `@moonspan/sdk` lives at `sdk/typescript`; install succeeds with zero external dependencies and committed text `bun.lock`; U0 adds exact `studio` workspace.
+- [x] The repository pins Bun `1.3.14` (`.bun-version`, `packageManager`, `engines`), Rust `1.97.1` (`rust-toolchain.toml`, workspace `rust-version`), MoonBit `moonc` `0.10.6+80dc50f24` (`.moon-version`), and just `1.50.0` (`.just-version`); `scripts/toolchain-check.ts` enforces exact installed identities (including `moon version --all` bundle coverage) and pin-file consistency.
+- [x] Cargo virtual workspace member `rclwebd`, `moon.work` member `rclmbt` (wasm), and committed `Cargo.lock` / `bun.lock` are present with empty public product APIs and package-identity smoke coverage only.
 - [ ] CI caches dependencies and publishes test and documentation artifacts.
-- [x] `bun run docs:check` validates Markdown links, anchors, PCR markers, and formal document enrollment (`scripts/docs-check.ts`); root `bun run check` runs docs check plus focused docs tests.
+- [x] `bun run check` is the documentation static check (`docs:check`); `bun run toolchain-check` probes installed tools; `bun test` covers docs, toolchain unit tests, and SDK package-contract tests.
 
-**Verification:** A clean checkout executes the documented bootstrap and all root commands locally and in CI.
+**Verification:** A clean checkout executes the documented bootstrap and all root commands locally; CI verification remains open until the workflow lands.
 
 - **Dependencies:** M0-01
-- **Likely files:** `justfile`, `Cargo.toml`, `rust-toolchain.toml`, `package.json`, `bun.lock`, `.bun-version`, `bunfig.toml`, `scripts/docs-check.ts`, `.moon/`, `.github/workflows/ci.yml`
+- **Likely files:** `justfile`, `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `moon.work`, `package.json`, `bun.lock`, `.bun-version`, `.moon-version`, `.just-version`, `bunfig.toml`, `scripts/docs-check.ts`, `scripts/toolchain-check.ts`, `rclwebd/`, `rclmbt/`, `sdk/typescript/`, `.github/workflows/ci.yml`
 - **Scope:** M
 
 #### M0-03 — Freeze R2WP v0
@@ -960,8 +961,8 @@ Every U0 task depends directly or transitively on M3-08.
 | ID | Decision | Accountable role | Required evidence | Decision deadline | Current state |
 |---|---|---|---|---|---|
 | D-01 | Reference qualification environment: reference robot, artifact storage, and confirmation of the already pinned ROS image, RMW, browser, CPU, and network profile | Platform/release owner (ROS/middleware owner consulted) | Reviewed environment manifest; device/runtime smoke proof; immutable storage location with access and retention proof | M0-01 exit | Partial; support profile pins ROS/RMW/browser/CPU/network; robot and artifact storage remain open |
-| D-02 | Named workstream and review owners | Project lead | Named ownership for five workstreams plus product, architecture, security, and operations reviewers and integration owner coverage | M0-02 entry | Open |
-| D-03 | Exact Bun version and root workspace/lockfile convention | Browser SDK/performance owner | Official Bun release identity; clean bootstrap and lockfile reproducibility; root command proof | First M0-02 scaffold commit | Resolved 2026-08-11: Bun 1.3.14 (revision `0d9b296af`); durable artifacts `.bun-version`, `package.json` (`packageManager`/`engines`, workspaces `sdk/*` `examples/*`), `bunfig.toml` (isolated linker), `scripts/docs-check.ts`; U0 adds exact `studio` workspace; empty external dependency set (Bun omits empty `bun.lock` until the first package dependency lands; lockfile is committed whenever Bun materializes it) |
+| D-02 | Named workstream and review owners | Project lead | Named ownership for five workstreams plus product, architecture, security, and operations reviewers and integration owner coverage | M0-02 entry | Past M0-02 entry deadline (preparatory scaffolding has begun); named owners remain a human input |
+| D-03 | Exact Bun version and root workspace/lockfile convention | Browser SDK/performance owner | Official Bun release identity; clean bootstrap and lockfile reproducibility; root command proof | First M0-02 scaffold commit | Resolved 2026-08-11: Bun 1.3.14 (revision `0d9b296af`); durable artifacts `.bun-version`, `package.json` (`packageManager`/`engines`, workspaces `sdk/*` `examples/*`), `bunfig.toml` (isolated linker), `scripts/docs-check.ts`, private `@moonspan/sdk` at `sdk/typescript`, committed `bun.lock` (workspace identity, zero external dependencies); U0 adds exact `studio` workspace |
 | D-04 | OIDC provider and SROS2 reference environment | Security owner (Platform/release owner consulted) | Issuer metadata and test tenant; SROS2 enclave/keystore profile; credential rotation and integration smoke proof | M3-01 entry | Open |
 | D-05 | Raw benchmark artifact retention and publication | Platform/release owner | Storage class; retention duration; access and redaction rules; integrity hash and retrieval drill | M0-05 report-schema freeze | Open |
 | D-06 | Repository license and third-party licensing policy | Repository owner (legal/release review) | Accepted license identifier and text; copyright/NOTICE attribution; dependency and asset inventory; SPDX/SBOM output; compatibility review; CI policy and exception workflow | M0-01 exit | Awaiting human ruling; Apache-2.0 recommended |

@@ -1,0 +1,16 @@
+{
+  "lockfileVersion": 1,
+  "configVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "moonspan",
+    },
+    "sdk/typescript": {
+      "name": "@moonspan/sdk",
+      "version": "0.0.0",
+    },
+  },
+  "packages": {
+    "@moonspan/sdk": ["@moonspan/sdk@workspace:sdk/typescript"],
+  }
+}

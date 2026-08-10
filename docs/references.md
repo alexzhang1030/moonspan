@@ -61,12 +61,48 @@ This reference set grounds Moonspan's design baseline and future ADR review in s
 
 ## Repository tooling and design records
 
+### Rust
+
+- [Rust releases index](https://blog.rust-lang.org/releases/)
+- [Announcing Rust 1.97.1](https://blog.rust-lang.org/2026/07/16/Rust-1.97.1/)
+- [rustup book](https://rust-lang.github.io/rustup/)
+- [Cargo workspaces](https://doc.rust-lang.org/cargo/reference/workspaces.html)
+- [The Rust Edition Guide (2024)](https://doc.rust-lang.org/edition-guide/rust-2024/index.html)
+
+### MoonBit
+
+- [MoonBit download and install](https://www.moonbitlang.com/download/)
+- [MoonBit v0.10.4 release notes](https://www.moonbitlang.com/updates/2026/07/13/moonbit-0-10-4-release)
+- [MoonBit module configuration (`moon.mod`)](https://docs.moonbitlang.com/en/latest/toolchain/moon/module.html)
+- [MoonBit package configuration (`moon.pkg`)](https://docs.moonbitlang.com/en/latest/toolchain/moon/package.html)
+- [MoonBit toolchain commands](https://docs.moonbitlang.com/en/latest/toolchain/moon/commands.html)
+- [Official unix installer script](https://cli.moonbitlang.com/install/unix.sh) (pass the full build ID as the version argument, or set `MOONBIT_INSTALL_VERSION`; isolate installs with `MOON_HOME`)
+- Project pin install argument: `0.10.6+80dc50f24` (the full build ID installs successfully; a probe of the short ID `0.10.4` returned HTTP 403 on the current CDN)
+- [darwin-aarch64 full-build archive `0.10.6+80dc50f24`](https://cli.moonbitlang.com/binaries/0.10.6%2B80dc50f24/moonbit-darwin-aarch64.tar.gz)
+- [darwin-aarch64 full-build archive sha256](https://cli.moonbitlang.com/binaries/0.10.6%2B80dc50f24/moonbit-darwin-aarch64.tar.gz.sha256) (`a70bd7a92c97b29125c4cb9a647a390bd850b10161191b61e9b7c9b2dd482ddb`)
+- [darwin-aarch64 full-build core archive](https://cli.moonbitlang.com/cores/core-0.10.6%2B80dc50f24.tar.gz)
+- Matching binary/core URI pattern for other hosts: `https://cli.moonbitlang.com/binaries/<url-encoded-version>/moonbit-<target>.tar.gz` and `https://cli.moonbitlang.com/cores/core-<url-encoded-version>.tar.gz`
+
+### just
+
+- [just 1.50.0 release](https://github.com/casey/just/releases/tag/1.50.0)
+- [just 1.50.0 darwin-aarch64 archive](https://github.com/casey/just/releases/download/1.50.0/just-1.50.0-aarch64-apple-darwin.tar.gz)
+- [just manual](https://just.systems/man/en/)
+- [just repository](https://github.com/casey/just)
+
+### Bun
+
 - [Bun v1.3.14 release](https://bun.com/blog/bun-v1.3.14)
 - [Bun installation](https://bun.com/docs/installation)
 - [Bun workspaces](https://bun.com/docs/install/workspaces)
 - [Bun install and linker](https://bun.com/docs/install)
 - [Bun runtime and CLI](https://bun.com/docs/runtime)
+
+### Design records
+
 - [DESIGN.md specification](https://github.com/google-labs-code/design.md/blob/main/docs/spec.md)
+- [ADR 0002: Bun for JavaScript tooling](./adr/0002-use-bun-for-javascript-tooling.md)
+- [ADR 0003: monorepo ownership](./adr/0003-monorepo-ownership.md)
 - [ADR 0007: Humble/Jazzy schema identity](./adr/0007-humble-jazzy-schema-identity.md)
 - [ADR 0008: one adapter row per gateway process](./adr/0008-one-adapter-row-per-gateway-process.md)
 - [Reference support profile](./support-matrix.md)

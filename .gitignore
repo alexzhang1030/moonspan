@@ -23,6 +23,7 @@ test-results/
 
 # Rust and MoonBit
 target/
+_build/
 .mooncakes/
 
 # Logs and temporary artifacts

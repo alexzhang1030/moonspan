@@ -33,11 +33,20 @@ Pin and workspace contract:
 - `.bun-version` records `1.3.14`.
 - Root `package.json` sets `packageManager: bun@1.3.14` and `engines.bun: 1.3.14`, `private: true`, workspace version `0.0.0`.
 - Workspaces declare active mainline package globs: `sdk/*` and `examples/*` (unmatched globs are accepted by Bun 1.3.14). Bun 1.3.14 rejects an unmatched exact workspace entry `studio`; U0 adds the exact `"studio"` workspace when `studio/package.json` lands.
+- Private package `@moonspan/sdk` lives at `sdk/typescript` (version `0.0.0`, ESM, empty public module surface for M0-02).
 - `bunfig.toml` sets the install linker to `isolated`.
-- With zero external dependencies, Bun 1.3.14 does not persist an empty root-only `bun.lock`; `bun install --frozen-lockfile` succeeds for the root-only tree. The repository commits `bun.lock` whenever Bun materializes it, beginning with the first dependency or workspace package.
+- With `@moonspan/sdk` present, Bun materializes root `bun.lock` (workspace identity only; zero external dependencies). The repository commits that lockfile. `bun install --frozen-lockfile` is the clean-checkout install path.
 - Official sources: [Bun v1.3.14 release](https://bun.com/blog/bun-v1.3.14), [installation](https://bun.com/docs/installation), [workspaces](https://bun.com/docs/install/workspaces), [install / linker](https://bun.com/docs/install).
 
-Vitest covers SDK units and contracts through Bun scripts. Playwright covers browser behavior, Worker integration, transport sessions, and later prototype accessibility. `bunx` runs tools such as the DESIGN.md linter.
+SDK unit and package-contract tests run through Bun. Playwright covers browser behavior, Worker integration, transport sessions, and later prototype accessibility when those phases begin. `bunx` runs tools such as the DESIGN.md linter.
+
+### Rust gateway workspace
+
+`rclwebd` is the Cargo workspace member at repository root (`Cargo.toml` virtual workspace, resolver 3). Shared package metadata: version `0.0.0`, edition 2024, `rust-version` 1.97.1. `rust-toolchain.toml` pins channel `1.97.1` with the minimal profile plus `rustfmt` and `clippy`. The crate stays private (`publish = false`), forbids `unsafe`, carries no license field (D-06 open), and has zero crate dependencies. `Cargo.lock` is committed.
+
+### MoonBit runtime workspace
+
+`rclmbt` is the `moon.work` member using current `moon.mod` / `moon.pkg` DSL formats (JSON manifests deprecated from MoonBit 0.10.4 onward). Module version `0.0.0`, `preferred_target` / `supported_targets` wasm, no license field, no external mooncakes. The repository pin is the full reproducible compiler build **`0.10.6+80dc50f24`** in `.moon-version` (install via the official installer with that exact argument, optionally isolating with `MOON_HOME`). That full build ID installs successfully. A probe of the short ID `0.10.4` returned HTTP 403 on the current CDN; the [0.10.4 release notes](https://www.moonbitlang.com/updates/2026/07/13/moonbit-0-10-4-release) remain historical language context.
 
 ### ROS platform
 
@@ -47,12 +56,13 @@ Exact image digests, CPU variants, browser pins, and row status live in the [ref
 
 ### Repository and evidence tooling
 
-- `just` provides root `check`, `test`, `build`, conformance, benchmark, documentation, and release commands.
-- Cargo builds and tests the Rust workspace.
-- MoonBit tooling builds Wasm modules and runs codec/runtime suites.
-- Bun manages TypeScript workspaces and scripts.
+- **just 1.50.0** (`.just-version`) provides root `toolchain-check`, `check`, `test`, and `build`. Studio workspace enrollment begins at U0, so those recipes cover mainline workspaces only.
+- **`scripts/toolchain-check.ts`** reads project pins and verifies exact installed `bun`, `rustc`, `cargo`, `moon` (bundle via `moon version --all`), `moonc`, and `just` identities, plus pin consistency across `.bun-version`/`package.json` and `rust-toolchain.toml`/`Cargo.toml`. The justfile invokes this checker; the future CI workflow will invoke it after the workflow lands. `.moon-version` and `.just-version` are Moonspan contracts consumed by those entrypoints.
+- Cargo builds and tests the Rust workspace (`cargo fmt`, locked `clippy -D warnings`, locked `test`, locked `build`).
+- MoonBit tooling checks, tests, and builds Wasm with `--frozen` (`moon check --deny-warn --target wasm --fmt`, `moon test --target wasm`, `moon build --target wasm`). Generated `_build/` stays gitignored.
+- Bun manages TypeScript workspaces and scripts; root `bun run check` is the documentation static check; `bun run toolchain-check` is the installed-tool probe; `bun.lock` is tracked.
 - Versioned fixtures and machine-readable artifacts travel with the repository.
-- CI publishes conformance, benchmark, security, compatibility, and release evidence.
+- CI publishes conformance, benchmark, security, compatibility, and release evidence once the CI workflow lands (still pending for M0-02).
 
 ## Post-mainline prototype stack
 

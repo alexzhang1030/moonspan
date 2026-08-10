@@ -1,0 +1,3 @@
+// Library package for the Wasm runtime. Empty public API for M0-02.
+// Linked product exports land with M1 host ABI work.
+supported_targets = "wasm"

@@ -33,17 +33,18 @@ The scope ordering and Bun choice record human direction from 2026-08-10. Other 
 | Delivery dependencies, kickoff decisions, and task acceptance | [Implementation plan](../tasks/plan.md) |
 | Current execution state | [Execution checklist](../tasks/todo.md) |
 
-## Planned code routes
+## Workspace routes
 
-| Planned area | Read first |
+| Area | Read first |
 |---|---|
+| Root pins, `justfile`, lockfiles | [technology stack rationale](../.agents/docs/technology-stack.md), [ADR 0002](./adr/0002-use-bun-for-javascript-tooling.md), [ADR 0003](./adr/0003-monorepo-ownership.md), repository [README](../README.md) |
 | `protocol/**` | [R2WP](./protocol/r2wp.md), [compatibility](./compatibility.md), [validation](./validation.md) |
 | `rclmbt/**` | [`rclmbt`](./runtime/rclmbt.md), [architecture](./architecture.md), [validation](./validation.md) |
 | `rclwebd/**` | [`rclwebd`](./gateway/rclwebd.md), [security](./security.md), [compatibility](./compatibility.md) |
 | `sdk/**` | [architecture](./architecture.md), [R2WP](./protocol/r2wp.md), [`rclmbt`](./runtime/rclmbt.md) |
 | `conformance/**`, `benchmarks/**` | [validation](./validation.md), [support matrix](./support-matrix.md), [landscape](./landscape.md) |
 | `deploy/**` | [security](./security.md), [support matrix](./support-matrix.md), [compatibility](./compatibility.md), [`rclwebd`](./gateway/rclwebd.md) |
-| `studio/**` | [common Studio prototype](./prototypes/studio-ui.md), [prototype design system](../.agents/docs/DESIGN.md) |
+| `studio/**` (U0 after M3) | [common Studio prototype](./prototypes/studio-ui.md), [prototype design system](../.agents/docs/DESIGN.md) |
 
 ## Change discipline
 
@@ -51,4 +52,6 @@ The scope ordering and Bun choice record human direction from 2026-08-10. Other 
 - Measured claims link to reproducible evidence carrying environment, commands, raw data, and revision identity.
 - Accepted human decisions live in the [ADR register](./adr/README.md); the [kickoff decision register](../tasks/plan.md#13-kickoff-decision-register) owns accountable role, required evidence, and decision deadline for remaining kickoff choices.
 - The PCR map under [`.agents/docs/`](../.agents/docs/README.md) records durable rationale and routes contributors to these specifications.
-- Run `bun run docs:check` (or `bun run check`) to validate local Markdown links and images, heading anchors, AGENTS.md PCR markers, and formal enrollment from this map and the PCR map.
+- Run `bun run check` (alias of `docs:check`) to validate local Markdown links and images, heading anchors, AGENTS.md PCR markers, and formal enrollment from this map and the PCR map.
+- Run `bun run toolchain-check` to probe installed tool identities against project pins.
+- Run `just check`, `just test`, and `just build` for the full polyglot root command surface once pinned Bun, Rust, MoonBit, and just are on `PATH` (see repository [README](../README.md)).
