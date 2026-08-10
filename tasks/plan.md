@@ -17,7 +17,7 @@ The planning baseline uses five core engineers, 18 weeks for the mainline, and 6
 ## 2. Current baseline
 
 - The repository contains formal technical specifications, PCR records, polyglot workspace scaffolding, and this execution plan.
-- M0-02 has local root commands and pinned Bun, Rust, MoonBit, and just identities; CI remains pending.
+- M0-02 has local root commands, pinned Bun/Rust/MoonBit/just identities, and a foundation CI workflow; hosted CI run evidence remains open.
 - Active mainline workspaces: `rclwebd/` (Cargo), `rclmbt/` (`moon.work`), `sdk/typescript/` (`@moonspan/sdk`). Studio workspace enrollment begins at U0.
 - R2WP, MoonBit/Wasm, Rust/C ABI, ROS support, and performance values are design baselines awaiting their named gates.
 - The mainline and UI side-project boundary is fixed in [product scope](../docs/product-scope.md).
@@ -165,10 +165,11 @@ Every task clears these conditions:
 - [x] Root `package.json` declares Bun workspaces (`sdk/*`, `examples/*`) and scripts; private `@moonspan/sdk` lives at `sdk/typescript`; install succeeds with zero external dependencies and committed text `bun.lock`; U0 adds exact `studio` workspace.
 - [x] The repository pins Bun `1.3.14` (`.bun-version`, `packageManager`, `engines`), Rust `1.97.1` (`rust-toolchain.toml`, workspace `rust-version`), MoonBit `moonc` `0.10.6+80dc50f24` (`.moon-version`), and just `1.50.0` (`.just-version`); `scripts/toolchain-check.ts` enforces exact installed identities (including `moon version --all` bundle coverage) and pin-file consistency.
 - [x] Cargo virtual workspace member `rclwebd`, `moon.work` member `rclmbt` (wasm), and committed `Cargo.lock` / `bun.lock` are present with empty public product APIs and package-identity smoke coverage only.
-- [ ] CI caches dependencies and publishes test and documentation artifacts.
+- [ ] CI caches dependencies and publishes test and documentation artifacts (**workflow implemented**; local `actionlint` complete; **hosted run pending** — acceptance stays open until a reviewed hosted run records dual evidence artifacts).
 - [x] `bun run check` is the documentation static check (`docs:check`); `bun run toolchain-check` probes installed tools; `bun test` covers docs, toolchain unit tests, and SDK package-contract tests.
+- [x] Foundation CI workflow (`.github/workflows/ci.yml`) pins Actions by full SHA, installs project tool pins on `ubuntu-24.04` (SHA256-verified MoonBit installer and just asset), caches dependency material only, initializes `artifacts/ci/` placeholders after checkout, runs frozen/locked root recipes with tee logs, and uploads available documentation + test-build evidence after checkout via `if: always()` (14-day retention). Foundation lane is generic M0 tooling evidence; Humble/Jazzy H-FT/H-CY/J-FT/J-CY stay with later ROS container qualification workflows; Studio enrollment begins at U0.
 
-**Verification:** A clean checkout executes the documented bootstrap and all root commands locally; CI verification remains open until the workflow lands.
+**Verification:** A clean checkout executes the documented bootstrap and all root commands locally. Current CI evidence is local `actionlint` plus those pinned commands. CI acceptance requires a reviewed hosted workflow run with both evidence artifacts; the first hosted run will record artifact URLs.
 
 - **Dependencies:** M0-01
 - **Likely files:** `justfile`, `Cargo.toml`, `Cargo.lock`, `rust-toolchain.toml`, `moon.work`, `package.json`, `bun.lock`, `.bun-version`, `.moon-version`, `.just-version`, `bunfig.toml`, `scripts/docs-check.ts`, `scripts/toolchain-check.ts`, `rclwebd/`, `rclmbt/`, `sdk/typescript/`, `.github/workflows/ci.yml`

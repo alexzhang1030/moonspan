@@ -19,7 +19,7 @@ The common Studio UI is a side project that starts in U0 after the M3 mainline r
 | MoonBit (`moonc`) | `0.10.6+80dc50f24` | `.moon-version` |
 | just | 1.50.0 | `.just-version` |
 
-`scripts/toolchain-check.ts` reads these pin files and verifies exact installed `bun`, `rustc`, `cargo`, `moon` (via `moon version --all`), `moonc`, and `just` identities. The root `justfile` invokes that checker. The future CI workflow will invoke it after the workflow lands. `.moon-version` and `.just-version` are Moonspan contracts consumed by those entrypoints. `rust-toolchain.toml` is consumed by rustup. Bun pin fields follow the repository `packageManager` / `.bun-version` convention.
+`scripts/toolchain-check.ts` reads these pin files and verifies exact installed `bun`, `rustc`, `cargo`, `moon` (via `moon version --all`), `moonc`, and `just` identities. The root `justfile` and the foundation CI workflow (`.github/workflows/ci.yml`) both invoke that checker. Hosted run evidence remains pending until a reviewed run records artifact URLs. `.moon-version` and `.just-version` are Moonspan contracts consumed by those entrypoints. `rust-toolchain.toml` is consumed by rustup. Bun pin fields follow the repository `packageManager` / `.bun-version` convention.
 
 ### Pinned install (tested)
 
@@ -94,7 +94,51 @@ The repository currently carries **zero external package dependencies**. Workspa
 | `examples/*` | Reserved mainline examples glob (empty until examples land) |
 | `studio/` | Studio workspace enrollment begins at U0 |
 
-Lockfiles: commit `Cargo.lock` and `bun.lock`. Generated outputs stay ignored (`target/`, `_build/`, `node_modules/`, `dist/`, `.mooncakes/`, caches).
+Lockfiles: commit `Cargo.lock` and `bun.lock`. Generated outputs stay ignored (`target/`, `_build/`, `node_modules/`, `dist/`, `.mooncakes/`, `artifacts/`, caches).
+
+## Continuous integration (foundation lane)
+
+The repository workflow [`.github/workflows/ci.yml`](./.github/workflows/ci.yml) is the **M0 foundation tooling lane**. It runs on `push` to `main`, `pull_request`, and `workflow_dispatch` on `ubuntu-24.04` with `contents: read` permissions and concurrency cancellation.
+
+Pinned GitHub Actions are referenced by full 40-character commit SHA (tag noted in comments):
+
+| Action | Tag | Commit SHA |
+|---|---|---|
+| `actions/checkout` | v7 | `3d3c42e5aac5ba805825da76410c181273ba90b1` |
+| `actions/cache` | v6 | `55cc8345863c7cc4c66a329aec7e433d2d1c52a9` |
+| `actions/upload-artifact` | v7 | `043fb46d1a93c77aae656e7c1c64a875d1fc6a0a` |
+| `oven-sh/setup-bun` | v2.2.0 | `0c5077e51419868618aeaa5fe8019c62421857d6` |
+
+The job installs Bun from `.bun-version`, Rust via `rust-toolchain.toml` (`1.97.1` with `rustfmt`/`clippy`), MoonBit from `.moon-version` into a runner-temp `MOON_HOME` using the official installer after SHA256 verification, and just `1.50.0` from the official `x86_64-unknown-linux-musl` asset after official SHA256 verification (`27e011cd6328fadd632e59233d2cf5f18460b8a8c4269acd324c1a8669f34db0`) into `RUNNER_TEMP/moonspan-bin`.
+
+Dependency cache paths are install material only: `~/.bun/install/cache`, Cargo `registry/index`, `registry/cache`, and `git/db`, plus workspace `.mooncakes/`. Cache keys include runner OS/arch, pin files, and lockfiles. Toolchain homes and `target/` stay outside the cache.
+
+MoonBit installer pin (recompute when the official script changes):
+
+| Item | Value |
+|---|---|
+| URL | https://cli.moonbitlang.com/install/unix.sh |
+| SHA256 | `46495f8cdc0050f79b6cb195d66478d101cb3601d68506568fbe377fcdf2a9fe` |
+| Update owner | Platform/release owner when installer content or pin procedure changes |
+
+Execution uses frozen/locked install and root recipes:
+
+```text
+bun install --frozen-lockfile
+just toolchain-check
+just check
+just test
+just build
+```
+
+After checkout, the workflow initializes `artifacts/ci/` placeholders (`environment.txt` and recipe logs with `status=not-started`). Tool setup appends recorded versions; each recipe tees over its log. When checkout succeeds, available evidence under `artifacts/ci/` uploads through `if: always()` dual artifacts (14-day retention), including setup or recipe failures:
+
+- `moonspan-documentation-evidence-<run_id>-<attempt>` — README, docs, `.agents/docs`, tasks, workflow, pin/lock manifests, and check/environment logs (hidden paths included).
+- `moonspan-test-build-evidence-<run_id>-<attempt>` — environment, toolchain-check, test, and build logs.
+
+**Evidence scope:** this foundation lane records generic M0 tooling proof. Humble/Jazzy support rows **H-FT**, **H-CY**, **J-FT**, and **J-CY** land in later ROS container qualification workflows. Studio workspace enrollment begins at U0. Jazzy+ expansion remains a later matrix step.
+
+Current CI evidence is local `actionlint` plus pinned root commands on this machine. The first hosted run will record artifact URLs for review. M0-02 CI acceptance stays open until that hosted evidence is reviewed.
 
 ## Start here
 

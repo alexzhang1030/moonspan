@@ -84,11 +84,29 @@ Every conformance, benchmark, security, or operations claim carries:
 
 Generated reports derive from raw artifacts through checked-in scripts. Release reports retain the raw artifact location and integrity hash.
 
+## Foundation CI evidence lane
+
+The workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) is the M0 **foundation tooling** evidence lane. It is separate from ROS support-row qualification and from U0 Studio.
+
+| Item | Contract |
+|---|---|
+| Triggers | `push` to `main`, `pull_request`, `workflow_dispatch` |
+| Runner | `ubuntu-24.04`, 20-minute timeout, `contents: read`, concurrency cancel-in-progress |
+| Tool pins | Bun from `.bun-version`; Rust via `rust-toolchain.toml` (`1.97.1` + rustfmt/clippy); MoonBit full build ID from `.moon-version` into runner-temp `MOON_HOME` after SHA256-verified official installer; just `1.50.0` linux musl asset with official SHA256 into `RUNNER_TEMP/moonspan-bin` |
+| Action pins | Full 40-character commit SHAs for `actions/checkout` (v7), `actions/cache` (v6), `actions/upload-artifact` (v7), `oven-sh/setup-bun` (v2.2.0) |
+| Cache (dependency material only) | `~/.bun/install/cache`; Cargo `registry/index`, `registry/cache`, `git/db`; workspace `.mooncakes/`; key includes runner OS/arch, pin files, and lockfiles |
+| Evidence init | After checkout: create `artifacts/ci/environment.txt` and recipe logs with `status=not-started` plus revision/lane metadata |
+| Commands | `bun install --frozen-lockfile`, then `just toolchain-check`, `just check`, `just test`, `just build` with `pipefail` + `tee` overwriting the corresponding logs |
+| Artifacts (available after checkout, `if: always()`, 14-day retention) | `moonspan-documentation-evidence-<run_id>-<attempt>` (docs, PCR docs, tasks, workflow, pins/locks, check/environment logs; hidden paths included) and `moonspan-test-build-evidence-<run_id>-<attempt>` (environment, toolchain-check, test, build logs) |
+| Current evidence | Local `actionlint` and pinned root commands; first hosted run will record artifact URLs for review |
+
+Humble/Jazzy rows **H-FT**, **H-CY**, **J-FT**, and **J-CY** remain **Qualification targets** for later ROS container workflows. Studio workspace enrollment begins at U0. Jazzy+ expansion remains later matrix work.
+
 ## Delivery gates
 
 | Gate | Product evidence | Human decision |
 |---|---|---|
-| M0 Foundation | Accepted support profile, ADRs, pinned toolchains, R2WP draft fixtures, CDR corpus, evidence schema | Contract baseline approval |
+| M0 Foundation | Accepted support profile, ADRs, pinned toolchains, foundation CI tooling evidence, R2WP draft fixtures, CDR corpus, evidence schema | Contract baseline approval |
 | M1 Core data path | N1 agreement, graph and publish/subscribe, both transports, both browser buffer paths, PointCloud2 headless run | Core architecture approval |
 | M2 ROS semantics | Complete planned N2 surface, dynamic types, QoS matrix, recording, multi-domain DDS evidence | Semantic capability approval |
 | M3 Production release | Identity, ACL, SROS2, audit, budgets, compatibility with **Qualified** release support rows, deployment, soak, fault, SDK, signed artifacts | Mainline release approval |

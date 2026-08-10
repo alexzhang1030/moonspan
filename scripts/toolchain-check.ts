@@ -4,7 +4,7 @@
  *
  * Reads project pin files and verifies exact installed tool identities.
  * `.moon-version` and `.just-version` are Moonspan contracts consumed by this
- * script, the root justfile, and the future CI workflow after it lands.
+ * script, the root justfile, and the foundation CI workflow.
  */
 
 import { readFile } from "node:fs/promises";

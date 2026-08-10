@@ -77,6 +77,7 @@ This reference set grounds Moonspan's design baseline and future ADR review in s
 - [MoonBit package configuration (`moon.pkg`)](https://docs.moonbitlang.com/en/latest/toolchain/moon/package.html)
 - [MoonBit toolchain commands](https://docs.moonbitlang.com/en/latest/toolchain/moon/commands.html)
 - [Official unix installer script](https://cli.moonbitlang.com/install/unix.sh) (pass the full build ID as the version argument, or set `MOONBIT_INSTALL_VERSION`; isolate installs with `MOON_HOME`)
+- Official installer SHA256 (recompute when the script changes; platform/release owner updates workflow + this table): `46495f8cdc0050f79b6cb195d66478d101cb3601d68506568fbe377fcdf2a9fe`
 - Project pin install argument: `0.10.6+80dc50f24` (the full build ID installs successfully; a probe of the short ID `0.10.4` returned HTTP 403 on the current CDN)
 - [darwin-aarch64 full-build archive `0.10.6+80dc50f24`](https://cli.moonbitlang.com/binaries/0.10.6%2B80dc50f24/moonbit-darwin-aarch64.tar.gz)
 - [darwin-aarch64 full-build archive sha256](https://cli.moonbitlang.com/binaries/0.10.6%2B80dc50f24/moonbit-darwin-aarch64.tar.gz.sha256) (`a70bd7a92c97b29125c4cb9a647a390bd850b10161191b61e9b7c9b2dd482ddb`)
@@ -98,6 +99,20 @@ This reference set grounds Moonspan's design baseline and future ADR review in s
 - [Bun install and linker](https://bun.com/docs/install)
 - [Bun runtime and CLI](https://bun.com/docs/runtime)
 
+### GitHub Actions (foundation CI pins)
+
+Workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) references actions by full commit SHA. Tags are documentation labels only.
+
+| Action | Tag | Commit SHA |
+|---|---|---|
+| [actions/checkout](https://github.com/actions/checkout) | v7 | [`3d3c42e5aac5ba805825da76410c181273ba90b1`](https://github.com/actions/checkout/commit/3d3c42e5aac5ba805825da76410c181273ba90b1) |
+| [actions/cache](https://github.com/actions/cache) | v6 | [`55cc8345863c7cc4c66a329aec7e433d2d1c52a9`](https://github.com/actions/cache/commit/55cc8345863c7cc4c66a329aec7e433d2d1c52a9) |
+| [actions/upload-artifact](https://github.com/actions/upload-artifact) | v7 | [`043fb46d1a93c77aae656e7c1c64a875d1fc6a0a`](https://github.com/actions/upload-artifact/commit/043fb46d1a93c77aae656e7c1c64a875d1fc6a0a) |
+| [oven-sh/setup-bun](https://github.com/oven-sh/setup-bun) | v2.2.0 | [`0c5077e51419868618aeaa5fe8019c62421857d6`](https://github.com/oven-sh/setup-bun/commit/0c5077e51419868618aeaa5fe8019c62421857d6) |
+
+- [just 1.50.0 release assets](https://github.com/casey/just/releases/tag/1.50.0) including [SHA256SUMS](https://github.com/casey/just/releases/download/1.50.0/SHA256SUMS) and [x86_64-unknown-linux-musl archive](https://github.com/casey/just/releases/download/1.50.0/just-1.50.0-x86_64-unknown-linux-musl.tar.gz) (`27e011cd6328fadd632e59233d2cf5f18460b8a8c4269acd324c1a8669f34db0`)
+- [rhysd/actionlint releases](https://github.com/rhysd/actionlint/releases) (local workflow lint)
+
 ### Design records
 
 - [DESIGN.md specification](https://github.com/google-labs-code/design.md/blob/main/docs/spec.md)
@@ -106,3 +121,4 @@ This reference set grounds Moonspan's design baseline and future ADR review in s
 - [ADR 0007: Humble/Jazzy schema identity](./adr/0007-humble-jazzy-schema-identity.md)
 - [ADR 0008: one adapter row per gateway process](./adr/0008-one-adapter-row-per-gateway-process.md)
 - [Reference support profile](./support-matrix.md)
+- [Validation and delivery gates](./validation.md)

@@ -5,7 +5,7 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
 ## M0 — Foundation, Weeks 1–2
 
 - [~] M0-01 Complete architecture ADRs and the reference support profile.
-- [~] M0-02 Bootstrap the monorepo, polyglot workspaces, root commands, and CI (local workspace/commands/pins proven; CI pending).
+- [~] M0-02 Bootstrap the monorepo, polyglot workspaces, root commands, and CI (local workspace/commands/pins proven; foundation workflow implemented + local actionlint complete; hosted run pending).
 - [ ] M0-03 Freeze R2WP v0 and cross-language golden frames.
 - [ ] M0-04 Generate the authoritative ROS CDR corpus.
 - [ ] M0-05 Establish the evidence harness and report schema.
@@ -13,7 +13,7 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
 ### M0 gate
 
 - [ ] ADR and support-profile review passes.
-- [ ] Root commands pass from a clean checkout with pinned Bun, Rust, MoonBit, and just (local proven; CI pending).
+- [ ] Root commands pass from a clean checkout with pinned Bun, Rust, MoonBit, and just (local proven; foundation CI hosted run pending).
 - [ ] R2WP and CDR manifests reproduce.
 - [ ] Evidence smoke artifacts validate and regenerate.
 - [ ] Human review approves M1.
