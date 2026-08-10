@@ -21,4 +21,4 @@ ADRs capture accepted decisions that carry significant reversal cost. Technical 
 - Files use four-digit sequence numbers and lowercase hyphenated names.
 - Each record states status, date, context, decision, rationale, consequences, revisit triggers, and source.
 - A changed decision receives a new ADR that names the superseded record.
-- ADR 0009 freezes wire version 0 under M0-03a; M0-03b contract validation is complete ([`scripts/protocol-check.ts`](../../scripts/protocol-check.ts) and root wiring). M0-03c–h continue codecs, fixtures, and language agreement. Runtime, edge, support-profile, and licensing decisions continue as their gates require.
+- ADR 0009 freezes wire version 0 under M0-03a; M0-03b contract validation is complete ([`scripts/protocol-check.ts`](../../scripts/protocol-check.ts) and root wiring); M0-03c TypeScript CBOR codec is complete ([`sdk/typescript/src/protocol/cbor.ts`](../../sdk/typescript/src/protocol/cbor.ts)). M0-03d–h continue fixtures and language agreement. Runtime, edge, support-profile, and licensing decisions continue as their gates require.

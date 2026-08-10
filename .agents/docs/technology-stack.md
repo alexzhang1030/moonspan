@@ -18,7 +18,7 @@ The first measured path uses explicit one-copy ownership through bounded rings. 
 
 ### R2WP, WebTransport, and WSS
 
-R2WP wire version 0 freezes a 12-byte bootstrap prefix plus deterministic CBOR hello payloads, then a fixed 32-byte selected-version frame header with network-byte-order integers, extension TLVs, and CDR or media payloads. Control maps use RFC 8949 core deterministic encoding with unsigned integer keys under [protocol/schema/control-v0.cddl](../../protocol/schema/control-v0.cddl). Numeric registries live in [protocol/registry/r2wp-v0.json](../../protocol/registry/r2wp-v0.json). Normative prose is [protocol/r2wp-v0.md](../../protocol/r2wp-v0.md); encoding decision is [ADR 0009](../../docs/adr/0009-r2wp-v0-wire-encoding.md). Machine contract validation is [scripts/protocol-check.ts](../../scripts/protocol-check.ts). Design overview remains [docs/protocol/r2wp.md](../../docs/protocol/r2wp.md).
+R2WP wire version 0 freezes a 12-byte bootstrap prefix plus deterministic CBOR hello payloads, then a fixed 32-byte selected-version frame header with network-byte-order integers, extension TLVs, and CDR or media payloads. Control maps use RFC 8949 core deterministic encoding with unsigned integer keys under [protocol/schema/control-v0.cddl](../../protocol/schema/control-v0.cddl). Numeric registries live in [protocol/registry/r2wp-v0.json](../../protocol/registry/r2wp-v0.json). Normative prose is [protocol/r2wp-v0.md](../../protocol/r2wp-v0.md); encoding decision is [ADR 0009](../../docs/adr/0009-r2wp-v0-wire-encoding.md). Machine contract validation is [scripts/protocol-check.ts](../../scripts/protocol-check.ts). The browser-internal deterministic CBOR codec is [sdk/typescript/src/protocol/cbor.ts](../../sdk/typescript/src/protocol/cbor.ts); package root exports remain `src/index.ts`. Design overview remains [docs/protocol/r2wp.md](../../docs/protocol/r2wp.md).
 
 WebTransport supplies independent streams and datagrams under the HTTP/3 profile; as of 2026-08-11 the W3C API and IETF HTTP/3 mapping remain work-in-progress sources. Binary WSS (RFC 6455) carries one complete bootstrap record or selected-version frame per message. Both transports share one semantic fixture set.
 
@@ -33,12 +33,13 @@ Pin and workspace contract:
 - `.bun-version` records `1.3.14`.
 - Root `package.json` sets `packageManager: bun@1.3.14` and `engines.bun: 1.3.14`, `private: true`, workspace version `0.0.0`.
 - Workspaces declare active mainline package globs: `sdk/*` and `examples/*` (unmatched globs are accepted by Bun 1.3.14). Bun 1.3.14 rejects an unmatched exact workspace entry `studio`; U0 adds the exact `"studio"` workspace when `studio/package.json` lands.
-- Private package `@moonspan/sdk` lives at `sdk/typescript` (version `0.0.0`, ESM, empty public module surface for M0-02).
+- Private package `@moonspan/sdk` lives at `sdk/typescript` (version `0.0.0`, ESM). Package root `exports["."]` points at `src/index.ts` with an empty public surface. The R2WP CBOR codec under `src/protocol/cbor.ts` stays browser-internal until M1 owns public SDK exports.
+- SDK `check`/`build` compile both `src/index.ts` and `src/protocol/cbor.ts` as browser entrypoints into `dist/`; package root exports `src/index.ts`. Focused tests: `bun run --filter @moonspan/sdk test:cbor`.
 - `bunfig.toml` sets the install linker to `isolated`.
 - With `@moonspan/sdk` present, Bun materializes root `bun.lock` (workspace identity only; zero external dependencies). The repository commits that lockfile. `bun install --frozen-lockfile` is the clean-checkout install path.
 - Official sources: [Bun v1.3.14 release](https://bun.com/blog/bun-v1.3.14), [installation](https://bun.com/docs/installation), [workspaces](https://bun.com/docs/install/workspaces), [install / linker](https://bun.com/docs/install).
 
-SDK unit and package-contract tests run through Bun. Playwright covers browser behavior, Worker integration, transport sessions, and later prototype accessibility when those phases begin. `bunx` runs tools such as the DESIGN.md linter.
+SDK unit, package-contract, and CBOR codec tests run through Bun. Playwright covers browser behavior, Worker integration, transport sessions, and later prototype accessibility when those phases begin. `bunx` runs tools such as the DESIGN.md linter.
 
 ### Rust gateway workspace
 

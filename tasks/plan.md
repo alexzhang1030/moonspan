@@ -19,7 +19,8 @@ The planning baseline uses five core engineers, 18 weeks for the mainline, and 6
 - The repository contains formal technical specifications, PCR records, polyglot workspace scaffolding, and this execution plan.
 - M0-02 has local root commands, pinned Bun/Rust/MoonBit/just identities, and a foundation CI workflow; hosted CI run evidence remains open.
 - M0-03a freezes the R2WP wire version 0 normative package (markdown, registry JSON, control CDDL, ADR 0009 Accepted).
-- M0-03b is verified complete: `scripts/protocol-check.ts` validates the frozen contract; root entrypoints are `bun run protocol-check`, `just protocol-check`, and `bun run test:protocol`; `bun run check` runs `docs:check` then `protocol-check`. Codecs, fixtures, and language parsers continue in M0-03c–h.
+- M0-03b is verified complete: `scripts/protocol-check.ts` validates the frozen contract; root entrypoints are `bun run protocol-check`, `just protocol-check`, and `bun run test:protocol`; `bun run check` runs `docs:check` then `protocol-check`.
+- M0-03c is verified complete: browser-internal deterministic CBOR encode/decode in `sdk/typescript/src/protocol/cbor.ts`; package root continues to export `src/index.ts`. Fixtures and language parsers continue in M0-03d–h.
 - Active mainline workspaces: `rclwebd/` (Cargo), `rclmbt/` (`moon.work`), `sdk/typescript/` (`@moonspan/sdk`). Studio workspace enrollment begins at U0.
 - R2WP, MoonBit/Wasm, Rust/C ABI, ROS support, and performance values are design baselines awaiting their named gates.
 - The mainline and UI side-project boundary is fixed in [product scope](../docs/product-scope.md).
@@ -220,11 +221,11 @@ Every task clears these conditions:
 
 **Acceptance criteria:**
 
-- [ ] Encoder/decoder enforce definite lengths, shortest integers, sorted uint keys, and reject tags/floats/indefinite/duplicate keys/invalid UTF-8 with `invalid_control` semantics.
-- [ ] Nesting depth and map entry bounds match the registry.
-- [ ] Focused Bun tests cover accept and reject vectors without full frame fixtures yet.
+- [x] Encoder/decoder enforce definite lengths, shortest integers, sorted uint keys, and reject tags/floats/indefinite/duplicate keys/invalid UTF-8 with decode `invalid_control` semantics.
+- [x] Nesting depth and map entry bounds match the registry (`MAX_NESTING_DEPTH=16`, `MAX_MAP_ENTRIES=4096`).
+- [x] Focused Bun tests cover accept and reject vectors without full frame fixtures yet (`bun run --filter @moonspan/sdk test:cbor`).
 
-**Verification:** `bun test` for `sdk/typescript/src/protocol/**`.
+**Verification (acceptance evidence):** encoder commit `6979be7`; decoder commit `6c46cf6`. Focused CBOR tests 59/59; full `bun test` 148/148; SDK `check`/`build` pass (browser entrypoints include `src/protocol/cbor.ts`); pinned Bun 1.3.14 / Rust 1.97.1 / moonc 0.10.6+80dc50f24 / just 1.50.0 `just check` pass; `git diff --check` clean. Codec provides deterministic encode/decode with definite/shortest forms, sorted unsigned map keys, rejected types, UTF-8 with BOM preserved as U+FEFF, depth 16, and map 4096. Decode yields an atomic whole value; input-driven and native decoder failures normalize to `CborDecodeError`.
 
 - **Dependencies:** M0-03b
 - **Likely files:** `sdk/typescript/src/protocol/cbor.ts`, `sdk/typescript/src/protocol/cbor.test.ts`, `sdk/typescript/package.json`

@@ -82,8 +82,11 @@ Bun script meanings:
 | `bun run check` | `docs:check` then `protocol-check` (deterministic order) |
 | `bun run protocol-check` | R2WP v0 registry + control CDDL contract validator (`scripts/protocol-check.ts`) |
 | `bun run toolchain-check` | Installed-tool probe against project pins |
-| `bun test` | All Bun tests (docs, toolchain, protocol-check, SDK) |
-| `bun run test:docs` / `test:protocol` / `test:toolchain` | Focused Bun test entrypoints |
+| `bun test` | All Bun tests (docs, toolchain, protocol-check, SDK including CBOR) |
+| `bun run test:docs` / `test:protocol` / `test:toolchain` | Focused root Bun test entrypoints |
+| `bun run --filter @moonspan/sdk test:cbor` | Focused R2WP v0 deterministic CBOR encode/decode tests |
+
+Current R2WP foundation progress: M0-03a normative freeze and M0-03b contract validator are verified; M0-03c provides the browser-internal CBOR codec at `sdk/typescript/src/protocol/cbor.ts` while the package root continues to export `src/index.ts`. Phase-one support rows remain H-FT, H-CY, J-FT, and J-CY; Studio enrollment begins at U0 after M3.
 
 The repository currently carries **zero external package dependencies**. Workspace members stay private at version `0.0.0`. Repository `LICENSE` / `NOTICE` wait on the [D-06](./tasks/plan.md#13-kickoff-decision-register) human ruling.
 
