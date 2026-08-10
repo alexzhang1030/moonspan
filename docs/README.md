@@ -51,3 +51,4 @@ The scope ordering and Bun choice record human direction from 2026-08-10. Other 
 - Measured claims link to reproducible evidence carrying environment, commands, raw data, and revision identity.
 - Accepted human decisions live in the [ADR register](./adr/README.md); the [kickoff decision register](../tasks/plan.md#13-kickoff-decision-register) owns accountable role, required evidence, and decision deadline for remaining kickoff choices.
 - The PCR map under [`.agents/docs/`](../.agents/docs/README.md) records durable rationale and routes contributors to these specifications.
+- Run `bun run docs:check` (or `bun run check`) to validate local Markdown links and images, heading anchors, AGENTS.md PCR markers, and formal enrollment from this map and the PCR map.

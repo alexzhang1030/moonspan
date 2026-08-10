@@ -162,15 +162,15 @@ Every task clears these conditions:
 **Acceptance criteria:**
 
 - [ ] `just check`, `just test`, and `just build` run from the repository root.
-- [ ] Root `package.json` declares Bun workspaces and scripts; `bun.lock` pins JavaScript dependencies.
-- [ ] The repository pins Rust, MoonBit, Bun, and supporting tool versions.
+- [x] Root `package.json` declares Bun workspaces (`sdk/*`, `examples/*`) and scripts; root-only install succeeds with zero external dependencies (text `bun.lock` deferred until the first package dependency; U0 adds exact `studio` workspace).
+- [x] The repository pins Bun (`1.3.14` via `.bun-version`, `packageManager`, and `engines`); Rust, MoonBit, and remaining tool pins stay queued.
 - [ ] CI caches dependencies and publishes test and documentation artifacts.
-- [ ] `just docs-check` validates Markdown links, anchors, PCR markers, and formal document enrollment.
+- [x] `bun run docs:check` validates Markdown links, anchors, PCR markers, and formal document enrollment (`scripts/docs-check.ts`); root `bun run check` runs docs check plus focused docs tests.
 
 **Verification:** A clean checkout executes the documented bootstrap and all root commands locally and in CI.
 
 - **Dependencies:** M0-01
-- **Likely files:** `justfile`, `Cargo.toml`, `rust-toolchain.toml`, `package.json`, `bun.lock`, `.moon/`, `.github/workflows/ci.yml`
+- **Likely files:** `justfile`, `Cargo.toml`, `rust-toolchain.toml`, `package.json`, `bun.lock`, `.bun-version`, `bunfig.toml`, `scripts/docs-check.ts`, `.moon/`, `.github/workflows/ci.yml`
 - **Scope:** M
 
 #### M0-03 — Freeze R2WP v0
@@ -961,7 +961,7 @@ Every U0 task depends directly or transitively on M3-08.
 |---|---|---|---|---|---|
 | D-01 | Reference qualification environment: reference robot, artifact storage, and confirmation of the already pinned ROS image, RMW, browser, CPU, and network profile | Platform/release owner (ROS/middleware owner consulted) | Reviewed environment manifest; device/runtime smoke proof; immutable storage location with access and retention proof | M0-01 exit | Partial; support profile pins ROS/RMW/browser/CPU/network; robot and artifact storage remain open |
 | D-02 | Named workstream and review owners | Project lead | Named ownership for five workstreams plus product, architecture, security, and operations reviewers and integration owner coverage | M0-02 entry | Open |
-| D-03 | Exact Bun version and root workspace/lockfile convention | Browser SDK/performance owner | Official Bun release identity; clean bootstrap and lockfile reproducibility; root command proof | First M0-02 scaffold commit | Bun selected; exact version and convention open |
+| D-03 | Exact Bun version and root workspace/lockfile convention | Browser SDK/performance owner | Official Bun release identity; clean bootstrap and lockfile reproducibility; root command proof | First M0-02 scaffold commit | Resolved 2026-08-11: Bun 1.3.14 (revision `0d9b296af`); durable artifacts `.bun-version`, `package.json` (`packageManager`/`engines`, workspaces `sdk/*` `examples/*`), `bunfig.toml` (isolated linker), `scripts/docs-check.ts`; U0 adds exact `studio` workspace; empty external dependency set (Bun omits empty `bun.lock` until the first package dependency lands; lockfile is committed whenever Bun materializes it) |
 | D-04 | OIDC provider and SROS2 reference environment | Security owner (Platform/release owner consulted) | Issuer metadata and test tenant; SROS2 enclave/keystore profile; credential rotation and integration smoke proof | M3-01 entry | Open |
 | D-05 | Raw benchmark artifact retention and publication | Platform/release owner | Storage class; retention duration; access and redaction rules; integrity hash and retrieval drill | M0-05 report-schema freeze | Open |
 | D-06 | Repository license and third-party licensing policy | Repository owner (legal/release review) | Accepted license identifier and text; copyright/NOTICE attribution; dependency and asset inventory; SPDX/SBOM output; compatibility review; CI policy and exception workflow | M0-01 exit | Awaiting human ruling; Apache-2.0 recommended |

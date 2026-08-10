@@ -61,8 +61,11 @@ This reference set grounds Moonspan's design baseline and future ADR review in s
 
 ## Repository tooling and design records
 
-- [Bun workspaces](https://bun.sh/docs/pm/workspaces)
-- [Bun runtime and CLI](https://bun.sh/docs/runtime)
+- [Bun v1.3.14 release](https://bun.com/blog/bun-v1.3.14)
+- [Bun installation](https://bun.com/docs/installation)
+- [Bun workspaces](https://bun.com/docs/install/workspaces)
+- [Bun install and linker](https://bun.com/docs/install)
+- [Bun runtime and CLI](https://bun.com/docs/runtime)
 - [DESIGN.md specification](https://github.com/google-labs-code/design.md/blob/main/docs/spec.md)
 - [ADR 0007: Humble/Jazzy schema identity](./adr/0007-humble-jazzy-schema-identity.md)
 - [ADR 0008: one adapter row per gateway process](./adr/0008-one-adapter-row-per-gateway-process.md)

@@ -26,7 +26,16 @@ R2WP uses a fixed 32-byte frame header plus CDR, encoded media, graph, schema, c
 
 TypeScript defines the public browser SDK, Worker host, generated bindings, session lifecycle, typed operations, telemetry, and headless examples.
 
-Bun is the human-selected JavaScript stack tool recorded on 2026-08-10. Bun owns package installation, workspaces, the root `package.json`, `bun.lock`, script execution, tests, builds, and repository-scoped one-shot tools. Exact Bun version and root workspace/lockfile convention resolve under [D-03](../../tasks/plan.md#13-kickoff-decision-register); the human-provided rationale remains open.
+Bun is the human-selected JavaScript stack tool recorded on 2026-08-10. On 2026-08-11 the repository pinned **Bun 1.3.14** (revision `0d9b296af`) under [D-03](../../tasks/plan.md#13-kickoff-decision-register). Bun owns package installation, workspaces, the root `package.json`, `bun.lock`, script execution, tests, builds, and repository-scoped one-shot tools.
+
+Pin and workspace contract:
+
+- `.bun-version` records `1.3.14`.
+- Root `package.json` sets `packageManager: bun@1.3.14` and `engines.bun: 1.3.14`, `private: true`, workspace version `0.0.0`.
+- Workspaces declare active mainline package globs: `sdk/*` and `examples/*` (unmatched globs are accepted by Bun 1.3.14). Bun 1.3.14 rejects an unmatched exact workspace entry `studio`; U0 adds the exact `"studio"` workspace when `studio/package.json` lands.
+- `bunfig.toml` sets the install linker to `isolated`.
+- With zero external dependencies, Bun 1.3.14 does not persist an empty root-only `bun.lock`; `bun install --frozen-lockfile` succeeds for the root-only tree. The repository commits `bun.lock` whenever Bun materializes it, beginning with the first dependency or workspace package.
+- Official sources: [Bun v1.3.14 release](https://bun.com/blog/bun-v1.3.14), [installation](https://bun.com/docs/installation), [workspaces](https://bun.com/docs/install/workspaces), [install / linker](https://bun.com/docs/install).
 
 Vitest covers SDK units and contracts through Bun scripts. Playwright covers browser behavior, Worker integration, transport sessions, and later prototype accessibility. `bunx` runs tools such as the DESIGN.md linter.
 

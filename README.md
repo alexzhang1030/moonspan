@@ -24,13 +24,19 @@ The common Studio UI is a side project that starts in U0 after the M3 mainline r
 
 ## Current validation
 
-The current executable check validates the post-mainline prototype design record:
+Repository checks for this Bun toolchain slice:
 
 ```bash
-bunx @google/design.md lint .agents/docs/DESIGN.md
+bun run check
 ```
 
-M0-02 creates the root `just check`, `just test`, `just build`, and documentation checks described in the implementation plan.
+Documentation-only check:
+
+```bash
+bun run docs:check
+```
+
+`bun run check` runs the Markdown documentation checker (local links and images, anchors, PCR markers, formal enrollment) and its focused Bun tests. Broader monorepo `just` commands and CI land in later M0-02 work. The post-mainline prototype design linter remains available as `bunx @google/design.md lint .agents/docs/DESIGN.md` when the design record is edited.
 
 ## Planned repository shape
 

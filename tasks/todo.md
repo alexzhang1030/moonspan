@@ -5,7 +5,7 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
 ## M0 — Foundation, Weeks 1–2
 
 - [~] M0-01 Complete architecture ADRs and the reference support profile.
-- [ ] M0-02 Bootstrap the monorepo, Bun workspaces, root commands, and CI.
+- [~] M0-02 Bootstrap the monorepo, Bun workspaces, root commands, and CI.
 - [ ] M0-03 Freeze R2WP v0 and cross-language golden frames.
 - [ ] M0-04 Generate the authoritative ROS CDR corpus.
 - [ ] M0-05 Establish the evidence harness and report schema.
@@ -114,7 +114,7 @@ Register: [Kickoff decision register](./plan.md#13-kickoff-decision-register).
 
 - [ ] D-01 Reference qualification environment (robot, artifact storage, pinned profile confirmation).
 - [ ] D-02 Named workstream and review owners.
-- [ ] D-03 Exact Bun version and root workspace/lockfile convention.
+- [x] D-03 Exact Bun version and root workspace/lockfile convention.
 - [ ] D-04 OIDC provider and SROS2 reference environment.
 - [ ] D-05 Raw benchmark artifact retention and publication.
 - [ ] D-06 Repository license and third-party licensing policy.

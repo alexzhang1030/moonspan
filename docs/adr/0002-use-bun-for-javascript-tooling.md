@@ -23,7 +23,8 @@ The human owner selected Bun as a stack constraint. Bun supports root `package.j
 ## Consequences
 
 - Root JavaScript commands use `bun` and `bunx`.
-- The repository commits `bun.lock` and reviews its changes with dependency updates.
+- The repository commits `bun.lock` whenever Bun materializes it, beginning with the first external dependency or workspace package, and reviews lockfile changes with every dependency update.
+- With zero external dependencies, Bun 1.3.14 may omit an empty root-only lockfile; `bun install --frozen-lockfile` still succeeds for the root-only tree.
 - Vitest, Playwright, Vite, and other JavaScript tools execute through Bun scripts when their phases begin.
 - Clean-checkout and CI evidence use the pinned Bun version.
 
