@@ -14,10 +14,11 @@ ADRs capture accepted decisions that carry significant reversal cost. Technical 
 | [0006](./0006-edge-ros-c-abi-boundary.md) | Accepted | Isolate ROS integration behind a versioned serialized C ABI at the edge. |
 | [0007](./0007-humble-jazzy-schema-identity.md) | Accepted | Lock phase-one Humble/Jazzy schema identity with `rep2011-rihs` and `moonspan-schema-v1`. |
 | [0008](./0008-one-adapter-row-per-gateway-process.md) | Accepted | Bind each gateway process to one ROS adapter support row with multi-domain contexts inside that row. |
+| [0009](./0009-r2wp-v0-wire-encoding.md) | Accepted | Freeze R2WP wire version 0 encoding, registries, deterministic CBOR control maps, and transport length rules. |
 
 ## Convention
 
 - Files use four-digit sequence numbers and lowercase hyphenated names.
 - Each record states status, date, context, decision, rationale, consequences, revisit triggers, and source.
 - A changed decision receives a new ADR that names the superseded record.
-- M0-01 continues the sequence for runtime, protocol, edge, support-profile, and licensing decisions.
+- ADR 0009 freezes wire version 0 under M0-03a; M0-03b–h continue validators, fixtures, and language agreement. Runtime, edge, support-profile, and licensing decisions continue as their gates require.

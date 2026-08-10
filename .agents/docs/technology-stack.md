@@ -18,9 +18,9 @@ The first measured path uses explicit one-copy ownership through bounded rings. 
 
 ### R2WP, WebTransport, and WSS
 
-R2WP uses a fixed 32-byte frame header plus CDR, encoded media, graph, schema, control, or recording payloads. WebTransport supplies independent streams and datagrams. Binary WSS supplies a broad proxy-compatible path through the same semantic envelope.
+R2WP wire version 0 freezes a 12-byte bootstrap prefix plus deterministic CBOR hello payloads, then a fixed 32-byte selected-version frame header with network-byte-order integers, extension TLVs, and CDR or media payloads. Control maps use RFC 8949 core deterministic encoding with unsigned integer keys under [protocol/schema/control-v0.cddl](../../protocol/schema/control-v0.cddl). Numeric registries live in [protocol/registry/r2wp-v0.json](../../protocol/registry/r2wp-v0.json). Normative prose is [protocol/r2wp-v0.md](../../protocol/r2wp-v0.md); encoding decision is [ADR 0009](../../docs/adr/0009-r2wp-v0-wire-encoding.md). Design overview remains [docs/protocol/r2wp.md](../../docs/protocol/r2wp.md).
 
-[R2WP](../../docs/protocol/r2wp.md) owns framing, channels, QoS, versioning, errors, and fixtures.
+WebTransport supplies independent streams and datagrams under the HTTP/3 profile; as of 2026-08-11 the W3C API and IETF HTTP/3 mapping remain work-in-progress sources. Binary WSS (RFC 6455) carries one complete bootstrap record or selected-version frame per message. Both transports share one semantic fixture set.
 
 ### TypeScript SDK and Bun
 

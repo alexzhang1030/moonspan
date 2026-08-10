@@ -1,0 +1,3240 @@
+{
+  "registry_id": "r2wp-v0",
+  "wire_version": 0,
+  "title": "R2WP wire version 0 numeric registries and layouts",
+  "normative_spec": "protocol/r2wp-v0.md",
+  "control_cddl": "protocol/schema/control-v0.cddl",
+  "byte_order": "network",
+  "integer_encoding": "big-endian",
+  "phase_one_support_rows": [
+    "H-FT",
+    "H-CY",
+    "J-FT",
+    "J-CY"
+  ],
+  "support_row_profiles": {
+    "H-FT": {
+      "ros_distro": "humble",
+      "rmw_identifier": "rmw_fastrtps_cpp"
+    },
+    "H-CY": {
+      "ros_distro": "humble",
+      "rmw_identifier": "rmw_cyclonedds_cpp"
+    },
+    "J-FT": {
+      "ros_distro": "jazzy",
+      "rmw_identifier": "rmw_fastrtps_cpp"
+    },
+    "J-CY": {
+      "ros_distro": "jazzy",
+      "rmw_identifier": "rmw_cyclonedds_cpp"
+    }
+  },
+  "schema_identity_schemes": {
+    "rep2011-rihs": {
+      "value_size_bytes": 71,
+      "value_pattern": "RIHS01_ + 64 lowercase hex",
+      "prefix": "RIHS01_",
+      "hex_len": 64
+    },
+    "moonspan-schema-v1": {
+      "value_size_bytes": 64,
+      "value_pattern": "64 lowercase hex SHA-256",
+      "hex_len": 64
+    }
+  },
+  "later_expansion": {
+    "jazzy_plus": "Post-first-stage support-matrix expansion; outside phase-one wire qualification rows."
+  },
+  "bootstrap": {
+    "prefix_len": 12,
+    "bootstrap_version": 0,
+    "flags_must_be_zero": true,
+    "layout": [
+      {
+        "offset": 0,
+        "name": "magic",
+        "type": "bytes4",
+        "value_ascii": "R2WP"
+      },
+      {
+        "offset": 4,
+        "name": "bootstrap_version",
+        "type": "u8",
+        "value": 0
+      },
+      {
+        "offset": 5,
+        "name": "kind",
+        "type": "u8"
+      },
+      {
+        "offset": 6,
+        "name": "flags",
+        "type": "u16",
+        "value": 0
+      },
+      {
+        "offset": 8,
+        "name": "payload_len",
+        "type": "u32"
+      }
+    ],
+    "kinds": {
+      "assigned": {
+        "1": "ClientHello",
+        "2": "ServerHello",
+        "3": "BootstrapError"
+      },
+      "reserved": "0,4-255",
+      "unknown_behavior": "malformed_bootstrap"
+    },
+    "payload_encoding": "deterministic-cbor",
+    "version_selection": "Server selects the first ClientHello.wire_versions entry that the server supports.",
+    "max_supported_versions": 16,
+    "cbor_failure_mapping": "malformed_bootstrap"
+  },
+  "extension_capabilities": {
+    "assigned": {
+      "1": {
+        "name": "session_resume",
+        "gates": [
+          "SessionResume",
+          "SessionResumeResult"
+        ]
+      },
+      "2": {
+        "name": "shared_arraybuffer",
+        "gates": [
+          "buffer_capabilities.shared_arraybuffer_path"
+        ]
+      },
+      "3": {
+        "name": "experimental_opcodes",
+        "gates": [
+          "opcodes.128-255"
+        ]
+      }
+    },
+    "reserved": "0,4-65535",
+    "list_rules": "Unique ascending capability IDs. ServerHello.extension_capabilities is the deterministic intersection of client and server offered sets, sorted ascending unique.",
+    "unknown_behavior": "omit_from_intersection"
+  },
+  "control_extensions": {
+    "description": "Future v0 additive control fields outside core keys 1..127 require a registered capability and an additive schema binding.",
+    "assigned": {},
+    "reserved_capability_range": "4-65535",
+    "message_key_schema_binding": "Each control_extensions assignment names capability_id, control kind(s), field key range 128..65535, and schema fragment id. Core CDDL remains closed over assigned keys 1..127 until a capability registers additive keys."
+  },
+  "selected_version_frame": {
+    "header_len": 32,
+    "layout": [
+      {
+        "offset": 0,
+        "name": "version",
+        "type": "u8"
+      },
+      {
+        "offset": 1,
+        "name": "opcode",
+        "type": "u8"
+      },
+      {
+        "offset": 2,
+        "name": "flags",
+        "type": "u16"
+      },
+      {
+        "offset": 4,
+        "name": "channel_id",
+        "type": "u32"
+      },
+      {
+        "offset": 8,
+        "name": "sequence",
+        "type": "u64"
+      },
+      {
+        "offset": 16,
+        "name": "source_time_ns",
+        "type": "i64"
+      },
+      {
+        "offset": 24,
+        "name": "payload_len",
+        "type": "u32"
+      },
+      {
+        "offset": 28,
+        "name": "extension_len",
+        "type": "u16"
+      },
+      {
+        "offset": 30,
+        "name": "priority",
+        "type": "u8"
+      },
+      {
+        "offset": 31,
+        "name": "clock_id",
+        "type": "u8"
+      }
+    ],
+    "total_length_rule": "32 + extension_len + payload_len",
+    "channel_zero": "session control only",
+    "application_channel_id": "1..4294967295",
+    "sequence_domains": {
+      "default_frames": {
+        "domain": "(channel_id, direction)",
+        "sender": "Contiguous from 0; wrap prohibited. See sender_sequence_exhaustion for u64 exhaustion.",
+        "reliable_receiver": "Exact next sequence required; mismatch is protocol_violation.",
+        "best_effort_receiver": "Applies to datagrams and sample-scoped streams: allow gaps (sequence_gap), latest-wins, drop seq <= highest_accepted as stale_sequence."
+      },
+      "service_action_operation_streams": {
+        "domain": "(channel_id, OPERATION_ID, direction)",
+        "sender": "Contiguous from 0 per operation stream; wrap prohibited. See sender_sequence_exhaustion.",
+        "reliable_receiver": "Exact next within the operation stream; mismatch is protocol_violation. Applies to Service frames and Action GOAL/CANCEL/RESULT, and to FEEDBACK/STATUS when effective reliability is RELIABLE.",
+        "best_effort_receiver": "Applies to ACTION_FEEDBACK/ACTION_STATUS when effective reliability is BEST_EFFORT: allow gaps (sequence_gap), drop seq <= highest_accepted as stale_sequence.",
+        "resume": "Service/Action operation streams reset or close on session resume and never byte-resume under wire version 0."
+      }
+    },
+    "close_channel_final_sequence": {
+      "domain": "default (channel_id, direction) only",
+      "applies_to": "Sender-direction final sequence on the default channel sequence domain.",
+      "omit_for_service_action_operation_stream_channels": true,
+      "omit_when_sender_never_sent_default_domain_frame": true
+    },
+    "sender_sequence_exhaustion": {
+      "not_receiver_validation_order": true,
+      "control_domain": {
+        "condition": "Sender would assign next sequence beyond u64 maximum on channel_id 0 (CONTROL_CBOR sequence domain).",
+        "behavior": "MUST NOT wrap. Close the session/transport.",
+        "error": "sequence_exhausted",
+        "code": 21,
+        "scope": "session",
+        "signaling": "If the control stream can still carry a final Error frame, send CONTROL Error with code sequence_exhausted and scope=session, then close transport. Otherwise close transport without a final frame."
+      },
+      "default_domain": {
+        "condition": "Sender would assign next sequence beyond u64 maximum on application default (channel_id, direction).",
+        "behavior": "MUST NOT wrap. Close that application channel.",
+        "error": "sequence_exhausted",
+        "code": 21,
+        "scope": "channel",
+        "signaling": "Send CONTROL Error with code sequence_exhausted, scope=channel, channel_id set, when the control stream can carry it; then emit CloseChannel for that channel when applicable."
+      },
+      "operation_domain": {
+        "condition": "Sender would assign next sequence beyond u64 maximum on (channel_id, OPERATION_ID, direction).",
+        "behavior": "MUST NOT wrap. End that operation stream.",
+        "error": "sequence_exhausted",
+        "code": 21,
+        "scope": "operation",
+        "signaling": "Send CONTROL Error with code sequence_exhausted, scope=operation, channel_id set, and exactly one OPERATION_ID TLV for the exhausted operation, when the control stream can carry it."
+      }
+    }
+  },
+  "opcodes": {
+    "assigned": {
+      "0": {
+        "name": "RESERVED",
+        "wire_usable": false
+      },
+      "1": {
+        "name": "CONTROL_CBOR",
+        "channel": 0,
+        "priority": "CONTROL",
+        "transport": "reliable_control_stream",
+        "payload_max": "control_payload_max_bytes",
+        "cbor_failure_mapping": "invalid_control"
+      },
+      "2": {
+        "name": "ROS_SAMPLE",
+        "channel": "application",
+        "datagram_ok_if_best_effort": true,
+        "sample_scoped_stream_ok_if_best_effort": true
+      },
+      "3": {
+        "name": "SERVICE_REQUEST",
+        "channel": "application",
+        "requires_operation_id": true,
+        "transport": "reliable_stream",
+        "sequence_domain": "operation_stream"
+      },
+      "4": {
+        "name": "SERVICE_RESPONSE",
+        "channel": "application",
+        "requires_operation_id": true,
+        "transport": "reliable_stream",
+        "sequence_domain": "operation_stream"
+      },
+      "5": {
+        "name": "ACTION_GOAL",
+        "channel": "application",
+        "requires_operation_id": true,
+        "transport": "reliable_stream",
+        "sequence_domain": "operation_stream",
+        "receiver": {
+          "reliable": "exact next sequence required; mismatch protocol_violation"
+        }
+      },
+      "6": {
+        "name": "ACTION_FEEDBACK",
+        "channel": "application",
+        "requires_operation_id": true,
+        "sequence_domain": "operation_stream",
+        "transport": {
+          "source": "effective_action_qos.feedback_topic.reliability",
+          "RELIABLE": "reliable_stream",
+          "BEST_EFFORT": {
+            "datagram": "when negotiated and frame fits maxDatagramSize",
+            "sample_scoped_stream": "when datagram unavailable or frame exceeds maxDatagramSize"
+          }
+        },
+        "receiver": {
+          "reliable": "exact next sequence required; mismatch protocol_violation",
+          "best_effort": "gap -> sequence_gap disposition; stale -> stale_sequence disposition"
+        }
+      },
+      "7": {
+        "name": "ACTION_RESULT",
+        "channel": "application",
+        "requires_operation_id": true,
+        "transport": "reliable_stream",
+        "sequence_domain": "operation_stream",
+        "receiver": {
+          "reliable": "exact next sequence required; mismatch protocol_violation"
+        }
+      },
+      "8": {
+        "name": "ACTION_STATUS",
+        "channel": "application",
+        "requires_operation_id": true,
+        "sequence_domain": "operation_stream",
+        "transport": {
+          "source": "effective_action_qos.status_topic.reliability",
+          "RELIABLE": "reliable_stream",
+          "BEST_EFFORT": {
+            "datagram": "when negotiated and frame fits maxDatagramSize",
+            "sample_scoped_stream": "when datagram unavailable or frame exceeds maxDatagramSize"
+          }
+        },
+        "receiver": {
+          "reliable": "exact next sequence required; mismatch protocol_violation",
+          "best_effort": "gap -> sequence_gap disposition; stale -> stale_sequence disposition"
+        }
+      },
+      "9": {
+        "name": "ACTION_CANCEL",
+        "channel": "application",
+        "requires_operation_id": true,
+        "transport": "reliable_stream",
+        "sequence_domain": "operation_stream",
+        "receiver": {
+          "reliable": "exact next sequence required; mismatch protocol_violation"
+        }
+      },
+      "10": {
+        "name": "MEDIA_CHUNK",
+        "channel": "application",
+        "keyframe_flag_allowed": true
+      },
+      "11": {
+        "name": "RECORDING_CHUNK",
+        "channel": "application"
+      },
+      "12": {
+        "name": "ASSET_CHUNK",
+        "channel": "application"
+      }
+    },
+    "reserved": "13-127",
+    "experimental": "128-255",
+    "unknown_assigned_range_behavior": "unsupported_opcode",
+    "experimental_requires_capability": "experimental_opcodes"
+  },
+  "payload_channel_mapping": [
+    {
+      "semantic": "session_control",
+      "opcode": "CONTROL_CBOR",
+      "channel": 0,
+      "transport": "reliable_control_stream",
+      "operation_kinds": []
+    },
+    {
+      "semantic": "topic_publish",
+      "opcode": "ROS_SAMPLE",
+      "channel": "application",
+      "transport": {
+        "when_effective_reliability_RELIABLE": "reliable_stream",
+        "when_effective_reliability_BEST_EFFORT_small": "datagram",
+        "when_effective_reliability_BEST_EFFORT_large": "sample_scoped_stream"
+      },
+      "operation_kinds": [
+        1
+      ]
+    },
+    {
+      "semantic": "topic_subscribe",
+      "opcode": "ROS_SAMPLE",
+      "channel": "application",
+      "transport": {
+        "selection": "from_effective_qos_reliability",
+        "RELIABLE": "reliable_stream",
+        "BEST_EFFORT": "datagram_or_sample_scoped_stream_by_size"
+      },
+      "operation_kinds": [
+        0
+      ]
+    },
+    {
+      "semantic": "parameter_get_set_list",
+      "opcodes": [
+        "SERVICE_REQUEST",
+        "SERVICE_RESPONSE"
+      ],
+      "channel": "application",
+      "transport": "reliable_stream",
+      "operation_kinds": [
+        2,
+        3
+      ],
+      "requires_operation_id": true,
+      "note": "Standard ROS parameter service calls compose Service channels; policy/audit classify the higher-level parameter operation."
+    },
+    {
+      "semantic": "parameter_events",
+      "opcode": "ROS_SAMPLE",
+      "channel": "application",
+      "transport": {
+        "selection": "from_effective_qos_reliability",
+        "RELIABLE": "reliable_stream",
+        "BEST_EFFORT": "datagram_or_sample_scoped_stream_by_size"
+      },
+      "operation_kinds": [
+        0
+      ],
+      "note": "Parameter event topics use TOPIC_SUBSCRIBE."
+    },
+    {
+      "semantic": "service_client",
+      "opcodes": [
+        "SERVICE_REQUEST",
+        "SERVICE_RESPONSE"
+      ],
+      "channel": "application",
+      "transport": "reliable_stream",
+      "operation_kinds": [
+        2
+      ],
+      "requires_operation_id": true
+    },
+    {
+      "semantic": "service_server",
+      "opcodes": [
+        "SERVICE_REQUEST",
+        "SERVICE_RESPONSE"
+      ],
+      "channel": "application",
+      "transport": "reliable_stream",
+      "operation_kinds": [
+        3
+      ],
+      "requires_operation_id": true
+    },
+    {
+      "semantic": "action_client",
+      "opcodes": [
+        "ACTION_GOAL",
+        "ACTION_FEEDBACK",
+        "ACTION_RESULT",
+        "ACTION_STATUS",
+        "ACTION_CANCEL"
+      ],
+      "channel": "application",
+      "transport": {
+        "ACTION_GOAL": "reliable_stream",
+        "ACTION_CANCEL": "reliable_stream",
+        "ACTION_RESULT": "reliable_stream",
+        "ACTION_FEEDBACK": {
+          "from": "effective_action_qos.feedback_topic",
+          "RELIABLE": "reliable_stream",
+          "BEST_EFFORT": "datagram_if_negotiated_and_size_fit_else_sample_scoped_stream"
+        },
+        "ACTION_STATUS": {
+          "from": "effective_action_qos.status_topic",
+          "RELIABLE": "reliable_stream",
+          "BEST_EFFORT": "datagram_if_negotiated_and_size_fit_else_sample_scoped_stream"
+        }
+      },
+      "operation_kinds": [
+        4
+      ],
+      "requires_operation_id": true
+    },
+    {
+      "semantic": "action_server",
+      "opcodes": [
+        "ACTION_GOAL",
+        "ACTION_FEEDBACK",
+        "ACTION_RESULT",
+        "ACTION_STATUS",
+        "ACTION_CANCEL"
+      ],
+      "channel": "application",
+      "transport": {
+        "ACTION_GOAL": "reliable_stream",
+        "ACTION_CANCEL": "reliable_stream",
+        "ACTION_RESULT": "reliable_stream",
+        "ACTION_FEEDBACK": {
+          "from": "effective_action_qos.feedback_topic",
+          "RELIABLE": "reliable_stream",
+          "BEST_EFFORT": "datagram_if_negotiated_and_size_fit_else_sample_scoped_stream"
+        },
+        "ACTION_STATUS": {
+          "from": "effective_action_qos.status_topic",
+          "RELIABLE": "reliable_stream",
+          "BEST_EFFORT": "datagram_if_negotiated_and_size_fit_else_sample_scoped_stream"
+        }
+      },
+      "operation_kinds": [
+        5
+      ],
+      "requires_operation_id": true
+    },
+    {
+      "semantic": "media",
+      "opcode": "MEDIA_CHUNK",
+      "channel": "application",
+      "transport": {
+        "default": "reliable_stream",
+        "alternate": "sample_scoped_stream",
+        "selection": "implementation_choice_within_channel_budgets"
+      },
+      "operation_kinds": [
+        6
+      ],
+      "keyframe_flag_allowed": true
+    },
+    {
+      "semantic": "recording",
+      "opcode": "RECORDING_CHUNK",
+      "channel": "application",
+      "transport": "reliable_stream",
+      "operation_kinds": [
+        7
+      ]
+    },
+    {
+      "semantic": "asset",
+      "opcode": "ASSET_CHUNK",
+      "channel": "application",
+      "transport": "reliable_stream",
+      "operation_kinds": [
+        8
+      ]
+    }
+  ],
+  "non_ros_payloads": {
+    "serialization": {
+      "format": "RFC 8949 core deterministic CBOR map using registry keys",
+      "maps": "closed over assigned keys for that opcode",
+      "aggregate_ceiling": "frame payload must satisfy frame_payload_max_bytes including CBOR map overhead",
+      "decode_failure": "malformed_frame",
+      "shape_failure": "malformed_frame"
+    },
+    "MEDIA_CHUNK": {
+      "header_map_keys": {
+        "1": {
+          "name": "stream_generation",
+          "type": "uint64",
+          "required": true
+        },
+        "2": {
+          "name": "access_unit_index",
+          "type": "uint64",
+          "required": true
+        },
+        "3": {
+          "name": "is_config",
+          "type": "bool",
+          "required": true
+        },
+        "4": {
+          "name": "codec",
+          "type": "encoding_id",
+          "required": true,
+          "allowed": [
+            3,
+            4
+          ]
+        },
+        "5": {
+          "name": "payload",
+          "type": "bstr",
+          "required": true
+        }
+      },
+      "rules": [
+        "MEDIA_CHUNK application payload is one deterministic CBOR map with keys 1..5 only.",
+        "codec MUST equal the encoding negotiated on OpenChannel for that media channel.",
+        "is_config true carries decoder configuration for stream_generation; receivers MUST apply config before non-config access units of the same stream_generation.",
+        "stream_generation increments on codec or parameter reset; receivers discard buffers from prior generations.",
+        "KEYFRAME flag marks random-access media access units; it does not replace FRAGMENT (still reserved/prohibited).",
+        "Each MEDIA_CHUNK is one opcode-defined semantic access unit, not a generic application fragment."
+      ],
+      "scope_note": "Media rules apply only to MEDIA_CHUNK. Range identity fields (byte_offset, byte_length, total_size, checksum_sha256) are not used on MEDIA_CHUNK."
+    },
+    "RECORDING_CHUNK": {
+      "header_map_keys": {
+        "1": {
+          "name": "content_id",
+          "type": "bstr16",
+          "required": true
+        },
+        "2": {
+          "name": "byte_offset",
+          "type": "uint64",
+          "required": true
+        },
+        "3": {
+          "name": "byte_length",
+          "type": "uint32",
+          "required": true
+        },
+        "4": {
+          "name": "total_size",
+          "type": "uint64",
+          "required": false
+        },
+        "5": {
+          "name": "checksum_sha256",
+          "type": "bstr32",
+          "required": false
+        },
+        "6": {
+          "name": "encoding",
+          "type": "encoding_id",
+          "required": true,
+          "allowed": [
+            5,
+            6
+          ]
+        },
+        "7": {
+          "name": "payload",
+          "type": "bstr",
+          "required": true
+        }
+      },
+      "rules": [
+        "Range identity and checksum rules apply to RECORDING_CHUNK only.",
+        "RECORDING_CHUNK payload is one deterministic CBOR map with keys 1..7 as assigned.",
+        "byte_length MUST equal the byte length of the payload bstr (key 7).",
+        "encoding MUST equal the channel OpenChannel encoding.",
+        "byte_offset + byte_length MUST use checked arithmetic and MUST NOT overflow u64.",
+        "When total_size is present, byte_offset + byte_length MUST be <= total_size and total_size MUST be consistent across all chunks of content_id.",
+        "When checksum_sha256 is present, it covers the complete content bytes associated with content_id and MUST be identical on every chunk that carries it.",
+        "Resume continues from the next unacknowledged absolute byte_offset.",
+        "Each chunk is an opcode-defined range unit; FRAGMENT remains reserved."
+      ],
+      "scope_note": "byte_length, byte_offset, total_size, and checksum_sha256 rules apply to RECORDING_CHUNK only (not MEDIA_CHUNK)."
+    },
+    "ASSET_CHUNK": {
+      "header_map_keys": {
+        "1": {
+          "name": "content_id",
+          "type": "bstr16",
+          "required": true
+        },
+        "2": {
+          "name": "byte_offset",
+          "type": "uint64",
+          "required": true
+        },
+        "3": {
+          "name": "byte_length",
+          "type": "uint32",
+          "required": true
+        },
+        "4": {
+          "name": "total_size",
+          "type": "uint64",
+          "required": false
+        },
+        "5": {
+          "name": "checksum_sha256",
+          "type": "bstr32",
+          "required": false
+        },
+        "6": {
+          "name": "encoding",
+          "type": "encoding_id",
+          "required": true,
+          "allowed": [
+            6
+          ]
+        },
+        "7": {
+          "name": "payload",
+          "type": "bstr",
+          "required": true
+        }
+      },
+      "rules": [
+        "Range identity and checksum rules apply to ASSET_CHUNK only.",
+        "Same serialization and arithmetic rules as RECORDING_CHUNK with OPAQUE encoding only."
+      ],
+      "scope_note": "byte_length, byte_offset, total_size, and checksum_sha256 rules apply to ASSET_CHUNK only (not MEDIA_CHUNK)."
+    }
+  },
+  "source_entry_encodings": {
+    "assigned": {
+      "1": "ROS2_INTERFACE_TEXT",
+      "2": "ROS2_IDL_TEXT",
+      "3": "TYPE_DESCRIPTION_JSON",
+      "4": "TYPE_DESCRIPTION_CBOR",
+      "5": "OPAQUE_BYTES"
+    },
+    "reserved": "0,6-255",
+    "unknown_behavior": "invalid_control",
+    "note": "Distinct from payload encodings. M0-04 owns bundle canonical ordering, bytes, and hash for moonspan-schema-v1 digests."
+  },
+  "flags": {
+    "assigned": {
+      "0x0001": {
+        "name": "ROS_RELIABLE",
+        "status": "active",
+        "constraint": "Legal only on ROS_SAMPLE. Set if and only if the channel effective reliability is RELIABLE. Absent on ROS_SAMPLE when effective reliability is BEST_EFFORT. Any other opcode or mismatch is unsupported_flags."
+      },
+      "0x0002": {
+        "name": "KEYFRAME",
+        "status": "active",
+        "constraint": "ONLY on MEDIA_CHUNK; otherwise unsupported_flags."
+      },
+      "0x0004": {
+        "name": "TRACE_PRESENT",
+        "status": "active",
+        "constraint": "Bidirectional consistency with TRACE_CONTEXT extension."
+      },
+      "0x0008": {
+        "name": "RETAINED",
+        "status": "active",
+        "constraint": "Legal only on ROS_SAMPLE when effective durability is TRANSIENT_LOCAL. When set, marks a sample replayed from retained durability history. Live samples MAY clear RETAINED even on TRANSIENT_LOCAL channels. Set on non-ROS_SAMPLE or without TRANSIENT_LOCAL -> unsupported_flags.",
+        "requires_transient_local": true,
+        "not_iff": true,
+        "semantics": "history_replay_marker"
+      },
+      "0x0010": {
+        "name": "FRAGMENT",
+        "status": "reserved",
+        "policy": "prohibited_in_v0",
+        "on_receive": "unsupported_flags"
+      }
+    },
+    "reserved": "0x0020-0x8000",
+    "unknown_behavior": "unsupported_flags"
+  },
+  "application_fragmentation": {
+    "policy": "prohibited",
+    "large_messages": "Use a reliable stream; transport segmentation carries the complete frame byte sequence."
+  },
+  "clocks": {
+    "assigned": {
+      "0": "NONE",
+      "1": "SYSTEM",
+      "2": "STEADY",
+      "3": "ROS",
+      "4": "SIMULATION"
+    },
+    "reserved": "5-127",
+    "experimental": "128-255",
+    "NONE_requires_source_time_ns_zero": true,
+    "unassigned_numeric_clock": {
+      "error": "protocol_violation",
+      "code": 25
+    },
+    "assigned_clock_unavailable": {
+      "error": "clock_unavailable",
+      "code": 28
+    }
+  },
+  "priorities": {
+    "assigned": {
+      "0": "CONTROL",
+      "1": "INTERACTIVE",
+      "2": "DEFAULT",
+      "3": "SENSOR",
+      "4": "BULK"
+    },
+    "reserved": "5-127",
+    "experimental": "128-255",
+    "unassigned_numeric_priority": {
+      "error": "protocol_violation",
+      "code": 25
+    }
+  },
+  "operation_kinds": {
+    "assigned": {
+      "0": "TOPIC_SUBSCRIBE",
+      "1": "TOPIC_PUBLISH",
+      "2": "SERVICE_CLIENT",
+      "3": "SERVICE_SERVER",
+      "4": "ACTION_CLIENT",
+      "5": "ACTION_SERVER",
+      "6": "MEDIA_SUBSCRIBE",
+      "7": "RECORDING",
+      "8": "ASSET"
+    },
+    "reserved": "9-127",
+    "experimental": "128-255",
+    "unknown_behavior": "invalid_control"
+  },
+  "encodings": {
+    "assigned": {
+      "1": "CDR1",
+      "2": "XCDR2",
+      "3": "H264",
+      "4": "AV1",
+      "5": "MCAP",
+      "6": "OPAQUE"
+    },
+    "reserved": "0,7-127",
+    "experimental": "128-255",
+    "unknown_behavior": "invalid_control"
+  },
+  "qos": {
+    "field_keys": {
+      "1": {
+        "name": "reliability",
+        "type": "u8",
+        "required": true,
+        "unit": "enum"
+      },
+      "2": {
+        "name": "durability",
+        "type": "u8",
+        "required": true,
+        "unit": "enum"
+      },
+      "3": {
+        "name": "history_kind",
+        "type": "u8",
+        "required": true,
+        "unit": "enum"
+      },
+      "4": {
+        "name": "history_depth",
+        "type": "u32",
+        "required": "required_and_positive_when_history_kind_is_KEEP_LAST_else_absent",
+        "unit": "samples",
+        "rules": "Required and >=1 when history_kind is KEEP_LAST (1). MUST be absent when history_kind is SYSTEM_DEFAULT (0) or KEEP_ALL (2)."
+      },
+      "5": {
+        "name": "deadline_ns",
+        "type": "u64",
+        "required": false,
+        "unit": "nanoseconds",
+        "default_if_absent": "ROS unspecified/default"
+      },
+      "6": {
+        "name": "lifespan_ns",
+        "type": "u64",
+        "required": false,
+        "unit": "nanoseconds",
+        "default_if_absent": "ROS unspecified/default"
+      },
+      "7": {
+        "name": "liveliness",
+        "type": "u8",
+        "required": "required_on_effective_qos",
+        "unit": "enum",
+        "requested_default_if_absent": "SYSTEM_DEFAULT",
+        "effective_rule": "MUST be present and concrete (AUTOMATIC or MANUAL_BY_TOPIC) on effective QoS maps"
+      },
+      "8": {
+        "name": "liveliness_lease_duration_ns",
+        "type": "u64",
+        "required": false,
+        "unit": "nanoseconds",
+        "default_if_absent": "ROS unspecified/default"
+      }
+    },
+    "reliability": {
+      "0": "SYSTEM_DEFAULT",
+      "1": "RELIABLE",
+      "2": "BEST_EFFORT",
+      "reserved": "3-255",
+      "unknown_behavior": "invalid_control"
+    },
+    "durability": {
+      "0": "SYSTEM_DEFAULT",
+      "1": "TRANSIENT_LOCAL",
+      "2": "VOLATILE",
+      "reserved": "3-255",
+      "unknown_behavior": "invalid_control"
+    },
+    "history_kind": {
+      "0": "SYSTEM_DEFAULT",
+      "1": "KEEP_LAST",
+      "2": "KEEP_ALL",
+      "reserved": "3-255",
+      "unknown_behavior": "invalid_control"
+    },
+    "liveliness": {
+      "0": "SYSTEM_DEFAULT",
+      "1": "AUTOMATIC",
+      "2": "MANUAL_BY_TOPIC",
+      "reserved": "3-255",
+      "unknown_behavior": "invalid_control",
+      "note": "MANUAL_BY_NODE is not part of R2WP v0."
+    },
+    "effective_resolution": "OpenChannel and graph advertisements carry requested or role-specific advertised QoS (may include SYSTEM_DEFAULT). Graph endpoint QoS is the role-specific advertised/offered-or-requested profile for that endpoint. OpenChannel carries the requested/created-entity QoS for the channel being opened. Gateway resolves using role-specific ROS request/offered compatibility for the support-row distro. Successful ChannelReady effective_qos / effective_action_qos / effective_service_qos MUST contain only concrete enums with required concrete liveliness; no SYSTEM_DEFAULT values.",
+    "service_reliability": "Phase-one Service profiles resolve to reliable + volatile. SERVICE_REQUEST and SERVICE_RESPONSE always travel on reliable streams; effective reliability MUST be RELIABLE and effective durability MUST be VOLATILE for Service channels.",
+    "action_feedback_status_qos": "ACTION_FEEDBACK uses effective_action_qos.feedback_topic; ACTION_STATUS uses effective_action_qos.status_topic. RELIABLE -> reliable stream; BEST_EFFORT -> datagram when negotiated and size-fit, else sample-scoped stream. GOAL/CANCEL/RESULT remain reliable operation streams.",
+    "action_profiles": {
+      "description": "ROS action client/server options expose five independent QoS profiles.",
+      "field_keys": {
+        "1": {
+          "name": "goal_service",
+          "type": "qos",
+          "required": true
+        },
+        "2": {
+          "name": "result_service",
+          "type": "qos",
+          "required": true
+        },
+        "3": {
+          "name": "cancel_service",
+          "type": "qos",
+          "required": true
+        },
+        "4": {
+          "name": "feedback_topic",
+          "type": "qos",
+          "required": true
+        },
+        "5": {
+          "name": "status_topic",
+          "type": "qos",
+          "required": true
+        }
+      },
+      "wire_mapping": "ACTION_GOAL, ACTION_CANCEL, and ACTION_RESULT are request+response on reliable operation streams. ACTION_FEEDBACK and ACTION_STATUS are one-way; transport follows the respective effective feedback_topic and status_topic reliability profiles."
+    },
+    "effective_service_qos": {
+      "reliability": "MUST be RELIABLE (1)",
+      "durability": "MUST be VOLATILE (2)",
+      "history_kind": "concrete KEEP_LAST or KEEP_ALL",
+      "liveliness": "concrete AUTOMATIC or MANUAL_BY_TOPIC (required field)",
+      "used_for": [
+        "SERVICE_CLIENT ChannelReady",
+        "SERVICE_SERVER ChannelReady",
+        "action goal/result/cancel effective profiles"
+      ],
+      "open_channel_note": "SERVICE_CLIENT and SERVICE_SERVER are both valid browser OpenChannel operation_kind values."
+    }
+  },
+  "error_scopes": {
+    "assigned": {
+      "0": "session",
+      "1": "channel",
+      "2": "operation",
+      "3": "transport",
+      "4": "bootstrap"
+    },
+    "reserved": "5-255",
+    "unknown_behavior": "invalid_control"
+  },
+  "retry_classes": {
+    "assigned": {
+      "0": "none",
+      "1": "immediate",
+      "2": "backoff",
+      "3": "fatal"
+    },
+    "reserved": "4-255",
+    "unknown_behavior": "invalid_control"
+  },
+  "policy_results": {
+    "assigned": {
+      "0": "allow",
+      "1": "deny",
+      "2": "limited",
+      "3": "error"
+    },
+    "reserved": "4-255",
+    "unknown_behavior": "invalid_control",
+    "channel_ready_success": [
+      "allow",
+      "limited"
+    ],
+    "channel_ready_failure": [
+      "deny",
+      "error"
+    ]
+  },
+  "channel_resume_results": {
+    "assigned": {
+      "0": "resumed",
+      "1": "reset",
+      "2": "closed",
+      "3": "error"
+    },
+    "reserved": "4-255",
+    "unknown_behavior": "invalid_control"
+  },
+  "close_reasons": {
+    "assigned": {
+      "1": "NORMAL",
+      "2": "RESOURCE",
+      "3": "POLICY",
+      "4": "ERROR",
+      "5": "STALE",
+      "6": "SHUTDOWN"
+    },
+    "reserved": "0,7-255",
+    "unknown_behavior": "invalid_control",
+    "note": "CloseChannel MUST use a close_reason. Normal close MUST use NORMAL. MUST NOT reuse wire error code 0."
+  },
+  "dispositions": {
+    "assigned": {
+      "1": "delivered",
+      "2": "sequence_gap",
+      "3": "stale_sequence"
+    },
+    "reserved": "0,4-255",
+    "unknown_behavior": "implementation_local_only"
+  },
+  "graph_endpoint_kinds": {
+    "assigned": {
+      "0": "topic_pub",
+      "1": "topic_sub",
+      "2": "service_server",
+      "3": "service_client",
+      "4": "action_server",
+      "5": "action_client"
+    },
+    "reserved": "6-255",
+    "unknown_behavior": "invalid_control"
+  },
+  "graph_delta_ops": {
+    "assigned": {
+      "0": "add_or_update_node",
+      "1": "remove_node",
+      "2": "add_or_update_endpoint",
+      "3": "remove_endpoint"
+    },
+    "reserved": "4-255",
+    "unknown_behavior": "invalid_control",
+    "order": "Ops preserve semantic order within a delta. Generation relation: GraphDelta.base_generation MUST equal the receiver's current graph_generation; GraphDelta.graph_generation MUST equal base_generation + 1. add_or_update replaces by stable ID; remove deletes by ID only."
+  },
+  "collection_rules": {
+    "wire_versions": "Unique preference order (client preference first); not required sorted numerically.",
+    "domain_ids": "Unique ascending.",
+    "capability_ids": "Unique ascending.",
+    "alive_channel_ids": "Unique ascending.",
+    "channel_ack_ids": "Unique ascending by channel_id.",
+    "channel_result_ids": "Unique ascending by channel_id.",
+    "graph_node_ids": "Unique; snapshot order is deterministic bytewise ascending node_id.",
+    "graph_endpoint_ids": "Unique; snapshot order is deterministic bytewise ascending endpoint_id.",
+    "graph_delta_ops": "Preserve semantic order.",
+    "dominating_bound": "control_payload_max_bytes (1048576) dominates every nested field and collection size.",
+    "extension_tlv_types": "Strictly ascending by numeric type within one frame; duplicates prohibited."
+  },
+  "extensions": {
+    "alignment": 4,
+    "tlv_layout": [
+      {
+        "offset": 0,
+        "name": "type",
+        "type": "u8"
+      },
+      {
+        "offset": 1,
+        "name": "flags",
+        "type": "u8"
+      },
+      {
+        "offset": 2,
+        "name": "value_len",
+        "type": "u16"
+      }
+    ],
+    "flag_bits": {
+      "0x01": "CRITICAL",
+      "other_bits": "MUST be zero"
+    },
+    "types": {
+      "assigned": {
+        "1": {
+          "name": "TRACE_CONTEXT",
+          "value_len": 32,
+          "layout": {
+            "trace_id": {
+              "offset": 0,
+              "size": 16
+            },
+            "span_id": {
+              "offset": 16,
+              "size": 8
+            },
+            "trace_flags": {
+              "offset": 24,
+              "size": 1
+            },
+            "reserved": {
+              "offset": 25,
+              "size": 7,
+              "value": 0
+            }
+          }
+        },
+        "2": {
+          "name": "OPERATION_ID",
+          "value_len": 16,
+          "layout": {
+            "opaque": {
+              "offset": 0,
+              "size": 16
+            }
+          }
+        }
+      },
+      "reserved": "0,3-127",
+      "experimental": "128-255"
+    },
+    "rules": [
+      "TLVs MUST be strictly ascending by numeric type",
+      "duplicate extension type -> malformed_frame",
+      "non-ascending type order -> malformed_frame",
+      "TLV padding MUST be zero",
+      "value_len MUST match fixed type size exactly",
+      "each TLV MUST lie entirely within extension_len",
+      "length sums use checked arithmetic before allocation",
+      "unknown critical -> unsupported_extension",
+      "unknown noncritical -> skip",
+      "TRACE_PRESENT and TRACE_CONTEXT bidirectional consistency required"
+    ],
+    "extension_len_multiple_of_4": true,
+    "per_tlv_zero_padding": true,
+    "canonical_order": {
+      "rule": "strictly_ascending_by_numeric_type",
+      "duplicate_or_non_ascending": {
+        "error": "malformed_frame",
+        "code": 3
+      },
+      "validation_step": "structural_tlv_parsing_padding"
+    }
+  },
+  "cbor_profile": {
+    "name": "r2wp-v0-control",
+    "base": "RFC 8949 core deterministic encoding",
+    "rules": [
+      "definite lengths only",
+      "shortest integer and length encodings",
+      "map keys in deterministic order",
+      "duplicate map keys invalid",
+      "unsigned integer map keys only",
+      "tags prohibited",
+      "floats prohibited",
+      "indefinite lengths prohibited"
+    ],
+    "decode_errors": {
+      "bootstrap_payload": "malformed_bootstrap",
+      "control_cbor_payload": "invalid_control",
+      "policy": "Discard entire message; MUST NOT return partial semantic object. BootstrapError MUST NOT carry invalid_control as its code."
+    },
+    "correlation_id_on_control_error": "Echo request correlation_id when trustworthy; otherwise 16 zero bytes.",
+    "map_key_ranges": {
+      "core": "1..127",
+      "capability_extension": "128..65535",
+      "unknown_core": "invalid_control",
+      "unknown_extension_without_capability": "invalid_control"
+    }
+  },
+  "control_kinds": {
+    "assigned": {
+      "1": "Authenticate",
+      "2": "SessionReady",
+      "3": "GraphSnapshot",
+      "4": "GraphDelta",
+      "5": "SchemaRequest",
+      "6": "SchemaAdvertise",
+      "7": "SchemaResponse",
+      "8": "OpenChannel",
+      "9": "ChannelReady",
+      "10": "CloseChannel",
+      "11": "ClockSync",
+      "12": "Heartbeat",
+      "13": "SessionResume",
+      "14": "SessionResumeResult",
+      "15": "Error"
+    },
+    "reserved": "0,16-127",
+    "experimental": "128-255",
+    "unknown_behavior": "invalid_control"
+  },
+  "correlation_id": {
+    "size": 16,
+    "request_response": "Response MUST echo request correlation_id.",
+    "unsolicited": "16 zero bytes.",
+    "untrusted_on_error": "16 zero bytes when a control error cannot recover a trustworthy correlation ID."
+  },
+  "defaults": {
+    "optional_arrays": "empty",
+    "optional_error": "none",
+    "qos_durations_absent": "ROS unspecified/default",
+    "cache_lifetime_absent": 0,
+    "optional_budget_field_absent": {
+      "rule": "Use the tighter of the absolute protocol ceiling and the session effective limit for that dimension.",
+      "absolute_ceiling_source": "absolute_limits",
+      "session_ceiling_source": "SessionReady.negotiated_budgets or ServerHello.effective_limits as applicable"
+    }
+  },
+  "errors": {
+    "0": {
+      "name": "RESERVED",
+      "status": "reserved",
+      "wire_usable": false
+    },
+    "1": {
+      "name": "malformed_bootstrap",
+      "wire_usable": true,
+      "bootstrap_usable": true
+    },
+    "2": {
+      "name": "no_common_version",
+      "wire_usable": true,
+      "bootstrap_usable": true
+    },
+    "3": {
+      "name": "malformed_frame",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "4": {
+      "name": "unsupported_version",
+      "wire_usable": true,
+      "bootstrap_usable": true
+    },
+    "5": {
+      "name": "unsupported_opcode",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "6": {
+      "name": "unsupported_flags",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "7": {
+      "name": "unknown_channel",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "8": {
+      "name": "schema_mismatch",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "9": {
+      "name": "schema_identity_mismatch",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "10": {
+      "name": "schema_unavailable",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "11": {
+      "name": "qos_incompatible",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "12": {
+      "name": "permission_denied",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "13": {
+      "name": "resource_exhausted",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "14": {
+      "name": "deadline_expired",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "15": {
+      "name": "cancelled",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "16": {
+      "name": "transport_closed",
+      "wire_usable": true,
+      "bootstrap_usable": true
+    },
+    "17": {
+      "name": "stale_generation",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "18": {
+      "name": "gateway_instance_mismatch",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "19": {
+      "name": "support_row_mismatch",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "20": {
+      "name": "adapter_profile_mismatch",
+      "wire_usable": false,
+      "bootstrap_usable": false,
+      "surface": "readiness_and_startup_out_of_band",
+      "note": "Out-of-band readiness/startup only. Excluded from every R2WP Error payload (wire-error-code and bootstrap-error-code omit 20)."
+    },
+    "21": {
+      "name": "sequence_exhausted",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "22": {
+      "name": "unsupported_extension",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "23": {
+      "name": "invalid_control",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "24": {
+      "name": "message_too_large",
+      "wire_usable": true,
+      "bootstrap_usable": true
+    },
+    "25": {
+      "name": "protocol_violation",
+      "wire_usable": true,
+      "bootstrap_usable": true
+    },
+    "26": {
+      "name": "authentication_failed",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "27": {
+      "name": "session_not_ready",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "28": {
+      "name": "clock_unavailable",
+      "wire_usable": true,
+      "bootstrap_usable": false
+    },
+    "bootstrap_unknown_kind": "malformed_bootstrap",
+    "bootstrap_state_order_violation": "protocol_violation"
+  },
+  "absolute_limits": {
+    "bootstrap_payload_max_bytes": 65535,
+    "control_payload_max_bytes": 1048576,
+    "frame_payload_max_bytes": 67108864,
+    "extension_area_max_bytes": 4096,
+    "supported_versions_max": 16,
+    "utf8_text_max_bytes": 4096,
+    "utf8_text_min_nonempty_bytes": 1,
+    "cbor_nesting_depth_max": 16,
+    "cbor_map_entries_max": 4096,
+    "graph_nodes_max": 65535,
+    "graph_endpoints_max": 65535,
+    "graph_delta_ops_max": 1024,
+    "source_bundle_entries_max": 4096,
+    "alive_channels_max": 65535,
+    "channel_acks_max": 65535,
+    "channel_results_max": 65535,
+    "domain_ids_max": 233,
+    "domain_id_range": [
+      0,
+      232
+    ],
+    "credential_bytes_max": 65535,
+    "type_description_bytes_max": 1048576,
+    "extension_capability_ids_max": 64,
+    "max_channels_ceiling": 65535,
+    "max_session_bytes_ceiling": 4294967296
+  },
+  "control_field_keys": {
+    "core_key_range": "1..127",
+    "extension_key_range": "128..65535",
+    "nested": {
+      "schema_identity": {
+        "1": {
+          "name": "scheme",
+          "required": true,
+          "type": "tstr"
+        },
+        "2": {
+          "name": "value",
+          "required": true,
+          "type": "tstr"
+        }
+      },
+      "qos": {
+        "1": {
+          "name": "reliability",
+          "required": true
+        },
+        "2": {
+          "name": "durability",
+          "required": true
+        },
+        "3": {
+          "name": "history_kind",
+          "required": true
+        },
+        "4": {
+          "name": "history_depth",
+          "required": "when history_kind is KEEP_LAST",
+          "unit": "samples"
+        },
+        "5": {
+          "name": "deadline_ns",
+          "required": false,
+          "unit": "ns"
+        },
+        "6": {
+          "name": "lifespan_ns",
+          "required": false,
+          "unit": "ns"
+        },
+        "7": {
+          "name": "liveliness",
+          "required": "required_on_effective_qos; optional on requested/advertised with default SYSTEM_DEFAULT when absent",
+          "wire_set": [
+            "SYSTEM_DEFAULT",
+            "AUTOMATIC",
+            "MANUAL_BY_TOPIC"
+          ]
+        },
+        "8": {
+          "name": "liveliness_lease_duration_ns",
+          "required": false,
+          "unit": "ns"
+        }
+      },
+      "budgets": {
+        "1": {
+          "name": "max_samples",
+          "required": false
+        },
+        "2": {
+          "name": "max_bytes",
+          "required": false
+        },
+        "3": {
+          "name": "max_message_bytes",
+          "required": false
+        },
+        "4": {
+          "name": "max_bandwidth_bps",
+          "required": false
+        },
+        "5": {
+          "name": "max_concurrency",
+          "required": false
+        },
+        "6": {
+          "name": "deadline_ns",
+          "required": false,
+          "unit": "ns"
+        }
+      },
+      "transport_capabilities": {
+        "1": {
+          "name": "webtransport_http3",
+          "required": true,
+          "type": "bool"
+        },
+        "2": {
+          "name": "binary_wss",
+          "required": true,
+          "type": "bool"
+        },
+        "3": {
+          "name": "max_datagram_size",
+          "required": false,
+          "type": "uint32",
+          "unit": "bytes"
+        }
+      },
+      "buffer_capabilities": {
+        "1": {
+          "name": "transferable_arraybuffer",
+          "required": true,
+          "type": "bool"
+        },
+        "2": {
+          "name": "shared_arraybuffer",
+          "required": true,
+          "type": "bool",
+          "note": "Path usable only when capability shared_arraybuffer is negotiated."
+        }
+      },
+      "negotiated_capabilities": {
+        "1": {
+          "name": "transport_capabilities",
+          "required": true
+        },
+        "2": {
+          "name": "buffer_capabilities",
+          "required": true
+        },
+        "3": {
+          "name": "extension_capabilities",
+          "required": true,
+          "type": "capability_id_list"
+        }
+      },
+      "source_bundle_entry": {
+        "1": {
+          "name": "type_name",
+          "required": true
+        },
+        "2": {
+          "name": "source_entry_encoding",
+          "required": true
+        },
+        "3": {
+          "name": "content",
+          "required": true,
+          "type": "bstr"
+        }
+      },
+      "error_body": {
+        "note": "Generic name only; CDDL uses specialized session-scope and channel-scope embedded maps. No operation-scope embedded body.",
+        "session_scope_embedded": {
+          "48": {
+            "name": "code",
+            "required": true
+          },
+          "49": {
+            "name": "scope",
+            "required": true,
+            "value": 0
+          },
+          "50": {
+            "name": "retry_class",
+            "required": false
+          },
+          "51": {
+            "name": "message",
+            "required": false
+          },
+          "52": {
+            "name": "detail",
+            "required": false
+          },
+          "channel_id": "absent"
+        },
+        "channel_scope_embedded": {
+          "48": {
+            "name": "code",
+            "required": true
+          },
+          "49": {
+            "name": "scope",
+            "required": true,
+            "value": 1
+          },
+          "50": {
+            "name": "retry_class",
+            "required": false
+          },
+          "51": {
+            "name": "message",
+            "required": false
+          },
+          "52": {
+            "name": "detail",
+            "required": false
+          },
+          "channel_id": "absent; enclosing message channel_id is authoritative"
+        }
+      },
+      "graph_node": {
+        "55": {
+          "name": "node_id",
+          "required": true
+        },
+        "1": {
+          "name": "name",
+          "required": true
+        },
+        "2": {
+          "name": "namespace",
+          "required": false
+        },
+        "9": {
+          "name": "domain_id",
+          "required": true,
+          "constraint": "MUST be in SessionReady.domain_ids"
+        }
+      },
+      "graph_endpoint": {
+        "56": {
+          "name": "endpoint_id",
+          "required": true
+        },
+        "55": {
+          "name": "node_id",
+          "required": true
+        },
+        "1": {
+          "name": "name",
+          "required": true
+        },
+        "2": {
+          "name": "kind",
+          "required": true
+        },
+        "3": {
+          "name": "type_name",
+          "required": true
+        },
+        "4": {
+          "name": "schema_identity",
+          "required": true
+        },
+        "5": {
+          "name": "encoding",
+          "required": true,
+          "allowed": [
+            1,
+            2
+          ],
+          "note": "CDR1 or XCDR2 only for ROS graph endpoints"
+        },
+        "6": {
+          "name": "schema_generation",
+          "required": true
+        },
+        "7": {
+          "name": "qos",
+          "required": "topic/service endpoints",
+          "note": "Role-specific advertised/offered-or-requested profile, not OpenChannel requested QoS."
+        },
+        "58": {
+          "name": "action_qos",
+          "required": "action endpoints",
+          "note": "Five role-specific advertised profiles."
+        },
+        "9": {
+          "name": "domain_id",
+          "required": true
+        },
+        "8": {
+          "name": "support_row_id",
+          "required": false
+        }
+      },
+      "graph_delta_op": {
+        "1": {
+          "name": "op",
+          "required": true
+        },
+        "2": {
+          "name": "node",
+          "required": false
+        },
+        "3": {
+          "name": "endpoint",
+          "required": false
+        },
+        "55": {
+          "name": "node_id",
+          "required": false
+        },
+        "56": {
+          "name": "endpoint_id",
+          "required": false
+        }
+      },
+      "channel_ack": {
+        "1": {
+          "name": "channel_id",
+          "required": true
+        },
+        "2": {
+          "name": "acknowledged_sequence",
+          "required": true,
+          "reliable": "highest contiguous accepted sequence on default domain",
+          "best_effort": "highest accepted sequence on default domain"
+        },
+        "rules": "Entries cover client-received default domains only; omit channels with no accepted frame; exclude Service/Action operation streams."
+      },
+      "channel_resume_result": {
+        "1": {
+          "name": "channel_id",
+          "required": true
+        },
+        "2": {
+          "name": "result",
+          "required": true,
+          "enum": "channel_resume_results"
+        },
+        "3": {
+          "name": "next_sequence",
+          "required": "resumed default-domain: required; reset default-domain: required and 0; reset Service/Action: absent; closed: absent; error: absent"
+        },
+        "15": {
+          "name": "error",
+          "required": "required when result is error; absent otherwise"
+        }
+      },
+      "action_qos": {
+        "1": {
+          "name": "goal_service",
+          "required": true
+        },
+        "2": {
+          "name": "result_service",
+          "required": true
+        },
+        "3": {
+          "name": "cancel_service",
+          "required": true
+        },
+        "4": {
+          "name": "feedback_topic",
+          "required": true
+        },
+        "5": {
+          "name": "status_topic",
+          "required": true
+        }
+      },
+      "requested_limits": {
+        "map_required": true,
+        "members_optional": true,
+        "1": {
+          "name": "max_channels",
+          "required": false,
+          "type": "uint32",
+          "wire_range": "0..4294967295",
+          "not_ceiling_bounded": true
+        },
+        "2": {
+          "name": "max_session_bytes",
+          "required": false,
+          "type": "uint64",
+          "wire_range": "0..18446744073709551615",
+          "not_ceiling_bounded": true
+        },
+        "3": {
+          "name": "max_message_bytes",
+          "required": false,
+          "type": "uint32",
+          "wire_range": "0..4294967295",
+          "not_ceiling_bounded": true
+        },
+        "4": {
+          "name": "max_control_payload_bytes",
+          "required": false,
+          "type": "uint32",
+          "wire_range": "0..4294967295",
+          "not_ceiling_bounded": true
+        },
+        "rules": "ClientHello key 4 is a required map; each of the four members is optional. Requested values use native wire integer ranges and are NOT capped by protocol ceilings on the wire. ServerHello effective_limits apply min(client_requested, server_hard_limit, protocol_ceiling). When a client omits a member, effective is min(server_hard_limit, protocol_ceiling)."
+      },
+      "effective_limits": {
+        "1": {
+          "name": "max_channels",
+          "required": true,
+          "ceiling": "max_channels_ceiling",
+          "type": "uint32",
+          "max": 65535
+        },
+        "2": {
+          "name": "max_session_bytes",
+          "required": true,
+          "ceiling": "max_session_bytes_ceiling",
+          "type": "uint64",
+          "max": 4294967296
+        },
+        "3": {
+          "name": "max_message_bytes",
+          "required": true,
+          "ceiling": "frame_payload_max_bytes",
+          "type": "uint32",
+          "max": 67108864
+        },
+        "4": {
+          "name": "max_control_payload_bytes",
+          "required": true,
+          "ceiling": "control_payload_max_bytes",
+          "type": "uint32",
+          "max": 1048576
+        },
+        "rules": "All four fields present and concrete, each <= its protocol ceiling. If client requested: min(client_requested, server_hard_limit, protocol_ceiling). If client omitted: min(server_hard_limit, protocol_ceiling)."
+      }
+    },
+    "messages": {
+      "ClientHello": {
+        "1": {
+          "name": "wire_versions",
+          "required": true
+        },
+        "2": {
+          "name": "transport_capabilities",
+          "required": true
+        },
+        "3": {
+          "name": "buffer_capabilities",
+          "required": true
+        },
+        "4": {
+          "name": "requested_limits",
+          "required": true
+        },
+        "6": {
+          "name": "extension_capabilities",
+          "required": true
+        }
+      },
+      "ServerHello": {
+        "1": {
+          "name": "selected_wire_version",
+          "required": true
+        },
+        "2": {
+          "name": "transport_capabilities",
+          "required": true,
+          "constraint": "effective AND of booleans"
+        },
+        "3": {
+          "name": "buffer_capabilities",
+          "required": true,
+          "constraint": "shared_arraybuffer true only if both offered path and capability 2 negotiated"
+        },
+        "4": {
+          "name": "effective_limits",
+          "required": true
+        },
+        "6": {
+          "name": "extension_capabilities",
+          "required": true,
+          "constraint": "unique ascending intersection"
+        }
+      },
+      "BootstrapError": {
+        "1": {
+          "name": "code",
+          "required": true,
+          "type": "bootstrap_error_code"
+        },
+        "2": {
+          "name": "message",
+          "required": false
+        },
+        "3": {
+          "name": "detail",
+          "required": false
+        }
+      },
+      "Authenticate": {
+        "1": {
+          "name": "kind",
+          "required": true,
+          "value": 1
+        },
+        "2": {
+          "name": "correlation_id",
+          "required": true
+        },
+        "16": {
+          "name": "credential_type",
+          "required": true
+        },
+        "17": {
+          "name": "credential",
+          "required": true
+        }
+      },
+      "SessionReady": {
+        "1": {
+          "name": "kind",
+          "required": true,
+          "value": 2
+        },
+        "2": {
+          "name": "correlation_id",
+          "required": true
+        },
+        "7": {
+          "name": "gateway_instance_id",
+          "required": true
+        },
+        "8": {
+          "name": "support_row_id",
+          "required": true
+        },
+        "10": {
+          "name": "domain_ids",
+          "required": true,
+          "constraint": "unique ascending nonempty"
+        },
+        "13": {
+          "name": "policy_revision",
+          "required": true
+        },
+        "12": {
+          "name": "negotiated_budgets",
+          "required": true
+        },
+        "18": {
+          "name": "ros_distro",
+          "required": true
+        },
+        "19": {
+          "name": "rmw_identifier",
+          "required": true
+        },
+        "20": {
+          "name": "adapter_abi_version",
+          "required": true
+        },
+        "21": {
+          "name": "effective_identity",
+          "required": true
+        },
+        "53": {
+          "name": "session_id",
+          "required": true
+        },
+        "54": {
+          "name": "negotiated_capabilities",
+          "required": true
+        },
+        "constraint": "support_row_id/ros_distro/rmw_identifier MUST match support_row_profiles exactly; negotiated_capabilities MUST equal ServerHello transport/buffer/extension_capabilities exactly"
+      },
+      "GraphSnapshot": {
+        "1": {
+          "name": "kind",
+          "required": true,
+          "value": 3
+        },
+        "2": {
+          "name": "correlation_id",
+          "required": true
+        },
+        "14": {
+          "name": "graph_generation",
+          "required": true
+        },
+        "7": {
+          "name": "gateway_instance_id",
+          "required": true
+        },
+        "8": {
+          "name": "support_row_id",
+          "required": true
+        },
+        "22": {
+          "name": "nodes",
+          "required": true
+        },
+        "23": {
+          "name": "endpoints",
+          "required": true
+        }
+      },
+      "GraphDelta": {
+        "1": {
+          "name": "kind",
+          "required": true,
+          "value": 4
+        },
+        "2": {
+          "name": "correlation_id",
+          "required": true
+        },
+        "14": {
+          "name": "graph_generation",
+          "required": true
+        },
+        "24": {
+          "name": "base_generation",
+          "required": true
+        },
+        "7": {
+          "name": "gateway_instance_id",
+          "required": true
+        },
+        "8": {
+          "name": "support_row_id",
+          "required": true
+        },
+        "25": {
+          "name": "ops",
+          "required": true
+        }
+      },
+      "SchemaRequest": {
+        "1": {
+          "name": "kind",
+          "required": true,
+          "value": 5
+        },
+        "2": {
+          "name": "correlation_id",
+          "required": true
+        },
+        "4": {
+          "name": "type_name",
+          "required": true
+        },
+        "3": {
+          "name": "schema_identity",
+          "required": true
+        }
+      },
+      "SchemaAdvertise": {
+        "1": {
+          "name": "kind",
+          "required": true,
+          "value": 6
+        },
+        "2": {
+          "name": "correlation_id",
+          "required": true
+        },
+        "4": {
+          "name": "type_name",
+          "required": true
+        },
+        "3": {
+          "name": "schema_identity",
+          "required": true
+        },
+        "5": {
+          "name": "encoding",
+          "required": true,
+          "allowed": [
+            1,
+            2
+          ]
+        },
+        "6": {
+          "name": "schema_generation",
+          "required": true
+        },
+        "26": {
+          "name": "type_description",
+          "required": true
+        },
+        "27": {
+          "name": "source_bundle_entries",
+          "required": false
+        },
+        "28": {
+          "name": "cache_lifetime_ns",
+          "required": false
+        },
+        "8": {
+          "name": "support_row_id",
+          "required": false
+        }
+      },
+      "SchemaResponse": {
+        "1": {
+          "name": "kind",
+          "required": true,
+          "value": 7
+        },
+        "2": {
+          "name": "correlation_id",
+          "required": true
+        },
+        "success_fields": [
+          "4",
+          "3",
+          "5",
+          "6",
+          "26"
+        ],
+        "error_fields": [
+          "15"
+        ],
+        "note": "success and error variants are mutually exclusive",
+        "success_encoding_allowed": [
+          1,
+          2
+        ]
+      },
+      "OpenChannel": {
+        "1": {
+          "name": "kind",
+          "required": true,
+          "value": 8
+        },
+        "2": {
+          "name": "correlation_id",
+          "required": true
+        },
+        "29": {
+          "name": "channel_id",
+          "required": true
+        },
+        "30": {
+          "name": "operation_kind",
+          "required": true
+        },
+        "31": {
+          "name": "target",
+          "required": true
+        },
+        "discriminator": "operation_kind selects CDDL choice: Topic/Service use qos; Action uses action_qos; Media/Recording/Asset omit qos maps"
+      },
+      "ChannelReady": {
+        "1": {
+          "name": "kind",
+          "required": true,
+          "value": 9
+        },
+        "2": {
+          "name": "correlation_id",
+          "required": true
+        },
+        "29": {
+          "name": "channel_id",
+          "required": true
+        },
+        "33": {
+          "name": "policy_result",
+          "required": true
+        },
+        "12": {
+          "name": "effective_budgets",
+          "required_on_success": true
+        },
+        "59": {
+          "name": "effective_priority",
+          "required_on_success": true
+        },
+        "57": {
+          "name": "effective_qos",
+          "required_on_success_for": [
+            "TOPIC_SUBSCRIBE",
+            "TOPIC_PUBLISH"
+          ]
+        },
+        "58": {
+          "name": "effective_action_qos",
+          "required_on_success_for": [
+            "ACTION_CLIENT",
+            "ACTION_SERVER"
+          ]
+        },
+        "15": {
+          "name": "error",
+          "required_on_failure": true
+        },
+        "note": "Success allow|limited includes effective_budgets and effective_priority. Topic success adds effective_qos only. Service success adds effective_service_qos only. Action success adds effective_action_qos only (goal/result/cancel profiles use effective-service-qos constraints; feedback/status use general effective-qos). Media/Recording/Asset omit all QoS fields. Failure deny|error has error body only.",
+        "60": {
+          "name": "effective_service_qos",
+          "required_on_success_for": [
+            "SERVICE_CLIENT",
+            "SERVICE_SERVER"
+          ]
+        }
+      },
+      "CloseChannel": {
+        "1": {
+          "name": "kind",
+          "required": true,
+          "value": 10
+        },
+        "2": {
+          "name": "correlation_id",
+          "required": true
+        },
+        "29": {
+          "name": "channel_id",
+          "required": true
+        },
+        "34": {
+          "name": "reason",
+          "required": true
+        },
+        "35": {
+          "name": "final_sequence",
+          "required": false,
+          "rules": "Default (channel_id, direction) domain only. MUST be omitted for Service/Action operation-stream channels and when the sender never sent a default-domain data frame."
+        }
+      },
+      "ClockSync": {
+        "1": {
+          "name": "kind",
+          "required": true,
+          "value": 11
+        },
+        "2": {
+          "name": "correlation_id",
+          "required": true
+        },
+        "36": {
+          "name": "clock_id",
+          "required": true
+        },
+        "37": {
+          "name": "offset_ns",
+          "required": true
+        },
+        "38": {
+          "name": "rtt_ns",
+          "required": false
+        },
+        "39": {
+          "name": "skew_ppm",
+          "required": false
+        }
+      },
+      "Heartbeat": {
+        "1": {
+          "name": "kind",
+          "required": true,
+          "value": 12
+        },
+        "2": {
+          "name": "correlation_id",
+          "required": true
+        },
+        "40": {
+          "name": "sender_time_ns",
+          "required": true
+        },
+        "41": {
+          "name": "alive_channels",
+          "required": false
+        }
+      },
+      "SessionResume": {
+        "1": {
+          "name": "kind",
+          "required": true,
+          "value": 13
+        },
+        "2": {
+          "name": "correlation_id",
+          "required": true
+        },
+        "42": {
+          "name": "previous_session_id",
+          "required": true
+        },
+        "43": {
+          "name": "selected_wire_version",
+          "required": true
+        },
+        "44": {
+          "name": "negotiated_capabilities",
+          "required": true
+        },
+        "7": {
+          "name": "gateway_instance_id",
+          "required": true
+        },
+        "8": {
+          "name": "support_row_id",
+          "required": true
+        },
+        "14": {
+          "name": "graph_generation",
+          "required": true
+        },
+        "6": {
+          "name": "schema_generation",
+          "required": true
+        },
+        "13": {
+          "name": "policy_revision",
+          "required": true
+        },
+        "45": {
+          "name": "channel_acks",
+          "required": true,
+          "rules": "Client-received default domains only; omit no-accepted-frame channels; exclude Service/Action operation streams."
+        },
+        "capability_required": "session_resume",
+        "16": {
+          "name": "credential_type",
+          "required": true
+        },
+        "17": {
+          "name": "credential",
+          "required": true
+        },
+        "note": "previous_session_id is not a bearer secret. credential_type and credential revalidate identity and expiry. Requires capability 1. channel_acks are default-domain only."
+      },
+      "SessionResumeResult": {
+        "1": {
+          "name": "kind",
+          "required": true,
+          "value": 14
+        },
+        "2": {
+          "name": "correlation_id",
+          "required": true
+        },
+        "46": {
+          "name": "accepted",
+          "required": true
+        },
+        "47": {
+          "name": "channel_results",
+          "required_on_success": true
+        },
+        "15": {
+          "name": "error",
+          "required_on_failure": true
+        }
+      },
+      "Error": {
+        "1": {
+          "name": "kind",
+          "required": true,
+          "value": 15
+        },
+        "2": {
+          "name": "correlation_id",
+          "required": true
+        },
+        "48": {
+          "name": "code",
+          "required": true
+        },
+        "49": {
+          "name": "scope",
+          "required": true
+        },
+        "29": {
+          "name": "channel_id",
+          "required": "required when scope is channel or operation; MUST be absent for session, transport, bootstrap"
+        },
+        "50": {
+          "name": "retry_class",
+          "required": false
+        },
+        "51": {
+          "name": "message",
+          "required": false
+        },
+        "52": {
+          "name": "detail",
+          "required": false
+        },
+        "note": "Flat CONTROL Error fields. Not nested error_body. Operation scope additionally requires exactly one OPERATION_ID TLV on the frame. Code 20 is never legal in Error payloads."
+      }
+    }
+  },
+  "transport": {
+    "webtransport": {
+      "primary_profile": "HTTP/3 mapping",
+      "stream_framing": "Application length fields delimit records and frames on the byte sequence.",
+      "datagram_rule": "Exactly one complete selected-version best-effort frame matching channel QoS and opcode transport rules (ROS_SAMPLE when topic BEST_EFFORT; ACTION_FEEDBACK/ACTION_STATUS when the respective effective topic reliability is BEST_EFFORT). Size MUST fit negotiated maxDatagramSize.",
+      "status_as_of": "2026-08-11",
+      "w3c_status": "W3C WebTransport API is a Working Draft / work in progress.",
+      "ietf_status": "IETF draft-ietf-webtrans-http3-15 is a work-in-progress Internet-Draft."
+    },
+    "binary_wss": {
+      "message_rule": "Exactly one complete bootstrap record or selected-version frame per WebSocket message.",
+      "fragmentation": "WebSocket transport fragmentation is transparent to R2WP; reassembly yields one complete message.",
+      "rfc": "RFC 6455",
+      "best_effort_topic_and_action_feedback_status": {
+        "applies_to": [
+          "ROS_SAMPLE when effective reliability is BEST_EFFORT",
+          "ACTION_FEEDBACK when effective_action_qos.feedback_topic reliability is BEST_EFFORT",
+          "ACTION_STATUS when effective_action_qos.status_topic reliability is BEST_EFFORT"
+        ],
+        "no_datagram_plane": true,
+        "one_complete_frame_per_message": true,
+        "admission": "Bounded latest-wins admission and eviction BEFORE write to the WebSocket.",
+        "dropped_before_write": "Receiver observes sequence_gap for frames dropped by admission/eviction.",
+        "after_write": "Once frame bytes are written to the WebSocket, delivery is reliable under RFC 6455 (no post-write best-effort drop).",
+        "head_of_line": {
+          "limitation": "Single ordered WebSocket byte stream imposes head-of-line blocking across concurrent logical channels and best-effort traffic.",
+          "status": "transport_evidence",
+          "note": "Recorded for dual-transport fixture comparison with WebTransport datagrams; not a protocol_violation."
+        }
+      }
+    },
+    "shared_semantic_fixtures": true,
+    "operation_frame_transport_rule": {
+      "sequence_domain_all": "(channel_id, OPERATION_ID, direction) for every Service and Action application frame",
+      "service": "SERVICE_REQUEST and SERVICE_RESPONSE always use reliable_stream",
+      "action_goal_cancel_result": "ACTION_GOAL, ACTION_CANCEL, ACTION_RESULT always use reliable_stream",
+      "action_feedback_status": "ACTION_FEEDBACK uses effective_action_qos.feedback_topic.reliability; ACTION_STATUS uses effective_action_qos.status_topic.reliability; RELIABLE -> reliable_stream; BEST_EFFORT -> datagram (WebTransport when negotiated and size-fit) or sample_scoped_stream / WSS best-effort path",
+      "not_all_operation_frames_reliable": true
+    }
+  },
+  "sources": {
+    "rfc8949": "https://www.rfc-editor.org/rfc/rfc8949.html",
+    "rfc8610": "https://www.rfc-editor.org/rfc/rfc8610.html",
+    "rfc9682": "https://www.rfc-editor.org/rfc/rfc9682.html",
+    "rfc6455": "https://www.rfc-editor.org/rfc/rfc6455.html",
+    "w3c_webtransport": "https://www.w3.org/TR/webtransport/",
+    "ietf_webtrans_http3_15": "https://datatracker.ietf.org/doc/draft-ietf-webtrans-http3/15/",
+    "rfc2119": "https://www.rfc-editor.org/rfc/rfc2119.html",
+    "rfc8174": "https://www.rfc-editor.org/rfc/rfc8174.html"
+  },
+  "hello_negotiation": {
+    "version_selection": "First ClientHello.wire_versions entry the server supports.",
+    "extension_capabilities": "Unique ascending lists; ServerHello is unique ascending intersection.",
+    "transport_booleans": "Effective webtransport_http3 and binary_wss are AND of peer offers. At least the transport used by the current connection MUST remain true after negotiation.",
+    "max_datagram_size": "When datagrams are used, effective max_datagram_size is min(client_offer, server_offer, actual WebTransport negotiated maxDatagramSize, frame_payload_max_bytes + 32 + extension_area_max_bytes). ServerHello always includes a concrete value when either peer offered datagrams or the connection uses WebTransport datagrams.",
+    "effective_limits": {
+      "all_fields_present": true,
+      "client_omit_rule": "When the client omits a requested limit field, the effective value is the server configured hard limit capped by the protocol absolute ceiling for that field.",
+      "client_present_rule": "When the client requests a limit field, effective is min(client_requested, server_hard_limit, protocol_absolute_ceiling). client_requested may exceed the ceiling; the ceiling is applied only when computing effective_limits.",
+      "max_channels": "If client requested: min(client_requested, server_hard_limit, max_channels_ceiling). If client omitted: min(server_hard_limit, max_channels_ceiling).",
+      "max_session_bytes": "If client requested: min(client_requested, server_hard_limit, max_session_bytes_ceiling). If client omitted: min(server_hard_limit, max_session_bytes_ceiling).",
+      "max_message_bytes": "If client requested: min(client_requested, server_hard_limit, frame_payload_max_bytes). If client omitted: min(server_hard_limit, frame_payload_max_bytes).",
+      "max_control_payload_bytes": "If client requested: min(client_requested, server_hard_limit, control_payload_max_bytes). If client omitted: min(server_hard_limit, control_payload_max_bytes).",
+      "field_mappings": {
+        "max_message_bytes": "Maps to absolute frame_payload_max_bytes as the protocol ceiling.",
+        "max_control_payload_bytes": "Maps to absolute control_payload_max_bytes as the protocol ceiling.",
+        "max_channels": "Maps to absolute max_channels_ceiling (65535).",
+        "max_session_bytes": "Maps to absolute max_session_bytes_ceiling (4294967296)."
+      },
+      "requested_limits_not_ceiling_bounded": true
+    },
+    "shared_arraybuffer": "Effective buffer_capabilities.shared_arraybuffer is true only when both peers offered key 2 true and capability 2 is in ServerHello.extension_capabilities.",
+    "session_resume": "Advertised solely by extension capability 1.",
+    "session_ready_match": "SessionReady.negotiated_capabilities MUST equal ServerHello transport_capabilities, buffer_capabilities, and extension_capabilities."
+  },
+  "correlation_pairing": {
+    "Authenticate": [
+      "SessionReady",
+      "Error"
+    ],
+    "SchemaRequest": [
+      "SchemaResponse",
+      "Error"
+    ],
+    "OpenChannel": [
+      "ChannelReady",
+      "Error"
+    ],
+    "SessionResume": [
+      "SessionResumeResult",
+      "Error"
+    ],
+    "rules": [
+      "Responses MUST echo the request correlation_id.",
+      "Unsolicited GraphSnapshot, GraphDelta, SchemaAdvertise, CloseChannel, ClockSync, Heartbeat, and Error use 16 zero bytes unless the Error is the scoped response to a trustworthy request.",
+      "When ChannelReady or a channel-scoped Error carries nested error_body.channel_id, it MUST equal the top-level channel_id context."
+    ]
+  },
+  "protocol_state_machine": {
+    "bootstrap": {
+      "order": [
+        "Client MUST send exactly one ClientHello first.",
+        "Server MUST respond with exactly one ServerHello or exactly one BootstrapError.",
+        "No other bootstrap kinds are permitted on the connection."
+      ],
+      "on_BootstrapError": "Close transport without entering selected-version plane.",
+      "on_ServerHello": "Enter selected-version plane with selected_wire_version."
+    },
+    "selected_plane_entry": {
+      "fresh": "Client sends Authenticate; server responds SessionReady or Error. Ready state begins only after SessionReady.",
+      "resume": "Requires capability 1. Client sends SessionResume including credential_type and credential; server responds SessionResumeResult or Error. Ready state begins only after accepted SessionResumeResult. previous_session_id is not a bearer secret; credentials revalidate identity and expiry.",
+      "mutual_exclusivity": "Authenticate and SessionResume are mutually exclusive entry messages for a connection. Sending both, repeating an entry message after a response has been received, or wrong direction/order yields protocol_violation."
+    },
+    "ready_state": "Ready state begins only after SessionReady or accepted SessionResumeResult. ready_required_control_kinds and data-plane application frames received before ready yield session_not_ready. Error remains legal after selected-version plane entry according to its scope. Illegal ordering that is not a readiness issue yields protocol_violation.",
+    "control_direction": {
+      "ClientHello": "client->server",
+      "ServerHello": "server->client",
+      "BootstrapError": "server->client",
+      "Authenticate": "client->server",
+      "SessionReady": "server->client",
+      "SessionResume": "client->server",
+      "SessionResumeResult": "server->client",
+      "SchemaRequest": "client->server",
+      "SchemaResponse": "server->client",
+      "SchemaAdvertise": "server->client",
+      "OpenChannel": "client->server",
+      "ChannelReady": "server->client",
+      "CloseChannel": "either",
+      "GraphSnapshot": "server->client",
+      "GraphDelta": "server->client",
+      "ClockSync": "either",
+      "Heartbeat": "either",
+      "Error": "either",
+      "Authenticate_gate": "none",
+      "SessionResume_capability": 1,
+      "SessionResumeResult_capability": 1
+    },
+    "ready_required_control_kinds": [
+      "GraphSnapshot",
+      "GraphDelta",
+      "SchemaRequest",
+      "SchemaResponse",
+      "SchemaAdvertise",
+      "OpenChannel",
+      "ChannelReady",
+      "CloseChannel",
+      "ClockSync",
+      "Heartbeat"
+    ]
+  },
+  "channel_lifecycle": {
+    "id_allocation": "Client allocates a previously unused application channel_id in 1..4294967295. Channel IDs MUST NOT be reused within a session after any OpenChannel for that id.",
+    "states": {
+      "unused": "No OpenChannel yet.",
+      "pending": "OpenChannel sent; awaiting ChannelReady.",
+      "active": "ChannelReady success (allow|limited).",
+      "failed": "ChannelReady failure (deny|error); ID remains consumed/released terminal without active data.",
+      "closed": "CloseChannel completed; terminal."
+    },
+    "transitions": [
+      "unused -OpenChannel-> pending",
+      "pending -ChannelReady success-> active",
+      "pending -ChannelReady failure-> failed",
+      "active -CloseChannel-> closed",
+      "failed and closed are terminal for that channel_id"
+    ],
+    "frame_rules": {
+      "pending": "Data-plane application frames on a pending channel_id yield protocol_violation.",
+      "failed": "Data-plane application frames yield unknown_channel.",
+      "closed": "Data-plane application frames yield unknown_channel.",
+      "never_opened": "Data-plane application frames on never-opened or unallocated ids yield unknown_channel.",
+      "active": "Opcode, direction, effective priority, and transport/QoS context MUST match the active channel operation_kind mapping."
+    },
+    "direction_opcode_rules": {
+      "TOPIC_SUBSCRIBE": {
+        "opcodes": [
+          "ROS_SAMPLE"
+        ],
+        "data_direction": "server_to_client",
+        "open_channel": "valid browser OpenChannel role"
+      },
+      "TOPIC_PUBLISH": {
+        "opcodes": [
+          "ROS_SAMPLE"
+        ],
+        "data_direction": "client_to_server",
+        "open_channel": "valid browser OpenChannel role"
+      },
+      "SERVICE_CLIENT": {
+        "opcodes": [
+          "SERVICE_REQUEST",
+          "SERVICE_RESPONSE"
+        ],
+        "SERVICE_REQUEST": "client_to_server",
+        "SERVICE_RESPONSE": "server_to_client",
+        "sequence_domain": "(channel_id, OPERATION_ID, direction)",
+        "open_channel": "valid browser OpenChannel role"
+      },
+      "SERVICE_SERVER": {
+        "opcodes": [
+          "SERVICE_REQUEST",
+          "SERVICE_RESPONSE"
+        ],
+        "SERVICE_REQUEST": "server_to_client",
+        "SERVICE_RESPONSE": "client_to_server",
+        "sequence_domain": "(channel_id, OPERATION_ID, direction)",
+        "open_channel": "valid browser OpenChannel role; browser hosts the service",
+        "note": "Graph endpoint kind SERVICE_SERVER remains an independent graph advertisement role and is not collapsed into OpenChannel."
+      },
+      "ACTION_CLIENT": {
+        "opcodes": [
+          "ACTION_GOAL",
+          "ACTION_CANCEL",
+          "ACTION_FEEDBACK",
+          "ACTION_STATUS",
+          "ACTION_RESULT"
+        ],
+        "ACTION_GOAL": {
+          "request": "client_to_server",
+          "response": "server_to_client"
+        },
+        "ACTION_CANCEL": {
+          "request": "client_to_server",
+          "response": "server_to_client"
+        },
+        "ACTION_RESULT": {
+          "request": "client_to_server",
+          "response": "server_to_client",
+          "note": "Get Result service (ROS 2 actions: three services + two topics)."
+        },
+        "ACTION_FEEDBACK": "server_to_client",
+        "ACTION_STATUS": "server_to_client",
+        "sequence_domain": "(channel_id, OPERATION_ID, direction)",
+        "open_channel": "valid browser OpenChannel role",
+        "ros2_mapping": "Send Goal, Cancel Goal, Get Result services; Feedback and Status topics. Source: https://design.ros2.org/articles/actions.html",
+        "transport_note": "GOAL/CANCEL/RESULT reliable streams; FEEDBACK/STATUS transport from effective_action_qos feedback_topic/status_topic reliability."
+      },
+      "ACTION_SERVER": {
+        "opcodes": [
+          "ACTION_GOAL",
+          "ACTION_CANCEL",
+          "ACTION_FEEDBACK",
+          "ACTION_STATUS",
+          "ACTION_RESULT"
+        ],
+        "ACTION_GOAL": {
+          "request": "server_to_client",
+          "response": "client_to_server"
+        },
+        "ACTION_CANCEL": {
+          "request": "server_to_client",
+          "response": "client_to_server"
+        },
+        "ACTION_RESULT": {
+          "request": "server_to_client",
+          "response": "client_to_server",
+          "note": "Get Result service inverse for browser-hosted action server."
+        },
+        "ACTION_FEEDBACK": "client_to_server",
+        "ACTION_STATUS": "client_to_server",
+        "sequence_domain": "(channel_id, OPERATION_ID, direction)",
+        "open_channel": "valid browser OpenChannel role; browser hosts the action server",
+        "note": "Graph endpoint kind ACTION_SERVER remains an independent graph advertisement role and is not collapsed into OpenChannel.",
+        "ros2_mapping": "Send Goal, Cancel Goal, Get Result services; Feedback and Status topics. Source: https://design.ros2.org/articles/actions.html",
+        "transport_note": "GOAL/CANCEL/RESULT reliable streams; FEEDBACK/STATUS transport from effective_action_qos feedback_topic/status_topic reliability."
+      },
+      "MEDIA_SUBSCRIBE": {
+        "opcodes": [
+          "MEDIA_CHUNK"
+        ],
+        "data_direction": "server_to_client",
+        "open_channel": "valid browser OpenChannel role"
+      },
+      "RECORDING": {
+        "opcodes": [
+          "RECORDING_CHUNK"
+        ],
+        "data_direction": "server_to_client",
+        "phase_one": "gateway to browser transfer",
+        "open_channel": "valid browser OpenChannel role"
+      },
+      "ASSET": {
+        "opcodes": [
+          "ASSET_CHUNK"
+        ],
+        "data_direction": "server_to_client",
+        "phase_one": "gateway to browser transfer",
+        "open_channel": "valid browser OpenChannel role"
+      }
+    }
+  },
+  "validation_order": {
+    "precedence_note": "Stop at the first failing receiver/input check in order. Every Error row has exactly one error code. CONTROL_CBOR decode and CDDL shape complete before ready-state, Error scope (flat and embedded), and any check that needs control kind. Early static flag/opcode checks precede channel context; ROS_RELIABLE iff reliability and RETAINED requires_transient_local run only after active channel context. Sender-local sequence exhaustion is not in this list.",
+    "bootstrap": [
+      {
+        "step": 1,
+        "check": "minimum_length_12",
+        "error": "malformed_bootstrap",
+        "code": 1
+      },
+      {
+        "step": 2,
+        "check": "magic_R2WP",
+        "error": "malformed_bootstrap",
+        "code": 1
+      },
+      {
+        "step": 3,
+        "check": "bootstrap_version_0",
+        "error": "unsupported_version",
+        "code": 4
+      },
+      {
+        "step": 4,
+        "check": "flags_zero",
+        "error": "malformed_bootstrap",
+        "code": 1
+      },
+      {
+        "step": 5,
+        "check": "kind_assigned",
+        "error": "malformed_bootstrap",
+        "code": 1
+      },
+      {
+        "step": 6,
+        "check": "checked_payload_len_absolute_limit",
+        "error": "message_too_large",
+        "code": 24
+      },
+      {
+        "step": 7,
+        "check": "exact_total_length_12_plus_payload",
+        "error": "malformed_bootstrap",
+        "code": 1
+      },
+      {
+        "step": 8,
+        "check": "deterministic_cbor_profile",
+        "error": "malformed_bootstrap",
+        "code": 1
+      },
+      {
+        "step": 9,
+        "check": "cddl_kind_shape_match",
+        "error": "malformed_bootstrap",
+        "code": 1
+      },
+      {
+        "step": 10,
+        "check": "direction_and_state_order",
+        "error": "protocol_violation",
+        "code": 25
+      },
+      {
+        "step": 11,
+        "check": "version_intersection_nonempty",
+        "error": "no_common_version",
+        "code": 2
+      }
+    ],
+    "selected_frame": [
+      {
+        "check": "minimum_length_32",
+        "error": "malformed_frame",
+        "code": 3,
+        "step": 1
+      },
+      {
+        "check": "version_equals_selected",
+        "error": "unsupported_version",
+        "code": 4,
+        "step": 2
+      },
+      {
+        "check": "checked_declared_bounds_absolute_limits",
+        "error": "message_too_large",
+        "code": 24,
+        "step": 3
+      },
+      {
+        "check": "exact_total_length_32_plus_extension_plus_payload",
+        "error": "malformed_frame",
+        "code": 3,
+        "step": 4
+      },
+      {
+        "check": "opcode_assigned_or_capability_gated",
+        "error": "unsupported_opcode",
+        "code": 5,
+        "step": 5
+      },
+      {
+        "check": "unknown_flag_bits",
+        "error": "unsupported_flags",
+        "code": 6,
+        "step": 6
+      },
+      {
+        "check": "early_static_flag_opcode_constraints",
+        "error": "unsupported_flags",
+        "code": 6,
+        "includes": [
+          "FRAGMENT prohibited on any opcode",
+          "KEYFRAME legal only when opcode is MEDIA_CHUNK",
+          "ROS_RELIABLE and RETAINED legal only when opcode is ROS_SAMPLE (opcode class only; effective-QoS checks later)"
+        ],
+        "step": 7
+      },
+      {
+        "check": "channel_zero_control_nonzero_application",
+        "error": "protocol_violation",
+        "code": 25,
+        "step": 8
+      },
+      {
+        "check": "numeric_priority_assigned",
+        "error": "protocol_violation",
+        "code": 25,
+        "step": 9
+      },
+      {
+        "check": "numeric_clock_assigned",
+        "error": "protocol_violation",
+        "code": 25,
+        "step": 10
+      },
+      {
+        "check": "clock_NONE_source_time_zero",
+        "error": "protocol_violation",
+        "code": 25,
+        "step": 11
+      },
+      {
+        "check": "known_clock_unavailable",
+        "error": "clock_unavailable",
+        "code": 28,
+        "step": 12
+      },
+      {
+        "check": "structural_tlv_parsing_padding",
+        "error": "malformed_frame",
+        "code": 3,
+        "step": 13,
+        "includes": [
+          "bounds and zero padding",
+          "strictly ascending numeric type order",
+          "no duplicate types"
+        ],
+        "note": "Duplicates or non-ascending order -> malformed_frame."
+      },
+      {
+        "check": "extension_unknown_critical",
+        "error": "unsupported_extension",
+        "code": 22,
+        "step": 14
+      },
+      {
+        "check": "extension_trace_consistency",
+        "error": "protocol_violation",
+        "code": 25,
+        "step": 15
+      },
+      {
+        "check": "control_cbor_decode_and_cddl_shape",
+        "error": "invalid_control",
+        "code": 23,
+        "applies_when": "opcode is CONTROL_CBOR",
+        "note": "MUST complete before any check that needs control kind or Error scope.",
+        "step": 16
+      },
+      {
+        "check": "ready_state_precondition",
+        "error": "session_not_ready",
+        "code": 27,
+        "note": "Uses decoded control kind for CONTROL_CBOR; application data-plane frames also require ready.",
+        "step": 17
+      },
+      {
+        "check": "error_scope_context_rules",
+        "error": "invalid_control",
+        "code": 23,
+        "applies_when": "CONTROL_CBOR kind Error (flat) or embedded error maps in SchemaResponse/SessionResumeResult/ChannelReady/channel-resume-result",
+        "note": "See error_scope_context for flat and embedded rules. Enclosing channel_id is authoritative for channel-scope embedded bodies.",
+        "step": 18
+      },
+      {
+        "check": "channel_state_pending",
+        "error": "protocol_violation",
+        "code": 25,
+        "step": 19
+      },
+      {
+        "check": "channel_state_failed_closed_never_opened",
+        "error": "unknown_channel",
+        "code": 7,
+        "step": 20
+      },
+      {
+        "check": "required_operation_id_for_operation_context",
+        "error": "protocol_violation",
+        "code": 25,
+        "applies_when": "active Service/Action application frame, or Error with scope=operation",
+        "note": "Exactly one OPERATION_ID TLV when required; all-zero only where lifecycle permits (ACTION_STATUS).",
+        "step": 21
+      },
+      {
+        "check": "operation_kind_direction_priority_transport_qos_context",
+        "error": "protocol_violation",
+        "code": 25,
+        "step": 22
+      },
+      {
+        "check": "post_channel_ros_reliable_iff_effective_reliability",
+        "error": "unsupported_flags",
+        "code": 6,
+        "applies_when": "ROS_SAMPLE on active channel with known effective reliability",
+        "step": 23
+      },
+      {
+        "check": "post_channel_retained_requires_transient_local",
+        "error": "unsupported_flags",
+        "code": 6,
+        "applies_when": "ROS_SAMPLE on active channel with known effective durability",
+        "step": 24,
+        "note": "RETAINED set requires effective TRANSIENT_LOCAL; clear is always legal on ROS_SAMPLE with TRANSIENT_LOCAL (live samples). Illegal opcode or durability -> unsupported_flags."
+      },
+      {
+        "check": "sequence_reliable_mismatch",
+        "error": "protocol_violation",
+        "code": 25,
+        "step": 25
+      },
+      {
+        "check": "sequence_best_effort_gap",
+        "error": null,
+        "disposition": "sequence_gap",
+        "note": "Best-effort gap produces sequence_gap disposition, not an Error code.",
+        "step": 26
+      },
+      {
+        "check": "sequence_best_effort_stale",
+        "error": null,
+        "disposition": "stale_sequence",
+        "note": "Best-effort stale produces stale_sequence disposition, not an Error code.",
+        "step": 27
+      },
+      {
+        "check": "non_ros_cbor_decode_and_shape",
+        "error": "malformed_frame",
+        "code": 3,
+        "applies_when": "MEDIA_CHUNK, RECORDING_CHUNK, or ASSET_CHUNK",
+        "step": 28
+      },
+      {
+        "check": "application_opcode_channel_semantic_mismatch",
+        "error": "protocol_violation",
+        "code": 25,
+        "step": 29
+      },
+      {
+        "check": "payload_semantics",
+        "error": "protocol_violation",
+        "code": 25,
+        "step": 30
+      }
+    ],
+    "exact_codes": {
+      "bootstrap_minimum_length": {
+        "code": 1,
+        "name": "malformed_bootstrap"
+      },
+      "bootstrap_magic": {
+        "code": 1,
+        "name": "malformed_bootstrap"
+      },
+      "bootstrap_version": {
+        "code": 4,
+        "name": "unsupported_version"
+      },
+      "bootstrap_flags": {
+        "code": 1,
+        "name": "malformed_bootstrap"
+      },
+      "bootstrap_kind": {
+        "code": 1,
+        "name": "malformed_bootstrap"
+      },
+      "bootstrap_payload_limit": {
+        "code": 24,
+        "name": "message_too_large"
+      },
+      "bootstrap_total_length": {
+        "code": 1,
+        "name": "malformed_bootstrap"
+      },
+      "bootstrap_cbor_profile": {
+        "code": 1,
+        "name": "malformed_bootstrap"
+      },
+      "bootstrap_cddl_shape": {
+        "code": 1,
+        "name": "malformed_bootstrap"
+      },
+      "bootstrap_direction_order": {
+        "code": 25,
+        "name": "protocol_violation"
+      },
+      "bootstrap_version_intersection": {
+        "code": 2,
+        "name": "no_common_version"
+      },
+      "frame_minimum_length": {
+        "code": 3,
+        "name": "malformed_frame"
+      },
+      "frame_version": {
+        "code": 4,
+        "name": "unsupported_version"
+      },
+      "frame_declared_bounds": {
+        "code": 24,
+        "name": "message_too_large"
+      },
+      "frame_total_length": {
+        "code": 3,
+        "name": "malformed_frame"
+      },
+      "opcode_capability": {
+        "code": 5,
+        "name": "unsupported_opcode"
+      },
+      "unknown_flag_bits": {
+        "code": 6,
+        "name": "unsupported_flags"
+      },
+      "channel_class": {
+        "code": 25,
+        "name": "protocol_violation"
+      },
+      "numeric_priority": {
+        "code": 25,
+        "name": "protocol_violation"
+      },
+      "numeric_clock": {
+        "code": 25,
+        "name": "protocol_violation"
+      },
+      "clock_none_source_time": {
+        "code": 25,
+        "name": "protocol_violation"
+      },
+      "known_clock_unavailable": {
+        "code": 28,
+        "name": "clock_unavailable"
+      },
+      "structural_tlv": {
+        "code": 3,
+        "name": "malformed_frame"
+      },
+      "unknown_critical_extension": {
+        "code": 22,
+        "name": "unsupported_extension"
+      },
+      "required_operation_id": {
+        "code": 25,
+        "name": "protocol_violation"
+      },
+      "trace_consistency": {
+        "code": 25,
+        "name": "protocol_violation"
+      },
+      "ready_precondition": {
+        "code": 27,
+        "name": "session_not_ready"
+      },
+      "channel_pending": {
+        "code": 25,
+        "name": "protocol_violation"
+      },
+      "channel_failed_closed_never_opened": {
+        "code": 7,
+        "name": "unknown_channel"
+      },
+      "operation_context": {
+        "code": 25,
+        "name": "protocol_violation"
+      },
+      "reliable_sequence_mismatch": {
+        "code": 25,
+        "name": "protocol_violation"
+      },
+      "control_cbor": {
+        "code": 23,
+        "name": "invalid_control"
+      },
+      "non_ros_cbor": {
+        "code": 3,
+        "name": "malformed_frame"
+      },
+      "opcode_channel_semantic": {
+        "code": 25,
+        "name": "protocol_violation"
+      },
+      "payload_semantics": {
+        "code": 25,
+        "name": "protocol_violation"
+      },
+      "sequence_exhaustion_sender_local": {
+        "code": 21,
+        "name": "sequence_exhausted",
+        "note": "Sender-local only; not a receiver validation_order row."
+      },
+      "best_effort_gap": {
+        "disposition": "sequence_gap"
+      },
+      "best_effort_stale": {
+        "disposition": "stale_sequence"
+      },
+      "early_static_flags": {
+        "code": 6,
+        "name": "unsupported_flags"
+      },
+      "control_cbor_decode_shape": {
+        "code": 23,
+        "name": "invalid_control"
+      },
+      "error_scope_context": {
+        "code": 23,
+        "name": "invalid_control"
+      },
+      "post_channel_ros_reliable": {
+        "code": 6,
+        "name": "unsupported_flags"
+      },
+      "post_channel_retained": {
+        "code": 6,
+        "name": "unsupported_flags"
+      }
+    }
+  },
+  "document_ownership": {
+    "json_registry": "Numeric assignments, layouts, limits, error codes, validation order/precedence, direction tables, field keys, capability bindings.",
+    "cddl": "Control and bootstrap payload shapes and bounds.",
+    "normative_prose": "Semantic rules, state machine, lifecycle, QoS resolution narrative, transport status.",
+    "consistency": "All three surfaces MUST agree; conflict is a specification defect."
+  },
+  "session_resume_semantics": {
+    "channel_acks": {
+      "covers": "Client-received default (channel_id, direction) domains only.",
+      "omit_entries_with_no_accepted_frame": true,
+      "excludes_service_action_operation_streams": true,
+      "acknowledged_sequence": {
+        "reliable": "Highest contiguous sequence the client accepted without gap on that default domain.",
+        "best_effort": "Highest sequence the client accepted on that default domain (gaps permitted; not a contiguous guarantee)."
+      }
+    },
+    "channel_resume_result_next_sequence": {
+      "meaning": "next_sequence is the next sequence number of the channel's active data sender on the default (channel_id, direction) domain. The active data sender side is determined by operation_kind.",
+      "active_data_sender_by_operation_kind": {
+        "TOPIC_SUBSCRIBE": "server (gateway-to-browser samples)",
+        "TOPIC_PUBLISH": "client (browser-to-gateway samples)",
+        "SERVICE_CLIENT": "not used for next_sequence on resume (operation streams excluded)",
+        "SERVICE_SERVER": "not used for next_sequence on resume (operation streams excluded)",
+        "ACTION_CLIENT": "not used for next_sequence on resume (operation streams excluded)",
+        "ACTION_SERVER": "not used for next_sequence on resume (operation streams excluded)",
+        "MEDIA_SUBSCRIBE": "server (gateway-to-browser media)",
+        "RECORDING": "server (gateway-to-browser)",
+        "ASSET": "server (gateway-to-browser)"
+      },
+      "gateway_to_browser_cases": "For TOPIC_SUBSCRIBE, MEDIA_SUBSCRIBE, RECORDING, ASSET: next_sequence is the next sequence the gateway/server will send.",
+      "browser_to_gateway_cases": "For TOPIC_PUBLISH: next_sequence is the next sequence the browser/client will send.",
+      "resumed": "Required for default-domain channels that resume. Value is the active data sender's next sequence.",
+      "reset_default_domain": "Present and equal to 0 (active data sender restarts at 0).",
+      "reset_service_action_channel": "Omitted. Operation streams reset or close and never byte-resume.",
+      "closed": "Omitted.",
+      "error": "Omitted; error body required on the channel-resume-result error variant (nested error_body, not flat Error)."
+    },
+    "service_action_operation_streams": "Reset or close on resume; never byte-resume under wire version 0."
+  },
+  "operation_id_lifecycle": {
+    "format": "exactly one OPERATION_ID extension TLV, value_len 16, opaque bytes",
+    "nonzero_rule": "Unless explicitly all-zero for ACTION_STATUS, operation IDs MUST be nonzero.",
+    "no_reuse": "A nonzero operation ID MUST NOT be reused within the same channel for the remainder of the session after first use.",
+    "service": {
+      "initiator_allocates": "Service call initiator allocates a unique nonzero 16-byte operation ID per call.",
+      "response_echoes": "SERVICE_RESPONSE MUST echo the request operation ID.",
+      "terminal_conditions": [
+        "SERVICE_RESPONSE accepted for that operation ID",
+        "operation-scoped CONTROL Error accepted for that operation ID"
+      ],
+      "cancellation": "Either peer cancels or terminates a Service call with flat CONTROL Error code cancelled (15), scope=operation, channel_id present, and exactly one OPERATION_ID TLV for the call.",
+      "deadline_resource": "deadline_expired, resource_exhausted, and other operation failures use the same operation-scoped flat CONTROL Error path (code as assigned, scope=operation, channel_id + OPERATION_ID TLV).",
+      "first_terminal_wins": "The first terminal outcome wins. Later application frames for a terminal operation ID are protocol_violation."
+    },
+    "action": {
+      "goal_lifecycle_id": "ACTION_GOAL initiator allocates a unique nonzero 16-byte goal-lifecycle operation ID. GOAL response, goal-scoped ACTION_FEEDBACK, Get Result (ACTION_RESULT) request and response, and single-goal ACTION_CANCEL request and response use that same ID.",
+      "multi_goal_cancel": "Multi-goal or all-goal ACTION_CANCEL allocates its own unique nonzero request operation ID distinct from any goal-lifecycle ID. That cancel request ID terminates on cancel response or operation-scoped Error for that cancel ID.",
+      "status_stream": "ACTION_STATUS uses the all-zero 16-byte operation ID as the channel-wide status stream identifier. The zero stream lasts through channel close or session end.",
+      "ros_goal_uuid": "The ROS goal UUID remains inside the CDR payload. The gateway/adapter maps between that UUID and this wire OPERATION_ID; they are not required to be byte-identical.",
+      "goal_lifecycle_terminal_conditions": [
+        "GOAL response rejects the goal (acceptance false / reject path in CDR semantics)",
+        "Get Result (ACTION_RESULT) response accepted for that goal-lifecycle ID",
+        "operation-scoped CONTROL Error for that goal-lifecycle ID",
+        "channel close",
+        "session end"
+      ],
+      "first_terminal_wins": "First terminal outcome for a goal-lifecycle ID wins. Later application frames for a terminal goal-lifecycle ID are protocol_violation (except ACTION_STATUS zero stream which is channel-wide).",
+      "per_direction_sequence": "Each (channel_id, OPERATION_ID, direction) stream has independent sequences from 0. Reliable streams require exact next; best-effort FEEDBACK/STATUS use gap/stale dispositions."
+    },
+    "required_on": [
+      "SERVICE_REQUEST",
+      "SERVICE_RESPONSE",
+      "ACTION_GOAL",
+      "ACTION_CANCEL",
+      "ACTION_FEEDBACK",
+      "ACTION_RESULT",
+      "ACTION_STATUS",
+      "CONTROL Error with scope=operation"
+    ]
+  },
+  "error_scope_context": {
+    "control_error_shape": "CONTROL_CBOR kind Error uses flat fields (kind, correlation_id, code, scope, optional channel_id, retry_class, message, detail). These are NOT a nested error_body map. Operation scope uses the frame header OPERATION_ID TLV (exactly one).",
+    "embedded_error_body": {
+      "schema_response_error": {
+        "scope": "session",
+        "scope_value": 0,
+        "channel_id": "MUST be absent",
+        "use": "SchemaResponse error variant"
+      },
+      "session_resume_result_rejected": {
+        "scope": "session",
+        "scope_value": 0,
+        "channel_id": "MUST be absent",
+        "use": "SessionResumeResult accepted=false top-level error"
+      },
+      "channel_ready_failure": {
+        "scope": "channel",
+        "scope_value": 1,
+        "channel_id": "MUST be absent inside nested error_body; enclosing ChannelReady.channel_id is authoritative",
+        "use": "ChannelReady deny/error"
+      },
+      "channel_resume_result_error": {
+        "scope": "channel",
+        "scope_value": 1,
+        "channel_id": "MUST be absent inside nested error_body; enclosing channel_resume_result.channel_id is authoritative",
+        "use": "channel-resume-result error variant"
+      }
+    },
+    "scopes": {
+      "session": {
+        "value": 0,
+        "flat_control_error": {
+          "channel_id": "MUST be absent",
+          "operation_id_tlv": "MUST be absent"
+        },
+        "use": "Session-wide failures after selected plane entry; also embedded SchemaResponse/SessionResumeResult errors"
+      },
+      "channel": {
+        "value": 1,
+        "flat_control_error": {
+          "channel_id": "MUST be present and nonzero application channel",
+          "operation_id_tlv": "MUST be absent"
+        },
+        "embedded": "channel_id only on enclosing message, not nested error_body",
+        "use": "Single application channel failures"
+      },
+      "operation": {
+        "value": 2,
+        "flat_control_error": {
+          "channel_id": "MUST be present and nonzero application channel",
+          "operation_id_tlv": "exactly one OPERATION_ID TLV required on the Error frame"
+        },
+        "embedded": "not used for operation-scoped failures; use flat CONTROL Error",
+        "use": "Service/Action operation-scoped failures including cancelled (15)"
+      },
+      "transport": {
+        "value": 3,
+        "flat_control_error": {
+          "channel_id": "MUST be absent",
+          "operation_id_tlv": "MUST be absent"
+        },
+        "use": "Transport-level failures surfaced on control when possible"
+      },
+      "bootstrap": {
+        "value": 4,
+        "flat_control_error": "MUST NOT appear as post-selection CONTROL Error scope",
+        "use": "BootstrapError payload only"
+      }
+    },
+    "violation": "invalid_control",
+    "correlation": "Request/response pairs echo the request correlation_id. Unsolicited control events and untrusted recovery use 16 zero bytes. Flat CONTROL Error that is the scoped response to a trustworthy request echoes that request correlation_id; otherwise 16 zero bytes."
+  }
+}

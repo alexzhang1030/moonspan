@@ -1,0 +1,582 @@
+# R2WP wire version 0
+
+## Status
+
+Normative for wire version **0** (Accepted under [ADR 0009](../docs/adr/0009-r2wp-v0-wire-encoding.md)). Companions:
+
+- [protocol/registry/r2wp-v0.json](./registry/r2wp-v0.json) — numeric assignments, layouts, limits, error codes, validation order, direction tables
+- [protocol/schema/control-v0.cddl](./schema/control-v0.cddl) — root `r2wp-v0-control`; control and bootstrap payload shapes
+
+Overview: [docs/protocol/r2wp.md](../docs/protocol/r2wp.md). [ADR 0005](../docs/adr/0005-r2wp-wire-versioning.md). [ADR 0009](../docs/adr/0009-r2wp-v0-wire-encoding.md).
+
+## Document ownership
+
+| Surface | Owns |
+|---|---|
+| JSON registry | Numeric assignments, layouts, absolute limits, error codes, validation order and precedence, message direction tables, field keys, capability bindings |
+| CDDL | Control and bootstrap payload shapes and collection bounds |
+| Normative prose (this file) | Semantic rules, protocol state machine, channel lifecycle, QoS resolution narrative, transport framing status |
+
+All three surfaces MUST agree. Conflict is a specification defect.
+
+## Conventions
+
+The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHALL**, **SHALL NOT**, **SHOULD**, **SHOULD NOT**, **RECOMMENDED**, **NOT RECOMMENDED**, **MAY**, and **OPTIONAL** in this document are to be interpreted as described in [RFC 2119](https://www.rfc-editor.org/rfc/rfc2119.html) and [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174.html) when, and only when, they appear in all capitals, as shown here.
+
+Multi-byte integers use **network byte order** (big-endian) unless a field is raw bytes.
+
+Phase-one support rows (exact triple match required on SessionReady):
+
+| `support_row_id` | `ros_distro` | `rmw_identifier` |
+|---|---|---|
+| H-FT | humble | rmw_fastrtps_cpp |
+| H-CY | humble | rmw_cyclonedds_cpp |
+| J-FT | jazzy | rmw_fastrtps_cpp |
+| J-CY | jazzy | rmw_cyclonedds_cpp |
+
+Schema schemes: **`rep2011-rihs`** (71-byte `RIHS01_` + 64 lowercase hex) and **`moonspan-schema-v1`** (64 lowercase hex). Jazzy+ is later expansion only.
+
+## Protocol state machine
+
+### Bootstrap
+
+1. Client MUST send exactly one **ClientHello** first.
+2. Server MUST respond with exactly one **ServerHello** or exactly one **BootstrapError**.
+3. No other bootstrap kinds are permitted on the connection.
+
+On **BootstrapError**, close the transport without entering the selected-version plane. On **ServerHello**, enter the selected-version plane with `selected_wire_version`.
+
+### Selected-plane entry
+
+Two **mutually exclusive** entry paths:
+
+| Path | Client sends | Server responds | Ready begins |
+|---|---|---|---|
+| Fresh | **Authenticate** | **SessionReady** or **Error** | Only after **SessionReady** |
+| Resume | **SessionResume** (capability `1`) | **SessionResumeResult** or **Error** | Only after accepted **SessionResumeResult** |
+
+**Authenticate** and **SessionResume** are mutually exclusive entry messages for a connection. Sending both, repeating an entry message after a response has been received, or wrong direction/order yields **`protocol_violation`**.
+
+**SessionResume** MUST carry `credential_type` (key 16) and `credential` (key 17) so the gateway revalidates identity and expiry. `previous_session_id` is session correlation material, not a bearer secret.
+
+**SessionResume** and **SessionResumeResult** are gated on extension capability `1` (`session_resume`). Without that capability, those kinds are protocol violations.
+
+### Ready state
+
+Ready state begins only after **SessionReady** or accepted **SessionResumeResult**.
+
+**Ready-required control kinds** (before ready → `session_not_ready` (27)):
+
+- GraphSnapshot
+- GraphDelta
+- SchemaRequest
+- SchemaResponse
+- SchemaAdvertise
+- OpenChannel
+- ChannelReady
+- CloseChannel
+- ClockSync
+- Heartbeat
+
+Data-plane application frames before ready also yield `session_not_ready`. **Error** remains legal after selected-version plane entry according to its scope. Illegal ordering or direction that is not a readiness issue yields **`protocol_violation`** (25).
+
+### Control message directions
+
+| Kind | Direction |
+|---|---|
+| ClientHello | client → server |
+| ServerHello | server → client |
+| BootstrapError | server → client |
+| Authenticate | client → server |
+| SessionReady | server → client |
+| SessionResume | client → server (capability 1) |
+| SessionResumeResult | server → client (capability 1) |
+| SchemaRequest | client → server |
+| SchemaResponse | server → client |
+| SchemaAdvertise | server → client |
+| OpenChannel | client → server |
+| ChannelReady | server → client |
+| CloseChannel | either |
+| GraphSnapshot | server → client |
+| GraphDelta | server → client |
+| ClockSync | either |
+| Heartbeat | either |
+| Error | either |
+
+## Bootstrap framing
+
+12-byte prefix + deterministic CBOR payload.
+
+| Offset | Field | Type | Rule |
+|---:|---|---|---|
+| 0 | magic | 4 bytes | ASCII `R2WP` |
+| 4 | bootstrap_version | u8 | MUST be `0` |
+| 5 | kind | u8 | 1 ClientHello, 2 ServerHello, 3 BootstrapError |
+| 6 | flags | u16 | MUST be `0` |
+| 8 | payload_len | u32 | ≤ `bootstrap_payload_max_bytes` (65535) |
+
+Kind MUST match payload shape. Bootstrap payload decode or semantic failures MUST yield **`malformed_bootstrap`**. BootstrapError MUST NOT use code `invalid_control`.
+
+### Hello negotiation
+
+**ClientHello** fields: `wire_versions` (unique preference order), `transport_capabilities` (`webtransport_http3`, `binary_wss`, optional `max_datagram_size`), `buffer_capabilities` (`transferable_arraybuffer`, `shared_arraybuffer`), `requested_limits` (**required map** whose four numeric members are each optional and use native wire ranges: `max_channels`/`max_message_bytes`/`max_control_payload_bytes` as uint32, `max_session_bytes` as uint64 — **not** ceiling-bounded on the wire), `extension_capabilities` (unique ascending IDs). There is no key 5 and no `session_resume_offered` transport boolean.
+
+**ServerHello** fields:
+
+- `selected_wire_version` MUST be `0` for this contract when selected; selection is the first ClientHello preference the server supports.
+- `transport_capabilities` effective booleans are AND of peer offers. At least the transport used by the current connection MUST remain true after negotiation.
+- When datagrams are used, effective `max_datagram_size` is `min(client_offer, server_offer, actual WebTransport negotiated maxDatagramSize, frame_payload_max_bytes + 32 + extension_area_max_bytes)`.
+- `buffer_capabilities.shared_arraybuffer` is true only when both peers offered the path **and** capability `2` is in the ServerHello extension intersection.
+- `effective_limits` has all four numeric fields present and concrete (see Limits negotiation).
+- `extension_capabilities` is the unique ascending intersection.
+
+Assigned extension capabilities: `1 session_resume`, `2 shared_arraybuffer`, `3 experimental_opcodes`.
+
+SessionReady.negotiated_capabilities MUST equal ServerHello transport, buffer, and extension capability fields exactly.
+
+## Selected-version frame
+
+Header **32 bytes**. Total length is `32 + extension_len + payload_len`. Length arithmetic uses checked addition before allocation; over absolute limits yields `message_too_large`.
+
+### Header layout
+
+| Offset | Field | Type |
+|---:|---|---|
+| 0 | version | u8 |
+| 1 | opcode | u8 |
+| 2 | flags | u16 |
+| 4 | channel_id | u32 |
+| 8 | sequence | u64 |
+| 16 | source_time_ns | i64 |
+| 24 | payload_len | u32 |
+| 28 | extension_len | u16 |
+| 30 | priority | u8 |
+| 31 | clock_id | u8 |
+
+- `version` MUST equal the selected wire version.
+- `extension_len` MUST be a multiple of 4.
+- CONTROL_CBOR: channel 0, priority CONTROL, reliable control stream, control payload ceiling.
+- Application opcodes: channel `1..2^32-1`.
+- Service and Action GOAL/CANCEL/RESULT: reliable stream, exactly one OPERATION_ID, sequence domain `(channel_id, OPERATION_ID, direction)`.
+- ACTION_FEEDBACK / ACTION_STATUS: transport from `effective_action_qos.feedback_topic` / `status_topic` — RELIABLE → reliable stream; BEST_EFFORT → datagram when negotiated and size-fit, else sample-scoped stream; same operation sequence domain.
+- Other frames: sequence domain `(channel_id, direction)`.
+- Best-effort gap/stale dispositions apply to datagrams and sample-scoped streams (including best-effort action feedback/status).
+- Service/Action operation streams reset or close on resume and never byte-resume.
+- `CloseChannel.final_sequence` applies only to the default `(channel_id, direction)` domain. It MUST be omitted for Service/Action operation-stream channels and when the sender never sent a default-domain data frame.
+
+### Flags
+
+| Bit | Name | Early (opcode-only) | After active channel (effective QoS) |
+|---|---|---|---|
+| 0x0001 | ROS_RELIABLE | Legal only when opcode is ROS_SAMPLE | Set **iff** effective reliability is RELIABLE; mismatch → `unsupported_flags` |
+| 0x0002 | KEYFRAME | Legal only when opcode is MEDIA_CHUNK | — |
+| 0x0004 | TRACE_PRESENT | Consistent with TRACE_CONTEXT TLV | — |
+| 0x0008 | RETAINED | Legal only when opcode is ROS_SAMPLE | **Requires** effective TRANSIENT_LOCAL when set; marks a sample replayed from retained history. Live samples MAY clear it. Illegal use → `unsupported_flags` |
+| 0x0010 | FRAGMENT | Prohibited on every opcode → `unsupported_flags` | — |
+
+Unknown flag bits → `unsupported_flags` (early).
+
+### Priority and clock
+
+Assigned priorities: `0 CONTROL`, `1 INTERACTIVE`, `2 DEFAULT`, `3 SENSOR`, `4 BULK`. Unassigned numeric priority → `protocol_violation` (25).
+
+Assigned clocks: `0 NONE`, `1 SYSTEM`, `2 STEADY`, `3 ROS`, `4 SIMULATION`. When `clock_id` is NONE, `source_time_ns` MUST be 0. Unassigned numeric clock → `protocol_violation` (25). Assigned clock that the peer cannot supply → `clock_unavailable` (28).
+
+### Extension TLVs
+
+Alignment 4. Each TLV:
+
+| Offset | Field | Type |
+|---:|---|---|
+| 0 | type | u8 |
+| 1 | flags | u8 |
+| 2 | value_len | u16 |
+| 4 | value | value_len bytes |
+| … | padding | zero bytes to next 4-byte boundary |
+
+Rules:
+
+- `extension_len` is a multiple of 4 and bounds the entire extension area.
+- Every TLV is padded **individually** with zero bytes to a 4-byte boundary.
+- TLV padding bytes MUST be zero.
+- TLVs MUST be **strictly ascending by numeric type**. Duplicates or non-ascending order → `malformed_frame` at structural TLV validation.
+- Fixed types: TRACE_CONTEXT value_len 32; OPERATION_ID value_len 16.
+- Each TLV MUST lie entirely within `extension_len`.
+- Length sums use checked arithmetic.
+- Unknown critical → `unsupported_extension`; unknown noncritical → skip.
+- TRACE_PRESENT and TRACE_CONTEXT bidirectional consistency required.
+
+### Sequence domains
+
+| Domain | Sender | Receiver |
+|---|---|---|
+| `(channel_id, direction)` default frames | Contiguous from 0; wrap prohibited | Reliable: exact next required; mismatch → `protocol_violation`. Best-effort: gaps → `sequence_gap` disposition; stale ≤ highest_accepted → `stale_sequence` disposition |
+| `(channel_id, OPERATION_ID, direction)` Service/Action | Contiguous from 0 per operation stream; wrap prohibited | **Reliable** (Service; Action GOAL/CANCEL/RESULT; FEEDBACK/STATUS when effective RELIABLE): exact next or `protocol_violation`. **Best-effort** (FEEDBACK/STATUS when effective BEST_EFFORT): gap → `sequence_gap`, stale → `stale_sequence`. Concurrent streams MUST NOT create channel-level gap false positives |
+
+#### Sender-local u64 exhaustion
+
+Sender sequence exhaustion is **not** a receiver `validation_order` check. When a sender would assign the next sequence beyond the u64 maximum, it MUST NOT wrap:
+
+| Domain | Behavior | Code | Scope | Signaling when control can carry it |
+|---|---|---|---|---|
+| control `channel_id` 0 | Close session/transport | 21 | session | Final CONTROL Error (`sequence_exhausted`, scope=session), then close transport; otherwise close transport without a final frame |
+| application default `(channel_id, direction)` | Close that application channel | 21 | channel | CONTROL Error with `channel_id`, then CloseChannel when applicable |
+| operation `(channel_id, OPERATION_ID, direction)` | End that operation stream | 21 | operation | CONTROL Error with `channel_id` and exactly one OPERATION_ID TLV |
+
+### OPERATION_ID lifecycle
+
+Extension type OPERATION_ID is a 16-byte opaque value. Unless ACTION_STATUS all-zero rules apply, IDs MUST be nonzero. No allocation reuse within a channel for the remainder of the session after first use.
+
+**Service**
+
+- Initiator allocates a unique nonzero ID per call; SERVICE_RESPONSE echoes it.
+- Operation terminates on accepted SERVICE_RESPONSE or accepted operation-scoped CONTROL Error for that ID.
+- Either peer cancels/terminates with flat CONTROL Error code **`cancelled` (15)**, scope=operation, `channel_id` + exactly one OPERATION_ID TLV.
+- Deadline/resource and other operation failures use the same operation-scoped Error path with the assigned code.
+- First terminal outcome wins; later application frames for a terminal ID → `protocol_violation`.
+
+**Action** (ROS 2 three services + two topics)
+
+- **GOAL initiator** allocates a unique nonzero **goal-lifecycle** operation ID. GOAL response, goal-scoped FEEDBACK, Get Result request/response, and single-goal CANCEL request/response use that ID.
+- **Multi-goal / all-goal CANCEL** allocates its own unique nonzero request ID; that cancel ID terminates on cancel response or operation-scoped Error for the cancel ID.
+- **ACTION_STATUS** uses the **all-zero** ID as the channel-wide status stream for the channel/session lifetime.
+- ROS goal UUID remains in CDR; the adapter maps UUID ↔ wire OPERATION_ID (not required to be byte-identical).
+- Goal-lifecycle terminals: GOAL rejection, accepted Get Result response, operation-scoped Error for that ID, channel close, or session end. First terminal wins; later application frames for a terminal goal-lifecycle ID → `protocol_violation`.
+
+**Sequences:** each `(channel_id, OPERATION_ID, direction)` stream is independent from 0. Reliable streams require exact next; best-effort FEEDBACK/STATUS use gap/stale dispositions.
+
+### Session resume (default-domain)
+
+`SessionResume.channel_acks` covers **client-received default domains only**. Omit entries for channels with no accepted frame. **Exclude** Service/Action operation streams (they reset or close and never byte-resume).
+
+`acknowledged_sequence`:
+
+| Path | Meaning |
+|---|---|
+| Reliable default domain | Highest contiguous sequence the client accepted without gap |
+| Best-effort default domain | Highest sequence the client accepted (gaps permitted; not a contiguous guarantee) |
+
+`SessionResumeResult.next_sequence` is the **next sequence of the channel’s active data sender** on the default domain. The active data sender side is determined by `operation_kind`:
+
+| operation_kind | Active data sender | `next_sequence` means |
+|---|---|---|
+| TOPIC_SUBSCRIBE, MEDIA_SUBSCRIBE, RECORDING, ASSET | server (gateway → browser) | Next sequence the gateway will send |
+| TOPIC_PUBLISH | client (browser → gateway) | Next sequence the browser will send |
+| SERVICE_*, ACTION_* | — | Omitted on resume (operation streams never byte-resume) |
+
+| result | `next_sequence` |
+|---|---|
+| resumed (0) | Required for default-domain channels |
+| reset (1), default-domain channel | Present and equal to `0` |
+| reset (1), Service/Action channel | Omitted |
+| closed (2) | Omitted |
+| error (3) | Omitted; nested `error_body` on the channel-resume-result variant (not flat CONTROL Error) |
+
+## Channel lifecycle
+
+Client allocates a previously unused application `channel_id` in `1..4294967295`. Channel IDs MUST NOT be reused within a session after any OpenChannel for that id.
+
+| State | Meaning |
+|---|---|
+| unused | No OpenChannel yet |
+| pending | OpenChannel sent; awaiting ChannelReady |
+| active | ChannelReady success (`allow` or `limited`) |
+| failed | ChannelReady failure (`deny` or `error`); ID consumed, terminal |
+| closed | CloseChannel completed; terminal |
+
+Transitions: `unused -OpenChannel→ pending`; `pending -ChannelReady success→ active`; `pending -ChannelReady failure→ failed`; `active -CloseChannel→ closed`. Failed and closed are terminal for that `channel_id`.
+
+### Frame rules by channel state
+
+| State | Data-plane application frames |
+|---|---|
+| pending | `protocol_violation` (id known but not active) |
+| failed | `unknown_channel` |
+| closed | `unknown_channel` |
+| unknown / never opened | `unknown_channel` |
+| active | Opcode and direction MUST match the active `operation_kind` mapping |
+
+### Direction and opcode rules
+
+**SERVICE_SERVER** and **ACTION_SERVER** are valid browser **OpenChannel** roles (mainline browser service/action servers per M2-03 / M2-04), not graph-only roles. Graph endpoint kinds of the same names remain independent advertisement roles and are not collapsed into OpenChannel.
+
+| operation_kind | Opcodes | Directions |
+|---|---|---|
+| TOPIC_SUBSCRIBE | ROS_SAMPLE | server → client |
+| TOPIC_PUBLISH | ROS_SAMPLE | client → server |
+| SERVICE_CLIENT | SERVICE_REQUEST, SERVICE_RESPONSE | REQUEST client→server; RESPONSE server→client |
+| SERVICE_SERVER | SERVICE_REQUEST, SERVICE_RESPONSE | REQUEST server→client; RESPONSE client→server |
+| ACTION_CLIENT | ACTION_GOAL, ACTION_CANCEL, ACTION_RESULT, ACTION_FEEDBACK, ACTION_STATUS | GOAL/CANCEL/RESULT (Get Result) request client→server and response server→client; FEEDBACK/STATUS one-way server→client |
+| ACTION_SERVER | ACTION_GOAL, ACTION_CANCEL, ACTION_RESULT, ACTION_FEEDBACK, ACTION_STATUS | GOAL/CANCEL/RESULT request server→client and response client→server; FEEDBACK/STATUS one-way client→server |
+| MEDIA_SUBSCRIBE | MEDIA_CHUNK | server → client |
+| RECORDING | RECORDING_CHUNK | server → client (phase-one gateway→browser) |
+| ASSET | ASSET_CHUNK | server → client (phase-one gateway→browser) |
+
+ROS 2 actions map to three services (Send Goal, Cancel Goal, Get Result) plus Feedback and Status topics ([design.ros2.org/articles/actions](https://design.ros2.org/articles/actions.html)). Wire opcodes: GOAL/CANCEL/RESULT are request+response on **reliable** streams; FEEDBACK/STATUS are one-way and select reliable stream or best-effort datagram/sample-scoped stream from `effective_action_qos` topic profiles. Service frames are always reliable. Every Service and Action application frame uses sequence domain `(channel_id, OPERATION_ID, direction)`. Receivers MUST validate opcode and direction against the active channel `operation_kind`. Mismatch → `protocol_violation`.
+
+## Limits negotiation
+
+`effective_limits` on ServerHello has all four fields present and concrete.
+
+**Client omit rule:** when the **client** omits a requested limit field, the effective value is the **server configured hard limit** capped by the protocol absolute ceiling for that field.
+
+**Client present rule:** when the client requests a limit field, effective is `min(client_requested, server_hard_limit, protocol_absolute_ceiling)`.
+
+| Field | Protocol absolute ceiling |
+|---|---|
+| max_channels | `max_channels_ceiling` = 65535 |
+| max_session_bytes | `max_session_bytes_ceiling` = 4294967296 |
+| max_message_bytes | `frame_payload_max_bytes` = 67108864 |
+| max_control_payload_bytes | `control_payload_max_bytes` = 1048576 |
+
+Every **effective** field is therefore concrete and bounded. CDDL bounds each `effective-limits` member to its registry ceiling. ClientHello `requested_limits` members keep full native uint32/uint64 wire ranges and are not ceiling-bounded on the wire.
+
+`max_datagram_size` includes the actual WebTransport negotiated `maxDatagramSize` when datagrams are used. At least the current connection transport MUST remain true after negotiation.
+
+## CONTROL Error and embedded error maps
+
+### Flat CONTROL Error
+
+Kind **Error** uses **flat** fields (`kind`, `correlation_id`, `code`, `scope`, optional `channel_id`, `retry_class`, `message`, `detail`) — not a nested `error_body`. Operation scope uses the frame **OPERATION_ID TLV** (exactly one).
+
+| Scope | Value | Flat `channel_id` | OPERATION_ID TLV | Notes |
+|---|---:|---|---|---|
+| session | 0 | MUST be absent | MUST be absent | Session-wide post-selection failures |
+| channel | 1 | MUST be present (app id) | MUST be absent | Single application channel |
+| operation | 2 | MUST be present (app id) | **exactly one** required | Service/Action failures including `cancelled` (15) |
+| transport | 3 | MUST be absent | MUST be absent | Transport-level when surfaced on control |
+| bootstrap | 4 | — | — | BootstrapError only; MUST NOT appear as post-selection CONTROL Error scope |
+
+### Embedded error maps
+
+| Context | Scope | Nested `channel_id` | Notes |
+|---|---|---|---|
+| SchemaResponse error | session (0) | absent | Session-scope embedded body |
+| SessionResumeResult rejected (`accepted=false`) | session (0) | absent | Session-scope embedded body |
+| ChannelReady failure | channel (1) | absent | Enclosing ChannelReady.`channel_id` is authoritative |
+| channel-resume-result error | channel (1) | absent | Enclosing result.`channel_id` is authoritative |
+
+Operation-scoped failures are **not** embedded; they use flat CONTROL Error only. Scope context violations (flat or embedded) → `invalid_control`. Code **20** is excluded from every R2WP Error payload.
+
+**Correlation:** request/response pairs echo the request `correlation_id`. Unsolicited events and untrusted recovery use 16 zero bytes. A flat CONTROL Error that answers a trustworthy request echoes that request id; otherwise 16 zero bytes.
+
+## Absolute bounds summary
+
+| Limit | Value |
+|---|---:|
+| bootstrap_payload_max_bytes | 65535 |
+| control_payload_max_bytes | 1048576 |
+| frame_payload_max_bytes | 67108864 |
+| extension_area_max_bytes | 4096 |
+| supported_versions_max | 16 |
+| utf8_text_max_bytes | 4096 |
+| cbor_nesting_depth_max | 16 |
+| cbor_map_entries_max | 4096 |
+| graph_nodes_max / graph_endpoints_max | 65535 |
+| graph_delta_ops_max | 1024 |
+| source_bundle_entries_max | 4096 |
+| alive_channels_max | 65535 |
+| domain_ids_max | 233 (range 0..232) |
+| credential_bytes_max | 65535 |
+| type_description_bytes_max | 1048576 |
+| extension_capability_ids_max | 64 |
+| max_channels_ceiling | 65535 |
+| max_session_bytes_ceiling | 4294967296 |
+
+## Validation order and error precedence
+
+`validation_order` lists **receiver/input checks only**. Implementations stop at the **first** failing check. Every Error row has exactly one error code. Disposition rows produce dispositions only. Multi-invalid inputs return exactly that one stable result so Rust, MoonBit, and TypeScript agree. Sender-local sequence exhaustion is specified under Sequence domains above, not in this list. Machine form: registry `validation_order`.
+
+### Bootstrap checks (ordered)
+
+| Step | Check | Code | Name |
+|---:|---|---:|---|
+| 1 | minimum length 12 | 1 | `malformed_bootstrap` |
+| 2 | magic `R2WP` | 1 | `malformed_bootstrap` |
+| 3 | bootstrap_version 0 | 4 | `unsupported_version` |
+| 4 | flags zero | 1 | `malformed_bootstrap` |
+| 5 | kind assigned | 1 | `malformed_bootstrap` |
+| 6 | checked payload_len vs absolute limit | 24 | `message_too_large` |
+| 7 | exact total length `12 + payload_len` | 1 | `malformed_bootstrap` |
+| 8 | deterministic CBOR profile | 1 | `malformed_bootstrap` |
+| 9 | CDDL / kind shape match | 1 | `malformed_bootstrap` |
+| 10 | direction and state order | 25 | `protocol_violation` |
+| 11 | version intersection nonempty | 2 | `no_common_version` |
+
+### Selected-frame checks (ordered, receiver/input only)
+
+CONTROL_CBOR decode and CDDL shape (step 16) complete **before** ready-state, Error scope (flat and embedded), or any check that needs control kind. Early static flag/opcode checks precede channel context; ROS_RELIABLE **iff** reliability and RETAINED **requires** TRANSIENT_LOCAL run only after active channel context.
+
+| Step | Check | Code | Name |
+|---:|---|---:|---|
+| 1 | minimum length 32 | 3 | `malformed_frame` |
+| 2 | version equals selected | 4 | `unsupported_version` |
+| 3 | checked declared bounds vs absolute limits | 24 | `message_too_large` |
+| 4 | exact total length `32 + extension_len + payload_len` | 3 | `malformed_frame` |
+| 5 | opcode assigned or capability-gated | 5 | `unsupported_opcode` |
+| 6 | unknown flag bits | 6 | `unsupported_flags` |
+| 7 | early static flag/opcode (FRAGMENT; KEYFRAME opcode; ROS_RELIABLE/RETAINED opcode class only) | 6 | `unsupported_flags` |
+| 8 | channel 0 control / nonzero application class | 25 | `protocol_violation` |
+| 9 | numeric priority assigned | 25 | `protocol_violation` |
+| 10 | numeric clock assigned | 25 | `protocol_violation` |
+| 11 | clock NONE requires `source_time_ns` 0 | 25 | `protocol_violation` |
+| 12 | assigned clock unavailable | 28 | `clock_unavailable` |
+| 13 | structural TLV parsing, padding, strictly ascending types, no duplicates | 3 | `malformed_frame` |
+| 14 | unknown critical extension | 22 | `unsupported_extension` |
+| 15 | TRACE_PRESENT / TRACE_CONTEXT consistency | 25 | `protocol_violation` |
+| 16 | CONTROL_CBOR decode and CDDL shape (when opcode is CONTROL_CBOR) | 23 | `invalid_control` |
+| 17 | ready-state precondition | 27 | `session_not_ready` |
+| 18 | Error scope context rules (flat CONTROL Error and embedded error maps) | 23 | `invalid_control` |
+| 19 | channel state pending | 25 | `protocol_violation` |
+| 20 | channel state failed / closed / never-opened | 7 | `unknown_channel` |
+| 21 | required OPERATION_ID for operation context | 25 | `protocol_violation` |
+| 22 | operation_kind + direction + effective priority + transport/QoS context | 25 | `protocol_violation` |
+| 23 | ROS_RELIABLE iff effective reliability (active channel) | 6 | `unsupported_flags` |
+| 24 | RETAINED requires TRANSIENT_LOCAL when set (active channel; live samples may clear) | 6 | `unsupported_flags` |
+| 25 | reliable sequence mismatch | 25 | `protocol_violation` |
+| 26 | best-effort gap | — | disposition `sequence_gap` |
+| 27 | best-effort stale | — | disposition `stale_sequence` |
+| 28 | non-ROS CBOR decode and shape | 3 | `malformed_frame` |
+| 29 | application opcode/channel semantic mismatch | 25 | `protocol_violation` |
+| 30 | payload semantics | 25 | `protocol_violation` |
+
+## Graph endpoints (ADR 0007)
+
+Every graph **node** and **endpoint** MUST include `domain_id` (member of SessionReady.domain_ids). Every graph **endpoint** MUST carry:
+
+- stable `endpoint_id` and parent `node_id`
+- `name`, `kind`
+- `type_name`
+- `schema_identity`
+- payload `encoding` (CDR1 or XCDR2 only)
+- `schema_generation`
+- QoS profile data: `qos` for topic/service endpoints, or `action_qos` (five profiles) for action endpoints
+
+**Graph endpoint QoS** is the role-specific advertised/offered-or-requested profile for that endpoint. **OpenChannel** carries the requested/created-entity QoS for the channel being opened. These are distinct maps.
+
+Snapshots order nodes/endpoints by bytewise ascending IDs. GraphDelta: `base_generation` equals current; `graph_generation = base_generation + 1`; ops add/update/remove by stable IDs in semantic order.
+
+## QoS
+
+Requested and advertised QoS maps may include SYSTEM_DEFAULT. **history_depth** is required and ≥1 only for KEEP_LAST; it MUST be absent for SYSTEM_DEFAULT and KEEP_ALL.
+
+Liveliness wire set: **SYSTEM_DEFAULT**, **AUTOMATIC**, **MANUAL_BY_TOPIC**. On requested/advertised maps, absent liveliness defaults to SYSTEM_DEFAULT. MANUAL_BY_NODE is not part of R2WP v0.
+
+### Effective QoS
+
+**Effective QoS** on successful ChannelReady contains only concrete resolved enums (no SYSTEM_DEFAULT). **Liveliness is required** and MUST be AUTOMATIC or MANUAL_BY_TOPIC.
+
+Resolution uses role-specific ROS request/offered compatibility for the support-row distro (Humble/Jazzy).
+
+### Effective service QoS
+
+`effective-service-qos` constrains:
+
+- reliability MUST be RELIABLE
+- durability MUST be VOLATILE
+- history_kind concrete KEEP_LAST or KEEP_ALL
+- liveliness concrete AUTOMATIC or MANUAL_BY_TOPIC (required)
+
+Used for:
+
+- SERVICE_CLIENT / SERVICE_SERVER successful ChannelReady (`effective_service_qos`, key 60)
+- action goal / result / cancel effective profiles inside `effective_action_qos`
+
+### Action QoS profiles
+
+| Key | Profile | Effective constraint |
+|---:|---|---|
+| 1 | goal service | effective-service-qos |
+| 2 | result service | effective-service-qos |
+| 3 | cancel service | effective-service-qos |
+| 4 | feedback topic | general effective-qos |
+| 5 | status topic | general effective-qos |
+
+ACTION_GOAL, ACTION_CANCEL, and ACTION_RESULT (Get Result) are request+response on reliable operation streams. ACTION_FEEDBACK and ACTION_STATUS are one-way; transport follows `effective_action_qos.feedback_topic` and `status_topic` reliability (RELIABLE stream or BEST_EFFORT datagram/sample-scoped stream).
+
+## ChannelReady
+
+Success (`allow`/`limited`): MUST include `effective_budgets` (key 12) and `effective_priority` (key 59).
+
+| Channel class | QoS field |
+|---|---|
+| Topic | `effective_qos` (57) only |
+| Service | `effective_service_qos` (60) only |
+| Action | `effective_action_qos` (58) only |
+| Media / Recording / Asset | omit all QoS fields |
+
+Frame priority MUST equal `effective_priority`. Failure (`deny`/`error`): error body only; nested `error.channel_id` MUST match top-level channel_id when present.
+
+## Payload / channel mapping
+
+Topics, Service, Action, **Parameter** (get/set/list via Service channels; events via Topic subscribe), media, recording, and assets follow registry `payload_channel_mapping`. Phase-one Service profiles resolve to reliable + volatile under effective-service-qos.
+
+## Non-ROS payloads
+
+MEDIA_CHUNK, RECORDING_CHUNK, and ASSET_CHUNK application payloads are **RFC 8949 core deterministic CBOR maps** using registry keys, closed over assigned keys, under the frame payload ceiling. Decode failure or shape failure → **`malformed_frame`**.
+
+### MEDIA_CHUNK
+
+- One deterministic CBOR map with media keys only (stream_generation, access_unit_index, is_config, codec, payload).
+- `codec` equals the opened media channel encoding.
+- Config units apply before non-config units of the same `stream_generation`; generation increments reset decoder state; KEYFRAME marks random access.
+- Each MEDIA_CHUNK is one opcode-defined semantic access unit. Range identity fields (`byte_offset`, `byte_length`, `total_size`, `checksum_sha256`) do **not** apply to MEDIA_CHUNK.
+
+### RECORDING_CHUNK and ASSET_CHUNK
+
+- `byte_length` equals payload bstr length.
+- encoding equals the opened channel encoding.
+- `byte_offset + byte_length` uses checked arithmetic; with `total_size`, the range stays within `total_size` and remains consistent across chunks of `content_id`.
+- `checksum_sha256`, when present, covers complete content bytes for `content_id` and is identical on every chunk that carries it.
+- Each chunk is an opcode-defined range unit. The generic FRAGMENT flag remains reserved/prohibited.
+
+## Source entry encodings
+
+Phase-one source bundle entry encodings: `ROS2_INTERFACE_TEXT`, `ROS2_IDL_TEXT`, `TYPE_DESCRIPTION_JSON`, `TYPE_DESCRIPTION_CBOR`, `OPAQUE_BYTES`. Distinct from CDR/media payload encodings. M0-04 owns canonical ordering, bytes, and hash for `moonspan-schema-v1`.
+
+Schema advertise/response payload encodings are CDR1 or XCDR2 only.
+
+## Correlation pairing
+
+| Request | Response |
+|---|---|
+| Authenticate | SessionReady or Error |
+| SchemaRequest | SchemaResponse or Error |
+| OpenChannel | ChannelReady or Error |
+| SessionResume | SessionResumeResult or Error |
+
+Responses MUST echo the request correlation_id. Unsolicited GraphSnapshot, GraphDelta, SchemaAdvertise, CloseChannel, ClockSync, Heartbeat, and Error use 16 zero bytes unless Error is the scoped response to a trustworthy request. Untrusted recovery uses 16 zero bytes.
+
+## CBOR failure mapping
+
+| Context | Failure code |
+|---|---|
+| Bootstrap payload | `malformed_bootstrap` |
+| Post-selection CONTROL_CBOR | `invalid_control` |
+| Non-ROS application CBOR | `malformed_frame` |
+
+Discard entire message; no partial objects.
+
+## Errors
+
+Wire-usable codes include malformed bootstrap/frames, unsupported version/opcode/flags, unknown channel, schema failures, QoS and permission failures, resource and deadline outcomes, transport closure, stale generation, resume mismatches, sequence exhaustion, extensions, invalid control, message size, protocol violation, authentication, session readiness, and clock unavailability. Code **20** (`adapter_profile_mismatch`) is **out-of-band readiness/startup only** and is excluded from every R2WP Error payload (`wire-error-code` omits 20).
+
+## Transport framing
+
+### WebTransport (HTTP/3 primary profile)
+
+- Application length fields delimit records and frames on the byte sequence.
+- Datagrams: exactly one complete selected-version best-effort frame matching opcode transport rules (ROS_SAMPLE when topic BEST_EFFORT; ACTION_FEEDBACK/ACTION_STATUS when the respective effective topic reliability is BEST_EFFORT); size MUST fit negotiated `maxDatagramSize`.
+- As of 2026-08-11, the W3C WebTransport API is a Working Draft and IETF draft-ietf-webtrans-http3-15 is a work-in-progress Internet-Draft.
+
+### Binary WebSocket (RFC 6455)
+
+- Exactly one complete bootstrap record or selected-version frame per WebSocket message.
+- WebSocket transport fragmentation is transparent to R2WP; reassembly yields one complete message.
+- **BEST_EFFORT topic samples and Action FEEDBACK/STATUS** (when effective reliability is BEST_EFFORT): there is no datagram plane. The sender applies **bounded latest-wins admission/eviction before write**; frames dropped before write produce `sequence_gap` at the receiver; once a frame’s bytes are written to the WebSocket, delivery is reliable under RFC 6455. Head-of-line blocking on the single ordered byte stream is a known transport limitation and remains transport evidence for dual-fixture comparison with WebTransport datagrams.
+
+Both transports share one semantic fixture set. Dual-transport fixtures exercise the same wire bytes under both framings.
+
+## Sources
+
+[RFC 2119](https://www.rfc-editor.org/rfc/rfc2119.html), [RFC 8174](https://www.rfc-editor.org/rfc/rfc8174.html), [RFC 8949](https://www.rfc-editor.org/rfc/rfc8949.html), [RFC 8610](https://www.rfc-editor.org/rfc/rfc8610.html), [RFC 9682](https://www.rfc-editor.org/rfc/rfc9682.html), [RFC 6455](https://www.rfc-editor.org/rfc/rfc6455.html), [W3C WebTransport](https://www.w3.org/TR/webtransport/), [IETF draft-ietf-webtrans-http3-15](https://datatracker.ietf.org/doc/draft-ietf-webtrans-http3/15/).

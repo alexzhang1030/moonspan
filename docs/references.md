@@ -43,6 +43,20 @@ This reference set grounds Moonspan's design baseline and future ADR review in s
 - [`rmw_zenoh`](https://github.com/ros2/rmw_zenoh)
 - [Zenoh ROS 2/DDS bridge](https://github.com/eclipse-zenoh/zenoh-plugin-ros2dds)
 
+## R2WP wire encoding and browser transports
+
+- [RFC 2119 requirement keywords](https://www.rfc-editor.org/rfc/rfc2119.html)
+- [RFC 8174 BCP 14 update](https://www.rfc-editor.org/rfc/rfc8174.html)
+- [RFC 8949 Concise Binary Object Representation (CBOR)](https://www.rfc-editor.org/rfc/rfc8949.html)
+- [RFC 8610 Concise Data Definition Language (CDDL)](https://www.rfc-editor.org/rfc/rfc8610.html)
+- [RFC 9682 CDDL grammar update](https://www.rfc-editor.org/rfc/rfc9682.html)
+- [RFC 6455 The WebSocket Protocol](https://www.rfc-editor.org/rfc/rfc6455.html)
+- [W3C WebTransport API](https://www.w3.org/TR/webtransport/) (work in progress as of 2026-08-11)
+- [IETF draft-ietf-webtrans-http3-15](https://datatracker.ietf.org/doc/draft-ietf-webtrans-http3/15/) (work in progress as of 2026-08-11)
+- Normative package: [protocol/r2wp-v0.md](../protocol/r2wp-v0.md), [protocol/registry/r2wp-v0.json](../protocol/registry/r2wp-v0.json), [protocol/schema/control-v0.cddl](../protocol/schema/control-v0.cddl)
+- [ADR 0009: R2WP wire version 0 encoding](./adr/0009-r2wp-v0-wire-encoding.md)
+- Design overview: [R2WP](./protocol/r2wp.md)
+
 ## MoonBit and browser platform
 
 - [MoonBit FFI](https://docs.moonbitlang.com/en/latest/language/ffi.html)

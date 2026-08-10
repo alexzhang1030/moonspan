@@ -1,0 +1,727 @@
+; R2WP wire version 0 control CDDL
+; Normative: protocol/r2wp-v0.md
+; Keys/bounds/enums: protocol/registry/r2wp-v0.json
+;
+; Root first. Bootstrap header kind MUST match payload shape
+; (1 client-hello, 2 server-hello, 3 bootstrap-error).
+; CONTROL_CBOR carries control-message only.
+;
+; Encoding: RFC 8949 core deterministic encoding (R2WP v0 profile).
+; Grammar: RFC 8610 + RFC 9682.
+
+r2wp-v0-control = bootstrap-payload / control-message
+
+; ----- atoms -----
+
+uint32 = 0..4294967295
+uint64 = 0..18446744073709551615
+int64 = -9223372036854775808..9223372036854775807
+wire-version-offer = 0..255
+wire-version-v0 = 0
+wire-version-list = [1*16 wire-version-offer]
+domain-id = 0..232
+domain-id-list = [1*233 domain-id]
+app-channel-id = 1..4294967295
+text4k = tstr .size (0..4096)
+text-nonempty = tstr .size (1..4096)
+bytes16 = bstr .size 16
+bytes32 = bstr .size 32
+bytes-cred = bstr .size (1..65535)
+bytes-desc = bstr .size (1..1048576)
+bytes-content = bstr .size (0..1048576)
+correlation-id = bytes16
+session-id = bytes32
+node-id = bytes16
+endpoint-id = bytes16
+capability-id = 1..65535
+capability-id-list = [0*64 capability-id]
+
+; Code 20 adapter_profile_mismatch is out-of-band readiness/startup only;
+; excluded from every R2WP Error payload (not in wire-error-code).
+wire-error-code = 1..19 / 21..28
+bootstrap-error-code = 1 / 2 / 4 / 16 / 24 / 25
+close-reason = 1..6
+retry-class = 0..3
+support-row-id = "H-FT" / "H-CY" / "J-FT" / "J-CY"
+ros-distro = "humble" / "jazzy"
+rmw-identifier = "rmw_fastrtps_cpp" / "rmw_cyclonedds_cpp"
+payload-encoding-cdr = 1 / 2
+source-entry-encoding = 1..5
+reliability = 0..2
+durability = 0..2
+; Liveliness wire set: SYSTEM_DEFAULT (0), AUTOMATIC (1), MANUAL_BY_TOPIC (2)
+liveliness = 0..2
+priority-id = 0..4
+clock-id = 0..4
+positive-depth = 1..4294967295
+
+rihs01-value = tstr .size 71
+sha256-hex = tstr .size 64
+
+schema-identity =
+  { 1 => "rep2011-rihs", 2 => rihs01-value } /
+  { 1 => "moonspan-schema-v1", 2 => sha256-hex }
+
+; history_depth required+positive only for KEEP_LAST; absent for SYSTEM_DEFAULT/KEEP_ALL
+; liveliness optional on requested/advertised maps (absent => SYSTEM_DEFAULT)
+qos-keep-last = {
+  1 => reliability,
+  2 => durability,
+  3 => 1,
+  4 => positive-depth,
+  ? 5 => uint64,
+  ? 6 => uint64,
+  ? 7 => liveliness,
+  ? 8 => uint64
+}
+
+qos-no-depth = {
+  1 => reliability,
+  2 => durability,
+  3 => 0 / 2,
+  ? 5 => uint64,
+  ? 6 => uint64,
+  ? 7 => liveliness,
+  ? 8 => uint64
+}
+
+qos = qos-keep-last / qos-no-depth
+
+; Effective QoS: no SYSTEM_DEFAULT (0) in reliability/durability/history/liveliness.
+; Liveliness is REQUIRED and concrete (AUTOMATIC or MANUAL_BY_TOPIC).
+effective-qos-keep-last = {
+  1 => 1 / 2,
+  2 => 1 / 2,
+  3 => 1,
+  4 => positive-depth,
+  ? 5 => uint64,
+  ? 6 => uint64,
+  7 => 1 / 2,
+  ? 8 => uint64
+}
+
+effective-qos-keep-all = {
+  1 => 1 / 2,
+  2 => 1 / 2,
+  3 => 2,
+  ? 5 => uint64,
+  ? 6 => uint64,
+  7 => 1 / 2,
+  ? 8 => uint64
+}
+
+effective-qos = effective-qos-keep-last / effective-qos-keep-all
+
+; Service effective QoS: RELIABLE + VOLATILE + concrete liveliness
+effective-service-qos-keep-last = {
+  1 => 1,
+  2 => 2,
+  3 => 1,
+  4 => positive-depth,
+  ? 5 => uint64,
+  ? 6 => uint64,
+  7 => 1 / 2,
+  ? 8 => uint64
+}
+
+effective-service-qos-keep-all = {
+  1 => 1,
+  2 => 2,
+  3 => 2,
+  ? 5 => uint64,
+  ? 6 => uint64,
+  7 => 1 / 2,
+  ? 8 => uint64
+}
+
+effective-service-qos =
+  effective-service-qos-keep-last / effective-service-qos-keep-all
+
+; Action requested/advertised five profiles
+action-qos = {
+  1 => qos,
+  2 => qos,
+  3 => qos,
+  4 => qos,
+  5 => qos
+}
+
+; Action effective: goal/result/cancel use service constraints; feedback/status general
+effective-action-qos = {
+  1 => effective-service-qos,
+  2 => effective-service-qos,
+  3 => effective-service-qos,
+  4 => effective-qos,
+  5 => effective-qos
+}
+
+budgets = {
+  ? 1 => uint32,
+  ? 2 => uint64,
+  ? 3 => uint32,
+  ? 4 => uint64,
+  ? 5 => uint32,
+  ? 6 => uint64
+}
+
+; Embedded error maps (not flat CONTROL Error). No nested channel_id;
+; enclosing message channel_id is authoritative for channel-scope variants.
+; Operation-scoped failures use flat CONTROL Error + OPERATION_ID TLV only.
+error-body-session = {
+  48 => wire-error-code,
+  49 => 0,
+  ? 50 => retry-class,
+  ? 51 => text4k,
+  ? 52 => text4k
+}
+
+error-body-channel = {
+  48 => wire-error-code,
+  49 => 1,
+  ? 50 => retry-class,
+  ? 51 => text4k,
+  ? 52 => text4k
+}
+
+transport-capabilities = {
+  1 => bool,
+  2 => bool,
+  ? 3 => uint32
+}
+
+buffer-capabilities = {
+  1 => bool,
+  2 => bool
+}
+
+negotiated-capabilities = {
+  1 => transport-capabilities,
+  2 => buffer-capabilities,
+  3 => capability-id-list
+}
+
+; ClientHello key 4 is a required map; each of the four members is optional.
+; Requested values use native wire ranges (uint32 / uint64) and are NOT
+; ceiling-bounded on the wire. ServerHello effective_limits apply
+; min(client_requested, server_hard_limit, protocol_ceiling).
+; Client-omitted members: effective = min(server_hard_limit, ceiling).
+requested-limits = {
+  ? 1 => uint32,
+  ? 2 => uint64,
+  ? 3 => uint32,
+  ? 4 => uint32
+}
+
+; ServerHello effective_limits: all four present, each bounded by registry ceilings
+effective-limits = {
+  1 => 0..65535,
+  2 => 0..4294967296,
+  3 => 0..67108864,
+  4 => 0..1048576
+}
+
+source-bundle-entry = {
+  1 => text-nonempty,
+  2 => source-entry-encoding,
+  3 => bytes-content
+}
+
+; ----- bootstrap -----
+
+client-hello = {
+  1 => wire-version-list,
+  2 => transport-capabilities,
+  3 => buffer-capabilities,
+  4 => requested-limits,
+  6 => capability-id-list
+}
+
+server-hello = {
+  1 => wire-version-v0,
+  2 => transport-capabilities,
+  3 => buffer-capabilities,
+  4 => effective-limits,
+  6 => capability-id-list
+}
+
+bootstrap-error = {
+  1 => bootstrap-error-code,
+  ? 2 => text4k,
+  ? 3 => text4k
+}
+
+bootstrap-payload = client-hello / server-hello / bootstrap-error
+
+; ----- CONTROL_CBOR -----
+
+authenticate = {
+  1 => 1,
+  2 => correlation-id,
+  16 => text-nonempty,
+  17 => bytes-cred
+}
+
+session-ready = {
+  1 => 2,
+  2 => correlation-id,
+  7 => text-nonempty,
+  8 => support-row-id,
+  10 => domain-id-list,
+  13 => text-nonempty,
+  12 => budgets,
+  18 => ros-distro,
+  19 => rmw-identifier,
+  20 => text-nonempty,
+  21 => text-nonempty,
+  53 => session-id,
+  54 => negotiated-capabilities
+}
+
+graph-node = {
+  55 => node-id,
+  1 => text-nonempty,
+  ? 2 => text4k,
+  9 => domain-id
+}
+
+; Graph endpoint QoS is role-specific advertised/offered-or-requested profile
+graph-endpoint-topic-service = {
+  56 => endpoint-id,
+  55 => node-id,
+  1 => text-nonempty,
+  2 => 0..3,
+  3 => text-nonempty,
+  4 => schema-identity,
+  5 => payload-encoding-cdr,
+  6 => uint64,
+  7 => qos,
+  9 => domain-id,
+  ? 8 => support-row-id
+}
+
+graph-endpoint-action = {
+  56 => endpoint-id,
+  55 => node-id,
+  1 => text-nonempty,
+  2 => 4 / 5,
+  3 => text-nonempty,
+  4 => schema-identity,
+  5 => payload-encoding-cdr,
+  6 => uint64,
+  58 => action-qos,
+  9 => domain-id,
+  ? 8 => support-row-id
+}
+
+graph-endpoint = graph-endpoint-topic-service / graph-endpoint-action
+
+graph-snapshot = {
+  1 => 3,
+  2 => correlation-id,
+  14 => uint64,
+  7 => text-nonempty,
+  8 => support-row-id,
+  22 => [0*65535 graph-node],
+  23 => [0*65535 graph-endpoint]
+}
+
+graph-delta-op =
+  { 1 => 0, 2 => graph-node } /
+  { 1 => 1, 55 => node-id } /
+  { 1 => 2, 3 => graph-endpoint } /
+  { 1 => 3, 56 => endpoint-id }
+
+graph-delta = {
+  1 => 4,
+  2 => correlation-id,
+  14 => uint64,
+  24 => uint64,
+  7 => text-nonempty,
+  8 => support-row-id,
+  25 => [1*1024 graph-delta-op]
+}
+
+schema-request = {
+  1 => 5,
+  2 => correlation-id,
+  4 => text-nonempty,
+  3 => schema-identity
+}
+
+schema-advertise = {
+  1 => 6,
+  2 => correlation-id,
+  4 => text-nonempty,
+  3 => schema-identity,
+  5 => payload-encoding-cdr,
+  6 => uint64,
+  26 => bytes-desc,
+  ? 27 => [0*4096 source-bundle-entry],
+  ? 28 => uint64,
+  ? 8 => support-row-id
+}
+
+schema-response =
+  {
+    1 => 7,
+    2 => correlation-id,
+    4 => text-nonempty,
+    3 => schema-identity,
+    5 => payload-encoding-cdr,
+    6 => uint64,
+    26 => bytes-desc,
+    ? 27 => [0*4096 source-bundle-entry],
+    ? 28 => uint64,
+    ? 8 => support-row-id
+  } /
+  {
+    1 => 7,
+    2 => correlation-id,
+    4 => text-nonempty,
+    3 => schema-identity,
+    15 => error-body-session
+  }
+
+; OpenChannel carries requested/created-entity QoS.
+; SERVICE_SERVER and ACTION_SERVER are valid browser OpenChannel roles
+; (directions invert vs CLIENT roles; graph endpoint kinds remain independent).
+open-channel-topic = {
+  1 => 8,
+  2 => correlation-id,
+  29 => app-channel-id,
+  30 => 0 / 1,
+  31 => text-nonempty,
+  4 => text-nonempty,
+  3 => schema-identity,
+  5 => payload-encoding-cdr,
+  6 => uint64,
+  11 => qos,
+  32 => priority-id,
+  12 => budgets,
+  9 => domain-id,
+  8 => support-row-id
+}
+
+open-channel-service = {
+  1 => 8,
+  2 => correlation-id,
+  29 => app-channel-id,
+  30 => 2 / 3,
+  31 => text-nonempty,
+  4 => text-nonempty,
+  3 => schema-identity,
+  5 => payload-encoding-cdr,
+  6 => uint64,
+  11 => qos,
+  32 => priority-id,
+  12 => budgets,
+  9 => domain-id,
+  8 => support-row-id
+}
+
+open-channel-action = {
+  1 => 8,
+  2 => correlation-id,
+  29 => app-channel-id,
+  30 => 4 / 5,
+  31 => text-nonempty,
+  4 => text-nonempty,
+  3 => schema-identity,
+  5 => payload-encoding-cdr,
+  6 => uint64,
+  58 => action-qos,
+  32 => priority-id,
+  12 => budgets,
+  9 => domain-id,
+  8 => support-row-id
+}
+
+open-channel-media = {
+  1 => 8,
+  2 => correlation-id,
+  29 => app-channel-id,
+  30 => 6,
+  31 => text-nonempty,
+  5 => 3 / 4,
+  32 => priority-id,
+  12 => budgets,
+  ? 9 => domain-id,
+  ? 8 => support-row-id
+}
+
+open-channel-recording = {
+  1 => 8,
+  2 => correlation-id,
+  29 => app-channel-id,
+  30 => 7,
+  31 => text-nonempty,
+  5 => 5 / 6,
+  32 => priority-id,
+  12 => budgets
+}
+
+open-channel-asset = {
+  1 => 8,
+  2 => correlation-id,
+  29 => app-channel-id,
+  30 => 8,
+  31 => text-nonempty,
+  5 => 6,
+  32 => priority-id,
+  12 => budgets
+}
+
+open-channel =
+  open-channel-topic /
+  open-channel-service /
+  open-channel-action /
+  open-channel-media /
+  open-channel-recording /
+  open-channel-asset
+
+; ChannelReady success variants by channel class
+channel-ready-topic = {
+  1 => 9,
+  2 => correlation-id,
+  29 => app-channel-id,
+  33 => 0 / 2,
+  12 => budgets,
+  59 => priority-id,
+  57 => effective-qos,
+  ? 6 => uint64,
+  ? 14 => uint64,
+  ? 9 => domain-id,
+  ? 8 => support-row-id
+}
+
+channel-ready-service = {
+  1 => 9,
+  2 => correlation-id,
+  29 => app-channel-id,
+  33 => 0 / 2,
+  12 => budgets,
+  59 => priority-id,
+  60 => effective-service-qos,
+  ? 6 => uint64,
+  ? 14 => uint64,
+  ? 9 => domain-id,
+  ? 8 => support-row-id
+}
+
+channel-ready-action = {
+  1 => 9,
+  2 => correlation-id,
+  29 => app-channel-id,
+  33 => 0 / 2,
+  12 => budgets,
+  59 => priority-id,
+  58 => effective-action-qos,
+  ? 6 => uint64,
+  ? 14 => uint64,
+  ? 9 => domain-id,
+  ? 8 => support-row-id
+}
+
+channel-ready-media-recording-asset = {
+  1 => 9,
+  2 => correlation-id,
+  29 => app-channel-id,
+  33 => 0 / 2,
+  12 => budgets,
+  59 => priority-id,
+  ? 6 => uint64,
+  ? 14 => uint64,
+  ? 9 => domain-id,
+  ? 8 => support-row-id
+}
+
+; Enclosing channel_id (key 29) is authoritative; nested body has no channel_id.
+channel-ready-failure = {
+  1 => 9,
+  2 => correlation-id,
+  29 => app-channel-id,
+  33 => 1 / 3,
+  15 => error-body-channel
+}
+
+channel-ready =
+  channel-ready-topic /
+  channel-ready-service /
+  channel-ready-action /
+  channel-ready-media-recording-asset /
+  channel-ready-failure
+
+close-channel = {
+  1 => 10,
+  2 => correlation-id,
+  29 => app-channel-id,
+  34 => close-reason,
+  ? 35 => uint64
+}
+
+clock-sync = {
+  1 => 11,
+  2 => correlation-id,
+  36 => clock-id,
+  37 => int64,
+  ? 38 => uint64,
+  ? 39 => int64
+}
+
+heartbeat = {
+  1 => 12,
+  2 => correlation-id,
+  40 => uint64,
+  ? 41 => [0*65535 app-channel-id]
+}
+
+; Default-domain acks only (not Service/Action operation streams)
+channel-ack = {
+  1 => app-channel-id,
+  2 => uint64
+}
+
+; SessionResume requires capability 1; previous_session_id is not a bearer secret.
+; channel_acks: client-received default domains only; omit no-accepted-frame entries.
+session-resume = {
+  1 => 13,
+  2 => correlation-id,
+  42 => session-id,
+  43 => wire-version-v0,
+  44 => negotiated-capabilities,
+  7 => text-nonempty,
+  8 => support-row-id,
+  14 => uint64,
+  6 => uint64,
+  13 => text-nonempty,
+  45 => [0*65535 channel-ack],
+  16 => text-nonempty,
+  17 => bytes-cred
+}
+
+; channel-resume-result variants (result enum 0 resumed, 1 reset, 2 closed, 3 error).
+; resumed: next_sequence required (default-domain channels).
+; reset default-domain: next_sequence present and 0.
+; reset Service/Action: next_sequence omitted (operation streams never byte-resume).
+; closed: next_sequence omitted.
+; error: error body required; next_sequence omitted.
+channel-resume-result-resumed = {
+  1 => app-channel-id,
+  2 => 0,
+  3 => uint64
+}
+
+channel-resume-result-reset-default = {
+  1 => app-channel-id,
+  2 => 1,
+  3 => 0
+}
+
+channel-resume-result-reset-service-action = {
+  1 => app-channel-id,
+  2 => 1
+}
+
+channel-resume-result-closed = {
+  1 => app-channel-id,
+  2 => 2
+}
+
+; Enclosing channel_id (key 1) is authoritative; nested body has no channel_id.
+channel-resume-result-error = {
+  1 => app-channel-id,
+  2 => 3,
+  15 => error-body-channel
+}
+
+channel-resume-result =
+  channel-resume-result-resumed /
+  channel-resume-result-reset-default /
+  channel-resume-result-reset-service-action /
+  channel-resume-result-closed /
+  channel-resume-result-error
+
+session-resume-result =
+  {
+    1 => 14,
+    2 => correlation-id,
+    46 => true,
+    47 => [0*65535 channel-resume-result]
+  } /
+  {
+    1 => 14,
+    2 => correlation-id,
+    46 => false,
+    15 => error-body-session
+  }
+
+; Flat CONTROL Error fields (NOT nested error_body).
+; Nested error_body is only for embedded failure maps (ChannelReady, etc.).
+; Operation-scope frames additionally require exactly one OPERATION_ID TLV
+; on the selected-version frame (TLV is outside this CBOR map).
+; Scope bootstrap (4) MUST NOT appear as post-selection CONTROL Error.
+; Code 20 is excluded from wire-error-code.
+control-error-session = {
+  1 => 15,
+  2 => correlation-id,
+  48 => wire-error-code,
+  49 => 0,
+  ? 50 => retry-class,
+  ? 51 => text4k,
+  ? 52 => text4k
+}
+
+control-error-channel = {
+  1 => 15,
+  2 => correlation-id,
+  48 => wire-error-code,
+  49 => 1,
+  29 => app-channel-id,
+  ? 50 => retry-class,
+  ? 51 => text4k,
+  ? 52 => text4k
+}
+
+control-error-operation = {
+  1 => 15,
+  2 => correlation-id,
+  48 => wire-error-code,
+  49 => 2,
+  29 => app-channel-id,
+  ? 50 => retry-class,
+  ? 51 => text4k,
+  ? 52 => text4k
+}
+
+control-error-transport = {
+  1 => 15,
+  2 => correlation-id,
+  48 => wire-error-code,
+  49 => 3,
+  ? 50 => retry-class,
+  ? 51 => text4k,
+  ? 52 => text4k
+}
+
+control-error =
+  control-error-session /
+  control-error-channel /
+  control-error-operation /
+  control-error-transport
+
+control-message =
+  authenticate /
+  session-ready /
+  graph-snapshot /
+  graph-delta /
+  schema-request /
+  schema-advertise /
+  schema-response /
+  open-channel /
+  channel-ready /
+  close-channel /
+  clock-sync /
+  heartbeat /
+  session-resume /
+  session-resume-result /
+  control-error

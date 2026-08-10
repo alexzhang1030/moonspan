@@ -21,7 +21,8 @@ The scope ordering and Bun choice record human direction from 2026-08-10. Other 
 | Existing bridges and project roles | [Landscape](./landscape.md) |
 | Accepted architecture decisions | [ADR register](./adr/README.md) |
 | Technical reference set | [References](./references.md) |
-| R2WP frame, control plane, channels, QoS | [R2WP](./protocol/r2wp.md) |
+| R2WP overview and design entry | [R2WP](./protocol/r2wp.md) |
+| R2WP wire version 0 normative contract | [protocol/r2wp-v0.md](../protocol/r2wp-v0.md), [registry](../protocol/registry/r2wp-v0.json), [control CDDL](../protocol/schema/control-v0.cddl), [ADR 0009](./adr/0009-r2wp-v0-wire-encoding.md) |
 | MoonBit/Wasm runtime, schemas, host ABI | [`rclmbt`](./runtime/rclmbt.md) |
 | Gateway, ROS adapter, scheduling, operations | [`rclwebd`](./gateway/rclwebd.md) |
 | Identity, policy, audit, resource controls | [Security](./security.md) |
@@ -38,7 +39,7 @@ The scope ordering and Bun choice record human direction from 2026-08-10. Other 
 | Area | Read first |
 |---|---|
 | Root pins, `justfile`, lockfiles | [technology stack rationale](../.agents/docs/technology-stack.md), [ADR 0002](./adr/0002-use-bun-for-javascript-tooling.md), [ADR 0003](./adr/0003-monorepo-ownership.md), repository [README](../README.md) |
-| `protocol/**` | [R2WP](./protocol/r2wp.md), [compatibility](./compatibility.md), [validation](./validation.md) |
+| `protocol/**` | [R2WP overview](./protocol/r2wp.md), [R2WP v0 normative](../protocol/r2wp-v0.md), [compatibility](./compatibility.md), [validation](./validation.md) |
 | `rclmbt/**` | [`rclmbt`](./runtime/rclmbt.md), [architecture](./architecture.md), [validation](./validation.md) |
 | `rclwebd/**` | [`rclwebd`](./gateway/rclwebd.md), [security](./security.md), [compatibility](./compatibility.md) |
 | `sdk/**` | [architecture](./architecture.md), [R2WP](./protocol/r2wp.md), [`rclmbt`](./runtime/rclmbt.md) |
