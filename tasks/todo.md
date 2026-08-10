@@ -110,12 +110,14 @@ Each U0 item follows M3-08.
 
 ## Kickoff decisions
 
-- [ ] Confirm M0/M1 hardware, ROS image, RMW, browser, CPU, network, and artifact storage.
-- [ ] Assign five workstream owners and product, architecture, security, and operations reviewers.
-- [ ] Pin the Bun version and approve the workspace/lockfile convention.
-- [ ] Confirm OIDC and SROS2 reference environments.
-- [ ] Confirm raw benchmark retention and publication policy.
-- [ ] Assign the repository license and third-party licensing policy decision.
+Register: [Kickoff decision register](./plan.md#13-kickoff-decision-register).
+
+- [ ] D-01 Reference qualification environment (robot, artifact storage, pinned profile confirmation).
+- [ ] D-02 Named workstream and review owners.
+- [ ] D-03 Exact Bun version and root workspace/lockfile convention.
+- [ ] D-04 OIDC provider and SROS2 reference environment.
+- [ ] D-05 Raw benchmark artifact retention and publication.
+- [ ] D-06 Repository license and third-party licensing policy.
 
 ## U0 entry decisions
 

@@ -30,7 +30,7 @@ The scope ordering and Bun choice record human direction from 2026-08-10. Other 
 | Evidence contract, benchmarks, gates, targets | [Validation](./validation.md) |
 | Post-mainline UI concept and entry criteria | [Common Studio prototype](./prototypes/studio-ui.md) |
 | Visual tokens and interface rules | [Prototype design system](../.agents/docs/DESIGN.md) |
-| Delivery dependencies and task acceptance | [Implementation plan](../tasks/plan.md) |
+| Delivery dependencies, kickoff decisions, and task acceptance | [Implementation plan](../tasks/plan.md) |
 | Current execution state | [Execution checklist](../tasks/todo.md) |
 
 ## Planned code routes
@@ -49,5 +49,5 @@ The scope ordering and Bun choice record human direction from 2026-08-10. Other 
 
 - Shared contract changes update their normative document, machine-readable fixtures, and every consuming implementation in one review unit.
 - Measured claims link to reproducible evidence carrying environment, commands, raw data, and revision identity.
-- Accepted human decisions live in the [ADR register](./adr/README.md); M0-01 records the remaining architecture and support decisions.
+- Accepted human decisions live in the [ADR register](./adr/README.md); the [kickoff decision register](../tasks/plan.md#13-kickoff-decision-register) owns accountable role, required evidence, and decision deadline for remaining kickoff choices.
 - The PCR map under [`.agents/docs/`](../.agents/docs/README.md) records durable rationale and routes contributors to these specifications.

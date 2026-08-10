@@ -18,7 +18,7 @@ The common Studio UI is a side project that starts in U0 after the M3 mainline r
 | Product scope and sequence | [docs/product-scope.md](./docs/product-scope.md) |
 | Architecture | [docs/architecture.md](./docs/architecture.md) |
 | Accepted decisions | [docs/adr/README.md](./docs/adr/README.md) |
-| Detailed implementation plan | [tasks/plan.md](./tasks/plan.md) |
+| Detailed implementation plan and kickoff decisions | [tasks/plan.md](./tasks/plan.md) |
 | Execution checklist | [tasks/todo.md](./tasks/todo.md) |
 | Agent context map | [.agents/docs/README.md](./.agents/docs/README.md) |
 
@@ -54,4 +54,4 @@ studio/            Post-mainline common UI prototype
 
 ## Licensing
 
-M0-01 assigns the repository license and third-party licensing policy before package publication.
+Repository license and third-party compliance follow the recorded human ruling for [D-06](./tasks/plan.md#13-kickoff-decision-register) in the kickoff decision register. That ruling governs repository `LICENSE`/`NOTICE` text and third-party compliance artifacts.

@@ -145,8 +145,9 @@ Every task clears these conditions:
 - [ ] Existing ADRs cover mainline sequencing, Bun, monorepo ownership, browser/Wasm boundary, R2WP versioning, edge/ROS boundary, Humble/Jazzy schema identity ([ADR 0007](../docs/adr/0007-humble-jazzy-schema-identity.md)), and one adapter support row per gateway process ([ADR 0008](../docs/adr/0008-one-adapter-row-per-gateway-process.md)).
 - [ ] The [support matrix](../docs/support-matrix.md) names first-stage Humble/Jazzy Fast DDS and Cyclone DDS rows as independently qualified per-process artifact/image profiles, image digests, OS, CPU variants, browser reference, Wasm mode, buffer paths, and 1 GbE network as **Qualification targets**.
 - [ ] Support-row topology documents immutable `support_row_id`, deployment-provided `gateway_instance_id` lifecycle, multi-domain IDs within a row, and independent sessions for cross-row composition.
-- [ ] Repository license and third-party licensing policy have an owner and decision date.
-- [ ] Each open technical choice has an owner, evidence requirement, and decision date.
+- [ ] The [kickoff decision register](#13-kickoff-decision-register) lists D-01 through D-06 with accountable role, required evidence, decision deadline, and current state.
+- [ ] D-01 and D-06 are resolved with actual decision date and durable artifact; every other open kickoff choice remains registered with owner, evidence, and deadline.
+- [ ] Repository license and third-party licensing policy follow the recorded D-06 human ruling, including owner, evidence, deadline, state, and actual decision date on resolution.
 
 **Verification:** Architecture review records decisions and support-profile approval; documentation link checks pass.
 
@@ -954,14 +955,20 @@ Every U0 task depends directly or transitively on M3-08.
 | UI coupling to unstable contracts | M2 SDK review and M3 release evidence | Begin integrated Studio work after M3-08 | U0 entry |
 | N3 package scope | X0 size, API, startup, and maintenance report | Keep the experiment bounded to two representative packages | X0 review |
 
-## 13. Decisions required at kickoff
+## 13. Kickoff decision register
 
-1. Confirm the M0/M1 reference robot, ROS image, RMW, browser, CPU, network, and artifact storage.
-2. Assign five workstream owners plus product, architecture, security, and operations reviewers.
-3. Pin the Bun version and approve the root workspace/lockfile convention.
-4. Confirm the OIDC provider and SROS2 reference environment used for M3 qualification.
-5. Confirm raw benchmark retention and publication policy.
-6. Assign the repository license and third-party licensing policy decision.
+| ID | Decision | Accountable role | Required evidence | Decision deadline | Current state |
+|---|---|---|---|---|---|
+| D-01 | Reference qualification environment: reference robot, artifact storage, and confirmation of the already pinned ROS image, RMW, browser, CPU, and network profile | Platform/release owner (ROS/middleware owner consulted) | Reviewed environment manifest; device/runtime smoke proof; immutable storage location with access and retention proof | M0-01 exit | Partial; support profile pins ROS/RMW/browser/CPU/network; robot and artifact storage remain open |
+| D-02 | Named workstream and review owners | Project lead | Named ownership for five workstreams plus product, architecture, security, and operations reviewers and integration owner coverage | M0-02 entry | Open |
+| D-03 | Exact Bun version and root workspace/lockfile convention | Browser SDK/performance owner | Official Bun release identity; clean bootstrap and lockfile reproducibility; root command proof | First M0-02 scaffold commit | Bun selected; exact version and convention open |
+| D-04 | OIDC provider and SROS2 reference environment | Security owner (Platform/release owner consulted) | Issuer metadata and test tenant; SROS2 enclave/keystore profile; credential rotation and integration smoke proof | M3-01 entry | Open |
+| D-05 | Raw benchmark artifact retention and publication | Platform/release owner | Storage class; retention duration; access and redaction rules; integrity hash and retrieval drill | M0-05 report-schema freeze | Open |
+| D-06 | Repository license and third-party licensing policy | Repository owner (legal/release review) | Accepted license identifier and text; copyright/NOTICE attribution; dependency and asset inventory; SPDX/SBOM output; compatibility review; CI policy and exception workflow | M0-01 exit | Awaiting human ruling; Apache-2.0 recommended |
+
+D-06 source notes: [ROS 2 Jazzy package creation guidance](https://docs.ros.org/en/jazzy/How-To-Guides/Developing-a-ROS-2-Package.html), [Apache License 2.0 text](https://www.apache.org/licenses/LICENSE-2.0), [Apache License application guidance](https://www.apache.org/legal/apply-license), [SPDX Apache-2.0](https://spdx.org/licenses/Apache-2.0.html).
+
+**Register rules:** Unresolved rows retain their current state. Resolution records the actual decision date and a durable artifact pointer. M0-01 exit requires D-01 and D-06 resolved, and every other open kickoff choice registered with accountable role, required evidence, and decision deadline. `LICENSE` creation follows the recorded D-06 human ruling.
 
 U0-01 handles React, Vite, docking, rendering, media, and prototype browser/GPU decisions after the mainline release.
 

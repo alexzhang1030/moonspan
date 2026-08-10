@@ -30,7 +30,7 @@ Use this map to load the smallest durable context for a task. PCR records captur
 | Reference support profile | [docs/support-matrix.md](../../docs/support-matrix.md) |
 | Validation | [docs/validation.md](../../docs/validation.md) |
 | Common Studio prototype | [docs/prototypes/studio-ui.md](../../docs/prototypes/studio-ui.md) |
-| Implementation sequence | [tasks/plan.md](../../tasks/plan.md) |
+| Implementation sequence and kickoff decisions | [tasks/plan.md](../../tasks/plan.md) |
 | Execution state | [tasks/todo.md](../../tasks/todo.md) |
 
 ## Planned code routes

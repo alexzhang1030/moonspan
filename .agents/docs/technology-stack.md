@@ -26,7 +26,7 @@ R2WP uses a fixed 32-byte frame header plus CDR, encoded media, graph, schema, c
 
 TypeScript defines the public browser SDK, Worker host, generated bindings, session lifecycle, typed operations, telemetry, and headless examples.
 
-Bun is the human-selected JavaScript stack tool recorded on 2026-08-10. Bun owns package installation, workspaces, the root `package.json`, `bun.lock`, script execution, tests, builds, and repository-scoped one-shot tools. The kickoff pins a Bun version; the human-provided rationale remains open.
+Bun is the human-selected JavaScript stack tool recorded on 2026-08-10. Bun owns package installation, workspaces, the root `package.json`, `bun.lock`, script execution, tests, builds, and repository-scoped one-shot tools. Exact Bun version and root workspace/lockfile convention resolve under [D-03](../../tasks/plan.md#13-kickoff-decision-register); the human-provided rationale remains open.
 
 Vitest covers SDK units and contracts through Bun scripts. Playwright covers browser behavior, Worker integration, transport sessions, and later prototype accessibility. `bunx` runs tools such as the DESIGN.md linter.
 
@@ -54,6 +54,7 @@ React and Vite receive a U0 entry review against the released SDK and prototype 
 ## Decision lifecycle
 
 - Bun is a human-selected stack constraint.
+- Remaining kickoff choices route through the [kickoff decision register](../../tasks/plan.md#13-kickoff-decision-register) with accountable role, required evidence, decision deadline, and current state.
 - Mainline architecture bets gain authority through M0 ADR review and the evidence gates in [validation](../../docs/validation.md).
 - Prototype technology choices gain authority at U0 entry and through prototype qualification.
 - Findings outside accepted envelopes reopen the affected choice through an ADR update and new evidence.
