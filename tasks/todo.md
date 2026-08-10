@@ -4,7 +4,7 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
 
 ## M0 — Foundation, Weeks 1–2
 
-- [ ] M0-01 Complete architecture ADRs and the reference support profile.
+- [~] M0-01 Complete architecture ADRs and the reference support profile.
 - [ ] M0-02 Bootstrap the monorepo, Bun workspaces, root commands, and CI.
 - [ ] M0-03 Freeze R2WP v0 and cross-language golden frames.
 - [ ] M0-04 Generate the authoritative ROS CDR corpus.

@@ -8,6 +8,11 @@ ADRs capture accepted decisions that carry significant reversal cost. Technical 
 |---|---|---|
 | [0001](./0001-mainline-before-common-prototype.md) | Accepted | Complete the platform mainline before starting the common Studio prototype. |
 | [0002](./0002-use-bun-for-javascript-tooling.md) | Accepted | Use Bun for JavaScript workspaces, dependencies, lockfile, scripts, tests, and builds. |
+| [0003](./0003-monorepo-ownership.md) | Accepted | Use one monorepo with root orchestration and explicit per-language workspace ownership. |
+| [0004](./0004-browser-wasm-host-boundary.md) | Accepted | Keep a synchronous MoonBit/Wasm state machine behind an async TypeScript Worker host. |
+| [0005](./0005-r2wp-wire-versioning.md) | Accepted | Version R2WP as complete negotiated wire contracts with server-selected versions. |
+| [0006](./0006-edge-ros-c-abi-boundary.md) | Accepted | Isolate ROS integration behind a versioned serialized C ABI at the edge. |
+| [0007](./0007-humble-jazzy-schema-identity.md) | Accepted | Lock phase-one Humble/Jazzy schema identity with `rep2011-rihs` and `moonspan-schema-v1`. |
 
 ## Convention
 
