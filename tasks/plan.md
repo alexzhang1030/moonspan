@@ -19,8 +19,9 @@ The planning baseline uses five core engineers, 18 weeks for the mainline, and 6
 - The repository contains formal technical specifications, PCR records, polyglot workspace scaffolding, and this execution plan.
 - M0-02 has local root commands, pinned Bun/Rust/MoonBit/just identities, and a foundation CI workflow; hosted CI run evidence remains open.
 - M0-03a freezes the R2WP wire version 0 normative package (markdown, registry JSON, control CDDL, ADR 0009 Accepted).
-- M0-03b is verified complete: `scripts/protocol-check.ts` validates the frozen contract; root entrypoints are `bun run protocol-check`, `just protocol-check`, and `bun run test:protocol`; `bun run check` runs `docs:check` then `protocol-check`.
-- M0-03c is verified complete: browser-internal deterministic CBOR encode/decode in `sdk/typescript/src/protocol/cbor.ts`; package root continues to export `src/index.ts`. Fixtures and language parsers continue in M0-03d–h.
+- M0-03b is verified complete: `scripts/protocol-check.ts` validates the frozen contract; root entrypoints are `bun run protocol-check`, `just protocol-check`, and `bun run test:protocol`.
+- M0-03c is verified complete: browser-internal deterministic CBOR encode/decode in `sdk/typescript/src/protocol/cbor.ts`; package root continues to export `src/index.ts`.
+- M0-03d is verified complete: TypeScript bootstrap, extension, CONTROL_CBOR (all 15 kinds), and selected-frame codecs; valid/boundary fixtures with versioned manifest and checker. Implementations live at `sdk/typescript/src/protocol/{bootstrap,extension,control,frame}.ts` and their tests. Fixture tooling lives at `scripts/protocol-fixtures.ts`, `scripts/protocol-fixtures.test.ts`, `protocol/testdata/manifest.json`, `protocol/testdata/README.md`, and `protocol/testdata/valid/`. Root `bun run check` runs `docs:check`, `protocol-check`, then `protocol-fixtures:check`. M0-03 remains active; M0-03e–h remain queued.
 - Active mainline workspaces: `rclwebd/` (Cargo), `rclmbt/` (`moon.work`), `sdk/typescript/` (`@moonspan/sdk`). Studio workspace enrollment begins at U0.
 - R2WP, MoonBit/Wasm, Rust/C ABI, ROS support, and performance values are design baselines awaiting their named gates.
 - The mainline and UI side-project boundary is fixed in [product scope](../docs/product-scope.md).
@@ -237,14 +238,14 @@ Every task clears these conditions:
 
 **Acceptance criteria:**
 
-- [ ] Codecs cover 12-byte bootstrap prefix, 32-byte headers, extension TLVs, and CONTROL_CBOR maps.
-- [ ] Fixtures cover header boundaries, flags, schema identity pairs, SessionReady fields, and absolute limit boundaries.
-- [ ] Manifest records bytes, semantic JSON, and expected success.
+- [x] Bootstrap codec covers the 12-byte prefix and ClientHello / ServerHello / BootstrapError maps; extension TLV codec covers ordered type/length/value areas through the 4096-byte ceiling; CONTROL_CBOR codec covers all 15 control kinds with closed CDDL shape validation; selected-version frame codec implements static validation steps 1–16, including CONTROL_CBOR priority 0 precedence, TRACE consistency, extension/control absolute offsets, and stable codec errors. Modules: `sdk/typescript/src/protocol/bootstrap.ts`, `extension.ts`, `control.ts`, `frame.ts` and their tests.
+- [x] Valid/boundary fixtures cover exact limits and header bounds: 12-byte bootstrap prefix, 32-byte selected frame header, extension area 4096, CONTROL payload 1048576, application payload 67108864, u32/u64/i64 header bounds, 4096-byte bootstrap text, both schema identity schemes (`rep2011-rihs` and `moonspan-schema-v1`), and the four exact Phase 1 SessionReady rows H-FT / H-CY / J-FT / J-CY. Corpus size: 20 entries (19 committed binaries under `protocol/testdata/valid/` plus one manifest-only exact 64 MiB application frame).
+- [x] Manifest records exact lengths, SHA-256, language-neutral executable tagged source, expected success, and explicit decode-reencode or source-reencode mode. Fixture checker uses Bun, closed manifest/tag validation, canonical paths before disk access, deterministic code-unit sorting, allocation-bounded recipes, exact file/hash checks, and decode/re-encode verification. Root surface: `bun run protocol-fixtures:check` / `protocol-fixtures:write`, `just protocol-fixtures-check` / `protocol-fixtures-write`, `bun run test:protocol-fixtures`; `bun run check` chains `docs:check`, `protocol-check`, then `protocol-fixtures:check`. Representation details: [protocol/testdata/README.md](../protocol/testdata/README.md).
 
-**Verification:** `bun test` codec suite; byte-stable re-encode of goldens under `protocol/testdata/valid/`.
+**Verification (acceptance evidence):** Implementation commits `5c21f74` bootstrap codec, `48dfbdd` extension codec, `51a5d73` control codec, `193b279` frame codec, `f992feb` CONTROL priority precedence, `fc18b3d` valid/boundary fixtures. Fixture tooling commits with `fc18b3d` (`scripts/protocol-fixtures.ts`, `scripts/protocol-fixtures.test.ts`, `protocol/testdata/manifest.json`, `protocol/testdata/README.md`, `protocol/testdata/valid/`). Focused fixture tests 25/25; full `bun test` 332/332; `bun run check` status=ok; `just check` status=ok under Bun 1.3.14 / Rust 1.97.1 / moonc 0.10.6+80dc50f24 / just 1.50.0; after a second write the versioned manifest and 19 committed binaries remain hash-identical for the 20-entry corpus (one manifest-only exact 64 MiB application frame); `git diff --check` clean.
 
 - **Dependencies:** M0-03c
-- **Likely files:** `sdk/typescript/src/protocol/frame.ts`, `sdk/typescript/src/protocol/bootstrap.ts`, `sdk/typescript/src/protocol/*.test.ts`, `protocol/testdata/valid/`, `protocol/testdata/manifest.json`
+- **Likely files:** `sdk/typescript/src/protocol/frame.ts`, `sdk/typescript/src/protocol/bootstrap.ts`, `sdk/typescript/src/protocol/extension.ts`, `sdk/typescript/src/protocol/control.ts`, `sdk/typescript/src/protocol/*.test.ts`, `scripts/protocol-fixtures.ts`, `scripts/protocol-fixtures.test.ts`, `protocol/testdata/valid/`, `protocol/testdata/manifest.json`, `protocol/testdata/README.md`, `package.json`, `justfile`
 - **Scope:** M
 
 ##### M0-03e — Malformed, state-sequence, and transport parity fixtures

@@ -2,7 +2,7 @@
 
 R2WP is Moonspan's versioned browser transport for ROS 2 semantics and serialized data. It carries bootstrap negotiation, a fixed 32-byte selected-version frame header, deterministic CBOR control maps, and CDR or media payloads over WebTransport and binary WebSocket.
 
-**Status:** wire version **0** accepted normative freeze ([ADR 0009](../adr/0009-r2wp-v0-wire-encoding.md)); M0-03b contract validator complete; M0-03c TypeScript CBOR codec complete; M0-03d–h continue fixtures and language parsers against this contract.
+**Status:** wire version **0** accepted normative freeze ([ADR 0009](../adr/0009-r2wp-v0-wire-encoding.md)); M0-03a–d complete (contract, validator, TypeScript codecs, valid/boundary fixtures); M0-03e–h continue malformed/state/transport fixtures and multi-language parsers against this contract.
 
 | Surface | File |
 |---|---|
@@ -11,12 +11,17 @@ R2WP is Moonspan's versioned browser transport for ROS 2 semantics and serialize
 | Control CDDL | [protocol/schema/control-v0.cddl](../../protocol/schema/control-v0.cddl) |
 | Contract validator (implementation) | [scripts/protocol-check.ts](../../scripts/protocol-check.ts) (`bun run protocol-check`, `just protocol-check`) |
 | TypeScript CBOR codec (implementation) | [sdk/typescript/src/protocol/cbor.ts](../../sdk/typescript/src/protocol/cbor.ts) (`bun run --filter @moonspan/sdk test:cbor`) |
+| TypeScript bootstrap / extension / control / frame codecs | [bootstrap.ts](../../sdk/typescript/src/protocol/bootstrap.ts), [extension.ts](../../sdk/typescript/src/protocol/extension.ts), [control.ts](../../sdk/typescript/src/protocol/control.ts), [frame.ts](../../sdk/typescript/src/protocol/frame.ts) |
+| Valid/boundary fixtures | [protocol/testdata/README.md](../../protocol/testdata/README.md), [manifest.json](../../protocol/testdata/manifest.json), [valid/](../../protocol/testdata/valid/) |
+| Fixture generator and checker | [scripts/protocol-fixtures.ts](../../scripts/protocol-fixtures.ts) (`bun run protocol-fixtures:check` / `protocol-fixtures:write`, `just protocol-fixtures-check` / `protocol-fixtures-write`) |
 | Encoding ADR | [ADR 0009](../adr/0009-r2wp-v0-wire-encoding.md) |
 | Versioning model | [ADR 0005](../adr/0005-r2wp-wire-versioning.md) |
 
-This page is the design overview and documentation entry. Byte-level rules, registries, absolute limits, dispositions, and transport length rules are normative in the protocol package above. The contract validator checks normative package consistency. The TypeScript CBOR codec enforces the deterministic CBOR subset. Normative authority remains the three-file protocol package.
+This page is the design overview and documentation entry. Byte-level rules, registries, absolute limits, dispositions, and transport length rules are normative in the protocol package above. The contract validator checks normative package consistency. TypeScript codecs implement deterministic CBOR, bootstrap records, extension TLVs, all 15 CONTROL kinds, and selected-frame static steps 1–16. Valid/boundary goldens and the Bun fixture checker live under `protocol/testdata/` and `scripts/protocol-fixtures.ts`. Normative authority remains the three-file protocol package.
 
 The browser-internal CBOR codec implements the R2WP v0 deterministic subset: definite lengths, shortest integer/length arguments, unsigned map keys sorted by encoded-key order, nesting depth 16, map entry ceiling 4096, and rejection of tags, floats, indefinite forms, and malformed UTF-8. Decode failures use `CborDecodeError` with `code: "invalid_control"`, a typed reason, and a byte offset. Decode yields an atomic whole value. Input-driven and native decoder failures normalize to `CborDecodeError`.
+
+M0-03d TypeScript codecs build on that subset. Bootstrap encodes and decodes the 12-byte prefix plus ClientHello / ServerHello / BootstrapError maps. Extension TLVs enforce ordered type/length/value areas through the 4096-byte ceiling. CONTROL_CBOR covers all 15 control kinds with closed CDDL shape validation. Selected-frame validation implements steps 1–16, including CONTROL_CBOR priority 0 precedence, TRACE consistency, extension/control absolute offsets, and stable codec errors.
 
 Schema identity follows [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md). Gateway process and support-row binding follows [ADR 0008](../adr/0008-one-adapter-row-per-gateway-process.md). First-stage pins live in the [support matrix](../support-matrix.md).
 
@@ -144,24 +149,36 @@ Wire versioning follows [ADR 0005](../adr/0005-r2wp-wire-versioning.md). Wire ve
 
 ## Required fixtures
 
-R2WP v0 ships golden fixtures for:
+### Delivered (M0-03d valid/boundary)
 
-- each header field boundary and representative flag combination;
-- sample, graph, schema, request, response, goal, feedback, result, cancel, clock, media, and asset frames;
-- each transport mapping and QoS class;
-- extension-bearing and zero-length payloads;
-- schema identity for `rep2011-rihs` and `moonspan-schema-v1`;
-- Jazzy provenance mapping between `rep2011-rihs` and a bundle digest;
-- identity mismatch and missing required Humble bundle (`schema_unavailable`);
-- gateway profile identity in `SessionReady` from a ready gateway;
-- multi-domain same-row sessions under one support row;
-- cross-row independent sessions;
-- resume mismatch on gateway instance or support row;
-- sequence gap and stale_sequence dispositions on best-effort paths;
-- truncation, overflow, unknown registry values, stale generations, and schema mismatch;
-- session open, channel open, cancellation, reconnect, resume, and terminal close sequences.
+M0-03d commits 20 valid/boundary entries: 19 exact binaries under [protocol/testdata/valid/](../../protocol/testdata/valid/) and one manifest-only exact 64 MiB application frame. The versioned [manifest](../../protocol/testdata/manifest.json) records lengths, SHA-256, language-neutral executable tagged source, expected success, and decode-reencode or source-reencode mode. Representation and checker rules live in [protocol/testdata/README.md](../../protocol/testdata/README.md).
 
-Rust, MoonBit, and TypeScript parsers consume the same bytes and produce the same semantic record or stable error code. WebTransport and WSS share the semantic fixture set.
+Delivered coverage includes:
+
+- 12-byte bootstrap prefix and 32-byte selected frame header;
+- extension area ceiling 4096 (unknown noncritical TLV) and CONTROL payload ceiling 1048576;
+- application payload ceiling 67108864 (manifest-only segment recipe);
+- u32 / u64 / i64 header bounds on ROS_SAMPLE fields;
+- 4096-byte bootstrap error text;
+- both schema identity schemes (`rep2011-rihs` and `moonspan-schema-v1`);
+- four exact Phase 1 SessionReady rows H-FT, H-CY, J-FT, and J-CY;
+- representative media keyframe, service request with TRACE/operation id, and control/schema frames at boundary sizes.
+
+Root verification: `bun run protocol-fixtures:check` / `just protocol-fixtures-check`; included in `bun run check` after `docs:check` and `protocol-check`.
+
+### Planned (M0-03e–h)
+
+Later sub-batches extend the corpus and prove multi-language agreement:
+
+- malformed frames (truncation, overflow, bad extensions, duplicate CBOR keys, zero common version);
+- session sequences (open/resume success, gateway/support-row mismatch, multi-domain same-row, cross-row independent sessions, `sequence_gap`, `stale_sequence`);
+- transport parity (one semantic fixture set for WebTransport and binary WSS);
+- sample, graph, schema, request/response, goal/feedback/result/cancel, clock, media, and asset frames beyond the M0-03d boundary set;
+- Jazzy provenance mapping, identity mismatch, missing required Humble bundle (`schema_unavailable`), and broader QoS/transport classes;
+- Rust (`rclwebd`) and MoonBit (`rclmbt`) reference parsers consuming the same bytes with matching semantic records or stable error codes;
+- cross-language agreement report that closes M0-03.
+
+WebTransport and WSS share the semantic fixture set once parity fixtures land.
 
 ## Related documents
 

@@ -99,14 +99,15 @@ The workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) is the M0
 | Commands | `bun install --frozen-lockfile`, then `just toolchain-check`, `just check`, `just test`, `just build` with `pipefail` + `tee` overwriting the corresponding logs |
 | Artifacts (available after checkout, `if: always()`, 14-day retention) | `moonspan-documentation-evidence-<run_id>-<attempt>` (docs, PCR docs, tasks, workflow, pins/locks, check/environment logs; hidden paths included) and `moonspan-test-build-evidence-<run_id>-<attempt>` (environment, toolchain-check, test, build logs) |
 | Current evidence | Local `actionlint` and pinned root commands; first hosted run will record artifact URLs for review |
+| R2WP fixture foundation (M0-03d) | Current TypeScript valid/boundary layer: `bun run check` chains `docs:check`, `protocol-check`, and `protocol-fixtures:check`. Accepted local evidence: focused fixture tests 25/25; full `bun test` 332/332; `bun run check` and `just check` status=ok under Bun 1.3.14 / Rust 1.97.1 / moonc 0.10.6+80dc50f24 / just 1.50.0; after a second write the versioned manifest and 19 committed binaries remain hash-identical for the 20-entry corpus (one manifest-only exact 64 MiB application frame). Fixture layout and representation: [protocol/testdata/README.md](../protocol/testdata/README.md). Hosted CI run evidence remains pending; Rust/MoonBit and malformed/state fixtures continue in M0-03e–h. |
 
-Humble/Jazzy rows **H-FT**, **H-CY**, **J-FT**, and **J-CY** remain **Qualification targets** for later ROS container workflows. Studio workspace enrollment begins at U0. Jazzy+ expansion remains later matrix work.
+Humble/Jazzy rows **H-FT**, **H-CY**, **J-FT**, and **J-CY** remain **Qualification targets** for later ROS container workflows. Studio workspace enrollment begins at U0 after M3. Jazzy+ expansion remains later matrix work.
 
 ## Delivery gates
 
 | Gate | Product evidence | Human decision |
 |---|---|---|
-| M0 Foundation | Accepted support profile, ADRs, pinned toolchains, foundation CI tooling evidence, R2WP draft fixtures, CDR corpus, evidence schema | Contract baseline approval |
+| M0 Foundation | Accepted support profile, ADRs, pinned toolchains, foundation CI tooling evidence, accepted R2WP v0 contract and reproducible cross-language R2WP fixtures, CDR corpus, evidence schema | Contract baseline approval |
 | M1 Core data path | N1 agreement, graph and publish/subscribe, both transports, both browser buffer paths, PointCloud2 headless run | Core architecture approval |
 | M2 ROS semantics | Complete planned N2 surface, dynamic types, QoS matrix, recording, multi-domain DDS evidence | Semantic capability approval |
 | M3 Production release | Identity, ACL, SROS2, audit, budgets, compatibility with **Qualified** release support rows, deployment, soak, fault, SDK, signed artifacts | Mainline release approval |

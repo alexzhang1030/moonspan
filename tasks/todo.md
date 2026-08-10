@@ -10,7 +10,7 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
   - [x] M0-03a Normative contract, ADR 0009, registry, and control CDDL (verified; ADR 0009 Accepted).
   - [x] M0-03b Contract validator and root command (verified; `scripts/protocol-check.ts` + root wiring).
   - [x] M0-03c TypeScript deterministic CBOR subset (`sdk/typescript/src/protocol`; verified).
-  - [ ] M0-03d TypeScript bootstrap/frame codec and valid/boundary fixtures.
+  - [x] M0-03d TypeScript bootstrap/frame codec and valid/boundary fixtures (verified; codecs `bootstrap`/`extension`/`control`/`frame`; 20 fixtures via `scripts/protocol-fixtures.ts` + `protocol/testdata/`; commits `5c21f74`…`fc18b3d`; fixture tests 25/25, full `bun test` 332/332).
   - [ ] M0-03e Malformed/state-sequence fixtures and transport parity manifest.
   - [ ] M0-03f Rust reference parser (`rclwebd/src/protocol`).
   - [ ] M0-03g MoonBit reference parser (`rclmbt/protocol`).

@@ -62,6 +62,7 @@ Installer version selectors use the exact tested pin arguments above: `0.10.6+80
 bun install --frozen-lockfile
 just toolchain-check
 just protocol-check
+just protocol-fixtures-check
 just check
 just test
 just build
@@ -71,7 +72,9 @@ just build
 |---|---|
 | `just toolchain-check` | Exact bun / rustc / cargo / moon bundle / moonc / just identities vs pin files |
 | `just protocol-check` | Toolchain identity, then R2WP v0 contract validation (`bun run protocol-check`) |
-| `just check` | Toolchain identity, `bun run check` (docs static check then protocol contract check), `cargo fmt` + locked `clippy -D warnings`, frozen `moon check --fmt`, `@moonspan/sdk` browser build check |
+| `just protocol-fixtures-check` | Toolchain identity, then valid/boundary fixture check (`bun run protocol-fixtures:check`) |
+| `just protocol-fixtures-write` | Toolchain identity, then regenerate fixture manifest and committed binaries (`bun run protocol-fixtures:write`) |
+| `just check` | Toolchain identity, `bun run check` (docs, protocol contract, then fixtures), `cargo fmt` + locked `clippy -D warnings`, frozen `moon check --fmt`, `@moonspan/sdk` browser build check |
 | `just test` | Root/tooling/SDK `bun test` once, locked `cargo test --workspace`, frozen `moon test --target wasm` |
 | `just build` | Locked `cargo build --workspace`, frozen `moon build --target wasm`, `@moonspan/sdk` browser build |
 
@@ -79,14 +82,20 @@ Bun script meanings:
 
 | Script | Meaning |
 |---|---|
-| `bun run check` | `docs:check` then `protocol-check` (deterministic order) |
+| `bun run check` | `docs:check`, then `protocol-check`, then `protocol-fixtures:check` (deterministic order) |
 | `bun run protocol-check` | R2WP v0 registry + control CDDL contract validator (`scripts/protocol-check.ts`) |
+| `bun run protocol-fixtures:check` | Reconstruct and verify golden fixtures (`scripts/protocol-fixtures.ts --check`) |
+| `bun run protocol-fixtures:write` | Regenerate `protocol/testdata/manifest.json` and `valid/*.bin` (`scripts/protocol-fixtures.ts --write`) |
 | `bun run toolchain-check` | Installed-tool probe against project pins |
-| `bun test` | All Bun tests (docs, toolchain, protocol-check, SDK including CBOR) |
-| `bun run test:docs` / `test:protocol` / `test:toolchain` | Focused root Bun test entrypoints |
+| `bun test` | All Bun tests (docs, toolchain, protocol-check, protocol-fixtures, SDK codecs) |
+| `bun run test:docs` / `test:protocol` / `test:protocol-fixtures` / `test:toolchain` | Focused root Bun test entrypoints |
 | `bun run --filter @moonspan/sdk test:cbor` | Focused R2WP v0 deterministic CBOR encode/decode tests |
+| `bun run --filter @moonspan/sdk test:bootstrap` | Focused bootstrap codec tests |
+| `bun run --filter @moonspan/sdk test:extension` | Focused extension TLV codec tests |
+| `bun run --filter @moonspan/sdk test:control` | Focused CONTROL_CBOR codec tests |
+| `bun run --filter @moonspan/sdk test:frame` | Focused selected-frame codec tests |
 
-Current R2WP foundation progress: M0-03a normative freeze and M0-03b contract validator are verified; M0-03c provides the browser-internal CBOR codec at `sdk/typescript/src/protocol/cbor.ts` while the package root continues to export `src/index.ts`. Phase-one support rows remain H-FT, H-CY, J-FT, and J-CY; Studio enrollment begins at U0 after M3.
+Current R2WP foundation progress: M0-03a–d are verified. Normative freeze and contract validator stand; TypeScript codecs cover CBOR, bootstrap, extension TLVs, all 15 CONTROL kinds, and selected-frame steps 1–16 at `sdk/typescript/src/protocol/{cbor,bootstrap,extension,control,frame}.ts` (package root continues to export `src/index.ts`). Valid/boundary fixtures: [protocol/testdata/README.md](./protocol/testdata/README.md) and [manifest.json](./protocol/testdata/manifest.json) (20 entries; 19 committed binaries under `protocol/testdata/valid/`). M0-03 remains active; M0-03e–h remain queued. Phase-one support rows remain H-FT, H-CY, J-FT, and J-CY; Studio enrollment begins at U0 after M3.
 
 The repository currently carries **zero external package dependencies**. Workspace members stay private at version `0.0.0`. Repository `LICENSE` / `NOTICE` wait on the [D-06](./tasks/plan.md#13-kickoff-decision-register) human ruling.
 
