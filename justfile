@@ -11,7 +11,12 @@ root := justfile_directory()
 toolchain-check:
     cd "{{root}}" && bun run scripts/toolchain-check.ts
 
-# Toolchain identity, Bun docs check, Rust fmt/clippy, MoonBit format/check, TypeScript check.
+# Validate R2WP v0 registry JSON and control CDDL (scripts/protocol-check.ts).
+[group('quality')]
+protocol-check: toolchain-check
+    cd "{{root}}" && bun run protocol-check
+
+# Toolchain identity, Bun docs + protocol validation, Rust fmt/clippy, MoonBit format/check, TypeScript check.
 [group('quality')]
 check: toolchain-check
     #!/usr/bin/env bash
