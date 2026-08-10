@@ -9,6 +9,7 @@ Valid and boundary golden fixtures for wire version 0. Generated and checked by
 |---|---|
 | `manifest.json` | Versioned index of every fixture: id, kind, path, lengths, SHA-256, coverage, executable tagged semantic `source`, expected success and roundtrip mode |
 | `valid/*.bin` | Materialized exact wire bytes for small and medium fixtures |
+| `malformed/` | Static malformed wire corpus (M0-03e1); own manifest + `*.bin` |
 
 ## Representations
 
@@ -72,7 +73,15 @@ bun test scripts/protocol-fixtures.test.ts
 ```
 
 Root `bun run check` and `just check` include `protocol-fixtures:check` after
-`protocol-check`.
+`protocol-check`, then `protocol-malformed-fixtures:check`.
+
+Malformed corpus commands:
+
+```bash
+bun run protocol-malformed-fixtures:write
+bun run protocol-malformed-fixtures:check
+bun test scripts/protocol-malformed-fixtures.test.ts
+```
 
 ## Coverage highlights
 

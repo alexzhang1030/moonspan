@@ -26,6 +26,14 @@ protocol-fixtures-write: toolchain-check
 protocol-fixtures-check: toolchain-check
     cd "{{root}}" && bun run protocol-fixtures:check
 
+# Validate R2WP v0 static malformed fixtures (scripts/protocol-malformed-fixtures.ts).
+protocol-malformed-fixtures-write: toolchain-check
+    cd "{{root}}" && bun run protocol-malformed-fixtures:write
+
+# Check R2WP v0 static malformed fixtures against committed artifacts.
+protocol-malformed-fixtures-check: toolchain-check
+    cd "{{root}}" && bun run protocol-malformed-fixtures:check
+
 # Toolchain identity, Bun docs + protocol validation, Rust fmt/clippy, MoonBit format/check, TypeScript check.
 [group('quality')]
 check: toolchain-check

@@ -1,0 +1,1687 @@
+{
+  "schema_version": 1,
+  "protocol": "r2wp-v0",
+  "byte_order": "network",
+  "generated_by": "scripts/protocol-malformed-fixtures.ts",
+  "bootstrap_step6_defensive_equivalence": {
+    "plane": "bootstrap",
+    "step": 6,
+    "u16_maximum": 65535,
+    "absolute_ceiling_bytes": 65535,
+    "claim": "step 6 is represented by defensive-equivalence metadata because u16 maximum equals the absolute 65535-byte ceiling"
+  },
+  "fixtures": [
+    {
+      "id": "bootstrap-multi-2-before-3",
+      "kind": "bootstrap",
+      "path": "malformed/bootstrap-multi-2-before-3.bin",
+      "representation": "binary",
+      "byte_length": 32,
+      "sha256": "48ed37042fb61b2bf156a107fcf3bc343be0bf2f6fc03ed8282dc7a680ecebea",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "523257500101000000000014a501810002a201f502f403a201f502f404a00680"
+        },
+        "ops": [
+          {
+            "op": "set_u8",
+            "offset": 0,
+            "value": 0
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 1,
+        "registry_name": "malformed_bootstrap",
+        "reason": "bad_magic",
+        "offset": 0,
+        "plane": "bootstrap",
+        "step": 2
+      },
+      "coverage": [
+        "bootstrap_precedence_2_before_3",
+        "multi_invalid"
+      ]
+    },
+    {
+      "id": "bootstrap-step1-truncated-prefix",
+      "kind": "bootstrap",
+      "path": "malformed/bootstrap-step1-truncated-prefix.bin",
+      "representation": "binary",
+      "byte_length": 11,
+      "sha256": "71b6c1d53832f789a7f2435a7c629245fa3761ad8487775ebf4957330213a706",
+      "source": {
+        "$type": "hex",
+        "hex": "0000000000000000000000"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 1,
+        "registry_name": "malformed_bootstrap",
+        "reason": "truncated_prefix",
+        "offset": 0,
+        "plane": "bootstrap",
+        "step": 1
+      },
+      "coverage": [
+        "bootstrap_step_1",
+        "truncated"
+      ]
+    },
+    {
+      "id": "bootstrap-step2-bad-magic",
+      "kind": "bootstrap",
+      "path": "malformed/bootstrap-step2-bad-magic.bin",
+      "representation": "binary",
+      "byte_length": 32,
+      "sha256": "8c07a729243c7680fc8d54462daa14221825bd736de2fcbcc440ac1672c49c67",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "523257500001000000000014a501810002a201f502f403a201f502f404a00680"
+        },
+        "ops": [
+          {
+            "op": "set_u8",
+            "offset": 0,
+            "value": 0
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 1,
+        "registry_name": "malformed_bootstrap",
+        "reason": "bad_magic",
+        "offset": 0,
+        "plane": "bootstrap",
+        "step": 2
+      },
+      "coverage": [
+        "bootstrap_step_2"
+      ]
+    },
+    {
+      "id": "bootstrap-step3-unsupported-version",
+      "kind": "bootstrap",
+      "path": "malformed/bootstrap-step3-unsupported-version.bin",
+      "representation": "binary",
+      "byte_length": 32,
+      "sha256": "1030a5621e07ffb9a5209825ebdc3b6dee6c31f5ee304eafff183210ff718b3f",
+      "source": {
+        "$type": "hex",
+        "hex": "523257500101000000000014a501810002a201f502f403a201f502f404a00680"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 4,
+        "registry_name": "unsupported_version",
+        "reason": "unsupported_bootstrap_version",
+        "offset": 4,
+        "plane": "bootstrap",
+        "step": 3
+      },
+      "coverage": [
+        "bootstrap_step_3"
+      ]
+    },
+    {
+      "id": "bootstrap-step4-nonzero-flags",
+      "kind": "bootstrap",
+      "path": "malformed/bootstrap-step4-nonzero-flags.bin",
+      "representation": "binary",
+      "byte_length": 32,
+      "sha256": "433ab64bcf00b428d31f66bebdbeb3850f7ad3433f4670ac177b51e2b50fcf1b",
+      "source": {
+        "$type": "hex",
+        "hex": "523257500001000100000014a501810002a201f502f403a201f502f404a00680"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 1,
+        "registry_name": "malformed_bootstrap",
+        "reason": "nonzero_flags",
+        "offset": 6,
+        "plane": "bootstrap",
+        "step": 4
+      },
+      "coverage": [
+        "bootstrap_step_4"
+      ]
+    },
+    {
+      "id": "bootstrap-step5-unassigned-kind",
+      "kind": "bootstrap",
+      "path": "malformed/bootstrap-step5-unassigned-kind.bin",
+      "representation": "binary",
+      "byte_length": 32,
+      "sha256": "bda82e734e3413699dc997b94c146bedbc604506ed90270b1d13abb142234af7",
+      "source": {
+        "$type": "hex",
+        "hex": "523257500000000000000014a501810002a201f502f403a201f502f404a00680"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 1,
+        "registry_name": "malformed_bootstrap",
+        "reason": "unassigned_kind",
+        "offset": 5,
+        "plane": "bootstrap",
+        "step": 5
+      },
+      "coverage": [
+        "bootstrap_step_5"
+      ]
+    },
+    {
+      "id": "bootstrap-step6-u16-ceiling-equivalence",
+      "kind": "bootstrap",
+      "path": null,
+      "representation": "defensive_equivalence",
+      "byte_length": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source": {
+        "$type": "defensive_equivalence",
+        "claim": "step 6 is represented by defensive-equivalence metadata because u16 maximum equals the absolute 65535-byte ceiling"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 24,
+        "registry_name": "message_too_large",
+        "reason": "payload_too_large",
+        "offset": 8,
+        "plane": "bootstrap",
+        "step": 6
+      },
+      "coverage": [
+        "bootstrap_step_6",
+        "defensive_equivalence"
+      ]
+    },
+    {
+      "id": "bootstrap-step7-trailing-bytes",
+      "kind": "bootstrap",
+      "path": "malformed/bootstrap-step7-trailing-bytes.bin",
+      "representation": "binary",
+      "byte_length": 33,
+      "sha256": "cbbfcd65f4fe7c70b91fed714931272669fa460b5e7a4f53397c88b88a7615af",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "523257500001000000000014a501810002a201f502f403a201f502f404a00680"
+        },
+        "ops": [
+          {
+            "op": "append_hex",
+            "hex": "00"
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 1,
+        "registry_name": "malformed_bootstrap",
+        "reason": "exact_total_mismatch",
+        "offset": 0,
+        "plane": "bootstrap",
+        "step": 7
+      },
+      "coverage": [
+        "bootstrap_step_7",
+        "bootstrap_trailing_bytes",
+        "trailing_bytes"
+      ]
+    },
+    {
+      "id": "bootstrap-step7-truncated-body",
+      "kind": "bootstrap",
+      "path": "malformed/bootstrap-step7-truncated-body.bin",
+      "representation": "binary",
+      "byte_length": 31,
+      "sha256": "251dde6489a76f30cd065f8d94a27de03579cc7ed08c482eae3986b41676a205",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "523257500001000000000014a501810002a201f502f403a201f502f404a00680"
+        },
+        "ops": [
+          {
+            "op": "truncate",
+            "length": 31
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 1,
+        "registry_name": "malformed_bootstrap",
+        "reason": "exact_total_mismatch",
+        "offset": 0,
+        "plane": "bootstrap",
+        "step": 7
+      },
+      "coverage": [
+        "bootstrap_step_7",
+        "bootstrap_truncation",
+        "truncation"
+      ]
+    },
+    {
+      "id": "bootstrap-step8-duplicate-map-key",
+      "kind": "bootstrap",
+      "path": "malformed/bootstrap-step8-duplicate-map-key.bin",
+      "representation": "binary",
+      "byte_length": 19,
+      "sha256": "048e34d2912d1ed96fa7327c586225c4aa603374ef83604211a2d435166a4ed3",
+      "source": {
+        "$type": "hex",
+        "hex": "523257500001000000000007a2018100018100"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 1,
+        "registry_name": "malformed_bootstrap",
+        "reason": "cbor_profile",
+        "offset": 16,
+        "plane": "bootstrap",
+        "step": 8
+      },
+      "coverage": [
+        "bootstrap_duplicate_cbor_key",
+        "bootstrap_step_8",
+        "duplicate_cbor_key"
+      ]
+    },
+    {
+      "id": "bootstrap-step8-indefinite-cbor",
+      "kind": "bootstrap",
+      "path": "malformed/bootstrap-step8-indefinite-cbor.bin",
+      "representation": "binary",
+      "byte_length": 13,
+      "sha256": "626b7e9aa43fb5fc1f505e2b73b8a4254678f7e169e2d6596ec132e3382c4b86",
+      "source": {
+        "$type": "hex",
+        "hex": "5232575000010000000000019f"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 1,
+        "registry_name": "malformed_bootstrap",
+        "reason": "cbor_profile",
+        "offset": 12,
+        "plane": "bootstrap",
+        "step": 8
+      },
+      "coverage": [
+        "bootstrap_step_8",
+        "cbor_profile"
+      ]
+    },
+    {
+      "id": "bootstrap-step8-non-shortest-key",
+      "kind": "bootstrap",
+      "path": "malformed/bootstrap-step8-non-shortest-key.bin",
+      "representation": "binary",
+      "byte_length": 16,
+      "sha256": "130358095e6363e6bc2c2d83e5d42ee7cce88a7c63671ebff1fe4aa9f9679a2c",
+      "source": {
+        "$type": "hex",
+        "hex": "523257500001000000000004a1180180"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 1,
+        "registry_name": "malformed_bootstrap",
+        "reason": "cbor_profile",
+        "offset": 13,
+        "plane": "bootstrap",
+        "step": 8
+      },
+      "coverage": [
+        "bootstrap_non_shortest_cbor",
+        "bootstrap_step_8",
+        "non_shortest_cbor"
+      ]
+    },
+    {
+      "id": "bootstrap-step9-kind-shape-mismatch",
+      "kind": "bootstrap",
+      "path": "malformed/bootstrap-step9-kind-shape-mismatch.bin",
+      "representation": "binary",
+      "byte_length": 15,
+      "sha256": "861aba4c3d2b90202d31d43975a232ec47853a3b184a45b2a764b6742d55a175",
+      "source": {
+        "$type": "hex",
+        "hex": "523257500001000000000003a10101"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 1,
+        "registry_name": "malformed_bootstrap",
+        "reason": "missing_key",
+        "offset": 12,
+        "plane": "bootstrap",
+        "step": 9
+      },
+      "coverage": [
+        "bootstrap_step_9",
+        "kind_shape"
+      ]
+    },
+    {
+      "id": "bootstrap-step9-wrong-kind-payload",
+      "kind": "bootstrap",
+      "path": "malformed/bootstrap-step9-wrong-kind-payload.bin",
+      "representation": "binary",
+      "byte_length": 32,
+      "sha256": "91b27b5ab8008c075093110cf37f6ee187bad5d1e15a23f057f9784ac048d8e0",
+      "source": {
+        "$type": "hex",
+        "hex": "523257500003000000000014a501810002a201f502f403a201f502f404a00680"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 1,
+        "registry_name": "malformed_bootstrap",
+        "reason": "unknown_key",
+        "offset": 12,
+        "plane": "bootstrap",
+        "step": 9
+      },
+      "coverage": [
+        "bootstrap_step_9",
+        "kind_shape"
+      ]
+    },
+    {
+      "id": "frame-multi-12-before-13",
+      "kind": "frame",
+      "path": "malformed/frame-multi-12-before-13.bin",
+      "representation": "binary",
+      "byte_length": 41,
+      "sha256": "5a499cb48e2f1bb8196970461f7d485c94a02bd3451d94338474272b9a270de3",
+      "source": {
+        "$type": "hex",
+        "hex": "000200000000000100000000000000000000000000000001000000010008020380000001aa01000001"
+      },
+      "decoder_context": {
+        "availableClockIds": [
+          0,
+          1
+        ]
+      },
+      "expected": {
+        "registry_code": 28,
+        "registry_name": "clock_unavailable",
+        "reason": "clock_unavailable",
+        "offset": 31,
+        "plane": "selected_frame",
+        "step": 12
+      },
+      "coverage": [
+        "multi_invalid",
+        "precedence_12_before_13"
+      ]
+    },
+    {
+      "id": "frame-multi-13-before-14",
+      "kind": "frame",
+      "path": "malformed/frame-multi-13-before-14.bin",
+      "representation": "binary",
+      "byte_length": 45,
+      "sha256": "597eb0bdf924a587acf820da53a10945e013c311cdca8019ab15855d0f0eea53",
+      "source": {
+        "$type": "hex",
+        "hex": "00020000000000010000000000000000000000000000000000000001000c020080000001aa0100006380000001"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 3,
+        "registry_name": "malformed_frame",
+        "reason": "extension_structural",
+        "offset": 37,
+        "plane": "selected_frame",
+        "step": 13
+      },
+      "coverage": [
+        "multi_invalid",
+        "precedence_13_before_14"
+      ]
+    },
+    {
+      "id": "frame-multi-14-before-15",
+      "kind": "frame",
+      "path": "malformed/frame-multi-14-before-15.bin",
+      "representation": "binary",
+      "byte_length": 37,
+      "sha256": "0648e5729d3d4b2a15ad7d3638bf4cff06ae199a6cc3527dd59ab35055153753",
+      "source": {
+        "$type": "hex",
+        "hex": "00020004000000010000000000000000000000000000000000000001000402006301000001"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 22,
+        "registry_name": "unsupported_extension",
+        "reason": "unknown_critical",
+        "offset": 32,
+        "plane": "selected_frame",
+        "step": 14
+      },
+      "coverage": [
+        "multi_invalid",
+        "precedence_14_before_15"
+      ]
+    },
+    {
+      "id": "frame-multi-15-before-16",
+      "kind": "frame",
+      "path": "malformed/frame-multi-15-before-16.bin",
+      "representation": "binary",
+      "byte_length": 33,
+      "sha256": "2570e7f69d8a8590ea6885b3c599c7993810f776be6cb5819177a9d2b4a5df1a",
+      "source": {
+        "$type": "hex",
+        "hex": "00010004000000000000000000000000000000000000000000000001000000009f"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 25,
+        "registry_name": "protocol_violation",
+        "reason": "trace_consistency",
+        "offset": 2,
+        "plane": "selected_frame",
+        "step": 15
+      },
+      "coverage": [
+        "multi_invalid",
+        "precedence_15_before_16"
+      ]
+    },
+    {
+      "id": "frame-multi-2-before-3",
+      "kind": "frame",
+      "path": "malformed/frame-multi-2-before-3.bin",
+      "representation": "binary",
+      "byte_length": 34,
+      "sha256": "d35362e4846bf6d0613f77544b2da43f6c20c3c8f938dc27edaa79e6ea9bc733",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0002000000000001000000000000000000000000000000000000000200000200dead"
+        },
+        "ops": [
+          {
+            "op": "set_u8",
+            "offset": 0,
+            "value": 1
+          },
+          {
+            "op": "set_u16be",
+            "offset": 28,
+            "value": 4097
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 4,
+        "registry_name": "unsupported_version",
+        "reason": "unsupported_version",
+        "offset": 0,
+        "plane": "selected_frame",
+        "step": 2
+      },
+      "coverage": [
+        "multi_invalid",
+        "precedence_2_before_3"
+      ]
+    },
+    {
+      "id": "frame-multi-3-before-4",
+      "kind": "frame",
+      "path": "malformed/frame-multi-3-before-4.bin",
+      "representation": "binary",
+      "byte_length": 34,
+      "sha256": "089aeeab2fa7c99a84154b438f8014a49ddbc7890d93fdbf79889295f6b01b91",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0002000000000001000000000000000000000000000000000000000200000200dead"
+        },
+        "ops": [
+          {
+            "op": "set_u32be",
+            "offset": 24,
+            "value": 67108865
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 24,
+        "registry_name": "message_too_large",
+        "reason": "payload_too_large",
+        "offset": 24,
+        "plane": "selected_frame",
+        "step": 3
+      },
+      "coverage": [
+        "multi_invalid",
+        "precedence_3_before_4"
+      ]
+    },
+    {
+      "id": "frame-multi-5-before-6",
+      "kind": "frame",
+      "path": "malformed/frame-multi-5-before-6.bin",
+      "representation": "binary",
+      "byte_length": 34,
+      "sha256": "264f3fdf64ba9aadd947c416d14634e68d01cfec9de53e6a774cb279c7600b8f",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0002000000000001000000000000000000000000000000000000000200000200dead"
+        },
+        "ops": [
+          {
+            "op": "set_u8",
+            "offset": 1,
+            "value": 0
+          },
+          {
+            "op": "set_u8",
+            "offset": 3,
+            "value": 32
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 5,
+        "registry_name": "unsupported_opcode",
+        "reason": "unsupported_opcode",
+        "offset": 1,
+        "plane": "selected_frame",
+        "step": 5
+      },
+      "coverage": [
+        "multi_invalid",
+        "precedence_5_before_6"
+      ]
+    },
+    {
+      "id": "frame-multi-6-before-8",
+      "kind": "frame",
+      "path": "malformed/frame-multi-6-before-8.bin",
+      "representation": "binary",
+      "byte_length": 34,
+      "sha256": "674f467a866b406b90c2213f77503e32cf173c8dc8d080c0dfefbd5818bd61b9",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0002000000000001000000000000000000000000000000000000000200000200dead"
+        },
+        "ops": [
+          {
+            "op": "set_u8",
+            "offset": 3,
+            "value": 32
+          },
+          {
+            "op": "set_u32be",
+            "offset": 4,
+            "value": 0
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 6,
+        "registry_name": "unsupported_flags",
+        "reason": "unknown_flag_bits",
+        "offset": 2,
+        "plane": "selected_frame",
+        "step": 6
+      },
+      "coverage": [
+        "multi_invalid",
+        "precedence_6_before_8"
+      ]
+    },
+    {
+      "id": "frame-multi-7-before-8",
+      "kind": "frame",
+      "path": "malformed/frame-multi-7-before-8.bin",
+      "representation": "binary",
+      "byte_length": 34,
+      "sha256": "d3439ad63afec2f3c441e0f7a6a75b242072cf051b93f5a6b32ea3115c100a18",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0002000000000001000000000000000000000000000000000000000200000200dead"
+        },
+        "ops": [
+          {
+            "op": "set_u16be",
+            "offset": 2,
+            "value": 16
+          },
+          {
+            "op": "set_u32be",
+            "offset": 4,
+            "value": 0
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 6,
+        "registry_name": "unsupported_flags",
+        "reason": "fragment_prohibited",
+        "offset": 2,
+        "plane": "selected_frame",
+        "step": 7
+      },
+      "coverage": [
+        "multi_invalid",
+        "precedence_7_before_8"
+      ]
+    },
+    {
+      "id": "frame-multi-9-before-16",
+      "kind": "frame",
+      "path": "malformed/frame-multi-9-before-16.bin",
+      "representation": "binary",
+      "byte_length": 33,
+      "sha256": "d1a9eca19731993ae8d4a8ae0dc181a6c9297a21f00ecbace1f7426c48a4edf6",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "00010000000000000000000000000000000000000000000000000001000000009f"
+        },
+        "ops": [
+          {
+            "op": "set_u8",
+            "offset": 30,
+            "value": 5
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 25,
+        "registry_name": "protocol_violation",
+        "reason": "unassigned_priority",
+        "offset": 30,
+        "plane": "selected_frame",
+        "step": 9
+      },
+      "coverage": [
+        "multi_invalid",
+        "precedence_9_before_16"
+      ]
+    },
+    {
+      "id": "frame-step1-truncated-header",
+      "kind": "frame",
+      "path": "malformed/frame-step1-truncated-header.bin",
+      "representation": "binary",
+      "byte_length": 31,
+      "sha256": "47d9a8c76e957f381091b77e8dbdc25bcf3be8baa04dedb0d8a1d38752c8b076",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0002000000000001000000000000000000000000000000000000000200000200dead"
+        },
+        "ops": [
+          {
+            "op": "truncate",
+            "length": 31
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 3,
+        "registry_name": "malformed_frame",
+        "reason": "truncated_header",
+        "offset": 0,
+        "plane": "selected_frame",
+        "step": 1
+      },
+      "coverage": [
+        "frame_step_1",
+        "truncation"
+      ]
+    },
+    {
+      "id": "frame-step10-unassigned-clock",
+      "kind": "frame",
+      "path": "malformed/frame-step10-unassigned-clock.bin",
+      "representation": "binary",
+      "byte_length": 34,
+      "sha256": "f1b04d9e48ef836854a986541f1e2744579a29d687383c836fb62af230c5bb11",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0002000000000001000000000000000000000000000000000000000200000200dead"
+        },
+        "ops": [
+          {
+            "op": "set_u8",
+            "offset": 31,
+            "value": 5
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 25,
+        "registry_name": "protocol_violation",
+        "reason": "unassigned_clock",
+        "offset": 31,
+        "plane": "selected_frame",
+        "step": 10
+      },
+      "coverage": [
+        "frame_step_10"
+      ]
+    },
+    {
+      "id": "frame-step11-none-nonzero-time",
+      "kind": "frame",
+      "path": "malformed/frame-step11-none-nonzero-time.bin",
+      "representation": "binary",
+      "byte_length": 33,
+      "sha256": "47cc3350dc60a2922e0daf4b290a90b91baccc09d55a69d50152d40e97a17e21",
+      "source": {
+        "$type": "hex",
+        "hex": "000200000000000100000000000000000000000000000001000000010000020001"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 25,
+        "registry_name": "protocol_violation",
+        "reason": "none_requires_zero_time",
+        "offset": 16,
+        "plane": "selected_frame",
+        "step": 11
+      },
+      "coverage": [
+        "frame_step_11"
+      ]
+    },
+    {
+      "id": "frame-step12-clock-unavailable",
+      "kind": "frame",
+      "path": "malformed/frame-step12-clock-unavailable.bin",
+      "representation": "binary",
+      "byte_length": 33,
+      "sha256": "993e15efb3361a5c064aa42c616888625058d97d16396fc40c36a01a375d5240",
+      "source": {
+        "$type": "hex",
+        "hex": "000200000000000100000000000000000000000000000001000000010000020301"
+      },
+      "decoder_context": {
+        "availableClockIds": [
+          0,
+          1
+        ]
+      },
+      "expected": {
+        "registry_code": 28,
+        "registry_name": "clock_unavailable",
+        "reason": "clock_unavailable",
+        "offset": 31,
+        "plane": "selected_frame",
+        "step": 12
+      },
+      "coverage": [
+        "frame_step_12",
+        "unavailable_clock_context"
+      ]
+    },
+    {
+      "id": "frame-step13-descending-order",
+      "kind": "frame",
+      "path": "malformed/frame-step13-descending-order.bin",
+      "representation": "binary",
+      "byte_length": 89,
+      "sha256": "009729fb77b17f5751a1f0ad7f34ef16a31dadefd46d483b373f5acdbdd97d69",
+      "source": {
+        "$type": "hex",
+        "hex": "0002000000000001000000000000000000000000000000000000000100380200020000100000000000000000000000000000000001000020010000000000000000000000000000000000000000000000010000000000000001"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 3,
+        "registry_name": "malformed_frame",
+        "reason": "extension_structural",
+        "offset": 52,
+        "plane": "selected_frame",
+        "step": 13
+      },
+      "coverage": [
+        "frame_step_13",
+        "tlv_order"
+      ]
+    },
+    {
+      "id": "frame-step13-duplicate-type",
+      "kind": "frame",
+      "path": "malformed/frame-step13-duplicate-type.bin",
+      "representation": "binary",
+      "byte_length": 73,
+      "sha256": "9d719b4e381bf4045b12b03d2b9e2146bfe02d04f10fb1228a56afa7742fa8ee",
+      "source": {
+        "$type": "hex",
+        "hex": "00020000000000010000000000000000000000000000000000000001002802000200001000000000000000000000000000000000020000100000000000000000000000000000000001"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 3,
+        "registry_name": "malformed_frame",
+        "reason": "extension_structural",
+        "offset": 52,
+        "plane": "selected_frame",
+        "step": 13
+      },
+      "coverage": [
+        "frame_step_13",
+        "tlv_duplicate"
+      ]
+    },
+    {
+      "id": "frame-step13-tlv-bounds",
+      "kind": "frame",
+      "path": "malformed/frame-step13-tlv-bounds.bin",
+      "representation": "binary",
+      "byte_length": 37,
+      "sha256": "4f38fe3f53ba4240970b53679789ac47acb4c259dbaa12bdd699805dec96b115",
+      "source": {
+        "$type": "hex",
+        "hex": "00020000000000010000000000000000000000000000000000000001000402008000000a01"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 3,
+        "registry_name": "malformed_frame",
+        "reason": "extension_structural",
+        "offset": 36,
+        "plane": "selected_frame",
+        "step": 13
+      },
+      "coverage": [
+        "frame_step_13",
+        "tlv_bounds"
+      ]
+    },
+    {
+      "id": "frame-step13-tlv-padding",
+      "kind": "frame",
+      "path": "malformed/frame-step13-tlv-padding.bin",
+      "representation": "binary",
+      "byte_length": 41,
+      "sha256": "97bfa03399aad379fc107388a6c7174186e38a65ef5dc38228f195e93e9cbed2",
+      "source": {
+        "$type": "hex",
+        "hex": "000200000000000100000000000000000000000000000000000000010008020080000001aa01000001"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 3,
+        "registry_name": "malformed_frame",
+        "reason": "extension_structural",
+        "offset": 37,
+        "plane": "selected_frame",
+        "step": 13
+      },
+      "coverage": [
+        "frame_step_13",
+        "tlv_padding"
+      ]
+    },
+    {
+      "id": "frame-step14-unknown-critical",
+      "kind": "frame",
+      "path": "malformed/frame-step14-unknown-critical.bin",
+      "representation": "binary",
+      "byte_length": 37,
+      "sha256": "855df4f3d724ca793c833395cca636932e94de9095c83272f9a6b16c494ae80b",
+      "source": {
+        "$type": "hex",
+        "hex": "00020000000000010000000000000000000000000000000000000001000402006301000001"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 22,
+        "registry_name": "unsupported_extension",
+        "reason": "unknown_critical",
+        "offset": 32,
+        "plane": "selected_frame",
+        "step": 14
+      },
+      "coverage": [
+        "frame_step_14",
+        "unknown_critical"
+      ]
+    },
+    {
+      "id": "frame-step15-trace-ext-without-flag",
+      "kind": "frame",
+      "path": "malformed/frame-step15-trace-ext-without-flag.bin",
+      "representation": "binary",
+      "byte_length": 69,
+      "sha256": "6bfa2600ce1f76d62867c867516cee46490450c854c289801c396acfb40f5a16",
+      "source": {
+        "$type": "hex",
+        "hex": "000200000000000100000000000000000000000000000000000000010024020001000020010000000000000000000000000000000000000000000000010000000000000001"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 25,
+        "registry_name": "protocol_violation",
+        "reason": "trace_consistency",
+        "offset": 32,
+        "plane": "selected_frame",
+        "step": 15
+      },
+      "coverage": [
+        "frame_step_15",
+        "trace_ext_without_flag"
+      ]
+    },
+    {
+      "id": "frame-step15-trace-flag-without-ext",
+      "kind": "frame",
+      "path": "malformed/frame-step15-trace-flag-without-ext.bin",
+      "representation": "binary",
+      "byte_length": 33,
+      "sha256": "2b5bbbe1b9239b1de0af691bd78ac8816a3fafe284a2e0b0f6cca1d10c72856e",
+      "source": {
+        "$type": "hex",
+        "hex": "000200040000000100000000000000000000000000000000000000010000020001"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 25,
+        "registry_name": "protocol_violation",
+        "reason": "trace_consistency",
+        "offset": 2,
+        "plane": "selected_frame",
+        "step": 15
+      },
+      "coverage": [
+        "frame_step_15",
+        "trace_flag_without_ext"
+      ]
+    },
+    {
+      "id": "frame-step16-control-cddl-shape",
+      "kind": "frame",
+      "path": "malformed/frame-step16-control-cddl-shape.bin",
+      "representation": "binary",
+      "byte_length": 37,
+      "sha256": "920f7d40a548115f7e98f10f1949cbf5c95b0fe1269f43addf4744b5befb0234",
+      "source": {
+        "$type": "hex",
+        "hex": "0001000000000000000000000000000000000000000000000000000500000000a1011903e7"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 23,
+        "registry_name": "invalid_control",
+        "reason": "invalid_control",
+        "offset": 32,
+        "plane": "selected_frame",
+        "step": 16
+      },
+      "coverage": [
+        "cddl_shape",
+        "control_cddl_shape",
+        "frame_step_16"
+      ]
+    },
+    {
+      "id": "frame-step16-control-duplicate-key",
+      "kind": "frame",
+      "path": "malformed/frame-step16-control-duplicate-key.bin",
+      "representation": "binary",
+      "byte_length": 37,
+      "sha256": "78b46e20c07af3018abc7563ea05d10a15f98d7cd9d920bf7c7af33b7eb50537",
+      "source": {
+        "$type": "hex",
+        "hex": "0001000000000000000000000000000000000000000000000000000500000000a201020103"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 23,
+        "registry_name": "invalid_control",
+        "reason": "invalid_control",
+        "offset": 35,
+        "plane": "selected_frame",
+        "step": 16
+      },
+      "coverage": [
+        "control_duplicate_cbor_key",
+        "duplicate_cbor_key",
+        "frame_step_16"
+      ]
+    },
+    {
+      "id": "frame-step16-control-indefinite",
+      "kind": "frame",
+      "path": "malformed/frame-step16-control-indefinite.bin",
+      "representation": "binary",
+      "byte_length": 33,
+      "sha256": "dbd822e40738e45e7b554379a3eb3bfb2838bd2a95a397afce177bc552188203",
+      "source": {
+        "$type": "hex",
+        "hex": "00010000000000000000000000000000000000000000000000000001000000009f"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 23,
+        "registry_name": "invalid_control",
+        "reason": "invalid_control",
+        "offset": 32,
+        "plane": "selected_frame",
+        "step": 16
+      },
+      "coverage": [
+        "cbor_profile",
+        "control_cbor_profile",
+        "frame_step_16"
+      ]
+    },
+    {
+      "id": "frame-step16-control-non-shortest",
+      "kind": "frame",
+      "path": "malformed/frame-step16-control-non-shortest.bin",
+      "representation": "binary",
+      "byte_length": 36,
+      "sha256": "449ac3ea344898cc659cbfba989f97e51944cf148fca586618e88ef642a2bf1f",
+      "source": {
+        "$type": "hex",
+        "hex": "0001000000000000000000000000000000000000000000000000000400000000a1180102"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 23,
+        "registry_name": "invalid_control",
+        "reason": "invalid_control",
+        "offset": 33,
+        "plane": "selected_frame",
+        "step": 16
+      },
+      "coverage": [
+        "control_non_shortest_cbor",
+        "frame_step_16",
+        "non_shortest_cbor"
+      ]
+    },
+    {
+      "id": "frame-step2-version-mismatch",
+      "kind": "frame",
+      "path": "malformed/frame-step2-version-mismatch.bin",
+      "representation": "binary",
+      "byte_length": 34,
+      "sha256": "292e01843f3f17e4bce1d2440fd75518f3ed15ced08733b7e873b7dfbcf14fd5",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0002000000000001000000000000000000000000000000000000000200000200dead"
+        },
+        "ops": [
+          {
+            "op": "set_u8",
+            "offset": 0,
+            "value": 1
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 4,
+        "registry_name": "unsupported_version",
+        "reason": "unsupported_version",
+        "offset": 0,
+        "plane": "selected_frame",
+        "step": 2
+      },
+      "coverage": [
+        "frame_step_2"
+      ]
+    },
+    {
+      "id": "frame-step3-extension-overflow",
+      "kind": "frame",
+      "path": "malformed/frame-step3-extension-overflow.bin",
+      "representation": "binary",
+      "byte_length": 34,
+      "sha256": "737e0d60ac27284b13d97a25215a4d9b60424ee691e99b4f22a2cc03832b42eb",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0002000000000001000000000000000000000000000000000000000200000200dead"
+        },
+        "ops": [
+          {
+            "op": "set_u16be",
+            "offset": 28,
+            "value": 4097
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 24,
+        "registry_name": "message_too_large",
+        "reason": "extension_too_large",
+        "offset": 28,
+        "plane": "selected_frame",
+        "step": 3
+      },
+      "coverage": [
+        "declared_bound_overflow",
+        "extension_overflow",
+        "frame_step_3"
+      ]
+    },
+    {
+      "id": "frame-step3-payload-overflow",
+      "kind": "frame",
+      "path": "malformed/frame-step3-payload-overflow.bin",
+      "representation": "binary",
+      "byte_length": 34,
+      "sha256": "089aeeab2fa7c99a84154b438f8014a49ddbc7890d93fdbf79889295f6b01b91",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0002000000000001000000000000000000000000000000000000000200000200dead"
+        },
+        "ops": [
+          {
+            "op": "set_u32be",
+            "offset": 24,
+            "value": 67108865
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 24,
+        "registry_name": "message_too_large",
+        "reason": "payload_too_large",
+        "offset": 24,
+        "plane": "selected_frame",
+        "step": 3
+      },
+      "coverage": [
+        "declared_bound_overflow",
+        "frame_step_3",
+        "payload_overflow"
+      ]
+    },
+    {
+      "id": "frame-step4-trailing-bytes",
+      "kind": "frame",
+      "path": "malformed/frame-step4-trailing-bytes.bin",
+      "representation": "binary",
+      "byte_length": 35,
+      "sha256": "03c660c70dbcd65845349fdee6e2544c90637acf01a05418fa8c0fa9c25206b5",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0002000000000001000000000000000000000000000000000000000200000200dead"
+        },
+        "ops": [
+          {
+            "op": "append_hex",
+            "hex": "00"
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 3,
+        "registry_name": "malformed_frame",
+        "reason": "exact_total_mismatch",
+        "offset": 0,
+        "plane": "selected_frame",
+        "step": 4
+      },
+      "coverage": [
+        "frame_step_4",
+        "frame_trailing_bytes",
+        "trailing_bytes"
+      ]
+    },
+    {
+      "id": "frame-step4-truncated-body",
+      "kind": "frame",
+      "path": "malformed/frame-step4-truncated-body.bin",
+      "representation": "binary",
+      "byte_length": 33,
+      "sha256": "2b1feb2b8eab5986c4732ff775b7a532a35ec4c4dcb11ca52aa1b2da0b149b5d",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0002000000000001000000000000000000000000000000000000000200000200dead"
+        },
+        "ops": [
+          {
+            "op": "truncate",
+            "length": 33
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 3,
+        "registry_name": "malformed_frame",
+        "reason": "exact_total_mismatch",
+        "offset": 0,
+        "plane": "selected_frame",
+        "step": 4
+      },
+      "coverage": [
+        "frame_step_4",
+        "frame_truncation",
+        "truncation"
+      ]
+    },
+    {
+      "id": "frame-step5-experimental-disabled",
+      "kind": "frame",
+      "path": "malformed/frame-step5-experimental-disabled.bin",
+      "representation": "binary",
+      "byte_length": 34,
+      "sha256": "13b979645b00e5e8037b01a087f86d8ded48321058ad165ef2d21a322345ed0e",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0002000000000001000000000000000000000000000000000000000200000200dead"
+        },
+        "ops": [
+          {
+            "op": "set_u8",
+            "offset": 1,
+            "value": 128
+          }
+        ]
+      },
+      "decoder_context": {
+        "experimentalOpcodesEnabled": false
+      },
+      "expected": {
+        "registry_code": 5,
+        "registry_name": "unsupported_opcode",
+        "reason": "unsupported_opcode",
+        "offset": 1,
+        "plane": "selected_frame",
+        "step": 5
+      },
+      "coverage": [
+        "capability_gated_opcode",
+        "frame_step_5"
+      ]
+    },
+    {
+      "id": "frame-step5-unassigned-opcode",
+      "kind": "frame",
+      "path": "malformed/frame-step5-unassigned-opcode.bin",
+      "representation": "binary",
+      "byte_length": 34,
+      "sha256": "bd2c9f5d671f29713569de7e52507369bece9fb3e37e799295b86d8d2a5c6455",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0002000000000001000000000000000000000000000000000000000200000200dead"
+        },
+        "ops": [
+          {
+            "op": "set_u8",
+            "offset": 1,
+            "value": 0
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 5,
+        "registry_name": "unsupported_opcode",
+        "reason": "unsupported_opcode",
+        "offset": 1,
+        "plane": "selected_frame",
+        "step": 5
+      },
+      "coverage": [
+        "frame_step_5",
+        "unassigned_opcode"
+      ]
+    },
+    {
+      "id": "frame-step6-unknown-flag-bits",
+      "kind": "frame",
+      "path": "malformed/frame-step6-unknown-flag-bits.bin",
+      "representation": "binary",
+      "byte_length": 34,
+      "sha256": "29dda0e6d1b5ff0d6a8643e01f15f3f9cf7cbae4eb7a61cfd3205eeab286324b",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0002000000000001000000000000000000000000000000000000000200000200dead"
+        },
+        "ops": [
+          {
+            "op": "set_u8",
+            "offset": 3,
+            "value": 32
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 6,
+        "registry_name": "unsupported_flags",
+        "reason": "unknown_flag_bits",
+        "offset": 2,
+        "plane": "selected_frame",
+        "step": 6
+      },
+      "coverage": [
+        "frame_step_6"
+      ]
+    },
+    {
+      "id": "frame-step7-fragment-prohibited",
+      "kind": "frame",
+      "path": "malformed/frame-step7-fragment-prohibited.bin",
+      "representation": "binary",
+      "byte_length": 34,
+      "sha256": "093ac330b4251cc1c06895408996c16cc87b9d9c50170b198427efcbe6b5b9f9",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0002000000000001000000000000000000000000000000000000000200000200dead"
+        },
+        "ops": [
+          {
+            "op": "set_u16be",
+            "offset": 2,
+            "value": 16
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 6,
+        "registry_name": "unsupported_flags",
+        "reason": "fragment_prohibited",
+        "offset": 2,
+        "plane": "selected_frame",
+        "step": 7
+      },
+      "coverage": [
+        "flag_fragment",
+        "fragment",
+        "frame_step_7"
+      ]
+    },
+    {
+      "id": "frame-step7-keyframe-opcode",
+      "kind": "frame",
+      "path": "malformed/frame-step7-keyframe-opcode.bin",
+      "representation": "binary",
+      "byte_length": 34,
+      "sha256": "dab44c61636d699c34c392aeb35b28a3135c528c6539c291a53d2fe189e46ccf",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0002000000000001000000000000000000000000000000000000000200000200dead"
+        },
+        "ops": [
+          {
+            "op": "set_u16be",
+            "offset": 2,
+            "value": 2
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 6,
+        "registry_name": "unsupported_flags",
+        "reason": "keyframe_opcode",
+        "offset": 2,
+        "plane": "selected_frame",
+        "step": 7
+      },
+      "coverage": [
+        "flag_keyframe",
+        "frame_step_7",
+        "keyframe"
+      ]
+    },
+    {
+      "id": "frame-step7-retained-opcode",
+      "kind": "frame",
+      "path": "malformed/frame-step7-retained-opcode.bin",
+      "representation": "binary",
+      "byte_length": 33,
+      "sha256": "62c0d1717695774bf2bf9d5021a089ee3f5d3156859e3f18f0a698c87f277984",
+      "source": {
+        "$type": "hex",
+        "hex": "000a00080000000100000000000000000000000000000000000000010000020001"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 6,
+        "registry_name": "unsupported_flags",
+        "reason": "ros_flag_opcode",
+        "offset": 2,
+        "plane": "selected_frame",
+        "step": 7
+      },
+      "coverage": [
+        "flag_retained",
+        "frame_step_7",
+        "retained"
+      ]
+    },
+    {
+      "id": "frame-step7-ros-reliable-opcode",
+      "kind": "frame",
+      "path": "malformed/frame-step7-ros-reliable-opcode.bin",
+      "representation": "binary",
+      "byte_length": 33,
+      "sha256": "af299f330674c172fcfba6beeceae10a7ac21d1bb81ad74d29208b216a259e37",
+      "source": {
+        "$type": "hex",
+        "hex": "000300010000000100000000000000000000000000000000000000010000020001"
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 6,
+        "registry_name": "unsupported_flags",
+        "reason": "ros_flag_opcode",
+        "offset": 2,
+        "plane": "selected_frame",
+        "step": 7
+      },
+      "coverage": [
+        "flag_ros_reliable",
+        "frame_step_7",
+        "ros_reliable"
+      ]
+    },
+    {
+      "id": "frame-step8-app-on-control-channel",
+      "kind": "frame",
+      "path": "malformed/frame-step8-app-on-control-channel.bin",
+      "representation": "binary",
+      "byte_length": 34,
+      "sha256": "a7fa6ec588b0708e973e55e9c3e622f06e45ffaea27d520b8b753229a510d0d5",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0002000000000001000000000000000000000000000000000000000200000200dead"
+        },
+        "ops": [
+          {
+            "op": "set_u32be",
+            "offset": 4,
+            "value": 0
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 25,
+        "registry_name": "protocol_violation",
+        "reason": "channel_class",
+        "offset": 4,
+        "plane": "selected_frame",
+        "step": 8
+      },
+      "coverage": [
+        "channel_app_on_control",
+        "channel_class",
+        "frame_step_8"
+      ]
+    },
+    {
+      "id": "frame-step8-control-on-app-channel",
+      "kind": "frame",
+      "path": "malformed/frame-step8-control-on-app-channel.bin",
+      "representation": "binary",
+      "byte_length": 62,
+      "sha256": "908a469d3d872651c150181710a4384b8c7a543c083522d10669088705e04ba0",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0001000000000000000000000000000000000000000000000000001e00000000a401010250000000000000000000000000000000001063746f6b1142abcd"
+        },
+        "ops": [
+          {
+            "op": "set_u32be",
+            "offset": 4,
+            "value": 1
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 25,
+        "registry_name": "protocol_violation",
+        "reason": "channel_class",
+        "offset": 4,
+        "plane": "selected_frame",
+        "step": 8
+      },
+      "coverage": [
+        "channel_class",
+        "channel_control_on_app",
+        "frame_step_8"
+      ]
+    },
+    {
+      "id": "frame-step9-control-priority",
+      "kind": "frame",
+      "path": "malformed/frame-step9-control-priority.bin",
+      "representation": "binary",
+      "byte_length": 62,
+      "sha256": "b7eb333ad0d0c0ce8abeb5c0cc41ca4188814c315be2c0b6434556d3d73db4f4",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0001000000000000000000000000000000000000000000000000001e00000000a401010250000000000000000000000000000000001063746f6b1142abcd"
+        },
+        "ops": [
+          {
+            "op": "set_u8",
+            "offset": 30,
+            "value": 2
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 25,
+        "registry_name": "protocol_violation",
+        "reason": "control_priority",
+        "offset": 30,
+        "plane": "selected_frame",
+        "step": 9
+      },
+      "coverage": [
+        "control_priority",
+        "frame_step_9"
+      ]
+    },
+    {
+      "id": "frame-step9-unassigned-priority",
+      "kind": "frame",
+      "path": "malformed/frame-step9-unassigned-priority.bin",
+      "representation": "binary",
+      "byte_length": 34,
+      "sha256": "a541e0c8556d7167b5c09a3c470ae32d3b7d5d9065e7aaeaba445e3c0bfcf744",
+      "source": {
+        "$type": "mutate",
+        "base": {
+          "$type": "hex",
+          "hex": "0002000000000001000000000000000000000000000000000000000200000200dead"
+        },
+        "ops": [
+          {
+            "op": "set_u8",
+            "offset": 30,
+            "value": 5
+          }
+        ]
+      },
+      "decoder_context": {},
+      "expected": {
+        "registry_code": 25,
+        "registry_name": "protocol_violation",
+        "reason": "unassigned_priority",
+        "offset": 30,
+        "plane": "selected_frame",
+        "step": 9
+      },
+      "coverage": [
+        "frame_step_9",
+        "unassigned_priority"
+      ]
+    }
+  ]
+}
