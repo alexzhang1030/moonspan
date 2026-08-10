@@ -4,6 +4,8 @@
 
 **Status:** design baseline. M1 establishes the host boundary and publish/subscribe core; M2 completes the N2 semantic surface.
 
+Schema identity follows [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md). First-stage environment pins live in the [support matrix](../support-matrix.md).
+
 ## Runtime scope
 
 The mainline runtime implements:
@@ -18,7 +20,7 @@ The mainline runtime implements:
 - Action clients and servers, goal state, feedback, result, and cancellation;
 - Parameter list, get, set, describe, events, and atomic update semantics;
 - ROS, system, steady, and simulation clocks;
-- generated and dynamic type handling keyed by RIHS hash.
+- generated and dynamic type handling keyed by schema identity `(scheme, value)` with type name, encoding, and schema generation.
 
 ## Planned package structure
 
@@ -27,9 +29,9 @@ rclmbt/
   rclmbt_core/           Context, Node, Executor, WaitSet, Clock, Logger
   rmw_web_mbt/           discovery, pub/sub, request/reply, QoS, liveliness
   cdr_mbt/               CDR1/XCDR2 codec, alignment, endian, bounded sequences
-  rosidl_mbt_runtime/     primitives, arrays, strings, nested types, type hash
+  rosidl_mbt_runtime/     primitives, arrays, strings, nested types, schema identity
   rosidl_generator_mbt/   .msg/.srv/.action and type description -> MoonBit
-  type_registry_mbt/      RIHS hash, dynamic schema, lazy field projection
+  type_registry_mbt/      (scheme, value) cache, dynamic schema, lazy field projection
   web_host/               JS FFI, Worker scheduling, buffers, clocks, metrics
   conformance/            CDR, graph, QoS, service, action, parameter tests
 ```
@@ -78,22 +80,37 @@ Each host turn passes a bounded ready-event batch into `rclmbt.poll(batch)`. The
 
 ## Type and schema flow
 
-1. `rclwebd` discovers a ROS type name and type hash from the graph.
-2. The gateway obtains the recursive type description through [`GetTypeDescription`](https://docs.ros.org/en/lyrical/p/type_description_interfaces/srv/GetTypeDescription.html) or a pinned compatibility source.
-3. R2WP advertises the type name, RIHS hash, encoding, and schema generation.
-4. The browser registry keys cached descriptions and codecs by RIHS hash.
-5. `rclmbt` selects a generated codec or compiles a dynamic field plan.
-6. Samples carry CDR bytes plus channel identity; the channel supplies the schema association.
+The browser runtime is distro-independent. It consumes normalized schema records from R2WP and the gateway. Adapters produce those records through two first-stage paths:
 
-ROS 2's [type description generator](https://docs.ros.org/en/ros2_packages/jazzy/api/rosidl_generator_type_description/) supplies recursive descriptions and RIHS identity for the generated corpus.
+### Jazzy path
+
+1. The Jazzy adapter discovers a ROS type name and acts as a client of a node's native `~/get_type_description` endpoint using the [`GetTypeDescription`](https://docs.ros.org/en/jazzy/p/type_description_interfaces/srv/GetTypeDescription.html) service.
+2. Schema identity uses scheme `rep2011-rihs` with the REP-2011 RIHS value.
+3. Optional provenance may also record a `moonspan-schema-v1` bundle digest for cross-version lookup.
+
+### Humble path
+
+1. The Humble adapter uses [`GenericPublisher`](https://docs.ros.org/en/humble/p/rclcpp/generated/classrclcpp_1_1GenericPublisher.html), [`GenericSubscription`](https://docs.ros.org/en/humble/p/rclcpp/generated/classrclcpp_1_1GenericSubscription.html), and [`get_typesupport_library`](https://docs.ros.org/en/ros2_packages/humble/api/rclcpp/generated/function_namespacerclcpp_1a629c76e9f974bbaed3b82b030f7f1b01.html) for generic serialized operations.
+2. Custom types ship a complete recursive deployment bundle and manifest.
+3. Schema identity uses scheme `moonspan-schema-v1` with the SHA-256 of deterministic canonical bundle bytes.
+4. When the required bundle is missing, channel open surfaces stable `schema_unavailable` before channel activation.
+
+### Shared browser steps
+
+1. R2WP advertises type name, schema identity `(scheme, value)`, encoding, and schema generation.
+2. The browser registry keys cached descriptions and codecs by the cache key `(scheme, value, type name, encoding, schema generation)`. Schema identity remains exactly `(scheme, value)`.
+3. `rclmbt` selects a generated codec or compiles a dynamic field plan.
+4. Samples carry CDR bytes plus channel identity; the channel supplies the schema association.
+
+ROS 2's [type description generator](https://docs.ros.org/en/ros2_packages/jazzy/api/rosidl_generator_type_description/) supplies recursive descriptions for the generated corpus on platforms that expose native type description.
 
 ### Generated path
 
-`rosidl_generator_mbt` converts `.msg`, `.srv`, `.action`, and type descriptions into MoonBit types and specialized codecs. This path serves pinned common interfaces and application-owned schemas, with compile-time field shape and fast CDR access.
+`rosidl_generator_mbt` converts `.msg`, `.srv`, `.action`, and type descriptions into MoonBit types and specialized codecs. Generated codecs register and validate the schema identity scheme and value at load time. This path serves pinned common interfaces and application-owned schemas, with compile-time field shape and fast CDR access.
 
 ### Dynamic path
 
-Custom types load a recursive description at runtime. The registry validates the RIHS hash, builds an alignment-aware field plan, and projects only requested fields. Repeated samples reuse the cached plan.
+Custom types load a recursive description at runtime. The registry validates the schema identity `(scheme, value)`, builds an alignment-aware field plan, and projects only requested fields. Dynamic field plans cache by the cache key `(scheme, value, type name, encoding, schema generation)`. Repeated samples reuse the cached plan.
 
 ## CDR requirements
 
@@ -126,6 +143,7 @@ Authoritative bytes come from the pinned ROS-generated corpus. Mainline acceptan
 - Request and goal identities correlate replies, feedback, results, cancellation, and timeout.
 - Clock identity accompanies every deadline and timestamp conversion.
 - Terminal session transitions complete pending operations with structured errors.
+- Missing required Humble bundle produces `schema_unavailable` before channel activation.
 - Panic boundaries convert runtime failures into a Worker fault event, release owned buffers, and support a clean SDK restart.
 
 ## Conformance surface
@@ -139,6 +157,9 @@ The runtime suite covers:
 - Action goal acceptance, rejection state, feedback, result, cancellation, and restart handling;
 - Parameter descriptors, atomic updates, events, permissions, and type errors;
 - ROS time, simulation time, steady deadlines, clock jumps, and skew mapping;
+- schema identity for `rep2011-rihs` and `moonspan-schema-v1`;
+- Jazzy provenance mapping between `rep2011-rihs` and `moonspan-schema-v1`;
+- missing required Humble bundle (`schema_unavailable`);
 - both browser buffer paths, Worker restart, batch limits, and memory stability.
 
 [Validation](../validation.md) defines evidence artifacts and release gates.

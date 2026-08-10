@@ -19,7 +19,7 @@ Policy uses explicit allow rules over:
 
 - subject, group, tenant, robot, fleet, and ROS domain;
 - operation kind: graph, subscribe, publish, service, action, parameter, recording, asset, diagnostics;
-- ROS name pattern and type/RIHS identity;
+- ROS name pattern, type name, and schema identity `(scheme, value)`;
 - QoS and durability class;
 - rate, sample size, bandwidth, concurrency, queue bytes, and deadline;
 - command confirmation and audit requirements;
@@ -32,7 +32,7 @@ The gateway returns the effective capability set and policy revision to the SDK.
 Publish, Service, Action, and Parameter mutations carry:
 
 - authenticated subject and session;
-- target name, operation kind, type hash, and payload summary;
+- target name, operation kind, type name, schema identity `(scheme, value)`, and payload summary;
 - deadline, concurrency key, and idempotency or correlation identity where supported;
 - capability decision and policy revision;
 - audit identity and end-to-end trace identity;
@@ -79,7 +79,7 @@ Deployment qualification records:
 
 ## Audit contract
 
-Audit records include timestamp and clock identity, subject, session, robot, domain, target, operation, type hash, policy revision, decision, resource envelope, correlation identity, result, latency, and trace reference. Sensitive payload capture follows an explicit field policy and retention class.
+Audit records include timestamp and clock identity, subject, session, robot, domain, target, operation, type name, schema identity `(scheme, value)`, policy revision, decision, resource envelope, correlation identity, result, latency, and trace reference. Sensitive payload capture follows an explicit field policy and retention class.
 
 Audit sinks define integrity, availability, buffering, redaction, retention, export, and recovery behavior. A sink outage follows a configured operation policy with a visible health state.
 

@@ -20,10 +20,12 @@ Robot / Edge
           |
           v
 ROS 2 domain
-  selected DDS or Zenoh mapping
+  one selected first-stage DDS mapping
 ```
 
 After the mainline release, the common Studio prototype adds React workspace state plus render and codec workers through the public TypeScript SDK.
+
+First-stage domain mappings are Fast DDS (`rmw_fastrtps_cpp`) and Cyclone DDS (`rmw_cyclonedds_cpp`) on Humble and Jazzy. Exact row pins and **Qualification target** status live in the [support matrix](./support-matrix.md). Later topology rows enter through support-matrix qualification.
 
 ## Ownership boundaries
 
@@ -31,30 +33,30 @@ After the mainline release, the common Studio prototype adds React workspace sta
 |---|---|---|
 | Browser SDK | Session lifecycle, typed APIs, Worker host, telemetry, buffer ownership | Public TypeScript API and versioned events |
 | `io.worker` | WebTransport/WSS I/O, R2WP framing, reconnection, inbound and outbound buffers | R2WP frames and bounded event batches |
-| `rclmbt` | Context, Node, Executor, Graph, QoS, Clock, Service, Action, Parameter, CDR, type registry | Host `poll` ABI, typed SDK events, R2WP channels |
-| `rclwebd` | Sessions, channel scheduler, schema cache, identity, policy, audit, metrics, compatibility routing | R2WP toward browsers; narrow C ABI toward ROS |
-| ROS C adapter | Generic serialized operations and distro-specific integration | Versioned adapter ABI over `rcl` and `rmw` |
-| ROS domain | Discovery, native endpoints, middleware delivery, ROS clocks and liveliness | Selected DDS or Zenoh mapping |
+| `rclmbt` | Context, Node, Executor, Graph, QoS, Clock, Service, Action, Parameter, CDR, type registry keyed by `(scheme, value)` | Host `poll` ABI, typed SDK events, R2WP channels |
+| `rclwebd` | Sessions, channel scheduler, schema cache by `(scheme, value)`, identity, policy, audit, metrics, compatibility routing | R2WP toward browsers; narrow C ABI toward ROS |
+| ROS C adapter | Generic serialized operations, distro-specific schema acquisition, and ROS integration | Versioned adapter ABI over `rcl` and `rmw` |
+| ROS domain | Discovery, native endpoints, middleware delivery, ROS clocks and liveliness | One selected first-stage DDS mapping |
 | Conformance system | Fixtures, workload definitions, environment manifests, reports, release evidence | Machine-readable results and stable report schemas |
 | Common Studio prototype | Workspace, panels, rendering, media, accessibility, operator interaction | Released browser SDK and policy capability schema |
 
 ## Inbound topic path
 
-1. The ROS adapter receives a serialized sample with graph, type, QoS, and time identity.
+1. The ROS adapter receives a serialized sample with graph, type name, schema identity `(scheme, value)`, QoS, and time identity.
 2. `rclwebd` applies session policy, queue budgets, and channel scheduling.
 3. WebTransport or binary WSS carries the shared R2WP envelope.
 4. `io.worker` validates the frame and transfers a bounded batch to `rclmbt.worker`.
-5. `rclmbt` resolves the RIHS-keyed schema and decodes generated types or dynamically projects requested fields.
+5. `rclmbt` resolves the schema by `(scheme, value)` with type name, encoding, and schema generation, then decodes generated types or dynamically projects requested fields.
 6. The SDK emits a typed sample plus correlated source, network, queue, decode, and delivery telemetry.
 
 ## Outbound command path
 
 1. The application creates a typed publish, service, action, or parameter operation through the SDK.
-2. `rclmbt` validates the type, deadline, clock, and local state transition.
+2. `rclmbt` validates the type, schema identity, deadline, clock, and local state transition.
 3. `io.worker` frames the operation and attaches session and trace identity.
 4. `rclwebd` evaluates operation ACLs, concurrency, rate, size, bandwidth, and deadline budgets.
 5. The C adapter executes the serialized ROS operation and returns status through the correlated channel.
-6. Audit records retain identity, target, decision, timing, result, and trace linkage.
+6. Audit records retain identity, target, schema identity, decision, timing, result, and trace linkage.
 
 ## Buffer and execution model
 
@@ -68,14 +70,14 @@ After the mainline release, the common Studio prototype adds React workspace sta
 ## Architecture invariants
 
 - CDR stays on the sample hot path from ROS serialization through browser ingress.
-- R2WP framing, control messages, schema identity, QoS negotiation, errors, and queue reasons are versioned shared contracts.
+- R2WP framing, control messages, schema identity `(scheme, value)`, QoS negotiation, errors, and queue reasons are versioned shared contracts.
 - Every queue declares sample and byte budgets; each eviction or expiry emits a stable reason.
 - Browser async work crosses the Wasm boundary in bounded batches.
 - The edge is the robot trust boundary for identity, SROS2, ACLs, resource policy, and audit.
 - WebTransport and WSS carry the same R2WP envelope and semantic events.
 - N1 and N2 define the mainline acceptance surface.
-- Each ROS domain selects one DDS or Zenoh mapping; gateway sessions provide fleet aggregation.
-- Recording and live transport converge on the same schema, channel identity, and SDK subscription model.
+- Each first-stage ROS domain selects one Fast DDS or Cyclone DDS mapping on Humble or Jazzy; gateway sessions provide fleet aggregation.
+- Recording and live transport converge on the same schema identity, channel identity, and SDK subscription model.
 
 ## Mainline dependency chain
 
@@ -101,6 +103,7 @@ Support profile + versioned fixtures
 | Edge gateway | [`rclwebd`](./gateway/rclwebd.md) |
 | Trust and policy | [Security](./security.md) |
 | Platform tiers | [Compatibility](./compatibility.md) |
+| Exact first-stage pins and row status | [Support matrix](./support-matrix.md) |
 | Evidence and gates | [Validation](./validation.md) |
 | UI side project | [Common Studio prototype](./prototypes/studio-ui.md) |
 
@@ -110,4 +113,4 @@ Support profile + versioned fixtures
 - A queue or buffer edit includes declared budgets and a memory trace.
 - A hot-path edit includes latency, throughput, copy, queue, and allocation evidence.
 - A security-sensitive edit includes effective permissions, audit identity, resource policy, and failure behavior.
-- A new ROS distro, RMW, browser, transport topology, or recording format enters through the compatibility matrix.
+- A new ROS distro, RMW, browser, transport topology, or recording format enters through the support matrix and compatibility strategy.
