@@ -11,8 +11,12 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
   - [x] M0-03b Contract validator and root command (verified; `scripts/protocol-check.ts` + root wiring).
   - [x] M0-03c TypeScript deterministic CBOR subset (`sdk/typescript/src/protocol`; verified).
   - [x] M0-03d TypeScript bootstrap/frame codec and valid/boundary fixtures (verified; codecs `bootstrap`/`extension`/`control`/`frame`; 20 fixtures via `scripts/protocol-fixtures.ts` + `protocol/testdata/`; commits `5c21f74`…`fc18b3d`; fixture tests 25/25, full `bun test` 332/332).
-  - [ ] M0-03e Malformed/state-sequence fixtures and transport parity manifest.
-  - [ ] M0-03f Rust reference parser (`rclwebd/src/protocol`).
+  - [ ] M0-03e Malformed, state-sequence, and transport parity fixtures (queued; slices e1–e4; M0-03 remains active).
+    - [ ] M0-03e1 Static malformed wire corpus (`protocol/testdata/malformed/`, `scripts/protocol-malformed-fixtures.ts`; planned `test(protocol): add malformed r2wp fixtures`).
+    - [ ] M0-03e2 State-sequence corpus (`protocol/testdata/sequences/`, `scripts/protocol-sequence-fixtures.ts`; planned `test(protocol): add r2wp state sequences`).
+    - [ ] M0-03e3 Transport parity and aggregate checking (`protocol/testdata/parity.json`, `scripts/protocol-parity-fixtures.ts`; `scripts/protocol-fixtures.ts` aggregates write/check once per corpus; `test:protocol-fixtures` runs the four fixture test files once each; planned `test(protocol): add r2wp transport parity`).
+    - [ ] M0-03e4 Documentation/status closeout after e1–e3 evidence (planned `docs(plan): record r2wp scenario fixture completion`).
+  - [ ] M0-03f Rust reference parser (`rclwebd/src/protocol`; depends on completed M0-03e).
   - [ ] M0-03g MoonBit reference parser (`rclmbt/protocol`).
   - [ ] M0-03h Cross-language agreement and M0-03 gate.
 - [ ] M0-04 Generate the authoritative ROS CDR corpus.

@@ -21,7 +21,7 @@ The planning baseline uses five core engineers, 18 weeks for the mainline, and 6
 - M0-03a freezes the R2WP wire version 0 normative package (markdown, registry JSON, control CDDL, ADR 0009 Accepted).
 - M0-03b is verified complete: `scripts/protocol-check.ts` validates the frozen contract; root entrypoints are `bun run protocol-check`, `just protocol-check`, and `bun run test:protocol`.
 - M0-03c is verified complete: browser-internal deterministic CBOR encode/decode in `sdk/typescript/src/protocol/cbor.ts`; package root continues to export `src/index.ts`.
-- M0-03d is verified complete: TypeScript bootstrap, extension, CONTROL_CBOR (all 15 kinds), and selected-frame codecs; valid/boundary fixtures with versioned manifest and checker. Implementations live at `sdk/typescript/src/protocol/{bootstrap,extension,control,frame}.ts` and their tests. Fixture tooling lives at `scripts/protocol-fixtures.ts`, `scripts/protocol-fixtures.test.ts`, `protocol/testdata/manifest.json`, `protocol/testdata/README.md`, and `protocol/testdata/valid/`. Root `bun run check` runs `docs:check`, `protocol-check`, then `protocol-fixtures:check`. M0-03 remains active; M0-03e–h remain queued.
+- M0-03d is verified complete: TypeScript bootstrap, extension, CONTROL_CBOR (all 15 kinds), and selected-frame codecs; valid/boundary fixtures with versioned manifest and checker. Implementations live at `sdk/typescript/src/protocol/{bootstrap,extension,control,frame}.ts` and their tests. Fixture tooling lives at `scripts/protocol-fixtures.ts`, `scripts/protocol-fixtures.test.ts`, `protocol/testdata/manifest.json`, `protocol/testdata/README.md`, and `protocol/testdata/valid/`. Root `bun run check` runs `docs:check`, `protocol-check`, then `protocol-fixtures:check`. M0-03 remains active; M0-03e is queued as slices e1–e4 (malformed, sequences, parity, docs closeout); M0-03f–h remain queued after completed M0-03e.
 - Active mainline workspaces: `rclwebd/` (Cargo), `rclmbt/` (`moon.work`), `sdk/typescript/` (`@moonspan/sdk`). Studio workspace enrollment begins at U0.
 - R2WP, MoonBit/Wasm, Rust/C ABI, ROS support, and performance values are design baselines awaiting their named gates.
 - The mainline and UI side-project boundary is fixed in [product scope](../docs/product-scope.md).
@@ -250,19 +250,74 @@ Every task clears these conditions:
 
 ##### M0-03e — Malformed, state-sequence, and transport parity fixtures
 
-**Description:** Extend fixtures for malformed frames, session sequences, resume mismatch, dispositions, and WT/WSS parity.
+**Description:** Extend the R2WP v0 fixture surface beyond M0-03d valid/boundary goldens with static malformed wire, receiver state sequences, and WebTransport/binary WSS parity. Delivery is sequential slices M0-03e1 through M0-03e4. Each slice is Scope M or smaller with exact ownership. The valid/boundary corpus keeps its own manifest and checker; M0-03 stays active through e–h; M0-03f depends on completed M0-03e.
+
+###### M0-03e1 — Static malformed wire corpus
+
+**Description:** Commit a versioned malformed wire corpus under `protocol/testdata/malformed/` and a dedicated Bun generator/checker that reconstructs exact failing bytes and cross-binds expected registry error codes. The malformed corpus uses its own versioned manifest and scripts alongside the valid/boundary surface.
 
 **Acceptance criteria:**
 
-- [ ] Malformed cases cover truncation, overflow, bad extensions, duplicate CBOR keys, and zero common version.
-- [ ] Sequences cover open/resume success and `gateway_instance_mismatch` / `support_row_mismatch`, multi-domain same-row, cross-row independent sessions, `sequence_gap`, and `stale_sequence`.
-- [ ] Parity manifest states one semantic fixture set for WebTransport and binary WSS.
+- [ ] Versioned malformed manifest and exact `.bin` corpus live under `protocol/testdata/malformed/`, with ownership in `scripts/protocol-malformed-fixtures.ts` and `scripts/protocol-malformed-fixtures.test.ts`.
+- [ ] Bun generator/checker and focused tests reconstruct and verify the malformed corpus through that dedicated path. The valid/boundary write/check path owns the valid/boundary goldens.
+- [ ] Each entry records exact length and SHA-256, a closed bounded construction recipe, decoder context, numeric registry code plus stable name, TypeScript reason and absolute offset, validation plane/step, and coverage tokens.
+- [ ] Coverage includes bootstrap receiver steps 1–9 for every wire-constructible case; selected-frame static steps 1–16; truncation; declared-bound overflow; malformed extensions; duplicate and non-shortest CBOR; and multi-invalid precedence. Bootstrap step 6: u16 maximum equals the absolute 65,535-byte ceiling, and the fixture records this defensive equivalence.
+- [ ] Numeric code, name, and step cross-bind to [protocol/registry/r2wp-v0.json](../protocol/registry/r2wp-v0.json). Canonical paths gate disk reads. Mutation and allocation recipes are closed and bounded.
 
-**Verification:** Fixture suite expects stable codes; parity file under `protocol/testdata/parity.json`.
+**Verification:** Focused malformed fixture tests; generator `--write` / `--check` reproduce committed hashes; second write is byte-identical; `git diff --check` clean. Planned Conventional Commit: `test(protocol): add malformed r2wp fixtures`.
 
 - **Dependencies:** M0-03d
-- **Likely files:** `protocol/testdata/malformed/`, `protocol/testdata/sequences/`, `protocol/testdata/parity.json`, `sdk/typescript/src/protocol/*test*`
+- **Likely files:** `protocol/testdata/malformed/`, `protocol/testdata/malformed/manifest.json`, `scripts/protocol-malformed-fixtures.ts`, `scripts/protocol-malformed-fixtures.test.ts`, `package.json`, `justfile`
 - **Scope:** M
+
+###### M0-03e2 — State-sequence corpus
+
+**Description:** Commit receiver state-sequence scenarios with exact wire event bytes and a Bun state-sequence oracle/checker that decodes through existing codecs then applies session context.
+
+**Acceptance criteria:**
+
+- [ ] `protocol/testdata/sequences/` holds a versioned manifest, scenario JSON, and exact wire event bytes, with ownership in `scripts/protocol-sequence-fixtures.ts` and `scripts/protocol-sequence-fixtures.test.ts`.
+- [ ] Scenarios use real bootstrap, control, and application wire records; events decode through existing TypeScript codecs, then the oracle applies receiver state context.
+- [ ] Coverage includes `no_common_version`; fresh open success; resume success; `gateway_instance_mismatch`; `support_row_mismatch`; multi-domain same-row; cross-row independent sessions; best-effort `sequence_gap` and `stale_sequence`; and reliable sequence mismatch as `protocol_violation`.
+- [ ] Phase 1 support rows remain exactly H-FT, H-CY, J-FT, and J-CY. Each gateway process binds one row; cross-row composition uses independent sessions.
+
+**Verification:** Focused sequence tests; oracle/check reproduces committed scenario outcomes and wire hashes; `git diff --check` clean. Planned Conventional Commit: `test(protocol): add r2wp state sequences`.
+
+- **Dependencies:** M0-03e1
+- **Likely files:** `protocol/testdata/sequences/`, `protocol/testdata/sequences/manifest.json`, scenario JSON and event `.bin` files, `scripts/protocol-sequence-fixtures.ts`, `scripts/protocol-sequence-fixtures.test.ts`, `package.json`, `justfile`
+- **Scope:** M
+
+###### M0-03e3 — Transport parity and aggregate checking
+
+**Description:** Commit a transport parity map for WebTransport and binary WSS over the same semantic fixture and sequence event identities, and extend the root fixture command surface so M0-03e corpora run through one aggregate deterministic check path.
+
+**Acceptance criteria:**
+
+- [ ] `protocol/testdata/parity.json` plus `scripts/protocol-parity-fixtures.ts` and `scripts/protocol-parity-fixtures.test.ts` reference the same semantic fixture/event ids and hashes for WebTransport and binary WSS.
+- [ ] Checker validates WT and WSS mappings against registry rules with byte identity of the shared semantic set: Service request/response and Action goal/cancel/result use reliable streams; Action feedback/status follow their effective topic QoS; best-effort topic samples and best-effort Action feedback/status use a WebTransport datagram when negotiated and size-fit, with sample-scoped streams as the size/capability fallback; binary WSS maps one complete frame per message and applies bounded latest-wins admission before write.
+- [ ] `scripts/protocol-fixtures.ts` aggregates write/check exactly once per corpus (valid/boundary, malformed, sequences, parity) in deterministic order. `test:protocol-fixtures` invokes `scripts/protocol-fixtures.test.ts`, `scripts/protocol-malformed-fixtures.test.ts`, `scripts/protocol-sequence-fixtures.test.ts`, and `scripts/protocol-parity-fixtures.test.ts` exactly once each. Matching `just` recipes use the same root commands.
+
+**Verification:** Focused parity tests; aggregate write/check runs each corpus once in deterministic order; `test:protocol-fixtures` runs the four focused test files once each; second write remains hash-stable; `git diff --check` clean. Planned Conventional Commit: `test(protocol): add r2wp transport parity`.
+
+- **Dependencies:** M0-03e2
+- **Likely files:** `protocol/testdata/parity.json`, `scripts/protocol-parity-fixtures.ts`, `scripts/protocol-parity-fixtures.test.ts`, `scripts/protocol-fixtures.ts`, `scripts/protocol-fixtures.test.ts`, `scripts/protocol-malformed-fixtures.test.ts`, `scripts/protocol-sequence-fixtures.test.ts`, `package.json`, `justfile`, `protocol/testdata/README.md`
+- **Scope:** M
+
+###### M0-03e4 — Documentation and status closeout
+
+**Description:** Record M0-03e completion in protocol, validation, PCR, and root documentation after e1–e3 review Accept and local evidence.
+
+**Acceptance criteria:**
+
+- [ ] Protocol overview, validation evidence, PCR stack notes, and root command docs describe the malformed, sequence, and parity corpora and the aggregate check path.
+- [ ] Plan and todo mark M0-03e verified after e1–e3 review Accept and recorded evidence.
+- [ ] M0-03 remains active for M0-03f Rust, M0-03g MoonBit, and M0-03h agreement work.
+
+**Verification:** `bun run docs:check`; `bun run check`; focused and full Bun tests; `just check` under pinned toolchains; `git diff --check` clean. Planned Conventional Commit: `docs(plan): record r2wp scenario fixture completion`.
+
+- **Dependencies:** M0-03e3
+- **Likely files:** `docs/protocol/r2wp.md`, `docs/validation.md`, `docs/README.md`, `README.md`, `.agents/docs/technology-stack.md`, `.agents/docs/validation.md`, `tasks/plan.md`, `tasks/todo.md`, `protocol/testdata/README.md`
+- **Scope:** S
 
 ##### M0-03f — Rust reference parser in rclwebd
 
