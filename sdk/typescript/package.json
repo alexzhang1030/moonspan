@@ -7,8 +7,9 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "check": "bun build ./src/index.ts --target=browser --outdir=./dist",
+    "check": "bun build ./src/index.ts ./src/protocol/cbor.ts --target=browser --outdir=./dist",
     "test": "bun test",
-    "build": "bun build ./src/index.ts --target=browser --outdir=./dist"
+    "test:cbor": "bun test ./src/protocol/cbor.test.ts",
+    "build": "bun build ./src/index.ts ./src/protocol/cbor.ts --target=browser --outdir=./dist"
   }
 }
