@@ -1,9 +1,18 @@
 //! Edge gateway crate for Moonspan (`rclwebd`).
 //!
-//! The public API stays empty until M1 gateway work lands. Workspace smoke
-//! coverage uses crate-identity unit tests only.
+//! M0-03f1 exports the R2WP v0 bootstrap parser and deterministic CBOR decoder
+//! under [`protocol`]. Frame/TLV/control parsers arrive in later f-batches.
 
 #![forbid(unsafe_code)]
+
+pub mod protocol;
+
+pub use protocol::{
+    BOOTSTRAP_PAYLOAD_MAX_BYTES, BOOTSTRAP_PREFIX_LENGTH, BootstrapErrorRecord, BootstrapRecord,
+    BufferCapabilities, CborError, CborValue, ClientHello, EffectiveLimits, MAX_MAP_ENTRIES,
+    MAX_NESTING_DEPTH, ProtocolError, RequestedLimits, ServerHello, TransportCapabilities,
+    decode_deterministic_cbor, parse_bootstrap,
+};
 
 #[cfg(test)]
 mod tests {
