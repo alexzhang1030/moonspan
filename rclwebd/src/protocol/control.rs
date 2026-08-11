@@ -576,13 +576,13 @@ fn positive_depth() -> Schema {
     u(1, UINT32_MAX)
 }
 fn support_row_id() -> Schema {
-    text_one_of(&["H-FT", "H-CY", "J-FT", "J-CY"])
+    text_one_of(&["H-FT", "H-CY", "H-ZN", "J-FT", "J-CY", "J-ZN"])
 }
 fn ros_distro() -> Schema {
     text_one_of(&["humble", "jazzy"])
 }
 fn rmw_identifier() -> Schema {
-    text_one_of(&["rmw_fastrtps_cpp", "rmw_cyclonedds_cpp"])
+    text_one_of(&["rmw_fastrtps_cpp", "rmw_cyclonedds_cpp", "rmw_zenoh_cpp"])
 }
 fn payload_encoding_cdr() -> Schema {
     u(1, 2)
@@ -1322,8 +1322,10 @@ fn assert_session_ready_triple(map: &BTreeMap<u64, CborValue<'_>>) -> Result<(),
     let (exp_distro, exp_rmw) = match row {
         "H-FT" => ("humble", "rmw_fastrtps_cpp"),
         "H-CY" => ("humble", "rmw_cyclonedds_cpp"),
+        "H-ZN" => ("humble", "rmw_zenoh_cpp"),
         "J-FT" => ("jazzy", "rmw_fastrtps_cpp"),
         "J-CY" => ("jazzy", "rmw_cyclonedds_cpp"),
+        "J-ZN" => ("jazzy", "rmw_zenoh_cpp"),
         _ => return Err(fail("enum_violation")),
     };
     if distro != exp_distro || rmw != exp_rmw {

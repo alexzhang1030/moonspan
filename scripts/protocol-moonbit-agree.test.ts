@@ -128,7 +128,7 @@ describe("protocol-moonbit-agree generator", () => {
     );
     const success = a.jobs.filter((j) => j.expectSuccess).length;
     const error = a.jobs.filter((j) => !j.expectSuccess).length;
-    expect(success).toBe(46);
+    expect(success).toBe(50);
     expect(error).toBe(55);
     const recipe = a.jobs.find((j) => j.sourceId === RECIPE_ID);
     expect(recipe).toBeDefined();

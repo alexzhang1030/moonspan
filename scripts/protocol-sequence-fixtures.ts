@@ -73,8 +73,10 @@ export const COVERAGE_MAX = 64;
 export const PHASE_ONE_ROWS = {
   "H-FT": { distro: "humble", rmw: "rmw_fastrtps_cpp" },
   "H-CY": { distro: "humble", rmw: "rmw_cyclonedds_cpp" },
+  "H-ZN": { distro: "humble", rmw: "rmw_zenoh_cpp" },
   "J-FT": { distro: "jazzy", rmw: "rmw_fastrtps_cpp" },
   "J-CY": { distro: "jazzy", rmw: "rmw_cyclonedds_cpp" },
+  "J-ZN": { distro: "jazzy", rmw: "rmw_zenoh_cpp" },
 } as const;
 
 export type SupportRowId = keyof typeof PHASE_ONE_ROWS;
@@ -2204,8 +2206,10 @@ export function buildScenarios(events: BuiltEvent[], registry: RegistryIndex): S
         "independent_sessions",
         "support_row_H-FT",
         "support_row_H-CY",
+        "support_row_H-ZN",
         "support_row_J-FT",
         "support_row_J-CY",
+        "support_row_J-ZN",
       ],
       initial,
       events: replay(initial, steps, registry, byId),
@@ -2346,8 +2350,10 @@ export const REQUIRED_COVERAGE = [
   "independent_sessions",
   "support_row_H-FT",
   "support_row_H-CY",
+  "support_row_H-ZN",
   "support_row_J-FT",
   "support_row_J-CY",
+  "support_row_J-ZN",
   "sequence_gap",
   "stale_sequence",
   "reliable_mismatch",
@@ -2572,7 +2578,7 @@ export const SEQUENCES_README = [
   "| `scenarios/*.json` | Ordered events, expected outcomes, and state projections |",
   "| `events/*.bin` | Bootstrap, control, and application wire records |",
   "",
-  "Scenarios cover Phase 1 rows H-FT, H-CY, J-FT, and J-CY. One gateway process binds one row and may expose multiple domain IDs. Cross-row composition uses independent sessions.",
+  "Scenarios cover Phase 1 rows H-FT, H-CY, H-ZN, J-FT, J-CY, and J-ZN. One gateway process binds one row and may expose multiple domain IDs. Cross-row composition uses independent sessions.",
   "",
   "Expected outcomes come from a deterministic receiver state machine and bind to the registry's errors, dispositions, and validation order.",
   "",

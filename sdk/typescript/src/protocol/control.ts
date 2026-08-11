@@ -362,11 +362,19 @@ const closeReason = u(1, 6);
 const priorityId = u(0, 4);
 const clockId = u(0, 4);
 const positiveDepth = u(1, UINT32_MAX);
-const supportRowId = text(1, UTF8_TEXT_MAX, ["H-FT", "H-CY", "J-FT", "J-CY"]);
+const supportRowId = text(1, UTF8_TEXT_MAX, [
+  "H-FT",
+  "H-CY",
+  "H-ZN",
+  "J-FT",
+  "J-CY",
+  "J-ZN",
+]);
 const rosDistro = text(1, UTF8_TEXT_MAX, ["humble", "jazzy"]);
 const rmwIdentifier = text(1, UTF8_TEXT_MAX, [
   "rmw_fastrtps_cpp",
   "rmw_cyclonedds_cpp",
+  "rmw_zenoh_cpp",
 ]);
 const payloadEncodingCdr = u(1, 2);
 const sourceEntryEncoding = u(1, 5);
@@ -897,8 +905,10 @@ const SESSION_READY_SUPPORT_ROW_TRIPLES: ReadonlyMap<
 > = new Map([
   ["H-FT", { rosDistro: "humble", rmwIdentifier: "rmw_fastrtps_cpp" }],
   ["H-CY", { rosDistro: "humble", rmwIdentifier: "rmw_cyclonedds_cpp" }],
+  ["H-ZN", { rosDistro: "humble", rmwIdentifier: "rmw_zenoh_cpp" }],
   ["J-FT", { rosDistro: "jazzy", rmwIdentifier: "rmw_fastrtps_cpp" }],
   ["J-CY", { rosDistro: "jazzy", rmwIdentifier: "rmw_cyclonedds_cpp" }],
+  ["J-ZN", { rosDistro: "jazzy", rmwIdentifier: "rmw_zenoh_cpp" }],
 ]);
 
 /**

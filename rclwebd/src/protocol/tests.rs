@@ -297,8 +297,8 @@ fn valid_frame_fixtures_parse_key_fields() {
         seen += 1;
     }
     assert_eq!(
-        seen, 16,
-        "expected exactly 16 materialized valid frame bins"
+        seen, 18,
+        "expected exactly 18 materialized valid frame bins"
     );
 }
 
@@ -351,19 +351,19 @@ fn valid_segment_recipe_64mib_frame_parses_with_borrowed_payload() {
 }
 
 #[test]
-fn corpus_totals_20_valid_and_55_malformed() {
+fn corpus_totals_22_valid_and_55_malformed() {
     let root = repo_root();
     let valid = read_json(&root.join("protocol/testdata/manifest.json"));
     let malformed = read_json(&root.join("protocol/testdata/malformed/manifest.json"));
     let vf = valid["fixtures"].as_array().unwrap();
     let mf = malformed["fixtures"].as_array().unwrap();
-    assert_eq!(vf.len(), 20, "valid fixtures total");
+    assert_eq!(vf.len(), 22, "valid fixtures total");
     assert_eq!(mf.len(), 55, "malformed fixtures total");
     let vb = vf.iter().filter(|f| f["kind"] == "bootstrap").count();
     let vf_frames = vf.iter().filter(|f| f["kind"] == "frame").count();
     let mb = mf.iter().filter(|f| f["kind"] == "bootstrap").count();
     let mf_frames = mf.iter().filter(|f| f["kind"] == "frame").count();
-    assert_eq!(vb + vf_frames, 20);
+    assert_eq!(vb + vf_frames, 22);
     assert_eq!(mb, 14);
     assert_eq!(mf_frames, 41);
     assert_eq!(mb + mf_frames, 55);

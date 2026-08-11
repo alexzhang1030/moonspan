@@ -50,8 +50,8 @@
     {
       "id": "cross-row-independent-sessions",
       "path": "scenarios/cross-row-independent-sessions.json",
-      "byte_length": 63632,
-      "sha256": "efc9bb5deb631bef913144343d3dadfc0d78c3cf0389ef6822fdb00a80a8ea33",
+      "byte_length": 135526,
+      "sha256": "829e270396b2c2e38fdff5f3fdd8b4840d484abac972a07031600369bdb76017",
       "event_ids": [
         "evt-client-hello-v0",
         "evt-server-hello-v0",
@@ -64,19 +64,29 @@
         "evt-client-hello-v0",
         "evt-server-hello-v0",
         "evt-authenticate",
+        "evt-session-ready-h-zn",
+        "evt-client-hello-v0",
+        "evt-server-hello-v0",
+        "evt-authenticate",
         "evt-session-ready-j-ft",
         "evt-client-hello-v0",
         "evt-server-hello-v0",
         "evt-authenticate",
-        "evt-session-ready-j-cy"
+        "evt-session-ready-j-cy",
+        "evt-client-hello-v0",
+        "evt-server-hello-v0",
+        "evt-authenticate",
+        "evt-session-ready-j-zn"
       ],
       "coverage": [
         "cross_row",
         "independent_sessions",
         "support_row_H-CY",
         "support_row_H-FT",
+        "support_row_H-ZN",
         "support_row_J-CY",
-        "support_row_J-FT"
+        "support_row_J-FT",
+        "support_row_J-ZN"
       ]
     },
     {
@@ -552,6 +562,20 @@
       ]
     },
     {
+      "id": "evt-session-ready-h-zn",
+      "kind": "control",
+      "direction": "server_to_client",
+      "carrier": "control_cbor",
+      "path": "events/evt-session-ready-h-zn.bin",
+      "byte_length": 197,
+      "sha256": "66284380e4eb1382a2f9e286aa1eb47522b82c4eea491b63d9b8f9a0ad8c7442",
+      "coverage": [
+        "ready_transition",
+        "session_ready",
+        "support_row_H-ZN"
+      ]
+    },
+    {
       "id": "evt-session-ready-j-cy",
       "kind": "control",
       "direction": "server_to_client",
@@ -577,6 +601,20 @@
         "ready_transition",
         "session_ready",
         "support_row_J-FT"
+      ]
+    },
+    {
+      "id": "evt-session-ready-j-zn",
+      "kind": "control",
+      "direction": "server_to_client",
+      "carrier": "control_cbor",
+      "path": "events/evt-session-ready-j-zn.bin",
+      "byte_length": 196,
+      "sha256": "cddbd1cea423e6c794440719e513deb681e57ccc8b1d9d834b4c8af881795bae",
+      "coverage": [
+        "ready_transition",
+        "session_ready",
+        "support_row_J-ZN"
       ]
     },
     {

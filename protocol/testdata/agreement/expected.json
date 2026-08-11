@@ -2,11 +2,11 @@
   "batch": "M0-03h1",
   "counts": {
     "malformed": 55,
-    "outcomes_total": 101,
-    "parity_shared_artifacts": 46,
+    "outcomes_total": 105,
+    "parity_shared_artifacts": 50,
     "parity_transport_rules": 20,
-    "sequences": 26,
-    "valid_boundary": 20
+    "sequences": 28,
+    "valid_boundary": 22
   },
   "generated_by": "scripts/protocol-agree.ts",
   "outcomes": [
@@ -3357,6 +3357,249 @@
       "status": "success"
     },
     {
+      "byte_length": 197,
+      "corpus": "sequences",
+      "error": null,
+      "id": "sequences:evt-session-ready-h-zn",
+      "input_sha256": "66284380e4eb1382a2f9e286aa1eb47522b82c4eea491b63d9b8f9a0ad8c7442",
+      "parser_kind": "frame",
+      "record": {
+        "channel_id": 0,
+        "clock_id": 0,
+        "extension_len": 0,
+        "extensions": [],
+        "flags": 0,
+        "opcode": 1,
+        "payload": {
+          "control_field_keys": [
+            1,
+            2,
+            7,
+            8,
+            10,
+            12,
+            13,
+            18,
+            19,
+            20,
+            21,
+            53,
+            54
+          ],
+          "control_fields": {
+            "entries": [
+              {
+                "key": "1",
+                "value": {
+                  "t": "uint",
+                  "v": "2"
+                }
+              },
+              {
+                "key": "2",
+                "value": {
+                  "byte_length": 16,
+                  "fnv1a64_hex": "261c4b49872994e7",
+                  "inline_hex": "02000000000000000000000000000000",
+                  "t": "bytes"
+                }
+              },
+              {
+                "key": "7",
+                "value": {
+                  "fnv1a64_hex": "2e8cd99971905eef",
+                  "inline": "gateway-H-ZN",
+                  "t": "text",
+                  "utf8_byte_length": 12
+                }
+              },
+              {
+                "key": "8",
+                "value": {
+                  "fnv1a64_hex": "516103d74f6dbc56",
+                  "inline": "H-ZN",
+                  "t": "text",
+                  "utf8_byte_length": 4
+                }
+              },
+              {
+                "key": "10",
+                "value": {
+                  "items": [
+                    {
+                      "t": "uint",
+                      "v": "0"
+                    }
+                  ],
+                  "t": "array"
+                }
+              },
+              {
+                "key": "12",
+                "value": {
+                  "entries": [
+                    {
+                      "key": "1",
+                      "value": {
+                        "t": "uint",
+                        "v": "64"
+                      }
+                    },
+                    {
+                      "key": "3",
+                      "value": {
+                        "t": "uint",
+                        "v": "65536"
+                      }
+                    }
+                  ],
+                  "t": "map"
+                }
+              },
+              {
+                "key": "13",
+                "value": {
+                  "fnv1a64_hex": "5e840432bf54e563",
+                  "inline": "policy-v1",
+                  "t": "text",
+                  "utf8_byte_length": 9
+                }
+              },
+              {
+                "key": "18",
+                "value": {
+                  "fnv1a64_hex": "1f4c51442df6962e",
+                  "inline": "humble",
+                  "t": "text",
+                  "utf8_byte_length": 6
+                }
+              },
+              {
+                "key": "19",
+                "value": {
+                  "fnv1a64_hex": "0ef19e73f8b2d22a",
+                  "inline": "rmw_zenoh_cpp",
+                  "t": "text",
+                  "utf8_byte_length": 13
+                }
+              },
+              {
+                "key": "20",
+                "value": {
+                  "fnv1a64_hex": "3250c19c7e2395de",
+                  "inline": "adapter-1",
+                  "t": "text",
+                  "utf8_byte_length": 9
+                }
+              },
+              {
+                "key": "21",
+                "value": {
+                  "fnv1a64_hex": "59253ca8fd0dc6cc",
+                  "inline": "1.0.0",
+                  "t": "text",
+                  "utf8_byte_length": 5
+                }
+              },
+              {
+                "key": "53",
+                "value": {
+                  "byte_length": 32,
+                  "fnv1a64_hex": "37e932ebf36911dd",
+                  "inline_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+                  "t": "bytes"
+                }
+              },
+              {
+                "key": "54",
+                "value": {
+                  "entries": [
+                    {
+                      "key": "1",
+                      "value": {
+                        "entries": [
+                          {
+                            "key": "1",
+                            "value": {
+                              "t": "bool",
+                              "v": true
+                            }
+                          },
+                          {
+                            "key": "2",
+                            "value": {
+                              "t": "bool",
+                              "v": true
+                            }
+                          },
+                          {
+                            "key": "3",
+                            "value": {
+                              "t": "uint",
+                              "v": "1200"
+                            }
+                          }
+                        ],
+                        "t": "map"
+                      }
+                    },
+                    {
+                      "key": "2",
+                      "value": {
+                        "entries": [
+                          {
+                            "key": "1",
+                            "value": {
+                              "t": "bool",
+                              "v": true
+                            }
+                          },
+                          {
+                            "key": "2",
+                            "value": {
+                              "t": "bool",
+                              "v": false
+                            }
+                          }
+                        ],
+                        "t": "map"
+                      }
+                    },
+                    {
+                      "key": "3",
+                      "value": {
+                        "items": [
+                          {
+                            "t": "uint",
+                            "v": "1"
+                          }
+                        ],
+                        "t": "array"
+                      }
+                    }
+                  ],
+                  "t": "map"
+                }
+              }
+            ],
+            "t": "map"
+          },
+          "control_kind": 2,
+          "form": "control",
+          "payload_fnv1a64_hex": "e0940ff06840a978",
+          "payload_len": 165
+        },
+        "payload_len": 165,
+        "priority": 0,
+        "sequence": "0",
+        "source_time_ns": "0",
+        "version": 0
+      },
+      "representation": "binary",
+      "source_id": "evt-session-ready-h-zn",
+      "status": "success"
+    },
+    {
       "byte_length": 201,
       "corpus": "sequences",
       "error": null,
@@ -3840,6 +4083,249 @@
       },
       "representation": "binary",
       "source_id": "evt-session-ready-j-ft",
+      "status": "success"
+    },
+    {
+      "byte_length": 196,
+      "corpus": "sequences",
+      "error": null,
+      "id": "sequences:evt-session-ready-j-zn",
+      "input_sha256": "cddbd1cea423e6c794440719e513deb681e57ccc8b1d9d834b4c8af881795bae",
+      "parser_kind": "frame",
+      "record": {
+        "channel_id": 0,
+        "clock_id": 0,
+        "extension_len": 0,
+        "extensions": [],
+        "flags": 0,
+        "opcode": 1,
+        "payload": {
+          "control_field_keys": [
+            1,
+            2,
+            7,
+            8,
+            10,
+            12,
+            13,
+            18,
+            19,
+            20,
+            21,
+            53,
+            54
+          ],
+          "control_fields": {
+            "entries": [
+              {
+                "key": "1",
+                "value": {
+                  "t": "uint",
+                  "v": "2"
+                }
+              },
+              {
+                "key": "2",
+                "value": {
+                  "byte_length": 16,
+                  "fnv1a64_hex": "261c4b49872994e7",
+                  "inline_hex": "02000000000000000000000000000000",
+                  "t": "bytes"
+                }
+              },
+              {
+                "key": "7",
+                "value": {
+                  "fnv1a64_hex": "3dd03daa933cc171",
+                  "inline": "gateway-J-ZN",
+                  "t": "text",
+                  "utf8_byte_length": 12
+                }
+              },
+              {
+                "key": "8",
+                "value": {
+                  "fnv1a64_hex": "30f49fe8e73648d0",
+                  "inline": "J-ZN",
+                  "t": "text",
+                  "utf8_byte_length": 4
+                }
+              },
+              {
+                "key": "10",
+                "value": {
+                  "items": [
+                    {
+                      "t": "uint",
+                      "v": "0"
+                    }
+                  ],
+                  "t": "array"
+                }
+              },
+              {
+                "key": "12",
+                "value": {
+                  "entries": [
+                    {
+                      "key": "1",
+                      "value": {
+                        "t": "uint",
+                        "v": "64"
+                      }
+                    },
+                    {
+                      "key": "3",
+                      "value": {
+                        "t": "uint",
+                        "v": "65536"
+                      }
+                    }
+                  ],
+                  "t": "map"
+                }
+              },
+              {
+                "key": "13",
+                "value": {
+                  "fnv1a64_hex": "5e840432bf54e563",
+                  "inline": "policy-v1",
+                  "t": "text",
+                  "utf8_byte_length": 9
+                }
+              },
+              {
+                "key": "18",
+                "value": {
+                  "fnv1a64_hex": "1020e4d36ab26ecb",
+                  "inline": "jazzy",
+                  "t": "text",
+                  "utf8_byte_length": 5
+                }
+              },
+              {
+                "key": "19",
+                "value": {
+                  "fnv1a64_hex": "0ef19e73f8b2d22a",
+                  "inline": "rmw_zenoh_cpp",
+                  "t": "text",
+                  "utf8_byte_length": 13
+                }
+              },
+              {
+                "key": "20",
+                "value": {
+                  "fnv1a64_hex": "3250c19c7e2395de",
+                  "inline": "adapter-1",
+                  "t": "text",
+                  "utf8_byte_length": 9
+                }
+              },
+              {
+                "key": "21",
+                "value": {
+                  "fnv1a64_hex": "59253ca8fd0dc6cc",
+                  "inline": "1.0.0",
+                  "t": "text",
+                  "utf8_byte_length": 5
+                }
+              },
+              {
+                "key": "53",
+                "value": {
+                  "byte_length": 32,
+                  "fnv1a64_hex": "429a98b9395592df",
+                  "inline_hex": "7a00000000000000000000000000000000000000000000000000000000000000",
+                  "t": "bytes"
+                }
+              },
+              {
+                "key": "54",
+                "value": {
+                  "entries": [
+                    {
+                      "key": "1",
+                      "value": {
+                        "entries": [
+                          {
+                            "key": "1",
+                            "value": {
+                              "t": "bool",
+                              "v": true
+                            }
+                          },
+                          {
+                            "key": "2",
+                            "value": {
+                              "t": "bool",
+                              "v": true
+                            }
+                          },
+                          {
+                            "key": "3",
+                            "value": {
+                              "t": "uint",
+                              "v": "1200"
+                            }
+                          }
+                        ],
+                        "t": "map"
+                      }
+                    },
+                    {
+                      "key": "2",
+                      "value": {
+                        "entries": [
+                          {
+                            "key": "1",
+                            "value": {
+                              "t": "bool",
+                              "v": true
+                            }
+                          },
+                          {
+                            "key": "2",
+                            "value": {
+                              "t": "bool",
+                              "v": false
+                            }
+                          }
+                        ],
+                        "t": "map"
+                      }
+                    },
+                    {
+                      "key": "3",
+                      "value": {
+                        "items": [
+                          {
+                            "t": "uint",
+                            "v": "1"
+                          }
+                        ],
+                        "t": "array"
+                      }
+                    }
+                  ],
+                  "t": "map"
+                }
+              }
+            ],
+            "t": "map"
+          },
+          "control_kind": 2,
+          "form": "control",
+          "payload_fnv1a64_hex": "5a4efe927e7ea91c",
+          "payload_len": 164
+        },
+        "payload_len": 164,
+        "priority": 0,
+        "sequence": "0",
+        "source_time_ns": "0",
+        "version": 0
+      },
+      "representation": "binary",
+      "source_id": "evt-session-ready-j-zn",
       "status": "success"
     },
     {
@@ -5825,262 +6311,11 @@
       "status": "success"
     },
     {
-      "byte_length": 200,
+      "byte_length": 196,
       "corpus": "valid_boundary",
       "error": null,
-      "id": "valid_boundary:frame-session-ready-J-CY",
-      "input_sha256": "c883948d3d01eb6daf8ae4e66a348873a97fc10fc0d27be66e18fbe1c53c8f88",
-      "parser_kind": "frame",
-      "record": {
-        "channel_id": 0,
-        "clock_id": 0,
-        "extension_len": 0,
-        "extensions": [],
-        "flags": 0,
-        "opcode": 1,
-        "payload": {
-          "control_field_keys": [
-            1,
-            2,
-            7,
-            8,
-            10,
-            12,
-            13,
-            18,
-            19,
-            20,
-            21,
-            53,
-            54
-          ],
-          "control_fields": {
-            "entries": [
-              {
-                "key": "1",
-                "value": {
-                  "t": "uint",
-                  "v": "2"
-                }
-              },
-              {
-                "key": "2",
-                "value": {
-                  "byte_length": 16,
-                  "fnv1a64_hex": "f75b7c7f11717486",
-                  "inline_hex": "23000000000000000000000000000000",
-                  "t": "bytes"
-                }
-              },
-              {
-                "key": "7",
-                "value": {
-                  "fnv1a64_hex": "9f428278aeb6e137",
-                  "inline": "gateway-1",
-                  "t": "text",
-                  "utf8_byte_length": 9
-                }
-              },
-              {
-                "key": "8",
-                "value": {
-                  "fnv1a64_hex": "31134ae8e75068f0",
-                  "inline": "J-CY",
-                  "t": "text",
-                  "utf8_byte_length": 4
-                }
-              },
-              {
-                "key": "10",
-                "value": {
-                  "items": [
-                    {
-                      "t": "uint",
-                      "v": "0"
-                    },
-                    {
-                      "t": "uint",
-                      "v": "1"
-                    }
-                  ],
-                  "t": "array"
-                }
-              },
-              {
-                "key": "12",
-                "value": {
-                  "entries": [
-                    {
-                      "key": "1",
-                      "value": {
-                        "t": "uint",
-                        "v": "64"
-                      }
-                    },
-                    {
-                      "key": "3",
-                      "value": {
-                        "t": "uint",
-                        "v": "65536"
-                      }
-                    }
-                  ],
-                  "t": "map"
-                }
-              },
-              {
-                "key": "13",
-                "value": {
-                  "fnv1a64_hex": "5e840432bf54e563",
-                  "inline": "policy-v1",
-                  "t": "text",
-                  "utf8_byte_length": 9
-                }
-              },
-              {
-                "key": "18",
-                "value": {
-                  "fnv1a64_hex": "1020e4d36ab26ecb",
-                  "inline": "jazzy",
-                  "t": "text",
-                  "utf8_byte_length": 5
-                }
-              },
-              {
-                "key": "19",
-                "value": {
-                  "fnv1a64_hex": "eab0617fd07b02fe",
-                  "inline": "rmw_cyclonedds_cpp",
-                  "t": "text",
-                  "utf8_byte_length": 18
-                }
-              },
-              {
-                "key": "20",
-                "value": {
-                  "fnv1a64_hex": "3250c19c7e2395de",
-                  "inline": "adapter-1",
-                  "t": "text",
-                  "utf8_byte_length": 9
-                }
-              },
-              {
-                "key": "21",
-                "value": {
-                  "fnv1a64_hex": "59253ca8fd0dc6cc",
-                  "inline": "1.0.0",
-                  "t": "text",
-                  "utf8_byte_length": 5
-                }
-              },
-              {
-                "key": "53",
-                "value": {
-                  "byte_length": 32,
-                  "fnv1a64_hex": "bc4f94f4c11d2e16",
-                  "inline_hex": "3300000000000000000000000000000000000000000000000000000000000000",
-                  "t": "bytes"
-                }
-              },
-              {
-                "key": "54",
-                "value": {
-                  "entries": [
-                    {
-                      "key": "1",
-                      "value": {
-                        "entries": [
-                          {
-                            "key": "1",
-                            "value": {
-                              "t": "bool",
-                              "v": true
-                            }
-                          },
-                          {
-                            "key": "2",
-                            "value": {
-                              "t": "bool",
-                              "v": true
-                            }
-                          },
-                          {
-                            "key": "3",
-                            "value": {
-                              "t": "uint",
-                              "v": "1200"
-                            }
-                          }
-                        ],
-                        "t": "map"
-                      }
-                    },
-                    {
-                      "key": "2",
-                      "value": {
-                        "entries": [
-                          {
-                            "key": "1",
-                            "value": {
-                              "t": "bool",
-                              "v": true
-                            }
-                          },
-                          {
-                            "key": "2",
-                            "value": {
-                              "t": "bool",
-                              "v": false
-                            }
-                          }
-                        ],
-                        "t": "map"
-                      }
-                    },
-                    {
-                      "key": "3",
-                      "value": {
-                        "items": [
-                          {
-                            "t": "uint",
-                            "v": "1"
-                          },
-                          {
-                            "t": "uint",
-                            "v": "2"
-                          }
-                        ],
-                        "t": "array"
-                      }
-                    }
-                  ],
-                  "t": "map"
-                }
-              }
-            ],
-            "t": "map"
-          },
-          "control_kind": 2,
-          "form": "control",
-          "payload_fnv1a64_hex": "974e96af4a75752d",
-          "payload_len": 168
-        },
-        "payload_len": 168,
-        "priority": 0,
-        "sequence": "0",
-        "source_time_ns": "0",
-        "version": 0
-      },
-      "representation": "binary",
-      "source_id": "frame-session-ready-J-CY",
-      "status": "success"
-    },
-    {
-      "byte_length": 198,
-      "corpus": "valid_boundary",
-      "error": null,
-      "id": "valid_boundary:frame-session-ready-J-FT",
-      "input_sha256": "3f4e9d104d177339c6bf575183a244bb4616ebe4f60a77fcc9dac240b5eeac27",
+      "id": "valid_boundary:frame-session-ready-H-ZN",
+      "input_sha256": "038c0c7c846b0c60f7854219279596b59faf4b244b7df7a9975146b69965d0c3",
       "parser_kind": "frame",
       "record": {
         "channel_id": 0,
@@ -6135,8 +6370,8 @@
               {
                 "key": "8",
                 "value": {
-                  "fnv1a64_hex": "311d89e8e7592882",
-                  "inline": "J-FT",
+                  "fnv1a64_hex": "516103d74f6dbc56",
+                  "inline": "H-ZN",
                   "t": "text",
                   "utf8_byte_length": 4
                 }
@@ -6191,19 +6426,19 @@
               {
                 "key": "18",
                 "value": {
-                  "fnv1a64_hex": "1020e4d36ab26ecb",
-                  "inline": "jazzy",
+                  "fnv1a64_hex": "1f4c51442df6962e",
+                  "inline": "humble",
                   "t": "text",
-                  "utf8_byte_length": 5
+                  "utf8_byte_length": 6
                 }
               },
               {
                 "key": "19",
                 "value": {
-                  "fnv1a64_hex": "58858bb00cc9a679",
-                  "inline": "rmw_fastrtps_cpp",
+                  "fnv1a64_hex": "0ef19e73f8b2d22a",
+                  "inline": "rmw_zenoh_cpp",
                   "t": "text",
-                  "utf8_byte_length": 16
+                  "utf8_byte_length": 13
                 }
               },
               {
@@ -6313,7 +6548,509 @@
           },
           "control_kind": 2,
           "form": "control",
-          "payload_fnv1a64_hex": "0bb2cd260cda48b0",
+          "payload_fnv1a64_hex": "5e274a376a205c48",
+          "payload_len": 164
+        },
+        "payload_len": 164,
+        "priority": 0,
+        "sequence": "0",
+        "source_time_ns": "0",
+        "version": 0
+      },
+      "representation": "binary",
+      "source_id": "frame-session-ready-H-ZN",
+      "status": "success"
+    },
+    {
+      "byte_length": 200,
+      "corpus": "valid_boundary",
+      "error": null,
+      "id": "valid_boundary:frame-session-ready-J-CY",
+      "input_sha256": "48d276c5fadb80fc0049cbc020914fe939954f939665ea0c4b1d7cbf26efb1b5",
+      "parser_kind": "frame",
+      "record": {
+        "channel_id": 0,
+        "clock_id": 0,
+        "extension_len": 0,
+        "extensions": [],
+        "flags": 0,
+        "opcode": 1,
+        "payload": {
+          "control_field_keys": [
+            1,
+            2,
+            7,
+            8,
+            10,
+            12,
+            13,
+            18,
+            19,
+            20,
+            21,
+            53,
+            54
+          ],
+          "control_fields": {
+            "entries": [
+              {
+                "key": "1",
+                "value": {
+                  "t": "uint",
+                  "v": "2"
+                }
+              },
+              {
+                "key": "2",
+                "value": {
+                  "byte_length": 16,
+                  "fnv1a64_hex": "6c650f96b207fb41",
+                  "inline_hex": "24000000000000000000000000000000",
+                  "t": "bytes"
+                }
+              },
+              {
+                "key": "7",
+                "value": {
+                  "fnv1a64_hex": "9f428278aeb6e137",
+                  "inline": "gateway-1",
+                  "t": "text",
+                  "utf8_byte_length": 9
+                }
+              },
+              {
+                "key": "8",
+                "value": {
+                  "fnv1a64_hex": "31134ae8e75068f0",
+                  "inline": "J-CY",
+                  "t": "text",
+                  "utf8_byte_length": 4
+                }
+              },
+              {
+                "key": "10",
+                "value": {
+                  "items": [
+                    {
+                      "t": "uint",
+                      "v": "0"
+                    },
+                    {
+                      "t": "uint",
+                      "v": "1"
+                    }
+                  ],
+                  "t": "array"
+                }
+              },
+              {
+                "key": "12",
+                "value": {
+                  "entries": [
+                    {
+                      "key": "1",
+                      "value": {
+                        "t": "uint",
+                        "v": "64"
+                      }
+                    },
+                    {
+                      "key": "3",
+                      "value": {
+                        "t": "uint",
+                        "v": "65536"
+                      }
+                    }
+                  ],
+                  "t": "map"
+                }
+              },
+              {
+                "key": "13",
+                "value": {
+                  "fnv1a64_hex": "5e840432bf54e563",
+                  "inline": "policy-v1",
+                  "t": "text",
+                  "utf8_byte_length": 9
+                }
+              },
+              {
+                "key": "18",
+                "value": {
+                  "fnv1a64_hex": "1020e4d36ab26ecb",
+                  "inline": "jazzy",
+                  "t": "text",
+                  "utf8_byte_length": 5
+                }
+              },
+              {
+                "key": "19",
+                "value": {
+                  "fnv1a64_hex": "eab0617fd07b02fe",
+                  "inline": "rmw_cyclonedds_cpp",
+                  "t": "text",
+                  "utf8_byte_length": 18
+                }
+              },
+              {
+                "key": "20",
+                "value": {
+                  "fnv1a64_hex": "3250c19c7e2395de",
+                  "inline": "adapter-1",
+                  "t": "text",
+                  "utf8_byte_length": 9
+                }
+              },
+              {
+                "key": "21",
+                "value": {
+                  "fnv1a64_hex": "59253ca8fd0dc6cc",
+                  "inline": "1.0.0",
+                  "t": "text",
+                  "utf8_byte_length": 5
+                }
+              },
+              {
+                "key": "53",
+                "value": {
+                  "byte_length": 32,
+                  "fnv1a64_hex": "a1941673924deb91",
+                  "inline_hex": "3400000000000000000000000000000000000000000000000000000000000000",
+                  "t": "bytes"
+                }
+              },
+              {
+                "key": "54",
+                "value": {
+                  "entries": [
+                    {
+                      "key": "1",
+                      "value": {
+                        "entries": [
+                          {
+                            "key": "1",
+                            "value": {
+                              "t": "bool",
+                              "v": true
+                            }
+                          },
+                          {
+                            "key": "2",
+                            "value": {
+                              "t": "bool",
+                              "v": true
+                            }
+                          },
+                          {
+                            "key": "3",
+                            "value": {
+                              "t": "uint",
+                              "v": "1200"
+                            }
+                          }
+                        ],
+                        "t": "map"
+                      }
+                    },
+                    {
+                      "key": "2",
+                      "value": {
+                        "entries": [
+                          {
+                            "key": "1",
+                            "value": {
+                              "t": "bool",
+                              "v": true
+                            }
+                          },
+                          {
+                            "key": "2",
+                            "value": {
+                              "t": "bool",
+                              "v": false
+                            }
+                          }
+                        ],
+                        "t": "map"
+                      }
+                    },
+                    {
+                      "key": "3",
+                      "value": {
+                        "items": [
+                          {
+                            "t": "uint",
+                            "v": "1"
+                          },
+                          {
+                            "t": "uint",
+                            "v": "2"
+                          }
+                        ],
+                        "t": "array"
+                      }
+                    }
+                  ],
+                  "t": "map"
+                }
+              }
+            ],
+            "t": "map"
+          },
+          "control_kind": 2,
+          "form": "control",
+          "payload_fnv1a64_hex": "14166e1373142d45",
+          "payload_len": 168
+        },
+        "payload_len": 168,
+        "priority": 0,
+        "sequence": "0",
+        "source_time_ns": "0",
+        "version": 0
+      },
+      "representation": "binary",
+      "source_id": "frame-session-ready-J-CY",
+      "status": "success"
+    },
+    {
+      "byte_length": 198,
+      "corpus": "valid_boundary",
+      "error": null,
+      "id": "valid_boundary:frame-session-ready-J-FT",
+      "input_sha256": "a1aaa0be7210668df4b395eb254900de8479099f668091ef48bb0767c5c360b3",
+      "parser_kind": "frame",
+      "record": {
+        "channel_id": 0,
+        "clock_id": 0,
+        "extension_len": 0,
+        "extensions": [],
+        "flags": 0,
+        "opcode": 1,
+        "payload": {
+          "control_field_keys": [
+            1,
+            2,
+            7,
+            8,
+            10,
+            12,
+            13,
+            18,
+            19,
+            20,
+            21,
+            53,
+            54
+          ],
+          "control_fields": {
+            "entries": [
+              {
+                "key": "1",
+                "value": {
+                  "t": "uint",
+                  "v": "2"
+                }
+              },
+              {
+                "key": "2",
+                "value": {
+                  "byte_length": 16,
+                  "fnv1a64_hex": "f75b7c7f11717486",
+                  "inline_hex": "23000000000000000000000000000000",
+                  "t": "bytes"
+                }
+              },
+              {
+                "key": "7",
+                "value": {
+                  "fnv1a64_hex": "9f428278aeb6e137",
+                  "inline": "gateway-1",
+                  "t": "text",
+                  "utf8_byte_length": 9
+                }
+              },
+              {
+                "key": "8",
+                "value": {
+                  "fnv1a64_hex": "311d89e8e7592882",
+                  "inline": "J-FT",
+                  "t": "text",
+                  "utf8_byte_length": 4
+                }
+              },
+              {
+                "key": "10",
+                "value": {
+                  "items": [
+                    {
+                      "t": "uint",
+                      "v": "0"
+                    },
+                    {
+                      "t": "uint",
+                      "v": "1"
+                    }
+                  ],
+                  "t": "array"
+                }
+              },
+              {
+                "key": "12",
+                "value": {
+                  "entries": [
+                    {
+                      "key": "1",
+                      "value": {
+                        "t": "uint",
+                        "v": "64"
+                      }
+                    },
+                    {
+                      "key": "3",
+                      "value": {
+                        "t": "uint",
+                        "v": "65536"
+                      }
+                    }
+                  ],
+                  "t": "map"
+                }
+              },
+              {
+                "key": "13",
+                "value": {
+                  "fnv1a64_hex": "5e840432bf54e563",
+                  "inline": "policy-v1",
+                  "t": "text",
+                  "utf8_byte_length": 9
+                }
+              },
+              {
+                "key": "18",
+                "value": {
+                  "fnv1a64_hex": "1020e4d36ab26ecb",
+                  "inline": "jazzy",
+                  "t": "text",
+                  "utf8_byte_length": 5
+                }
+              },
+              {
+                "key": "19",
+                "value": {
+                  "fnv1a64_hex": "58858bb00cc9a679",
+                  "inline": "rmw_fastrtps_cpp",
+                  "t": "text",
+                  "utf8_byte_length": 16
+                }
+              },
+              {
+                "key": "20",
+                "value": {
+                  "fnv1a64_hex": "3250c19c7e2395de",
+                  "inline": "adapter-1",
+                  "t": "text",
+                  "utf8_byte_length": 9
+                }
+              },
+              {
+                "key": "21",
+                "value": {
+                  "fnv1a64_hex": "59253ca8fd0dc6cc",
+                  "inline": "1.0.0",
+                  "t": "text",
+                  "utf8_byte_length": 5
+                }
+              },
+              {
+                "key": "53",
+                "value": {
+                  "byte_length": 32,
+                  "fnv1a64_hex": "bc4f94f4c11d2e16",
+                  "inline_hex": "3300000000000000000000000000000000000000000000000000000000000000",
+                  "t": "bytes"
+                }
+              },
+              {
+                "key": "54",
+                "value": {
+                  "entries": [
+                    {
+                      "key": "1",
+                      "value": {
+                        "entries": [
+                          {
+                            "key": "1",
+                            "value": {
+                              "t": "bool",
+                              "v": true
+                            }
+                          },
+                          {
+                            "key": "2",
+                            "value": {
+                              "t": "bool",
+                              "v": true
+                            }
+                          },
+                          {
+                            "key": "3",
+                            "value": {
+                              "t": "uint",
+                              "v": "1200"
+                            }
+                          }
+                        ],
+                        "t": "map"
+                      }
+                    },
+                    {
+                      "key": "2",
+                      "value": {
+                        "entries": [
+                          {
+                            "key": "1",
+                            "value": {
+                              "t": "bool",
+                              "v": true
+                            }
+                          },
+                          {
+                            "key": "2",
+                            "value": {
+                              "t": "bool",
+                              "v": false
+                            }
+                          }
+                        ],
+                        "t": "map"
+                      }
+                    },
+                    {
+                      "key": "3",
+                      "value": {
+                        "items": [
+                          {
+                            "t": "uint",
+                            "v": "1"
+                          },
+                          {
+                            "t": "uint",
+                            "v": "2"
+                          }
+                        ],
+                        "t": "array"
+                      }
+                    }
+                  ],
+                  "t": "map"
+                }
+              }
+            ],
+            "t": "map"
+          },
+          "control_kind": 2,
+          "form": "control",
+          "payload_fnv1a64_hex": "e2ba3aa6c0b4eb0c",
           "payload_len": 166
         },
         "payload_len": 166,
@@ -6325,13 +7062,266 @@
       "representation": "binary",
       "source_id": "frame-session-ready-J-FT",
       "status": "success"
+    },
+    {
+      "byte_length": 195,
+      "corpus": "valid_boundary",
+      "error": null,
+      "id": "valid_boundary:frame-session-ready-J-ZN",
+      "input_sha256": "0fa18465998ad1c33102603e2cf321a4dd22590de1daf539bffc2615feba66fb",
+      "parser_kind": "frame",
+      "record": {
+        "channel_id": 0,
+        "clock_id": 0,
+        "extension_len": 0,
+        "extensions": [],
+        "flags": 0,
+        "opcode": 1,
+        "payload": {
+          "control_field_keys": [
+            1,
+            2,
+            7,
+            8,
+            10,
+            12,
+            13,
+            18,
+            19,
+            20,
+            21,
+            53,
+            54
+          ],
+          "control_fields": {
+            "entries": [
+              {
+                "key": "1",
+                "value": {
+                  "t": "uint",
+                  "v": "2"
+                }
+              },
+              {
+                "key": "2",
+                "value": {
+                  "byte_length": 16,
+                  "fnv1a64_hex": "1d66f9ce9ef2e300",
+                  "inline_hex": "25000000000000000000000000000000",
+                  "t": "bytes"
+                }
+              },
+              {
+                "key": "7",
+                "value": {
+                  "fnv1a64_hex": "9f428278aeb6e137",
+                  "inline": "gateway-1",
+                  "t": "text",
+                  "utf8_byte_length": 9
+                }
+              },
+              {
+                "key": "8",
+                "value": {
+                  "fnv1a64_hex": "30f49fe8e73648d0",
+                  "inline": "J-ZN",
+                  "t": "text",
+                  "utf8_byte_length": 4
+                }
+              },
+              {
+                "key": "10",
+                "value": {
+                  "items": [
+                    {
+                      "t": "uint",
+                      "v": "0"
+                    },
+                    {
+                      "t": "uint",
+                      "v": "1"
+                    }
+                  ],
+                  "t": "array"
+                }
+              },
+              {
+                "key": "12",
+                "value": {
+                  "entries": [
+                    {
+                      "key": "1",
+                      "value": {
+                        "t": "uint",
+                        "v": "64"
+                      }
+                    },
+                    {
+                      "key": "3",
+                      "value": {
+                        "t": "uint",
+                        "v": "65536"
+                      }
+                    }
+                  ],
+                  "t": "map"
+                }
+              },
+              {
+                "key": "13",
+                "value": {
+                  "fnv1a64_hex": "5e840432bf54e563",
+                  "inline": "policy-v1",
+                  "t": "text",
+                  "utf8_byte_length": 9
+                }
+              },
+              {
+                "key": "18",
+                "value": {
+                  "fnv1a64_hex": "1020e4d36ab26ecb",
+                  "inline": "jazzy",
+                  "t": "text",
+                  "utf8_byte_length": 5
+                }
+              },
+              {
+                "key": "19",
+                "value": {
+                  "fnv1a64_hex": "0ef19e73f8b2d22a",
+                  "inline": "rmw_zenoh_cpp",
+                  "t": "text",
+                  "utf8_byte_length": 13
+                }
+              },
+              {
+                "key": "20",
+                "value": {
+                  "fnv1a64_hex": "3250c19c7e2395de",
+                  "inline": "adapter-1",
+                  "t": "text",
+                  "utf8_byte_length": 9
+                }
+              },
+              {
+                "key": "21",
+                "value": {
+                  "fnv1a64_hex": "59253ca8fd0dc6cc",
+                  "inline": "1.0.0",
+                  "t": "text",
+                  "utf8_byte_length": 5
+                }
+              },
+              {
+                "key": "53",
+                "value": {
+                  "byte_length": 32,
+                  "fnv1a64_hex": "9c3b638cef57ab10",
+                  "inline_hex": "3500000000000000000000000000000000000000000000000000000000000000",
+                  "t": "bytes"
+                }
+              },
+              {
+                "key": "54",
+                "value": {
+                  "entries": [
+                    {
+                      "key": "1",
+                      "value": {
+                        "entries": [
+                          {
+                            "key": "1",
+                            "value": {
+                              "t": "bool",
+                              "v": true
+                            }
+                          },
+                          {
+                            "key": "2",
+                            "value": {
+                              "t": "bool",
+                              "v": true
+                            }
+                          },
+                          {
+                            "key": "3",
+                            "value": {
+                              "t": "uint",
+                              "v": "1200"
+                            }
+                          }
+                        ],
+                        "t": "map"
+                      }
+                    },
+                    {
+                      "key": "2",
+                      "value": {
+                        "entries": [
+                          {
+                            "key": "1",
+                            "value": {
+                              "t": "bool",
+                              "v": true
+                            }
+                          },
+                          {
+                            "key": "2",
+                            "value": {
+                              "t": "bool",
+                              "v": false
+                            }
+                          }
+                        ],
+                        "t": "map"
+                      }
+                    },
+                    {
+                      "key": "3",
+                      "value": {
+                        "items": [
+                          {
+                            "t": "uint",
+                            "v": "1"
+                          },
+                          {
+                            "t": "uint",
+                            "v": "2"
+                          }
+                        ],
+                        "t": "array"
+                      }
+                    }
+                  ],
+                  "t": "map"
+                }
+              }
+            ],
+            "t": "map"
+          },
+          "control_kind": 2,
+          "form": "control",
+          "payload_fnv1a64_hex": "95298097e1c3aa50",
+          "payload_len": 163
+        },
+        "payload_len": 163,
+        "priority": 0,
+        "sequence": "0",
+        "source_time_ns": "0",
+        "version": 0
+      },
+      "representation": "binary",
+      "source_id": "frame-session-ready-J-ZN",
+      "status": "success"
     }
   ],
   "phase_one_rows": [
     "H-FT",
     "H-CY",
+    "H-ZN",
     "J-FT",
-    "J-CY"
+    "J-CY",
+    "J-ZN"
   ],
   "phase_one_triples": [
     {
@@ -6345,6 +7335,11 @@
       "support_row_id": "H-CY"
     },
     {
+      "rmw_identifier": "rmw_zenoh_cpp",
+      "ros_distro": "humble",
+      "support_row_id": "H-ZN"
+    },
+    {
       "rmw_identifier": "rmw_fastrtps_cpp",
       "ros_distro": "jazzy",
       "support_row_id": "J-FT"
@@ -6353,6 +7348,11 @@
       "rmw_identifier": "rmw_cyclonedds_cpp",
       "ros_distro": "jazzy",
       "support_row_id": "J-CY"
+    },
+    {
+      "rmw_identifier": "rmw_zenoh_cpp",
+      "ros_distro": "jazzy",
+      "support_row_id": "J-ZN"
     }
   ],
   "protocol": "r2wp-v0",
@@ -6364,19 +7364,19 @@
     },
     "parity": {
       "path": "protocol/testdata/parity.json",
-      "sha256": "d75d07e46f878be00bb05fd395ccec768ad52950f749cad8b9fcd28a208f80c9"
+      "sha256": "2b591dfda2439dc9a21a8421bc077f95675c354ec63e75d7b294dd1af9053827"
     },
     "registry": {
       "path": "protocol/registry/r2wp-v0.json",
-      "sha256": "33c17e4922666495ba731efac7466ef5e63993a725a3ff11c81000a31116f7bf"
+      "sha256": "f96c862f8ff601cd507d2efa55a07fcaaea806af0373f1005e6669d626324d12"
     },
     "sequences_manifest": {
       "path": "protocol/testdata/sequences/manifest.json",
-      "sha256": "a1e693a4986280017920f1bcfa5bee6bd68e216f7ed5611f1310a46f9af957be"
+      "sha256": "c45b9b1105fcfdb1c1e19310ac8287f834a71d86d7662a91f423da8eb16f444d"
     },
     "valid_manifest": {
       "path": "protocol/testdata/manifest.json",
-      "sha256": "8ee9c147370e2435ccbe554dc52c75273daa136060799e68f78f65f4b42e5f23"
+      "sha256": "dfd1f237a5e82f2f16ea2178f35fac14d1b7ac68629b4396c6c7da90d75c0570"
     }
   },
   "transport_bindings": [
@@ -6781,6 +7781,25 @@
     },
     {
       "binary_wss": {
+        "byte_length": 197,
+        "semantic_identity": "sequences/evt-session-ready-h-zn",
+        "sha256": "66284380e4eb1382a2f9e286aa1eb47522b82c4eea491b63d9b8f9a0ad8c7442"
+      },
+      "byte_length": 197,
+      "equal_wt_wss": true,
+      "id": "sequences:evt-session-ready-h-zn",
+      "outcome_id": "sequences:evt-session-ready-h-zn",
+      "sha256": "66284380e4eb1382a2f9e286aa1eb47522b82c4eea491b63d9b8f9a0ad8c7442",
+      "source_corpus": "sequences",
+      "source_id": "evt-session-ready-h-zn",
+      "webtransport": {
+        "byte_length": 197,
+        "semantic_identity": "sequences/evt-session-ready-h-zn",
+        "sha256": "66284380e4eb1382a2f9e286aa1eb47522b82c4eea491b63d9b8f9a0ad8c7442"
+      }
+    },
+    {
+      "binary_wss": {
         "byte_length": 201,
         "semantic_identity": "sequences/evt-session-ready-j-cy",
         "sha256": "d9438c82bc5e7784dbc6d044032c0ba2ec22053aab56383484178d29a3147a75"
@@ -6815,6 +7834,25 @@
         "byte_length": 199,
         "semantic_identity": "sequences/evt-session-ready-j-ft",
         "sha256": "48a8901e869d08eb82562fe4ee801c82a3572fc1c75d0ceb7ab559356c746b2e"
+      }
+    },
+    {
+      "binary_wss": {
+        "byte_length": 196,
+        "semantic_identity": "sequences/evt-session-ready-j-zn",
+        "sha256": "cddbd1cea423e6c794440719e513deb681e57ccc8b1d9d834b4c8af881795bae"
+      },
+      "byte_length": 196,
+      "equal_wt_wss": true,
+      "id": "sequences:evt-session-ready-j-zn",
+      "outcome_id": "sequences:evt-session-ready-j-zn",
+      "sha256": "cddbd1cea423e6c794440719e513deb681e57ccc8b1d9d834b4c8af881795bae",
+      "source_corpus": "sequences",
+      "source_id": "evt-session-ready-j-zn",
+      "webtransport": {
+        "byte_length": 196,
+        "semantic_identity": "sequences/evt-session-ready-j-zn",
+        "sha256": "cddbd1cea423e6c794440719e513deb681e57ccc8b1d9d834b4c8af881795bae"
       }
     },
     {
@@ -7218,40 +8256,78 @@
     },
     {
       "binary_wss": {
+        "byte_length": 196,
+        "semantic_identity": "valid_boundary/frame-session-ready-H-ZN",
+        "sha256": "038c0c7c846b0c60f7854219279596b59faf4b244b7df7a9975146b69965d0c3"
+      },
+      "byte_length": 196,
+      "equal_wt_wss": true,
+      "id": "valid_boundary:frame-session-ready-H-ZN",
+      "outcome_id": "valid_boundary:frame-session-ready-H-ZN",
+      "sha256": "038c0c7c846b0c60f7854219279596b59faf4b244b7df7a9975146b69965d0c3",
+      "source_corpus": "valid_boundary",
+      "source_id": "frame-session-ready-H-ZN",
+      "webtransport": {
+        "byte_length": 196,
+        "semantic_identity": "valid_boundary/frame-session-ready-H-ZN",
+        "sha256": "038c0c7c846b0c60f7854219279596b59faf4b244b7df7a9975146b69965d0c3"
+      }
+    },
+    {
+      "binary_wss": {
         "byte_length": 200,
         "semantic_identity": "valid_boundary/frame-session-ready-J-CY",
-        "sha256": "c883948d3d01eb6daf8ae4e66a348873a97fc10fc0d27be66e18fbe1c53c8f88"
+        "sha256": "48d276c5fadb80fc0049cbc020914fe939954f939665ea0c4b1d7cbf26efb1b5"
       },
       "byte_length": 200,
       "equal_wt_wss": true,
       "id": "valid_boundary:frame-session-ready-J-CY",
       "outcome_id": "valid_boundary:frame-session-ready-J-CY",
-      "sha256": "c883948d3d01eb6daf8ae4e66a348873a97fc10fc0d27be66e18fbe1c53c8f88",
+      "sha256": "48d276c5fadb80fc0049cbc020914fe939954f939665ea0c4b1d7cbf26efb1b5",
       "source_corpus": "valid_boundary",
       "source_id": "frame-session-ready-J-CY",
       "webtransport": {
         "byte_length": 200,
         "semantic_identity": "valid_boundary/frame-session-ready-J-CY",
-        "sha256": "c883948d3d01eb6daf8ae4e66a348873a97fc10fc0d27be66e18fbe1c53c8f88"
+        "sha256": "48d276c5fadb80fc0049cbc020914fe939954f939665ea0c4b1d7cbf26efb1b5"
       }
     },
     {
       "binary_wss": {
         "byte_length": 198,
         "semantic_identity": "valid_boundary/frame-session-ready-J-FT",
-        "sha256": "3f4e9d104d177339c6bf575183a244bb4616ebe4f60a77fcc9dac240b5eeac27"
+        "sha256": "a1aaa0be7210668df4b395eb254900de8479099f668091ef48bb0767c5c360b3"
       },
       "byte_length": 198,
       "equal_wt_wss": true,
       "id": "valid_boundary:frame-session-ready-J-FT",
       "outcome_id": "valid_boundary:frame-session-ready-J-FT",
-      "sha256": "3f4e9d104d177339c6bf575183a244bb4616ebe4f60a77fcc9dac240b5eeac27",
+      "sha256": "a1aaa0be7210668df4b395eb254900de8479099f668091ef48bb0767c5c360b3",
       "source_corpus": "valid_boundary",
       "source_id": "frame-session-ready-J-FT",
       "webtransport": {
         "byte_length": 198,
         "semantic_identity": "valid_boundary/frame-session-ready-J-FT",
-        "sha256": "3f4e9d104d177339c6bf575183a244bb4616ebe4f60a77fcc9dac240b5eeac27"
+        "sha256": "a1aaa0be7210668df4b395eb254900de8479099f668091ef48bb0767c5c360b3"
+      }
+    },
+    {
+      "binary_wss": {
+        "byte_length": 195,
+        "semantic_identity": "valid_boundary/frame-session-ready-J-ZN",
+        "sha256": "0fa18465998ad1c33102603e2cf321a4dd22590de1daf539bffc2615feba66fb"
+      },
+      "byte_length": 195,
+      "equal_wt_wss": true,
+      "id": "valid_boundary:frame-session-ready-J-ZN",
+      "outcome_id": "valid_boundary:frame-session-ready-J-ZN",
+      "sha256": "0fa18465998ad1c33102603e2cf321a4dd22590de1daf539bffc2615feba66fb",
+      "source_corpus": "valid_boundary",
+      "source_id": "frame-session-ready-J-ZN",
+      "webtransport": {
+        "byte_length": 195,
+        "semantic_identity": "valid_boundary/frame-session-ready-J-ZN",
+        "sha256": "0fa18465998ad1c33102603e2cf321a4dd22590de1daf539bffc2615feba66fb"
       }
     }
   ]

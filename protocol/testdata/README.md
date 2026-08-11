@@ -53,7 +53,7 @@ Standalone write and check scripts remain available for malformed, sequence, and
 - Expected errors bind to the registry code, name, location, plane, and validation step.
 - Receiver scenarios apply decoded wire events to a deterministic state machine.
 - Transport parity maps both transports to the same semantic identity.
-- Phase 1 session fixtures cover H-FT, H-CY, J-FT, and J-CY.
+- Phase 1 session fixtures cover H-FT, H-CY, H-ZN, J-FT, J-CY, and J-ZN.
 
 ## Consumers
 

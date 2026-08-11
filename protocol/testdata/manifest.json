@@ -1043,12 +1043,164 @@
       }
     },
     {
+      "id": "frame-session-ready-H-ZN",
+      "kind": "frame",
+      "path": "valid/frame-session-ready-H-ZN.bin",
+      "representation": "binary",
+      "byte_length": 196,
+      "sha256": "038c0c7c846b0c60f7854219279596b59faf4b244b7df7a9975146b69965d0c3",
+      "expected": {
+        "status": "success",
+        "roundtrip": "decode-reencode"
+      },
+      "coverage": [
+        "rmw_rmw_zenoh_cpp",
+        "ros_distro_humble",
+        "session_ready",
+        "support_row_H-ZN"
+      ],
+      "source": {
+        "$type": "frame",
+        "opcode": 1,
+        "channelId": 0,
+        "sequence": 0,
+        "sourceTimeNs": 0,
+        "priority": 0,
+        "clockId": 0,
+        "payload": {
+          "$type": "map",
+          "entries": [
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              {
+                "$type": "bytes",
+                "hex": "22000000000000000000000000000000"
+              }
+            ],
+            [
+              7,
+              "gateway-1"
+            ],
+            [
+              8,
+              "H-ZN"
+            ],
+            [
+              10,
+              [
+                0,
+                1
+              ]
+            ],
+            [
+              13,
+              "policy-v1"
+            ],
+            [
+              12,
+              {
+                "$type": "map",
+                "entries": [
+                  [
+                    1,
+                    64
+                  ],
+                  [
+                    3,
+                    65536
+                  ]
+                ]
+              }
+            ],
+            [
+              18,
+              "humble"
+            ],
+            [
+              19,
+              "rmw_zenoh_cpp"
+            ],
+            [
+              20,
+              "adapter-1"
+            ],
+            [
+              21,
+              "1.0.0"
+            ],
+            [
+              53,
+              {
+                "$type": "bytes",
+                "hex": "3200000000000000000000000000000000000000000000000000000000000000"
+              }
+            ],
+            [
+              54,
+              {
+                "$type": "map",
+                "entries": [
+                  [
+                    1,
+                    {
+                      "$type": "map",
+                      "entries": [
+                        [
+                          1,
+                          true
+                        ],
+                        [
+                          2,
+                          true
+                        ],
+                        [
+                          3,
+                          1200
+                        ]
+                      ]
+                    }
+                  ],
+                  [
+                    2,
+                    {
+                      "$type": "map",
+                      "entries": [
+                        [
+                          1,
+                          true
+                        ],
+                        [
+                          2,
+                          false
+                        ]
+                      ]
+                    }
+                  ],
+                  [
+                    3,
+                    [
+                      1,
+                      2
+                    ]
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
       "id": "frame-session-ready-J-CY",
       "kind": "frame",
       "path": "valid/frame-session-ready-J-CY.bin",
       "representation": "binary",
       "byte_length": 200,
-      "sha256": "c883948d3d01eb6daf8ae4e66a348873a97fc10fc0d27be66e18fbe1c53c8f88",
+      "sha256": "48d276c5fadb80fc0049cbc020914fe939954f939665ea0c4b1d7cbf26efb1b5",
       "expected": {
         "status": "success",
         "roundtrip": "decode-reencode"
@@ -1078,7 +1230,7 @@
               2,
               {
                 "$type": "bytes",
-                "hex": "23000000000000000000000000000000"
+                "hex": "24000000000000000000000000000000"
               }
             ],
             [
@@ -1123,6 +1275,158 @@
             [
               19,
               "rmw_cyclonedds_cpp"
+            ],
+            [
+              20,
+              "adapter-1"
+            ],
+            [
+              21,
+              "1.0.0"
+            ],
+            [
+              53,
+              {
+                "$type": "bytes",
+                "hex": "3400000000000000000000000000000000000000000000000000000000000000"
+              }
+            ],
+            [
+              54,
+              {
+                "$type": "map",
+                "entries": [
+                  [
+                    1,
+                    {
+                      "$type": "map",
+                      "entries": [
+                        [
+                          1,
+                          true
+                        ],
+                        [
+                          2,
+                          true
+                        ],
+                        [
+                          3,
+                          1200
+                        ]
+                      ]
+                    }
+                  ],
+                  [
+                    2,
+                    {
+                      "$type": "map",
+                      "entries": [
+                        [
+                          1,
+                          true
+                        ],
+                        [
+                          2,
+                          false
+                        ]
+                      ]
+                    }
+                  ],
+                  [
+                    3,
+                    [
+                      1,
+                      2
+                    ]
+                  ]
+                ]
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "id": "frame-session-ready-J-FT",
+      "kind": "frame",
+      "path": "valid/frame-session-ready-J-FT.bin",
+      "representation": "binary",
+      "byte_length": 198,
+      "sha256": "a1aaa0be7210668df4b395eb254900de8479099f668091ef48bb0767c5c360b3",
+      "expected": {
+        "status": "success",
+        "roundtrip": "decode-reencode"
+      },
+      "coverage": [
+        "rmw_rmw_fastrtps_cpp",
+        "ros_distro_jazzy",
+        "session_ready",
+        "support_row_J-FT"
+      ],
+      "source": {
+        "$type": "frame",
+        "opcode": 1,
+        "channelId": 0,
+        "sequence": 0,
+        "sourceTimeNs": 0,
+        "priority": 0,
+        "clockId": 0,
+        "payload": {
+          "$type": "map",
+          "entries": [
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              {
+                "$type": "bytes",
+                "hex": "23000000000000000000000000000000"
+              }
+            ],
+            [
+              7,
+              "gateway-1"
+            ],
+            [
+              8,
+              "J-FT"
+            ],
+            [
+              10,
+              [
+                0,
+                1
+              ]
+            ],
+            [
+              13,
+              "policy-v1"
+            ],
+            [
+              12,
+              {
+                "$type": "map",
+                "entries": [
+                  [
+                    1,
+                    64
+                  ],
+                  [
+                    3,
+                    65536
+                  ]
+                ]
+              }
+            ],
+            [
+              18,
+              "jazzy"
+            ],
+            [
+              19,
+              "rmw_fastrtps_cpp"
             ],
             [
               20,
@@ -1195,21 +1499,21 @@
       }
     },
     {
-      "id": "frame-session-ready-J-FT",
+      "id": "frame-session-ready-J-ZN",
       "kind": "frame",
-      "path": "valid/frame-session-ready-J-FT.bin",
+      "path": "valid/frame-session-ready-J-ZN.bin",
       "representation": "binary",
-      "byte_length": 198,
-      "sha256": "3f4e9d104d177339c6bf575183a244bb4616ebe4f60a77fcc9dac240b5eeac27",
+      "byte_length": 195,
+      "sha256": "0fa18465998ad1c33102603e2cf321a4dd22590de1daf539bffc2615feba66fb",
       "expected": {
         "status": "success",
         "roundtrip": "decode-reencode"
       },
       "coverage": [
-        "rmw_rmw_fastrtps_cpp",
+        "rmw_rmw_zenoh_cpp",
         "ros_distro_jazzy",
         "session_ready",
-        "support_row_J-FT"
+        "support_row_J-ZN"
       ],
       "source": {
         "$type": "frame",
@@ -1230,7 +1534,7 @@
               2,
               {
                 "$type": "bytes",
-                "hex": "22000000000000000000000000000000"
+                "hex": "25000000000000000000000000000000"
               }
             ],
             [
@@ -1239,7 +1543,7 @@
             ],
             [
               8,
-              "J-FT"
+              "J-ZN"
             ],
             [
               10,
@@ -1274,7 +1578,7 @@
             ],
             [
               19,
-              "rmw_fastrtps_cpp"
+              "rmw_zenoh_cpp"
             ],
             [
               20,
@@ -1288,7 +1592,7 @@
               53,
               {
                 "$type": "bytes",
-                "hex": "3200000000000000000000000000000000000000000000000000000000000000"
+                "hex": "3500000000000000000000000000000000000000000000000000000000000000"
               }
             ],
             [

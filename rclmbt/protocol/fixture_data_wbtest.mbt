@@ -194,13 +194,13 @@ fn clocks_key(ids : Array[Int]) -> String {
 }
 
 ///|
-const VALID_TOTAL = 20
+const VALID_TOTAL = 22
 
 ///|
 const VALID_BOOTSTRAP = 3
 
 ///|
-const VALID_FRAME_BINARY = 16
+const VALID_FRAME_BINARY = 18
 
 ///|
 const VALID_SEGMENT_RECIPE = 1
@@ -215,16 +215,16 @@ const MALFORMED_BOOTSTRAP = 14
 const MALFORMED_FRAME = 41
 
 ///|
-const MATERIALIZED_BINARY_TOTAL = 74
+const MATERIALIZED_BINARY_TOTAL = 76
 
 ///|
-const FRAME_TOTAL = 58
+const FRAME_TOTAL = 60
 
 ///|
 const FRAME_NARROW_CLOCK_COUNT = 2
 
 ///|
-const FRAME_DEFAULT_CLOCK_COUNT = 56
+const FRAME_DEFAULT_CLOCK_COUNT = 58
 
 ///|
 const ORACLE_BOOTSTRAP_COUNT = 14
@@ -745,13 +745,49 @@ let bridge_fixtures : Array[BridgeFixture] = [
     }),
   },
   {
+    id: "frame-session-ready-H-ZN",
+    kind: "frame",
+    corpus: "valid",
+    representation: "binary",
+    byte_length: 196,
+    source_sha256: "038c0c7c846b0c60f7854219279596b59faf4b244b7df7a9975146b69965d0c3",
+    fingerprint_hex: "e2c18fe4f2f6901b",
+    body: FixtureBody::Binary([
+      ByteChunk::Raw("0001"),
+      ByteChunk::Rep("00", 25),
+      ByteChunk::Raw("a4"),
+      ByteChunk::Rep("00", 4),
+      ByteChunk::Raw("ad01"),
+      ByteChunk::Rep("02", 2),
+      ByteChunk::Raw("5022"),
+      ByteChunk::Rep("00", 15),
+      ByteChunk::Raw("0769676174657761792d310864482d5a4e0a8200010ca2011840031a0001"),
+      ByteChunk::Rep("00", 2),
+      ByteChunk::Raw("0d69706f6c6963792d7631126668756d626c65136d726d775f7a656e6f685f63"),
+      ByteChunk::Rep("70", 2),
+      ByteChunk::Raw("1469616461707465722d31156531"),
+      ByteChunk::Rep("2e30", 2),
+      ByteChunk::Raw("1835582032"),
+      ByteChunk::Rep("00", 31),
+      ByteChunk::Raw("1836"),
+      ByteChunk::Rep("a301", 2),
+      ByteChunk::Raw("f502f5031904b002a201f502f403820102"),
+    ]),
+    oracle: None,
+    decoder_context: Some({
+      selected_version: 0,
+      experimental_opcodes_enabled: false,
+      available_clock_ids: [0, 1, 2, 3, 4],
+    }),
+  },
+  {
     id: "frame-session-ready-J-CY",
     kind: "frame",
     corpus: "valid",
     representation: "binary",
     byte_length: 200,
-    source_sha256: "c883948d3d01eb6daf8ae4e66a348873a97fc10fc0d27be66e18fbe1c53c8f88",
-    fingerprint_hex: "b0a863231fc17ab2",
+    source_sha256: "48d276c5fadb80fc0049cbc020914fe939954f939665ea0c4b1d7cbf26efb1b5",
+    fingerprint_hex: "1b2005e6fd1bde62",
     body: FixtureBody::Binary([
       ByteChunk::Raw("0001"),
       ByteChunk::Rep("00", 25),
@@ -759,7 +795,7 @@ let bridge_fixtures : Array[BridgeFixture] = [
       ByteChunk::Rep("00", 4),
       ByteChunk::Raw("ad01"),
       ByteChunk::Rep("02", 2),
-      ByteChunk::Raw("5023"),
+      ByteChunk::Raw("5024"),
       ByteChunk::Rep("00", 15),
       ByteChunk::Raw("0769676174657761792d3108644a2d43590a8200010ca2011840031a0001"),
       ByteChunk::Rep("00", 2),
@@ -773,7 +809,7 @@ let bridge_fixtures : Array[BridgeFixture] = [
       ByteChunk::Rep("70", 2),
       ByteChunk::Raw("1469616461707465722d31156531"),
       ByteChunk::Rep("2e30", 2),
-      ByteChunk::Raw("1835582033"),
+      ByteChunk::Raw("1835582034"),
       ByteChunk::Rep("00", 31),
       ByteChunk::Raw("1836"),
       ByteChunk::Rep("a301", 2),
@@ -792,8 +828,8 @@ let bridge_fixtures : Array[BridgeFixture] = [
     corpus: "valid",
     representation: "binary",
     byte_length: 198,
-    source_sha256: "3f4e9d104d177339c6bf575183a244bb4616ebe4f60a77fcc9dac240b5eeac27",
-    fingerprint_hex: "ff7f4bc63dd71661",
+    source_sha256: "a1aaa0be7210668df4b395eb254900de8479099f668091ef48bb0767c5c360b3",
+    fingerprint_hex: "84db1a9d83d43a3d",
     body: FixtureBody::Binary([
       ByteChunk::Raw("0001"),
       ByteChunk::Rep("00", 25),
@@ -801,7 +837,7 @@ let bridge_fixtures : Array[BridgeFixture] = [
       ByteChunk::Rep("00", 4),
       ByteChunk::Raw("ad01"),
       ByteChunk::Rep("02", 2),
-      ByteChunk::Raw("5022"),
+      ByteChunk::Raw("5023"),
       ByteChunk::Rep("00", 15),
       ByteChunk::Raw("0769676174657761792d3108644a2d46540a8200010ca2011840031a0001"),
       ByteChunk::Rep("00", 2),
@@ -811,7 +847,45 @@ let bridge_fixtures : Array[BridgeFixture] = [
       ByteChunk::Rep("70", 2),
       ByteChunk::Raw("1469616461707465722d31156531"),
       ByteChunk::Rep("2e30", 2),
-      ByteChunk::Raw("1835582032"),
+      ByteChunk::Raw("1835582033"),
+      ByteChunk::Rep("00", 31),
+      ByteChunk::Raw("1836"),
+      ByteChunk::Rep("a301", 2),
+      ByteChunk::Raw("f502f5031904b002a201f502f403820102"),
+    ]),
+    oracle: None,
+    decoder_context: Some({
+      selected_version: 0,
+      experimental_opcodes_enabled: false,
+      available_clock_ids: [0, 1, 2, 3, 4],
+    }),
+  },
+  {
+    id: "frame-session-ready-J-ZN",
+    kind: "frame",
+    corpus: "valid",
+    representation: "binary",
+    byte_length: 195,
+    source_sha256: "0fa18465998ad1c33102603e2cf321a4dd22590de1daf539bffc2615feba66fb",
+    fingerprint_hex: "820003b6b8166d62",
+    body: FixtureBody::Binary([
+      ByteChunk::Raw("0001"),
+      ByteChunk::Rep("00", 25),
+      ByteChunk::Raw("a3"),
+      ByteChunk::Rep("00", 4),
+      ByteChunk::Raw("ad01"),
+      ByteChunk::Rep("02", 2),
+      ByteChunk::Raw("5025"),
+      ByteChunk::Rep("00", 15),
+      ByteChunk::Raw("0769676174657761792d3108644a2d5a4e0a8200010ca2011840031a0001"),
+      ByteChunk::Rep("00", 2),
+      ByteChunk::Raw("0d69706f6c6963792d763112656a61"),
+      ByteChunk::Rep("7a", 2),
+      ByteChunk::Raw("79136d726d775f7a656e6f685f63"),
+      ByteChunk::Rep("70", 2),
+      ByteChunk::Raw("1469616461707465722d31156531"),
+      ByteChunk::Rep("2e30", 2),
+      ByteChunk::Raw("1835582035"),
       ByteChunk::Rep("00", 31),
       ByteChunk::Raw("1836"),
       ByteChunk::Rep("a301", 2),

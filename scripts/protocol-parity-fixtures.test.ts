@@ -101,13 +101,13 @@ describe("protocol-parity-fixtures helpers", () => {
 describe("protocol-parity-fixtures corpus", () => {
   test("build counts and identity equality", async () => {
     const doc = await buildParityDocument(ROOT);
-    expect(doc.shared_artifacts.length).toBe(46);
+    expect(doc.shared_artifacts.length).toBe(SHARED_ARTIFACT_COUNT);
     expect(doc.transport_rules.length).toBe(20);
     expect(doc.source_manifests.map((s) => s.id)).toEqual(["sequences", "valid_boundary"].sort());
     const valid = doc.shared_artifacts.filter((a) => a.source_corpus === "valid_boundary");
     const seq = doc.shared_artifacts.filter((a) => a.source_corpus === "sequences");
-    expect(valid.length).toBe(20);
-    expect(seq.length).toBe(26);
+    expect(valid.length).toBe(VALID_COUNT);
+    expect(seq.length).toBe(SEQUENCE_EVENT_COUNT);
     for (const a of doc.shared_artifacts) {
       expect(a.id).toBe(artifactId(a.source_corpus, a.source_id));
       expect(a.webtransport.sha256).toBe(a.sha256);

@@ -17,11 +17,11 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const OUTCOMES_TOTAL: usize = 101;
-const SUCCESS_TOTAL: usize = 46;
+const OUTCOMES_TOTAL: usize = 105;
+const SUCCESS_TOTAL: usize = 50;
 const ERROR_TOTAL: usize = 55;
-const VALID_TOTAL: usize = 20;
-const SEQUENCES_TOTAL: usize = 26;
+const VALID_TOTAL: usize = 22;
+const SEQUENCES_TOTAL: usize = 28;
 const MALFORMED_TOTAL: usize = 55;
 
 const RECIPE_ID: &str = "frame-app-payload-64mib-recipe";

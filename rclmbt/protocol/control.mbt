@@ -387,7 +387,7 @@ fn positive_depth() -> Schema {
 
 ///|
 fn support_row_id() -> Schema {
-  text_one_of(["H-FT", "H-CY", "J-FT", "J-CY"])
+  text_one_of(["H-FT", "H-CY", "H-ZN", "J-FT", "J-CY", "J-ZN"])
 }
 
 ///|
@@ -397,7 +397,7 @@ fn ros_distro() -> Schema {
 
 ///|
 fn rmw_identifier() -> Schema {
-  text_one_of(["rmw_fastrtps_cpp", "rmw_cyclonedds_cpp"])
+  text_one_of(["rmw_fastrtps_cpp", "rmw_cyclonedds_cpp", "rmw_zenoh_cpp"])
 }
 
 ///|
@@ -1601,10 +1601,14 @@ fn assert_session_ready_triple(
     ("humble", "rmw_fastrtps_cpp")
   } else if row == "H-CY" {
     ("humble", "rmw_cyclonedds_cpp")
+  } else if row == "H-ZN" {
+    ("humble", "rmw_zenoh_cpp")
   } else if row == "J-FT" {
     ("jazzy", "rmw_fastrtps_cpp")
   } else if row == "J-CY" {
     ("jazzy", "rmw_cyclonedds_cpp")
+  } else if row == "J-ZN" {
+    ("jazzy", "rmw_zenoh_cpp")
   } else {
     return Err(fail("enum_violation"))
   }

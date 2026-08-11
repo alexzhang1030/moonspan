@@ -49,7 +49,7 @@ export const OUTPUT_REL = "protocol/testdata/agreement/report.json";
 export const REPORT_MAX_BYTES = 8 * 1024 * 1024;
 
 export { OUTCOMES_TOTAL };
-export const SUCCESS_TOTAL = VALID_TOTAL + SEQUENCES_TOTAL; // 46
+export const SUCCESS_TOTAL = VALID_TOTAL + SEQUENCES_TOTAL; // 50
 export const ERROR_TOTAL = MALFORMED_TOTAL; // 55
 
 export const RUST_BEGIN = "MOONSPAN_R2WP_AGREEMENT_RUST_BEGIN";

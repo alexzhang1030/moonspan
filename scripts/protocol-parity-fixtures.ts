@@ -38,9 +38,9 @@ export const PARITY_MAX_BYTES = 2 * 1024 * 1024;
 export const SOURCE_MANIFEST_MAX_BYTES = 2 * 1024 * 1024;
 export const VALID_MANIFEST_REL = "protocol/testdata/manifest.json";
 export const SEQUENCES_MANIFEST_REL = "protocol/testdata/sequences/manifest.json";
-export const VALID_COUNT = 20;
-export const SEQUENCE_EVENT_COUNT = 26;
-export const SHARED_ARTIFACT_COUNT = VALID_COUNT + SEQUENCE_EVENT_COUNT; // 46
+export const VALID_COUNT = 22;
+export const SEQUENCE_EVENT_COUNT = 28;
+export const SHARED_ARTIFACT_COUNT = VALID_COUNT + SEQUENCE_EVENT_COUNT; // 50
 /** Parity document / shared artifact ids (corpus prefix + source tokens). */
 export const ID_PATTERN = /^[A-Za-z][A-Za-z0-9_.:-]{0,191}$/;
 /** Valid/boundary source fixture ids (uppercase support-row tokens allowed). */

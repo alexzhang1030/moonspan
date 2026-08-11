@@ -202,9 +202,15 @@ function authenticate(): ControlMessage {
   ]);
 }
 
-function sessionReady(row: "H-FT" | "H-CY" | "J-FT" | "J-CY" = "H-FT"): ControlMessage {
+function sessionReady(
+  row: "H-FT" | "H-CY" | "H-ZN" | "J-FT" | "J-CY" | "J-ZN" = "H-FT",
+): ControlMessage {
   const distro = row.startsWith("H") ? "humble" : "jazzy";
-  const rmw = row.endsWith("FT") ? "rmw_fastrtps_cpp" : "rmw_cyclonedds_cpp";
+  const rmw = row.endsWith("FT")
+    ? "rmw_fastrtps_cpp"
+    : row.endsWith("CY")
+      ? "rmw_cyclonedds_cpp"
+      : "rmw_zenoh_cpp";
   return m([
     [1, CONTROL_KIND_SESSION_READY],
     [2, corr(2)],
@@ -750,14 +756,16 @@ describe("control union variants", () => {
 });
 
 describe("control SessionReady support rows and schema identity", () => {
-  test("exact phase-one triples H-FT H-CY J-FT J-CY", () => {
+  test("exact phase-one triples H-FT H-CY H-ZN J-FT J-CY J-ZN", () => {
     const expected: Record<string, { distro: string; rmw: string }> = {
       "H-FT": { distro: "humble", rmw: "rmw_fastrtps_cpp" },
       "H-CY": { distro: "humble", rmw: "rmw_cyclonedds_cpp" },
+      "H-ZN": { distro: "humble", rmw: "rmw_zenoh_cpp" },
       "J-FT": { distro: "jazzy", rmw: "rmw_fastrtps_cpp" },
       "J-CY": { distro: "jazzy", rmw: "rmw_cyclonedds_cpp" },
+      "J-ZN": { distro: "jazzy", rmw: "rmw_zenoh_cpp" },
     };
-    for (const row of ["H-FT", "H-CY", "J-FT", "J-CY"] as const) {
+    for (const row of ["H-FT", "H-CY", "H-ZN", "J-FT", "J-CY", "J-ZN"] as const) {
       const msg = sessionReady(row);
       expect(msg.get(8)).toBe(row);
       expect(msg.get(18)).toBe(expected[row]!.distro);

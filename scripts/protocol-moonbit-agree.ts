@@ -62,10 +62,10 @@ export const PROTOCOL_ID = "r2wp-v0";
 export const SCHEMA_VERSION = 1;
 export const BATCH_ID = "M0-03h3";
 
-export const VALID_TOTAL = 20;
-export const SEQUENCES_TOTAL = 26;
+export const VALID_TOTAL = 22;
+export const SEQUENCES_TOTAL = 28;
 export const MALFORMED_TOTAL = 55;
-export const OUTCOMES_TOTAL = 101;
+export const OUTCOMES_TOTAL = 105;
 
 /**
  * Generated-source size ceiling (bytes, UTF-8).
@@ -464,8 +464,10 @@ export async function buildAgreeJobs(root: string): Promise<AgreeModel> {
   }
   const success = jobs.filter((j) => j.expectSuccess).length;
   const error = jobs.filter((j) => !j.expectSuccess).length;
-  if (success !== 46 || error !== 55) {
-    throw new Error(`jobs success/error counts require 46/55, got ${success}/${error}`);
+  if (success !== VALID_TOTAL + SEQUENCES_TOTAL || error !== MALFORMED_TOTAL) {
+    throw new Error(
+      `jobs success/error counts require ${VALID_TOTAL + SEQUENCES_TOTAL}/${MALFORMED_TOTAL}, got ${success}/${error}`,
+    );
   }
 
   const sourceText = renderJobsSource(jobs);

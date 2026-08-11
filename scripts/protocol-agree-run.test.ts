@@ -16,6 +16,7 @@ import {
   RECIPE_ID,
   RECIPE_PAYLOAD_FNV1A64_HEX,
   PHASE_ONE_TRIPLES,
+  PARITY_SHARED_TOTAL,
   type AgreeDocument,
   checkExpected,
   repoRootFrom as agreeRepoRoot,
@@ -330,7 +331,7 @@ describe("protocol-agree-run live integration", () => {
     expect(r.canonical.phase_one_triples).toEqual(
       PHASE_ONE_TRIPLES.map((t) => ({ ...t })),
     );
-    expect(r.canonical.transport_bindings.length).toBe(46);
+    expect(r.canonical.transport_bindings.length).toBe(PARITY_SHARED_TOTAL);
     expect(
       r.canonical.transport_bindings.every((b) => b.equal_wt_wss === true),
     ).toBe(true);

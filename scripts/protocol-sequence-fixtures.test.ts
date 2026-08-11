@@ -95,7 +95,14 @@ describe("protocol-sequence-fixtures helpers", () => {
   });
 
   test("phase one rows exact", () => {
-    expect(Object.keys(PHASE_ONE_ROWS).sort()).toEqual(["H-CY", "H-FT", "J-CY", "J-FT"]);
+    expect(Object.keys(PHASE_ONE_ROWS).sort()).toEqual([
+      "H-CY",
+      "H-FT",
+      "H-ZN",
+      "J-CY",
+      "J-FT",
+      "J-ZN",
+    ]);
   });
 
   test("findUndeclaredStateKeys rejects _pending_acks", () => {
@@ -144,7 +151,7 @@ describe("protocol-sequence-fixtures corpus", () => {
     for (const s of scenarios) for (const c of s.coverage) cov.add(c);
     for (const req of REQUIRED_COVERAGE) expect(cov.has(req)).toBe(true);
     expect(scenarios.length).toBe(13);
-    expect(events.length).toBe(26);
+    expect(events.length).toBe(28);
   });
 
   test("every event decodes with matching direction", () => {
@@ -227,8 +234,8 @@ describe("protocol-sequence-fixtures corpus", () => {
       expect(cross.sessions[`sess-${r}`]!.support_row).toBe(r);
       expect(cross.processes[`proc-${r}`]!.support_row).toBe(r);
     }
-    expect(Object.keys(cross.sessions).length).toBe(4);
-    expect(Object.keys(cross.processes).length).toBe(4);
+    expect(Object.keys(cross.sessions).length).toBe(6);
+    expect(Object.keys(cross.processes).length).toBe(6);
     const multi = byId["multi-domain-same-row"]!.events.at(-1)!.state_after;
     expect(Object.keys(multi.sessions)).toEqual(["sess-H-FT"]);
     expect(multi.sessions["sess-H-FT"]!.channels["1"]!.domain_id).toBe(0);

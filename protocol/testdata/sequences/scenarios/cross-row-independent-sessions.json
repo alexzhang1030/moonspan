@@ -5,8 +5,10 @@
     "independent_sessions",
     "support_row_H-CY",
     "support_row_H-FT",
+    "support_row_H-ZN",
     "support_row_J-CY",
-    "support_row_J-FT"
+    "support_row_J-FT",
+    "support_row_J-ZN"
   ],
   "initial": {
     "processes": {
@@ -18,6 +20,10 @@
         "support_row": "H-CY",
         "gateway_instance_id": "gateway-H-CY"
       },
+      "proc-H-ZN": {
+        "support_row": "H-ZN",
+        "gateway_instance_id": "gateway-H-ZN"
+      },
       "proc-J-FT": {
         "support_row": "J-FT",
         "gateway_instance_id": "gateway-J-FT"
@@ -25,6 +31,10 @@
       "proc-J-CY": {
         "support_row": "J-CY",
         "gateway_instance_id": "gateway-J-CY"
+      },
+      "proc-J-ZN": {
+        "support_row": "J-ZN",
+        "gateway_instance_id": "gateway-J-ZN"
       }
     },
     "sessions": {
@@ -68,6 +78,26 @@
         "server_gateway_instance_id": "gateway-H-CY",
         "server_support_row": "H-CY"
       },
+      "sess-H-ZN": {
+        "phase": "awaiting_client_hello",
+        "process_id": "proc-H-ZN",
+        "selected_version": null,
+        "extension_capabilities": [],
+        "gateway_instance_id": null,
+        "session_id_hex": null,
+        "support_row": null,
+        "entry_path": null,
+        "pending_resume_claim": null,
+        "ready": false,
+        "terminal": false,
+        "channels": {},
+        "sequences": {},
+        "server_wire_versions": [
+          0
+        ],
+        "server_gateway_instance_id": "gateway-H-ZN",
+        "server_support_row": "H-ZN"
+      },
       "sess-J-FT": {
         "phase": "awaiting_client_hello",
         "process_id": "proc-J-FT",
@@ -107,6 +137,26 @@
         ],
         "server_gateway_instance_id": "gateway-J-CY",
         "server_support_row": "J-CY"
+      },
+      "sess-J-ZN": {
+        "phase": "awaiting_client_hello",
+        "process_id": "proc-J-ZN",
+        "selected_version": null,
+        "extension_capabilities": [],
+        "gateway_instance_id": null,
+        "session_id_hex": null,
+        "support_row": null,
+        "entry_path": null,
+        "pending_resume_claim": null,
+        "ready": false,
+        "terminal": false,
+        "channels": {},
+        "sequences": {},
+        "server_wire_versions": [
+          0
+        ],
+        "server_gateway_instance_id": "gateway-J-ZN",
+        "server_support_row": "J-ZN"
       }
     }
   },
@@ -134,6 +184,10 @@
             "support_row": "H-CY",
             "gateway_instance_id": "gateway-H-CY"
           },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
           "proc-J-FT": {
             "support_row": "J-FT",
             "gateway_instance_id": "gateway-J-FT"
@@ -141,6 +195,10 @@
           "proc-J-CY": {
             "support_row": "J-CY",
             "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
           }
         },
         "sessions": {
@@ -186,6 +244,26 @@
             "server_gateway_instance_id": "gateway-H-CY",
             "server_support_row": "H-CY"
           },
+          "sess-H-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-H-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
+          },
           "sess-J-FT": {
             "phase": "awaiting_client_hello",
             "process_id": "proc-J-FT",
@@ -225,6 +303,26 @@
             ],
             "server_gateway_instance_id": "gateway-J-CY",
             "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
           }
         }
       }
@@ -252,6 +350,10 @@
             "support_row": "H-CY",
             "gateway_instance_id": "gateway-H-CY"
           },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
           "proc-J-FT": {
             "support_row": "J-FT",
             "gateway_instance_id": "gateway-J-FT"
@@ -259,6 +361,10 @@
           "proc-J-CY": {
             "support_row": "J-CY",
             "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
           }
         },
         "sessions": {
@@ -304,6 +410,26 @@
             "server_gateway_instance_id": "gateway-H-CY",
             "server_support_row": "H-CY"
           },
+          "sess-H-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-H-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
+          },
           "sess-J-FT": {
             "phase": "awaiting_client_hello",
             "process_id": "proc-J-FT",
@@ -343,6 +469,26 @@
             ],
             "server_gateway_instance_id": "gateway-J-CY",
             "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
           }
         }
       }
@@ -370,6 +516,10 @@
             "support_row": "H-CY",
             "gateway_instance_id": "gateway-H-CY"
           },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
           "proc-J-FT": {
             "support_row": "J-FT",
             "gateway_instance_id": "gateway-J-FT"
@@ -377,6 +527,10 @@
           "proc-J-CY": {
             "support_row": "J-CY",
             "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
           }
         },
         "sessions": {
@@ -422,6 +576,26 @@
             "server_gateway_instance_id": "gateway-H-CY",
             "server_support_row": "H-CY"
           },
+          "sess-H-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-H-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
+          },
           "sess-J-FT": {
             "phase": "awaiting_client_hello",
             "process_id": "proc-J-FT",
@@ -461,6 +635,26 @@
             ],
             "server_gateway_instance_id": "gateway-J-CY",
             "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
           }
         }
       }
@@ -488,6 +682,10 @@
             "support_row": "H-CY",
             "gateway_instance_id": "gateway-H-CY"
           },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
           "proc-J-FT": {
             "support_row": "J-FT",
             "gateway_instance_id": "gateway-J-FT"
@@ -495,6 +693,10 @@
           "proc-J-CY": {
             "support_row": "J-CY",
             "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
           }
         },
         "sessions": {
@@ -540,6 +742,26 @@
             "server_gateway_instance_id": "gateway-H-CY",
             "server_support_row": "H-CY"
           },
+          "sess-H-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-H-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
+          },
           "sess-J-FT": {
             "phase": "awaiting_client_hello",
             "process_id": "proc-J-FT",
@@ -579,6 +801,26 @@
             ],
             "server_gateway_instance_id": "gateway-J-CY",
             "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
           }
         }
       }
@@ -606,6 +848,10 @@
             "support_row": "H-CY",
             "gateway_instance_id": "gateway-H-CY"
           },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
           "proc-J-FT": {
             "support_row": "J-FT",
             "gateway_instance_id": "gateway-J-FT"
@@ -613,6 +859,10 @@
           "proc-J-CY": {
             "support_row": "J-CY",
             "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
           }
         },
         "sessions": {
@@ -660,6 +910,26 @@
             "server_gateway_instance_id": "gateway-H-CY",
             "server_support_row": "H-CY"
           },
+          "sess-H-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-H-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
+          },
           "sess-J-FT": {
             "phase": "awaiting_client_hello",
             "process_id": "proc-J-FT",
@@ -699,6 +969,26 @@
             ],
             "server_gateway_instance_id": "gateway-J-CY",
             "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
           }
         }
       }
@@ -726,6 +1016,10 @@
             "support_row": "H-CY",
             "gateway_instance_id": "gateway-H-CY"
           },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
           "proc-J-FT": {
             "support_row": "J-FT",
             "gateway_instance_id": "gateway-J-FT"
@@ -733,6 +1027,10 @@
           "proc-J-CY": {
             "support_row": "J-CY",
             "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
           }
         },
         "sessions": {
@@ -780,6 +1078,26 @@
             "server_gateway_instance_id": "gateway-H-CY",
             "server_support_row": "H-CY"
           },
+          "sess-H-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-H-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
+          },
           "sess-J-FT": {
             "phase": "awaiting_client_hello",
             "process_id": "proc-J-FT",
@@ -819,6 +1137,26 @@
             ],
             "server_gateway_instance_id": "gateway-J-CY",
             "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
           }
         }
       }
@@ -846,6 +1184,10 @@
             "support_row": "H-CY",
             "gateway_instance_id": "gateway-H-CY"
           },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
           "proc-J-FT": {
             "support_row": "J-FT",
             "gateway_instance_id": "gateway-J-FT"
@@ -853,6 +1195,10 @@
           "proc-J-CY": {
             "support_row": "J-CY",
             "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
           }
         },
         "sessions": {
@@ -900,6 +1246,26 @@
             "server_gateway_instance_id": "gateway-H-CY",
             "server_support_row": "H-CY"
           },
+          "sess-H-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-H-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
+          },
           "sess-J-FT": {
             "phase": "awaiting_client_hello",
             "process_id": "proc-J-FT",
@@ -939,6 +1305,26 @@
             ],
             "server_gateway_instance_id": "gateway-J-CY",
             "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
           }
         }
       }
@@ -966,6 +1352,10 @@
             "support_row": "H-CY",
             "gateway_instance_id": "gateway-H-CY"
           },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
           "proc-J-FT": {
             "support_row": "J-FT",
             "gateway_instance_id": "gateway-J-FT"
@@ -973,6 +1363,10 @@
           "proc-J-CY": {
             "support_row": "J-CY",
             "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
           }
         },
         "sessions": {
@@ -1019,6 +1413,26 @@
             ],
             "server_gateway_instance_id": "gateway-H-CY",
             "server_support_row": "H-CY"
+          },
+          "sess-H-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-H-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
           },
           "sess-J-FT": {
             "phase": "awaiting_client_hello",
@@ -1059,13 +1473,33 @@
             ],
             "server_gateway_instance_id": "gateway-J-CY",
             "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
           }
         }
       }
     },
     {
       "event_id": "evt-client-hello-v0",
-      "session_id": "sess-J-FT",
+      "session_id": "sess-H-ZN",
       "expected": {
         "status": "success",
         "registry_code": null,
@@ -1086,6 +1520,10 @@
             "support_row": "H-CY",
             "gateway_instance_id": "gateway-H-CY"
           },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
           "proc-J-FT": {
             "support_row": "J-FT",
             "gateway_instance_id": "gateway-J-FT"
@@ -1093,6 +1531,10 @@
           "proc-J-CY": {
             "support_row": "J-CY",
             "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
           }
         },
         "sessions": {
@@ -1139,6 +1581,708 @@
             ],
             "server_gateway_instance_id": "gateway-H-CY",
             "server_support_row": "H-CY"
+          },
+          "sess-H-ZN": {
+            "phase": "awaiting_server_hello",
+            "process_id": "proc-H-ZN",
+            "selected_version": null,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
+          },
+          "sess-J-FT": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-FT",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-FT",
+            "server_support_row": "J-FT"
+          },
+          "sess-J-CY": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-CY",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-CY",
+            "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-server-hello-v0",
+      "session_id": "sess-H-ZN",
+      "expected": {
+        "status": "success",
+        "registry_code": null,
+        "registry_name": null,
+        "disposition_code": null,
+        "disposition_name": null,
+        "plane": null,
+        "step": null,
+        "reason": null
+      },
+      "state_after": {
+        "processes": {
+          "proc-H-FT": {
+            "support_row": "H-FT",
+            "gateway_instance_id": "gateway-H-FT"
+          },
+          "proc-H-CY": {
+            "support_row": "H-CY",
+            "gateway_instance_id": "gateway-H-CY"
+          },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
+          "proc-J-FT": {
+            "support_row": "J-FT",
+            "gateway_instance_id": "gateway-J-FT"
+          },
+          "proc-J-CY": {
+            "support_row": "J-CY",
+            "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
+          }
+        },
+        "sessions": {
+          "sess-H-FT": {
+            "phase": "ready",
+            "process_id": "proc-H-FT",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-FT",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-FT",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-FT",
+            "server_support_row": "H-FT"
+          },
+          "sess-H-CY": {
+            "phase": "ready",
+            "process_id": "proc-H-CY",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-CY",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-CY",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-CY",
+            "server_support_row": "H-CY"
+          },
+          "sess-H-ZN": {
+            "phase": "awaiting_entry",
+            "process_id": "proc-H-ZN",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
+          },
+          "sess-J-FT": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-FT",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-FT",
+            "server_support_row": "J-FT"
+          },
+          "sess-J-CY": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-CY",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-CY",
+            "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-authenticate",
+      "session_id": "sess-H-ZN",
+      "expected": {
+        "status": "success",
+        "registry_code": null,
+        "registry_name": null,
+        "disposition_code": null,
+        "disposition_name": null,
+        "plane": null,
+        "step": null,
+        "reason": null
+      },
+      "state_after": {
+        "processes": {
+          "proc-H-FT": {
+            "support_row": "H-FT",
+            "gateway_instance_id": "gateway-H-FT"
+          },
+          "proc-H-CY": {
+            "support_row": "H-CY",
+            "gateway_instance_id": "gateway-H-CY"
+          },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
+          "proc-J-FT": {
+            "support_row": "J-FT",
+            "gateway_instance_id": "gateway-J-FT"
+          },
+          "proc-J-CY": {
+            "support_row": "J-CY",
+            "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
+          }
+        },
+        "sessions": {
+          "sess-H-FT": {
+            "phase": "ready",
+            "process_id": "proc-H-FT",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-FT",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-FT",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-FT",
+            "server_support_row": "H-FT"
+          },
+          "sess-H-CY": {
+            "phase": "ready",
+            "process_id": "proc-H-CY",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-CY",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-CY",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-CY",
+            "server_support_row": "H-CY"
+          },
+          "sess-H-ZN": {
+            "phase": "awaiting_entry_response",
+            "process_id": "proc-H-ZN",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
+          },
+          "sess-J-FT": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-FT",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-FT",
+            "server_support_row": "J-FT"
+          },
+          "sess-J-CY": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-CY",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-CY",
+            "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-session-ready-h-zn",
+      "session_id": "sess-H-ZN",
+      "expected": {
+        "status": "success",
+        "registry_code": null,
+        "registry_name": null,
+        "disposition_code": null,
+        "disposition_name": null,
+        "plane": null,
+        "step": null,
+        "reason": null
+      },
+      "state_after": {
+        "processes": {
+          "proc-H-FT": {
+            "support_row": "H-FT",
+            "gateway_instance_id": "gateway-H-FT"
+          },
+          "proc-H-CY": {
+            "support_row": "H-CY",
+            "gateway_instance_id": "gateway-H-CY"
+          },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
+          "proc-J-FT": {
+            "support_row": "J-FT",
+            "gateway_instance_id": "gateway-J-FT"
+          },
+          "proc-J-CY": {
+            "support_row": "J-CY",
+            "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
+          }
+        },
+        "sessions": {
+          "sess-H-FT": {
+            "phase": "ready",
+            "process_id": "proc-H-FT",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-FT",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-FT",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-FT",
+            "server_support_row": "H-FT"
+          },
+          "sess-H-CY": {
+            "phase": "ready",
+            "process_id": "proc-H-CY",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-CY",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-CY",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-CY",
+            "server_support_row": "H-CY"
+          },
+          "sess-H-ZN": {
+            "phase": "ready",
+            "process_id": "proc-H-ZN",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-ZN",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-ZN",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
+          },
+          "sess-J-FT": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-FT",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-FT",
+            "server_support_row": "J-FT"
+          },
+          "sess-J-CY": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-CY",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-CY",
+            "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-client-hello-v0",
+      "session_id": "sess-J-FT",
+      "expected": {
+        "status": "success",
+        "registry_code": null,
+        "registry_name": null,
+        "disposition_code": null,
+        "disposition_name": null,
+        "plane": null,
+        "step": null,
+        "reason": null
+      },
+      "state_after": {
+        "processes": {
+          "proc-H-FT": {
+            "support_row": "H-FT",
+            "gateway_instance_id": "gateway-H-FT"
+          },
+          "proc-H-CY": {
+            "support_row": "H-CY",
+            "gateway_instance_id": "gateway-H-CY"
+          },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
+          "proc-J-FT": {
+            "support_row": "J-FT",
+            "gateway_instance_id": "gateway-J-FT"
+          },
+          "proc-J-CY": {
+            "support_row": "J-CY",
+            "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
+          }
+        },
+        "sessions": {
+          "sess-H-FT": {
+            "phase": "ready",
+            "process_id": "proc-H-FT",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-FT",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-FT",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-FT",
+            "server_support_row": "H-FT"
+          },
+          "sess-H-CY": {
+            "phase": "ready",
+            "process_id": "proc-H-CY",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-CY",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-CY",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-CY",
+            "server_support_row": "H-CY"
+          },
+          "sess-H-ZN": {
+            "phase": "ready",
+            "process_id": "proc-H-ZN",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-ZN",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-ZN",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
           },
           "sess-J-FT": {
             "phase": "awaiting_server_hello",
@@ -1181,6 +2325,26 @@
             ],
             "server_gateway_instance_id": "gateway-J-CY",
             "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
           }
         }
       }
@@ -1208,6 +2372,10 @@
             "support_row": "H-CY",
             "gateway_instance_id": "gateway-H-CY"
           },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
           "proc-J-FT": {
             "support_row": "J-FT",
             "gateway_instance_id": "gateway-J-FT"
@@ -1215,6 +2383,10 @@
           "proc-J-CY": {
             "support_row": "J-CY",
             "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
           }
         },
         "sessions": {
@@ -1261,6 +2433,28 @@
             ],
             "server_gateway_instance_id": "gateway-H-CY",
             "server_support_row": "H-CY"
+          },
+          "sess-H-ZN": {
+            "phase": "ready",
+            "process_id": "proc-H-ZN",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-ZN",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-ZN",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
           },
           "sess-J-FT": {
             "phase": "awaiting_entry",
@@ -1303,6 +2497,26 @@
             ],
             "server_gateway_instance_id": "gateway-J-CY",
             "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
           }
         }
       }
@@ -1330,6 +2544,10 @@
             "support_row": "H-CY",
             "gateway_instance_id": "gateway-H-CY"
           },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
           "proc-J-FT": {
             "support_row": "J-FT",
             "gateway_instance_id": "gateway-J-FT"
@@ -1337,6 +2555,10 @@
           "proc-J-CY": {
             "support_row": "J-CY",
             "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
           }
         },
         "sessions": {
@@ -1384,6 +2606,28 @@
             "server_gateway_instance_id": "gateway-H-CY",
             "server_support_row": "H-CY"
           },
+          "sess-H-ZN": {
+            "phase": "ready",
+            "process_id": "proc-H-ZN",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-ZN",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-ZN",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
+          },
           "sess-J-FT": {
             "phase": "awaiting_entry_response",
             "process_id": "proc-J-FT",
@@ -1425,6 +2669,26 @@
             ],
             "server_gateway_instance_id": "gateway-J-CY",
             "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
           }
         }
       }
@@ -1452,6 +2716,10 @@
             "support_row": "H-CY",
             "gateway_instance_id": "gateway-H-CY"
           },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
           "proc-J-FT": {
             "support_row": "J-FT",
             "gateway_instance_id": "gateway-J-FT"
@@ -1459,6 +2727,10 @@
           "proc-J-CY": {
             "support_row": "J-CY",
             "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
           }
         },
         "sessions": {
@@ -1505,6 +2777,28 @@
             ],
             "server_gateway_instance_id": "gateway-H-CY",
             "server_support_row": "H-CY"
+          },
+          "sess-H-ZN": {
+            "phase": "ready",
+            "process_id": "proc-H-ZN",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-ZN",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-ZN",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
           },
           "sess-J-FT": {
             "phase": "ready",
@@ -1547,6 +2841,26 @@
             ],
             "server_gateway_instance_id": "gateway-J-CY",
             "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
           }
         }
       }
@@ -1574,6 +2888,10 @@
             "support_row": "H-CY",
             "gateway_instance_id": "gateway-H-CY"
           },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
           "proc-J-FT": {
             "support_row": "J-FT",
             "gateway_instance_id": "gateway-J-FT"
@@ -1581,6 +2899,10 @@
           "proc-J-CY": {
             "support_row": "J-CY",
             "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
           }
         },
         "sessions": {
@@ -1627,6 +2949,28 @@
             ],
             "server_gateway_instance_id": "gateway-H-CY",
             "server_support_row": "H-CY"
+          },
+          "sess-H-ZN": {
+            "phase": "ready",
+            "process_id": "proc-H-ZN",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-ZN",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-ZN",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
           },
           "sess-J-FT": {
             "phase": "ready",
@@ -1671,6 +3015,26 @@
             ],
             "server_gateway_instance_id": "gateway-J-CY",
             "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
           }
         }
       }
@@ -1698,6 +3062,10 @@
             "support_row": "H-CY",
             "gateway_instance_id": "gateway-H-CY"
           },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
           "proc-J-FT": {
             "support_row": "J-FT",
             "gateway_instance_id": "gateway-J-FT"
@@ -1705,6 +3073,10 @@
           "proc-J-CY": {
             "support_row": "J-CY",
             "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
           }
         },
         "sessions": {
@@ -1751,6 +3123,28 @@
             ],
             "server_gateway_instance_id": "gateway-H-CY",
             "server_support_row": "H-CY"
+          },
+          "sess-H-ZN": {
+            "phase": "ready",
+            "process_id": "proc-H-ZN",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-ZN",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-ZN",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
           },
           "sess-J-FT": {
             "phase": "ready",
@@ -1795,6 +3189,26 @@
             ],
             "server_gateway_instance_id": "gateway-J-CY",
             "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
           }
         }
       }
@@ -1822,6 +3236,10 @@
             "support_row": "H-CY",
             "gateway_instance_id": "gateway-H-CY"
           },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
           "proc-J-FT": {
             "support_row": "J-FT",
             "gateway_instance_id": "gateway-J-FT"
@@ -1829,6 +3247,10 @@
           "proc-J-CY": {
             "support_row": "J-CY",
             "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
           }
         },
         "sessions": {
@@ -1875,6 +3297,28 @@
             ],
             "server_gateway_instance_id": "gateway-H-CY",
             "server_support_row": "H-CY"
+          },
+          "sess-H-ZN": {
+            "phase": "ready",
+            "process_id": "proc-H-ZN",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-ZN",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-ZN",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
           },
           "sess-J-FT": {
             "phase": "ready",
@@ -1919,6 +3363,26 @@
             ],
             "server_gateway_instance_id": "gateway-J-CY",
             "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
           }
         }
       }
@@ -1946,6 +3410,10 @@
             "support_row": "H-CY",
             "gateway_instance_id": "gateway-H-CY"
           },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
           "proc-J-FT": {
             "support_row": "J-FT",
             "gateway_instance_id": "gateway-J-FT"
@@ -1953,6 +3421,10 @@
           "proc-J-CY": {
             "support_row": "J-CY",
             "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
           }
         },
         "sessions": {
@@ -1999,6 +3471,28 @@
             ],
             "server_gateway_instance_id": "gateway-H-CY",
             "server_support_row": "H-CY"
+          },
+          "sess-H-ZN": {
+            "phase": "ready",
+            "process_id": "proc-H-ZN",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-ZN",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-ZN",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
           },
           "sess-J-FT": {
             "phase": "ready",
@@ -2043,6 +3537,730 @@
             ],
             "server_gateway_instance_id": "gateway-J-CY",
             "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_client_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-client-hello-v0",
+      "session_id": "sess-J-ZN",
+      "expected": {
+        "status": "success",
+        "registry_code": null,
+        "registry_name": null,
+        "disposition_code": null,
+        "disposition_name": null,
+        "plane": null,
+        "step": null,
+        "reason": null
+      },
+      "state_after": {
+        "processes": {
+          "proc-H-FT": {
+            "support_row": "H-FT",
+            "gateway_instance_id": "gateway-H-FT"
+          },
+          "proc-H-CY": {
+            "support_row": "H-CY",
+            "gateway_instance_id": "gateway-H-CY"
+          },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
+          "proc-J-FT": {
+            "support_row": "J-FT",
+            "gateway_instance_id": "gateway-J-FT"
+          },
+          "proc-J-CY": {
+            "support_row": "J-CY",
+            "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
+          }
+        },
+        "sessions": {
+          "sess-H-FT": {
+            "phase": "ready",
+            "process_id": "proc-H-FT",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-FT",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-FT",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-FT",
+            "server_support_row": "H-FT"
+          },
+          "sess-H-CY": {
+            "phase": "ready",
+            "process_id": "proc-H-CY",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-CY",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-CY",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-CY",
+            "server_support_row": "H-CY"
+          },
+          "sess-H-ZN": {
+            "phase": "ready",
+            "process_id": "proc-H-ZN",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-ZN",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-ZN",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
+          },
+          "sess-J-FT": {
+            "phase": "ready",
+            "process_id": "proc-J-FT",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-J-FT",
+            "session_id_hex": "7a00000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "J-FT",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-FT",
+            "server_support_row": "J-FT"
+          },
+          "sess-J-CY": {
+            "phase": "ready",
+            "process_id": "proc-J-CY",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-J-CY",
+            "session_id_hex": "7a00000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "J-CY",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-CY",
+            "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_server_hello",
+            "process_id": "proc-J-ZN",
+            "selected_version": null,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-server-hello-v0",
+      "session_id": "sess-J-ZN",
+      "expected": {
+        "status": "success",
+        "registry_code": null,
+        "registry_name": null,
+        "disposition_code": null,
+        "disposition_name": null,
+        "plane": null,
+        "step": null,
+        "reason": null
+      },
+      "state_after": {
+        "processes": {
+          "proc-H-FT": {
+            "support_row": "H-FT",
+            "gateway_instance_id": "gateway-H-FT"
+          },
+          "proc-H-CY": {
+            "support_row": "H-CY",
+            "gateway_instance_id": "gateway-H-CY"
+          },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
+          "proc-J-FT": {
+            "support_row": "J-FT",
+            "gateway_instance_id": "gateway-J-FT"
+          },
+          "proc-J-CY": {
+            "support_row": "J-CY",
+            "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
+          }
+        },
+        "sessions": {
+          "sess-H-FT": {
+            "phase": "ready",
+            "process_id": "proc-H-FT",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-FT",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-FT",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-FT",
+            "server_support_row": "H-FT"
+          },
+          "sess-H-CY": {
+            "phase": "ready",
+            "process_id": "proc-H-CY",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-CY",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-CY",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-CY",
+            "server_support_row": "H-CY"
+          },
+          "sess-H-ZN": {
+            "phase": "ready",
+            "process_id": "proc-H-ZN",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-ZN",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-ZN",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
+          },
+          "sess-J-FT": {
+            "phase": "ready",
+            "process_id": "proc-J-FT",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-J-FT",
+            "session_id_hex": "7a00000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "J-FT",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-FT",
+            "server_support_row": "J-FT"
+          },
+          "sess-J-CY": {
+            "phase": "ready",
+            "process_id": "proc-J-CY",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-J-CY",
+            "session_id_hex": "7a00000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "J-CY",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-CY",
+            "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_entry",
+            "process_id": "proc-J-ZN",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": null,
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-authenticate",
+      "session_id": "sess-J-ZN",
+      "expected": {
+        "status": "success",
+        "registry_code": null,
+        "registry_name": null,
+        "disposition_code": null,
+        "disposition_name": null,
+        "plane": null,
+        "step": null,
+        "reason": null
+      },
+      "state_after": {
+        "processes": {
+          "proc-H-FT": {
+            "support_row": "H-FT",
+            "gateway_instance_id": "gateway-H-FT"
+          },
+          "proc-H-CY": {
+            "support_row": "H-CY",
+            "gateway_instance_id": "gateway-H-CY"
+          },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
+          "proc-J-FT": {
+            "support_row": "J-FT",
+            "gateway_instance_id": "gateway-J-FT"
+          },
+          "proc-J-CY": {
+            "support_row": "J-CY",
+            "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
+          }
+        },
+        "sessions": {
+          "sess-H-FT": {
+            "phase": "ready",
+            "process_id": "proc-H-FT",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-FT",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-FT",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-FT",
+            "server_support_row": "H-FT"
+          },
+          "sess-H-CY": {
+            "phase": "ready",
+            "process_id": "proc-H-CY",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-CY",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-CY",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-CY",
+            "server_support_row": "H-CY"
+          },
+          "sess-H-ZN": {
+            "phase": "ready",
+            "process_id": "proc-H-ZN",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-ZN",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-ZN",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
+          },
+          "sess-J-FT": {
+            "phase": "ready",
+            "process_id": "proc-J-FT",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-J-FT",
+            "session_id_hex": "7a00000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "J-FT",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-FT",
+            "server_support_row": "J-FT"
+          },
+          "sess-J-CY": {
+            "phase": "ready",
+            "process_id": "proc-J-CY",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-J-CY",
+            "session_id_hex": "7a00000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "J-CY",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-CY",
+            "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "awaiting_entry_response",
+            "process_id": "proc-J-ZN",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": null,
+            "session_id_hex": null,
+            "support_row": null,
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": false,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
+          }
+        }
+      }
+    },
+    {
+      "event_id": "evt-session-ready-j-zn",
+      "session_id": "sess-J-ZN",
+      "expected": {
+        "status": "success",
+        "registry_code": null,
+        "registry_name": null,
+        "disposition_code": null,
+        "disposition_name": null,
+        "plane": null,
+        "step": null,
+        "reason": null
+      },
+      "state_after": {
+        "processes": {
+          "proc-H-FT": {
+            "support_row": "H-FT",
+            "gateway_instance_id": "gateway-H-FT"
+          },
+          "proc-H-CY": {
+            "support_row": "H-CY",
+            "gateway_instance_id": "gateway-H-CY"
+          },
+          "proc-H-ZN": {
+            "support_row": "H-ZN",
+            "gateway_instance_id": "gateway-H-ZN"
+          },
+          "proc-J-FT": {
+            "support_row": "J-FT",
+            "gateway_instance_id": "gateway-J-FT"
+          },
+          "proc-J-CY": {
+            "support_row": "J-CY",
+            "gateway_instance_id": "gateway-J-CY"
+          },
+          "proc-J-ZN": {
+            "support_row": "J-ZN",
+            "gateway_instance_id": "gateway-J-ZN"
+          }
+        },
+        "sessions": {
+          "sess-H-FT": {
+            "phase": "ready",
+            "process_id": "proc-H-FT",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-FT",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-FT",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-FT",
+            "server_support_row": "H-FT"
+          },
+          "sess-H-CY": {
+            "phase": "ready",
+            "process_id": "proc-H-CY",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-CY",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-CY",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-CY",
+            "server_support_row": "H-CY"
+          },
+          "sess-H-ZN": {
+            "phase": "ready",
+            "process_id": "proc-H-ZN",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-H-ZN",
+            "session_id_hex": "7800000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "H-ZN",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-H-ZN",
+            "server_support_row": "H-ZN"
+          },
+          "sess-J-FT": {
+            "phase": "ready",
+            "process_id": "proc-J-FT",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-J-FT",
+            "session_id_hex": "7a00000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "J-FT",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-FT",
+            "server_support_row": "J-FT"
+          },
+          "sess-J-CY": {
+            "phase": "ready",
+            "process_id": "proc-J-CY",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-J-CY",
+            "session_id_hex": "7a00000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "J-CY",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-CY",
+            "server_support_row": "J-CY"
+          },
+          "sess-J-ZN": {
+            "phase": "ready",
+            "process_id": "proc-J-ZN",
+            "selected_version": 0,
+            "extension_capabilities": [
+              1
+            ],
+            "gateway_instance_id": "gateway-J-ZN",
+            "session_id_hex": "7a00000000000000000000000000000000000000000000000000000000000000",
+            "support_row": "J-ZN",
+            "entry_path": "fresh",
+            "pending_resume_claim": null,
+            "ready": true,
+            "terminal": false,
+            "channels": {},
+            "sequences": {},
+            "server_wire_versions": [
+              0
+            ],
+            "server_gateway_instance_id": "gateway-J-ZN",
+            "server_support_row": "J-ZN"
           }
         }
       }

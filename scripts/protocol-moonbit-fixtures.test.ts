@@ -197,7 +197,7 @@ describe("protocol-moonbit-fixtures build", () => {
     expect(narrow).toBe(FRAME_NARROW_CLOCK_COUNT);
     expect(defaults).toBe(FRAME_DEFAULT_CLOCK_COUNT);
     expect(narrow).toBe(2);
-    expect(defaults).toBe(56);
+    expect(defaults).toBe(58);
   });
 
   test("canonical order valid then malformed and ids sorted within corpus", async () => {

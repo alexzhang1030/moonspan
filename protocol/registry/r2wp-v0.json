@@ -9,8 +9,10 @@
   "phase_one_support_rows": [
     "H-FT",
     "H-CY",
+    "H-ZN",
     "J-FT",
-    "J-CY"
+    "J-CY",
+    "J-ZN"
   ],
   "support_row_profiles": {
     "H-FT": {
@@ -21,6 +23,10 @@
       "ros_distro": "humble",
       "rmw_identifier": "rmw_cyclonedds_cpp"
     },
+    "H-ZN": {
+      "ros_distro": "humble",
+      "rmw_identifier": "rmw_zenoh_cpp"
+    },
     "J-FT": {
       "ros_distro": "jazzy",
       "rmw_identifier": "rmw_fastrtps_cpp"
@@ -28,6 +34,10 @@
     "J-CY": {
       "ros_distro": "jazzy",
       "rmw_identifier": "rmw_cyclonedds_cpp"
+    },
+    "J-ZN": {
+      "ros_distro": "jazzy",
+      "rmw_identifier": "rmw_zenoh_cpp"
     }
   },
   "schema_identity_schemes": {

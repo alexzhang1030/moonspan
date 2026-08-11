@@ -82,8 +82,10 @@ const FRAME_OPTS = {
 const PHASE_ONE = [
   { row: "H-FT", distro: "humble", rmw: "rmw_fastrtps_cpp" },
   { row: "H-CY", distro: "humble", rmw: "rmw_cyclonedds_cpp" },
+  { row: "H-ZN", distro: "humble", rmw: "rmw_zenoh_cpp" },
   { row: "J-FT", distro: "jazzy", rmw: "rmw_fastrtps_cpp" },
   { row: "J-CY", distro: "jazzy", rmw: "rmw_cyclonedds_cpp" },
+  { row: "J-ZN", distro: "jazzy", rmw: "rmw_zenoh_cpp" },
 ] as const;
 
 /** SchemaAdvertise description length that yields CONTROL payload length 1048576. */
@@ -138,8 +140,10 @@ const REQUIRED_COVERAGE = [
   "source_time_ns_i64_min",
   "support_row_H-CY",
   "support_row_H-FT",
+  "support_row_H-ZN",
   "support_row_J-CY",
   "support_row_J-FT",
+  "support_row_J-ZN",
   "trace_context",
   "unknown_noncritical_tlv",
   "utf8_text_4096",

@@ -30,7 +30,7 @@ Machine validation of this package is [`scripts/protocol-check.ts`](../scripts/p
 | Combined docs + protocol | `bun run check` (`docs:check` then `protocol-check`) |
 | Focused tests | `bun run test:protocol` |
 
-Coverage includes frozen v0 top-level registry shape; exact phase-one support rows **H-FT**, **H-CY**, **J-FT**, and **J-CY**; all 23 `absolute_limits` values; 21 directly owned CDDL bound surfaces; bounded arrays and maps; root-first, duplicate, dead, and undefined CDDL rules; exact wire and bootstrap error code sets with code 20 out-of-band; validation-order steps and error references; deterministic lexicographically sorted diagnostics. Phase-one stays limited to those four rows; Studio enrollment remains U0 after M3; Jazzy+ expansion remains later work.
+Coverage includes frozen v0 top-level registry shape; exact phase-one support rows **H-FT**, **H-CY**, **H-ZN**, **J-FT**, **J-CY**, and **J-ZN**; all 23 `absolute_limits` values; 21 directly owned CDDL bound surfaces; bounded arrays and maps; root-first, duplicate, dead, and undefined CDDL rules; exact wire and bootstrap error code sets with code 20 out-of-band; validation-order steps and error references; deterministic lexicographically sorted diagnostics. Phase-one stays limited to those six rows; Studio enrollment remains U0 after M3; Jazzy+ expansion remains later work.
 
 ## Conventions
 
@@ -44,10 +44,12 @@ Phase-one support rows (exact triple match required on SessionReady):
 |---|---|---|
 | H-FT | humble | rmw_fastrtps_cpp |
 | H-CY | humble | rmw_cyclonedds_cpp |
+| H-ZN | humble | rmw_zenoh_cpp |
 | J-FT | jazzy | rmw_fastrtps_cpp |
 | J-CY | jazzy | rmw_cyclonedds_cpp |
+| J-ZN | jazzy | rmw_zenoh_cpp |
 
-Schema schemes: **`rep2011-rihs`** (71-byte `RIHS01_` + 64 lowercase hex) and **`moonspan-schema-v1`** (64 lowercase hex). Jazzy+ is later expansion only.
+Schema schemes: **`rep2011-rihs`** (71-byte `RIHS01_` + 64 lowercase hex) and **`moonspan-schema-v1`** (64 lowercase hex). Fast DDS is the reference row per distro; Cyclone DDS and Zenoh are peer first-class Phase 1 rows. Jazzy+ is later expansion only.
 
 ## Protocol state machine
 

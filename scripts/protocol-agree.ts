@@ -62,13 +62,13 @@ export const AGREEMENT_DIR_REL = "protocol/testdata/agreement";
 export const TESTDATA_REL = "protocol/testdata";
 export const SEQUENCES_DIR_REL = "protocol/testdata/sequences";
 
-export const OUTCOMES_TOTAL = 101;
-export const VALID_TOTAL = 20;
-export const SEQUENCES_TOTAL = 26;
+export const OUTCOMES_TOTAL = 105;
+export const VALID_TOTAL = 22;
+export const SEQUENCES_TOTAL = 28;
 export const MALFORMED_TOTAL = 55;
-export const PARITY_SHARED_TOTAL = 46;
+export const PARITY_SHARED_TOTAL = 50;
 export const PARITY_RULES_TOTAL = 20;
-export const PHASE_ONE_ROWS = ["H-FT", "H-CY", "J-FT", "J-CY"] as const;
+export const PHASE_ONE_ROWS = ["H-FT", "H-CY", "H-ZN", "J-FT", "J-CY", "J-ZN"] as const;
 
 export const PHASE_ONE_TRIPLES: ReadonlyArray<{
   support_row_id: string;
@@ -77,8 +77,10 @@ export const PHASE_ONE_TRIPLES: ReadonlyArray<{
 }> = [
   { support_row_id: "H-FT", ros_distro: "humble", rmw_identifier: "rmw_fastrtps_cpp" },
   { support_row_id: "H-CY", ros_distro: "humble", rmw_identifier: "rmw_cyclonedds_cpp" },
+  { support_row_id: "H-ZN", ros_distro: "humble", rmw_identifier: "rmw_zenoh_cpp" },
   { support_row_id: "J-FT", ros_distro: "jazzy", rmw_identifier: "rmw_fastrtps_cpp" },
   { support_row_id: "J-CY", ros_distro: "jazzy", rmw_identifier: "rmw_cyclonedds_cpp" },
+  { support_row_id: "J-ZN", ros_distro: "jazzy", rmw_identifier: "rmw_zenoh_cpp" },
 ];
 
 export const RECIPE_ID = "frame-app-payload-64mib-recipe";
@@ -2363,7 +2365,7 @@ export function diagnoseAgreeDocument(doc: unknown): string[] {
     if (!isPlainObject(doc.counts)) diags.push("counts object");
     else exactKeys(doc.counts, COUNTS_KEYS, "counts", diags);
 
-    if (!Array.isArray(doc.phase_one_rows) || doc.phase_one_rows.length !== 4) {
+    if (!Array.isArray(doc.phase_one_rows) || doc.phase_one_rows.length !== PHASE_ONE_ROWS.length) {
       diags.push("phase_one_rows");
     } else {
       for (let i = 0; i < 4; i++) {
@@ -2373,7 +2375,10 @@ export function diagnoseAgreeDocument(doc: unknown): string[] {
       }
     }
 
-    if (!Array.isArray(doc.phase_one_triples) || doc.phase_one_triples.length !== 4) {
+    if (
+      !Array.isArray(doc.phase_one_triples) ||
+      doc.phase_one_triples.length !== PHASE_ONE_TRIPLES.length
+    ) {
       diags.push("phase_one_triples");
     } else {
       doc.phase_one_triples.forEach((t, i) => {

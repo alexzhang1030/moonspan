@@ -31,9 +31,9 @@ export const PROTOCOL_ID = "r2wp-v0";
 export const SCHEMA_VERSION = 1;
 
 /** Exact corpus totals locked to the committed R2WP fixtures. */
-export const VALID_TOTAL = 20;
+export const VALID_TOTAL = 22;
 export const VALID_BOOTSTRAP = 3;
-export const VALID_FRAME_BINARY = 16;
+export const VALID_FRAME_BINARY = 18;
 export const VALID_SEGMENT_RECIPE = 1;
 export const VALID_FRAME_TOTAL = VALID_FRAME_BINARY + VALID_SEGMENT_RECIPE; // 17
 export const MALFORMED_TOTAL = 55;

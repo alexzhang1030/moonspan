@@ -14,7 +14,7 @@ export type ProtocolCheckResult = {
   summary: string;
 };
 
-const PHASE_ONE_ROWS = ["H-FT", "H-CY", "J-FT", "J-CY"] as const;
+const PHASE_ONE_ROWS = ["H-FT", "H-CY", "H-ZN", "J-FT", "J-CY", "J-ZN"] as const;
 
 /** Exact wire / bootstrap error code sets (code 20 excluded from both). */
 export const WIRE_ERROR_CODES = [
@@ -294,8 +294,10 @@ export const PHASE_ONE_SUPPORT_ROW_PROFILES: Readonly<
 > = {
   "H-FT": { ros_distro: "humble", rmw_identifier: "rmw_fastrtps_cpp" },
   "H-CY": { ros_distro: "humble", rmw_identifier: "rmw_cyclonedds_cpp" },
+  "H-ZN": { ros_distro: "humble", rmw_identifier: "rmw_zenoh_cpp" },
   "J-FT": { ros_distro: "jazzy", rmw_identifier: "rmw_fastrtps_cpp" },
   "J-CY": { ros_distro: "jazzy", rmw_identifier: "rmw_cyclonedds_cpp" },
+  "J-ZN": { ros_distro: "jazzy", rmw_identifier: "rmw_zenoh_cpp" },
 };
 
 /** Accepted non-numeric errors alias entries (exact set). */
