@@ -58,11 +58,11 @@ The runtime receives normalized schema records from the gateway and remains inde
 - Jazzy uses `rep2011-rihs` identity and native type descriptions.
 - Humble uses complete recursive bundles identified by `moonspan-schema-v1`.
 - Generated codecs serve the nine Phase 1 corpus roots and their shared dependencies (CDR1).
-- Dual-scheme lookup resolves 18 identities to nine codec descriptors; RIHS-to-bundle maps are provenance only.
-- Cache identity is `SchemaKey`: scheme, value, type name, encoding, and schema generation (representation is not part of the key).
+- Dual-scheme lookup resolves 18 identities to nine codec descriptors; RIHS-to-bundle maps are provenance.
+- Cache identity is `SchemaKey`: scheme, value, type name, R2WP payload-encoding u8 (`1` = CDR1 in M1), and u32 schema generation (Phase 1 value `1`). CDR representation is wire-profile metadata.
 - Zero-tail resolution takes `support_row_id` and CDR representation (`CDR_LE` / `CDR_BE`) against committed tail-slack evidence.
 - Missing required schema material yields `schema_unavailable` before channel activation.
-- The M1 registry is static and finite; dynamic plans and open registration belong to M2.
+- A bounded builder freezes an immutable M1 registry; runtime lookup reads that registry. Dynamic plans belong to M2.
 
 ## CDR and buffers
 

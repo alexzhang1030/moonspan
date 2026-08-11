@@ -134,9 +134,9 @@ M0 exit requires accepted decisions, clean-checkout root commands, reproducible 
 | M1-01d3 | Complete | Malformed/resource cases and final M1-01 gate | M1-01d2 |
 | M1-02 | Active | Generate types and build the schema-identity registry | M0-04, M1-01 |
 | M1-02a | Complete | Freeze the generated-types and schema-registry contract | M1-01, M0-04 |
-| M1-02b | Queued | Deterministic Bun generator and committed generated MoonBit artifacts | M1-02a |
+| M1-02b | Queued | Deterministic Bun generator: validated normalized descriptors and static metadata artifacts | M1-02a |
 | M1-02c | Queued | Production MoonBit models and CDR1 codecs for nine corpus roots plus shared dependencies | M1-02b |
-| M1-02d | Queued | Dual-scheme registry, Jazzy provenance, support-row and CDR representation zero-tail lookup | M1-02c |
+| M1-02d | Queued | Bounded builder freeze, dual-scheme registry, Jazzy provenance, representation-aware zero-tail lookup | M1-02c |
 | M1-02e | Queued | Corpus, adversarial, and public completion gate | M1-02d |
 | M1-03 | Queued | Establish the Wasm host ABI and executor poll loop | M0-02, M0-03 |
 | M1-04 | Queued | Implement the serialized ROS C ABI | M0-02, M0-04 |
@@ -202,18 +202,18 @@ M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both 
 
 | ID | State | Scope |
 |---|---|---|
-| M1-02a | Complete | Documentation freeze: generator inputs, `ROS2_INTERFACE_TEXT` and srv/action section selection, nine-root surface, SchemaKey, schemes, 18→9 resolve, provenance, lookup with support-row and CDR representation zero-tail, registration, bounds, typed errors, acceptance evidence |
-| M1-02b | Queued | Deterministic Bun generator (`--write` / `--check`) from committed bundles, manifest, tail-slack, and Jazzy RIHS map; checked-in MoonBit artifacts with byte identity |
+| M1-02a | Complete | Documentation freeze: encoding u8 domain, u32 generation, bundle/source bounds, authoritative joins, batch ownership, builder freeze, representation-aware zero-tail, ROS2_INTERFACE_TEXT section selection |
+| M1-02b | Queued | Deterministic Bun generator (`--write` / `--check`): validated normalized descriptors and static metadata from committed bundles, manifest, tail-slack, and Jazzy RIHS map |
 | M1-02c | Queued | Production MoonBit models and CDR1 codecs for nine roots plus shared dependencies; `cdr_mbt` composition; field bounds, nesting, borrowed PointCloud2 data |
-| M1-02d | Queued | Dual-scheme registry; RIHS provenance; lookup with `support_row_id` and `cdr_representation` against committed tail-slack; idempotent vs conflicting registration |
+| M1-02d | Queued | Bounded builder freezes an immutable registry; dual-scheme resolve; RIHS provenance; lookup with `support_row_id` and `cdr_representation` against committed tail-slack |
 | M1-02e | Queued | Corpus, adversarial, and public completion gate |
 
 **Acceptance criteria (M1-02 overall):**
 
 - [x] Authoritative contract at `docs/runtime/generated-types.md` routed from docs, PCR, and tasks (M1-02a).
-- [ ] Bun generator with `--write`/`--check` byte identity over committed MoonBit output (M1-02b).
+- [ ] Bun generator with `--write`/`--check` byte identity over validated normalized descriptors and static metadata (M1-02b).
 - [ ] Nine-root CDR1 codecs plus shared dependencies, using `cdr_mbt` with schema bounds, nesting, and borrowed PointCloud2 data (M1-02c).
-- [ ] Eighteen identities resolve to nine descriptors; schemes stay independent; missing material is `schema_unavailable` before activation; lookup with support row and CDR representation returns committed zero-tail (M1-02d).
+- [ ] Bounded builder freezes an immutable registry; eighteen identities resolve to nine descriptors; lookup with support row and CDR representation returns committed zero-tail; missing material is `schema_unavailable` before activation (M1-02d).
 - [ ] Corpus, adversarial, and public gate pass (M1-02e).
 
 **Verification:** focused generator and MoonBit/Wasm tests; corpus-driven checks; root `just check`, `just test`, and `just build` when implementation lands.

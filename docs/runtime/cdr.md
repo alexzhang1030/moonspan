@@ -98,7 +98,7 @@ Machine-checkable evidence: [`conformance/cdr/tail-slack.json`](../../conformanc
 | **Strict** (`ensure_complete`) | Fully consumed stream; every remaining tail surfaces as `trailing_data` |
 | **Declared zero tail** (`ensure_complete_with_zero_tail`) | Exact end, or remaining length equals the declared all-zero byte count |
 
-M1-02 supplies the declared expected tail from `SchemaKey` plus wire-profile metadata (`support_row_id` and CDR representation), with committed [`tail-slack.json`](../../conformance/cdr/tail-slack.json) as authority (Phase 1 values `0`, `4`, or `12`). Support row and type alone are insufficient: H-FT and J-FT `PrimitiveScalars` each carry little-endian tail 4 and big-endian tail 0. Canonical Moonspan encode remains exact (zero top-level tail). Cross-row semantic agreement compares decoded logical values; M1-01d proves agreement across exact and zero-tail fixtures.
+M1-02 supplies the declared expected tail from `SchemaKey` plus wire-profile metadata (`support_row_id` and CDR representation), with committed [`tail-slack.json`](../../conformance/cdr/tail-slack.json) as authority (Phase 1 values `0`, `4`, or `12`). Resolution includes representation because H-FT and J-FT `PrimitiveScalars` each carry little-endian tail 4 and big-endian tail 0. Canonical Moonspan encode remains exact (zero top-level tail). Cross-row semantic agreement compares decoded logical values; M1-01d proves agreement across exact and zero-tail fixtures.
 
 `invalid_wstring_scalar` covers a 32-bit character slot outside the accepted Unicode scalar values for this ROS profile. When a Char8 declared span ends on a nonzero byte, the fault is `missing_string_terminator`.
 

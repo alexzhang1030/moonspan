@@ -42,9 +42,9 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
     - [x] M1-01d3 Malformed/resource cases and final M1-01 gate.
 - [~] M1-02 Implement generated types and the type registry ([contract](../docs/runtime/generated-types.md)).
   - [x] M1-02a Freeze the generated-types and schema-registry contract.
-  - [ ] M1-02b Deterministic Bun generator and committed generated MoonBit artifacts.
+  - [ ] M1-02b Deterministic Bun generator: validated normalized descriptors and static metadata artifacts.
   - [ ] M1-02c Production MoonBit models and CDR1 codecs for nine corpus roots plus shared dependencies.
-  - [ ] M1-02d Dual-scheme registry, Jazzy provenance, support-row and CDR representation zero-tail lookup.
+  - [ ] M1-02d Bounded builder freeze, dual-scheme registry, Jazzy provenance, representation-aware zero-tail lookup.
   - [ ] M1-02e Corpus, adversarial, and public completion gate.
 - [ ] M1-03 Establish the Wasm host ABI and executor poll loop.
 - [ ] M1-04 Implement the serialized ROS C ABI.
