@@ -37,16 +37,16 @@ One gateway process binds one row and may host multiple domain IDs. `support_row
 
 Qualification reports record the exercised architecture digest, installed ROS and RMW packages, adapter ABI, and support-row identity.
 
-### RMW package pins (arm64, 2026-08-11 probe)
+### RMW package pins (arm64 corpus evidence)
 
-| Distro | Package | Candidate version |
+The CDR generator installs exact official binary package versions for Fast DDS, Cyclone DDS, and Zenoh on both Humble and Jazzy. Per-row installed versions live in `conformance/cdr/fixtures/*/row.json` and the corpus `manifest.json`.
+
+| Distro | Package | Installed version (arm64) |
 |---|---|---|
-| Humble | `ros-humble-rmw-cyclonedds-cpp` | recorded in CDR corpus environment manifests |
-| Humble | `ros-humble-rmw-zenoh-cpp` | `0.1.9-1jammy.20260725.135946` (binary available) |
-| Jazzy | `ros-jazzy-rmw-cyclonedds-cpp` | recorded in CDR corpus environment manifests |
-| Jazzy | `ros-jazzy-rmw-zenoh-cpp` | binary preferred when present; otherwise pinned source build |
+| Humble | `ros-humble-rmw-zenoh-cpp` | `0.1.9-1jammy.20260725.135946` |
+| Jazzy | `ros-jazzy-rmw-zenoh-cpp` | `0.2.9-1noble.20260612.051449` |
 
-Zenoh enters Phase 1 with official binaries where available ([rmw_zenoh binaries announcement](https://discourse.openrobotics.org/t/rmw-zenoh-binaries-for-rolling-jazzy-and-humble/41395), [ROS index](https://index.ros.org/r/rmw_zenoh/), [source](https://github.com/ros2/rmw_zenoh)). When a binary is absent for a platform, the corpus generator records a reproducible pinned source revision, dependencies, and build recipe in the environment manifest.
+Zenoh is a Phase 1 first-class RMW through those official binaries ([rmw_zenoh binaries announcement](https://discourse.openrobotics.org/t/rmw-zenoh-binaries-for-rolling-jazzy-and-humble/41395), [ROS index](https://index.ros.org/r/rmw_zenoh/)). Current corpus evidence is **arm64**. **amd64** remains a future qualification evidence lane on the same support rows.
 
 ## Schema identity
 
