@@ -14,6 +14,10 @@ Detailed workloads and evidence requirements live in [validation](../../docs/val
 
 Phase 1 qualification covers H-FT, H-CY, H-ZN, J-FT, J-CY, and J-ZN. Studio begins after M3.
 
+## M1 entry and M0 carryover
+
+On 2026-08-12 human review authorized M1 execution. The M0 gate item "Human review approves M1" is complete. Remaining M0 work stays active as carryover: M0-01 decisions, M0-02 hosted CI review, and M0-05 evidence collector plus hosted integration (M0-05b, M0-05c). M1-08 still depends on M0-05 so the PointCloud2 gate report uses the finished evidence harness. CDR layout and codec acceptance follow the [CDR core contract](../../docs/runtime/cdr.md).
+
 ## Evidence contract
 
 Each accepted claim records:

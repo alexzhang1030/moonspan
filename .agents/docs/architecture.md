@@ -28,7 +28,7 @@ One gateway process may expose multiple domain IDs within its support row. Fleet
 | Unit | Responsibility |
 |---|---|
 | R2WP | Frames, control messages, channels, schema identity, errors, versioning, and provenance |
-| `rclmbt` | CDR, type registry, ROS state, QoS, and host poll contract |
+| `rclmbt` | CDR ([core contract](../../docs/runtime/cdr.md)), type registry, ROS state, QoS, and host poll contract |
 | Browser SDK | Public API, Worker lifecycle, buffer transfer, telemetry, and reconnect behavior |
 | `rclwebd` | ROS attachment, sessions, schema cache, scheduling, policy, audit, and operations |
 | ROS adapter | Versioned serialized C ABI for one support row |

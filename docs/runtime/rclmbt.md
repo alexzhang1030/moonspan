@@ -1,6 +1,6 @@
 # `rclmbt` browser runtime
 
-`rclmbt` is Moonspan's MoonBit/Wasm runtime for deterministic browser-side ROS 2 behavior. The R2WP v0 parser is complete. M1 builds the host boundary and publish/subscribe path; M2 completes the planned N2 semantics.
+`rclmbt` is Moonspan's MoonBit/Wasm runtime for deterministic browser-side ROS 2 behavior. The R2WP v0 parser is complete. M1 builds the CDR core, host boundary, and publish/subscribe path; M2 completes the planned N2 semantics. The CDR behavioral contract lives in [CDR core](./cdr.md).
 
 ## Responsibilities
 
@@ -64,7 +64,7 @@ The runtime receives normalized schema records from the gateway and remains inde
 
 ## CDR and buffers
 
-`cdr_mbt` covers CDR1 and the declared XCDR2 subset for primitives, arrays, sequences, strings, nested types, and Service and Action components. It returns typed errors for truncation, alignment, bounds, overflow, and schema mismatch.
+`cdr_mbt` implements the [CDR core contract](./cdr.md). M1 targets PLAIN_CDR/CDR1 for the authoritative ROS corpus in little and big endian. XCDR2 stream foundations remain a follow-on surface for later schema work. The module returns typed errors for truncation, alignment, bounds, overflow, allocation, encoding, and lease faults.
 
 Every buffer has one owner at each boundary. Large fields use bounded views and parent-buffer leases. Applications retain data through an explicit copy or lease extension. Shared rings and transferable buffers implement the same event lifecycle and expose their costs through telemetry.
 

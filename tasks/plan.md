@@ -8,11 +8,12 @@ Planning windows guide sequencing. Gate evidence controls progression.
 
 ## 2. Current baseline
 
-- M0 is active.
+- M1 execution is authorized (human decision 2026-08-12). The M0 gate item "Human review approves M1" is complete.
+- M0 carryover remains active: M0-01 decisions, M0-02 hosted CI review, and M0-05 collector plus hosted integration (M0-05b, M0-05c). M1-08 still depends on M0-05.
 - M0-03 is complete. Its [completion note](../docs/milestones/m0-03-r2wp-foundation.md) records the delivered scope.
-- M0-01 and M0-02 are active. Hosted CI evidence and human decisions remain open.
 - M0-04 delivers the authoritative ROS CDR corpus across six Phase 1 rows.
-- M0-05 is active. M0-05a lands the qualification report v1 contract; M0-05b/c cover collector and hosted integration.
+- M0-05a is complete (qualification report v1 contract). M0-05 stays active for M0-05b/c.
+- M1-01 is active. M1-01a freezes the [CDR core contract](../docs/runtime/cdr.md); M1-01b/c/d implement and prove `cdr_mbt`.
 - Phase 1 covers Humble and Jazzy rows H-FT, H-CY, H-ZN, J-FT, J-CY, and J-ZN (Fast DDS, Cyclone DDS, and Zenoh as first-class RMW rows).
 - Studio begins at U0 after M3. Jazzy+ belongs to a later support expansion.
 
@@ -24,7 +25,7 @@ Planning windows guide sequencing. Gate evidence controls progression.
 | Architecture | [Architecture](../docs/architecture.md) |
 | Decisions | [ADR register](../docs/adr/README.md) |
 | Protocol | [R2WP](../docs/protocol/r2wp.md) |
-| Runtime and gateway | [`rclmbt`](../docs/runtime/rclmbt.md), [`rclwebd`](../docs/gateway/rclwebd.md) |
+| Runtime and gateway | [`rclmbt`](../docs/runtime/rclmbt.md), [CDR core](../docs/runtime/cdr.md), [`rclwebd`](../docs/gateway/rclwebd.md) |
 | Security and compatibility | [Security](../docs/security.md), [compatibility](../docs/compatibility.md) |
 | Supported profiles | [Support matrix](../docs/support-matrix.md) |
 | Evidence | [Validation](../docs/validation.md) |
@@ -89,7 +90,7 @@ Each phase closes when its automated evidence passes and the designated human re
 | M0-05b | Queued | Evidence collector that writes valid reports from raw runs | M0-05a |
 | M0-05c | Queued | Hosted CI integration and final M0-05 review | M0-05a, M0-02 |
 
-M0 exit requires accepted decisions, clean-checkout root commands, reproducible R2WP and CDR fixtures, valid evidence artifacts, and human approval for M1.
+M0 exit requires accepted decisions, clean-checkout root commands, reproducible R2WP and CDR fixtures, and valid evidence artifacts. Human approval for M1 landed on 2026-08-12; remaining M0 items continue as carryover while M1 runs.
 
 #### M0-05a — Qualification report v1 contract
 
@@ -111,18 +112,48 @@ M0 exit requires accepted decisions, clean-checkout root commands, reproducible 
 
 ### M1: Core data path
 
-| ID | Deliverable | Depends on |
-|---|---|---|
-| M1-01 | Implement the MoonBit CDR core and bounded views | M0-02, M0-04 |
-| M1-02 | Generate types and build the schema-identity registry | M0-04, M1-01 |
-| M1-03 | Establish the Wasm host ABI and executor poll loop | M0-02, M0-03 |
-| M1-04 | Implement the serialized ROS C ABI | M0-02, M0-04 |
-| M1-05 | Build the gateway graph, schema, telemetry, and scheduler core | M0-03, M1-04 |
-| M1-06 | Implement WebTransport, WebSocket, and the browser I/O Worker | M0-03, M1-03, M1-05 |
-| M1-07 | Deliver graph and publish/subscribe through the browser SDK | M1-01 through M1-06 |
-| M1-08 | Qualify the headless PointCloud2 path and issue the gate report | M0-05, M1-07 |
+| ID | State | Deliverable | Depends on |
+|---|---|---|---|
+| M1-01 | Active | Implement the MoonBit CDR core and bounded views | M0-02, M0-04 |
+| M1-01a | Complete | Freeze the CDR core contract and conformance plan | M0-04 |
+| M1-01b | Queued | Bounded stream reader/writer, encapsulation, endian, alignment, limits, typed errors | M1-01a |
+| M1-01c | Queued | Primitives, strings/wstrings, arrays, sequences, nested values, borrowed BytesView fields | M1-01b |
+| M1-01d | Queued | Authoritative corpus proof: semantic agreement, round trips, malformed input, resource bounds | M1-01c, M0-04 |
+| M1-02 | Queued | Generate types and build the schema-identity registry | M0-04, M1-01 |
+| M1-03 | Queued | Establish the Wasm host ABI and executor poll loop | M0-02, M0-03 |
+| M1-04 | Queued | Implement the serialized ROS C ABI | M0-02, M0-04 |
+| M1-05 | Queued | Build the gateway graph, schema, telemetry, and scheduler core | M0-03, M1-04 |
+| M1-06 | Queued | Implement WebTransport, WebSocket, and the browser I/O Worker | M0-03, M1-03, M1-05 |
+| M1-07 | Queued | Deliver graph and publish/subscribe through the browser SDK | M1-01 through M1-06 |
+| M1-08 | Queued | Qualify the headless PointCloud2 path and issue the gate report | M0-05, M1-07 |
 
-M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both transports, both browser buffer paths, bounded resource behavior, and human approval for M2.
+M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both transports, both browser buffer paths, bounded resource behavior, and human approval for M2. M0-05b and M0-05c continue in parallel; M1-08 keeps its dependency on M0-05.
+
+#### M1-01 — MoonBit CDR core
+
+**Description:** Implement `cdr_mbt` against the frozen [CDR core contract](../docs/runtime/cdr.md) and the committed ROS corpus (`moonspan-ros-cdr-v1`, 56 fixtures, six Phase 1 rows, 18 semantic comparisons).
+
+**Sub-batches:**
+
+| ID | State | Scope |
+|---|---|---|
+| M1-01a | Complete | Documentation and plan freeze: PLAIN_CDR/CDR1 little and big endian target; XCDR2 stream foundations as follow-on; semantic cross-row agreement; deterministic zero-fill encoder padding; decoder accepts legal padding; official sources |
+| M1-01b | Queued | Bounded stream reader/writer, encapsulation, endian, alignment, limits, typed errors |
+| M1-01c | Queued | Primitives, strings/wstrings, arrays, sequences, nested values, borrowed `BytesView` fields |
+| M1-01d | Queued | Corpus-driven proof: semantic agreement, round trips, malformed input, resource bounds |
+
+**Acceptance criteria (M1-01 overall):**
+
+- [x] Authoritative contract at `docs/runtime/cdr.md` routed from docs and PCR maps (M1-01a).
+- [ ] Reader/writer, encapsulation, endian, alignment, limits, and typed errors (M1-01b).
+- [ ] Primitive and container codecs with borrowed views (M1-01c).
+- [ ] Corpus agreement and adversarial resource cases (M1-01d).
+
+**Verification:** focused MoonBit/Wasm tests for `cdr_mbt`; corpus-driven checks against `conformance/cdr/manifest.json`; root `just check`, `just test`, and `just build` when implementation lands.
+
+- **Dependencies:** M0-02, M0-04 (M1-01a complete on documentation alone)
+- **Likely files:** `docs/runtime/cdr.md`, `docs/runtime/rclmbt.md`, `docs/README.md`, `.agents/docs/**`, `tasks/plan.md`, `tasks/todo.md`, later `rclmbt/**` for b–d
+- **Scope:** L
 
 ### M2: ROS semantics
 
@@ -196,11 +227,10 @@ Work is grouped into ROS and middleware, MoonBit and Wasm, Rust and transport, b
 
 ## 11. Immediate execution order
 
-1. Resolve D-01, D-02, and D-06 through M0-01.
-2. Capture reviewed hosted CI artifacts for M0-02.
-3. Build the ROS CDR corpus in M0-04.
-4. Build the evidence harness in M0-05.
-5. Review the M0 gate and open M1.
+1. Complete M1-01b through M1-01d against the frozen CDR contract (M1-01a complete).
+2. Continue M0 carryover in parallel: M0-01 decisions, M0-02 hosted CI review, M0-05b collector, M0-05c hosted integration.
+3. Advance M1-02 and M1-03 once M1-01 behavior is stable enough for consumers.
+4. Keep M1-08 gated on M0-05 so the PointCloud2 report uses the finished evidence harness.
 
 ## 12. Risks and responses
 

@@ -18,18 +18,22 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
 - [ ] Decisions and support profile receive review.
 - [ ] Root commands pass from a clean checkout and hosted evidence receives review.
 - [ ] R2WP, CDR, and evidence artifacts reproduce.
-- [ ] Human review approves M1.
+- [x] Human review approves M1. (2026-08-12; M1 execution authorized; remaining M0 items continue as carryover)
 
 ## M1: Core data path
 
-- [ ] M1-01 Implement `cdr_mbt`.
+- [~] M1-01 Implement `cdr_mbt` ([CDR core contract](../docs/runtime/cdr.md)).
+  - [x] M1-01a Freeze the CDR core contract and conformance plan.
+  - [ ] M1-01b Bounded stream reader/writer, encapsulation, endian, alignment, limits, and typed errors.
+  - [ ] M1-01c Primitives, strings/wstrings, arrays, sequences, nested values, and borrowed BytesView fields.
+  - [ ] M1-01d Prove the authoritative corpus, semantic agreement, round trips, malformed input, and resource bounds.
 - [ ] M1-02 Implement generated types and the type registry.
 - [ ] M1-03 Establish the Wasm host ABI and executor poll loop.
 - [ ] M1-04 Implement the serialized ROS C ABI.
 - [ ] M1-05 Build the gateway graph, schema, telemetry, and scheduler core.
 - [ ] M1-06 Implement WebTransport, WebSocket, and the browser I/O Worker.
 - [ ] M1-07 Deliver graph and publish/subscribe through the browser SDK.
-- [ ] M1-08 Qualify the headless PointCloud2 path and issue the gate report.
+- [ ] M1-08 Qualify the headless PointCloud2 path and issue the gate report (depends on M0-05).
 
 ### M1 gate
 
