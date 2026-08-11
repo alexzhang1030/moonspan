@@ -1,9 +1,9 @@
 ///|
 /// Authoritative ROS CDR corpus semantic proof (M1-01d2).
 /// Package-internal hand-written white-box codecs for the nine root schema
-/// surfaces. Round-trip encodes the exact decoded CorpusValue (not expected
-/// constants). Nesting tokens: the token is the current aggregate; enter a
-/// child before every nested aggregate field.
+/// surfaces. Round-trip encodes the exact decoded CorpusValue from decode_case.
+/// Nesting tokens: the token is the current aggregate; enter a child before
+/// every nested aggregate field.
 
 // ---------------------------------------------------------------------------
 // Value models (test-only)
@@ -705,12 +705,12 @@ fn decode_collections(r : CdrReader, current : CdrNesting) -> CorpusCollections 
 }
 
 ///|
-/// `parent` is the containing aggregate. Enters NestedSample, then each child.
+/// `current` is the NestedSample aggregate itself (root depth 0 at top level).
+/// Enters only Time, PrimitiveScalars, and Collections children.
 fn decode_nested_sample(
   r : CdrReader,
-  parent : CdrNesting,
+  current : CdrNesting,
 ) -> CorpusNestedSample {
-  let current = cs_enter_r(r, parent, "NestedSample")
   let time_n = cs_enter_r(r, current, "NestedSample.Time")
   let stamp = decode_time(r, time_n)
   let scalars_n = cs_enter_r(r, current, "NestedSample.PrimitiveScalars")
@@ -725,8 +725,9 @@ fn decode_echo_request(
   r : CdrReader,
   parent : CdrNesting,
 ) -> CorpusEchoNestedRequest {
-  // input is a nested NestedSample field under the request aggregate.
-  { input: decode_nested_sample(r, parent) }
+  // Enter the NestedSample field under the request aggregate.
+  let input_n = cs_enter_r(r, parent, "EchoNestedRequest.input")
+  { input: decode_nested_sample(r, input_n) }
 }
 
 ///|
@@ -734,7 +735,8 @@ fn decode_echo_response(
   r : CdrReader,
   parent : CdrNesting,
 ) -> CorpusEchoNestedResponse {
-  let output = decode_nested_sample(r, parent)
+  let output_n = cs_enter_r(r, parent, "EchoNestedResponse.output")
+  let output = decode_nested_sample(r, output_n)
   let accepted = match r.read_bool() {
     Ok(v) => v
     Err(e) => {
@@ -756,7 +758,8 @@ fn decode_result(
   r : CdrReader,
   parent : CdrNesting,
 ) -> CorpusMeasureSequenceResult {
-  { result: decode_nested_sample(r, parent) }
+  let result_n = cs_enter_r(r, parent, "Result.result")
+  { result: decode_nested_sample(r, result_n) }
 }
 
 ///|
@@ -771,7 +774,8 @@ fn decode_feedback(
       Float::from_double(0.0)
     }
   }
-  let sample = decode_nested_sample(r, parent)
+  let sample_n = cs_enter_r(r, parent, "Feedback.sample")
+  let sample = decode_nested_sample(r, sample_n)
   { progress, sample }
 }
 
@@ -1032,12 +1036,12 @@ fn encode_collections(
 }
 
 ///|
+/// `current` is the NestedSample aggregate itself. Enters only child aggregates.
 fn encode_nested_sample(
   w : CdrWriter,
   v : CorpusNestedSample,
-  parent : CdrNesting,
+  current : CdrNesting,
 ) -> Unit raise {
-  let current = cs_enter_w(w, parent, "enc NestedSample")
   let time_n = cs_enter_w(w, current, "enc NestedSample.Time")
   encode_time(w, v.stamp, time_n)
   let scalars_n = cs_enter_w(w, current, "enc NestedSample.PrimitiveScalars")
@@ -1052,7 +1056,8 @@ fn encode_echo_request(
   v : CorpusEchoNestedRequest,
   parent : CdrNesting,
 ) -> Unit raise {
-  encode_nested_sample(w, v.input, parent)
+  let input_n = cs_enter_w(w, parent, "enc EchoNestedRequest.input")
+  encode_nested_sample(w, v.input, input_n)
 }
 
 ///|
@@ -1061,7 +1066,8 @@ fn encode_echo_response(
   v : CorpusEchoNestedResponse,
   parent : CdrNesting,
 ) -> Unit raise {
-  encode_nested_sample(w, v.output, parent)
+  let output_n = cs_enter_w(w, parent, "enc EchoNestedResponse.output")
+  encode_nested_sample(w, v.output, output_n)
   match w.write_bool(v.accepted) {
     Ok(_) => ()
     Err(e) => cs_abort("enc accepted", e)
@@ -1084,7 +1090,8 @@ fn encode_result(
   v : CorpusMeasureSequenceResult,
   parent : CdrNesting,
 ) -> Unit raise {
-  encode_nested_sample(w, v.result, parent)
+  let result_n = cs_enter_w(w, parent, "enc Result.result")
+  encode_nested_sample(w, v.result, result_n)
 }
 
 ///|
@@ -1097,7 +1104,8 @@ fn encode_feedback(
     Ok(_) => ()
     Err(e) => cs_abort("enc progress", e)
   }
-  encode_nested_sample(w, v.sample, parent)
+  let sample_n = cs_enter_w(w, parent, "enc Feedback.sample")
+  encode_nested_sample(w, v.sample, sample_n)
 }
 
 ///|
@@ -1288,7 +1296,7 @@ fn decode_case(r : CdrReader, case_id : String) -> CorpusValue {
 }
 
 ///|
-/// Independent manifest-value oracle (not used by the encode path).
+/// Manifest constants are an independent oracle; encode_case consumes CorpusValue directly.
 fn assert_expected_semantics(
   value : CorpusValue,
   case_id : String,
@@ -1348,7 +1356,7 @@ fn assert_expected_semantics(
 }
 
 ///|
-/// Encode the exact decoded value. No expected-constant reconstruction.
+/// Encode the exact decoded CorpusValue returned by decode_case.
 fn encode_case(w : CdrWriter, value : CorpusValue) -> Unit raise {
   let root = w.root_nesting()
   match value {
@@ -1437,7 +1445,7 @@ test "corpus multi-row comparison groups decode to equal CorpusValue peers" {
       ignore(arr)
       let r = cs_open(bytes[:])
       let vp = decode_case(r, peer.case_id)
-      // Peer equality is between decoded values, not only vs expected oracle.
+      // Peer equality compares decoded values directly.
       assert_eq(eq_corpus_value(v0, vp), true)
       assert_expected_semantics(vp, peer.case_id)
       match r.ensure_complete_with_zero_tail(peer.zero_tail_bytes) {
@@ -1463,7 +1471,7 @@ test "corpus exact re-encode of decoded CorpusValue matches logical prefix" {
       Ok(_) => ()
       Err(e) => cs_abort(f.id + " complete", e)
     }
-    // Encode the same decoded object — no expected-constant reconstruction.
+    // Encode the same decoded CorpusValue object.
     let endian = cs_endian_of(f.serialized_endianness)
     let w = cs_writer(endian)
     encode_case(w, value)
@@ -1565,7 +1573,7 @@ test "comparison groups re-encode decoded first member to each logical prefix" {
 }
 
 ///|
-test "encode_case reflects mutated decoded CorpusValue not expected constants" {
+test "encode_case consumes mutated decoded CorpusValue and changes wire bytes" {
   // Decode a real collections fixture, mutate one field, prove encode differs
   // from the corpus logical prefix (and from encoding the unmutated value).
   let f = cdr_fx_find("H-CY-collections")
@@ -1612,16 +1620,156 @@ test "encode_case reflects mutated decoded CorpusValue not expected constants" {
 }
 
 ///|
-test "direct peer decoded CorpusValue equality without expected oracle" {
-  let a = cdr_fx_find("H-FT-collections")
-  let b = cdr_fx_find("H-CY-collections")
-  let (_, ba) = materialize_fixture(a)
-  let (_, bb) = materialize_fixture(b)
-  let ra = cs_open(ba[:])
-  let rb = cs_open(bb[:])
-  let va = decode_case(ra, a.case_id)
-  let vb = decode_case(rb, b.case_id)
-  assert_eq(eq_corpus_value(va, vb), true)
-  // Wire bytes may differ across rows (tail slack); values still equal.
-  assert_eq(a.byte_length == b.byte_length || true, true)
+test "H-FT and H-CY collections peers equal with declared tail length facts" {
+  let ft = cdr_fx_find("H-FT-collections")
+  let cy = cdr_fx_find("H-CY-collections")
+  let (_, ft_bytes) = materialize_fixture(ft)
+  let (_, cy_bytes) = materialize_fixture(cy)
+  let r_ft = cs_open(ft_bytes[:])
+  let r_cy = cs_open(cy_bytes[:])
+  let v_ft = decode_case(r_ft, ft.case_id)
+  let v_cy = decode_case(r_cy, cy.case_id)
+  match r_ft.ensure_complete_with_zero_tail(ft.zero_tail_bytes) {
+    Ok(_) => ()
+    Err(e) => cs_abort("H-FT complete", e)
+  }
+  match r_cy.ensure_complete_with_zero_tail(cy.zero_tail_bytes) {
+    Ok(_) => ()
+    Err(e) => cs_abort("H-CY complete", e)
+  }
+  assert_eq(eq_corpus_value(v_ft, v_cy), true)
+  // Durable bridge facts: equal semantics with different wire lengths.
+  assert_eq(cy.zero_tail_bytes, 0)
+  assert_eq(ft.zero_tail_bytes > 0, true)
+  assert_eq(ft.byte_length, cy.byte_length + ft.zero_tail_bytes)
+}
+
+///|
+test "top-level nested_sample succeeds at nesting depth budget 1" {
+  // NestedSample at root depth 0 enters only three direct aggregate children
+  // (Time, PrimitiveScalars, Collections), so max_nesting_depth=1 is enough.
+  let f = cdr_fx_find("H-CY-nested_sample")
+  let (arr, bytes) = materialize_fixture(f)
+  let limits = match
+    CdrLimits::new(
+      DEFAULT_MAX_STREAM_BYTES,
+      1,
+      DEFAULT_MAX_TEMPORARY_ALLOCATION,
+    ) {
+    Ok(l) => l
+    Err(e) => {
+      cs_abort("limits depth 1", e)
+      CdrLimits::defaults()
+    }
+  }
+  let r = match CdrReader::open(bytes[:], limits) {
+    Ok(reader) => reader
+    Err(e) => {
+      cs_abort("open depth 1", e)
+      cs_open(bytes[:])
+    }
+  }
+  let value = decode_case(r, f.case_id)
+  assert_expected_semantics(value, f.case_id)
+  match r.ensure_complete_with_zero_tail(f.zero_tail_bytes) {
+    Ok(_) => ()
+    Err(e) => cs_abort("nested_sample depth 1 complete", e)
+  }
+  let w = match CdrWriter::new(CdrEndian::Little, limits) {
+    Ok(writer) => writer
+    Err(e) => {
+      cs_abort("writer depth 1", e)
+      cs_writer(CdrEndian::Little)
+    }
+  }
+  encode_case(w, value)
+  let out = w.to_bytes()
+  assert_eq(out.length(), f.logical_byte_length)
+  assert_eq(prefix_eq_bytes(out, arr, f.logical_byte_length), true)
+}
+
+///|
+test "echo_nested_request succeeds at nesting depth budget 2" {
+  // Request root enters NestedSample (depth 1); NestedSample children reach depth 2.
+  let f = cdr_fx_find("H-CY-echo_nested_request")
+  let (arr, bytes) = materialize_fixture(f)
+  let limits = match
+    CdrLimits::new(
+      DEFAULT_MAX_STREAM_BYTES,
+      2,
+      DEFAULT_MAX_TEMPORARY_ALLOCATION,
+    ) {
+    Ok(l) => l
+    Err(e) => {
+      cs_abort("limits depth 2", e)
+      CdrLimits::defaults()
+    }
+  }
+  let r = match CdrReader::open(bytes[:], limits) {
+    Ok(reader) => reader
+    Err(e) => {
+      cs_abort("open depth 2", e)
+      cs_open(bytes[:])
+    }
+  }
+  let value = decode_case(r, f.case_id)
+  assert_expected_semantics(value, f.case_id)
+  match r.ensure_complete_with_zero_tail(f.zero_tail_bytes) {
+    Ok(_) => ()
+    Err(e) => cs_abort("echo request depth 2 complete", e)
+  }
+  let w = match CdrWriter::new(CdrEndian::Little, limits) {
+    Ok(writer) => writer
+    Err(e) => {
+      cs_abort("writer depth 2", e)
+      cs_writer(CdrEndian::Little)
+    }
+  }
+  encode_case(w, value)
+  let out = w.to_bytes()
+  assert_eq(out.length(), f.logical_byte_length)
+  assert_eq(prefix_eq_bytes(out, arr, f.logical_byte_length), true)
+}
+
+///|
+test "point_cloud2 succeeds at nesting depth budget 2 for Header.Time" {
+  // PointCloud2 at root enters Header (depth 1) then Header.Time (depth 2).
+  let f = cdr_fx_find("H-CY-point_cloud2")
+  let (arr, bytes) = materialize_fixture(f)
+  let limits = match
+    CdrLimits::new(
+      DEFAULT_MAX_STREAM_BYTES,
+      2,
+      DEFAULT_MAX_TEMPORARY_ALLOCATION,
+    ) {
+    Ok(l) => l
+    Err(e) => {
+      cs_abort("limits pc2 depth 2", e)
+      CdrLimits::defaults()
+    }
+  }
+  let r = match CdrReader::open(bytes[:], limits) {
+    Ok(reader) => reader
+    Err(e) => {
+      cs_abort("open pc2 depth 2", e)
+      cs_open(bytes[:])
+    }
+  }
+  let value = decode_case(r, f.case_id)
+  assert_expected_semantics(value, f.case_id)
+  match r.ensure_complete_with_zero_tail(f.zero_tail_bytes) {
+    Ok(_) => ()
+    Err(e) => cs_abort("pc2 depth 2 complete", e)
+  }
+  let w = match CdrWriter::new(CdrEndian::Little, limits) {
+    Ok(writer) => writer
+    Err(e) => {
+      cs_abort("writer pc2 depth 2", e)
+      cs_writer(CdrEndian::Little)
+    }
+  }
+  encode_case(w, value)
+  let out = w.to_bytes()
+  assert_eq(out.length(), f.logical_byte_length)
+  assert_eq(prefix_eq_bytes(out, arr, f.logical_byte_length), true)
 }
