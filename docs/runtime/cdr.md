@@ -124,6 +124,60 @@ When a later member follows a wstring, generated schema plans (M1-02) supply the
 
 `invalid_wstring_scalar` covers a 32-bit character slot outside the accepted Unicode scalar values for this ROS profile. When a Char8 declared span ends on a nonzero byte, the fault is `missing_string_terminator`.
 
+## Arrays, sequences, and nesting (M1-01c3)
+
+Implementable container surface for Phase 1 CDR1. Generated codecs (M1-02) compose these primitives with schema-declared counts and types.
+
+### Fixed arrays
+
+| Rule | Contract |
+|---|---|
+| Serialization | Exactly the schema-declared element count, by composing the existing element codec for each slot |
+| Alignment | The first element uses normal body-origin alignment for its type; each later element uses the element codec’s own alignment |
+| Preflight | Fixed-width element arrays may preflight `count × element_width` before the element loop |
+| Schema ownership | Schema-generated code owns the declared array count and value-length validation |
+
+### Sequences
+
+Public direction:
+
+```text
+CdrReader::read_sequence_length(max_elements? : UInt) -> Result[Int, CdrError]
+CdrWriter::write_sequence_length(length : Int, max_elements? : UInt) -> Result[Unit, CdrError]
+CdrReader::read_byte_sequence(max_elements? : UInt) -> Result[BytesView, CdrError]
+CdrWriter::write_byte_sequence(value : BytesView, max_elements? : UInt) -> Result[Unit, CdrError]
+```
+
+| Rule | Contract |
+|---|---|
+| Wire layout | Endian-aware aligned `UInt32` element count, then elements under normal CDR1 alignment |
+| Optional `max_elements` | Counts elements. Exact bound succeeds; bound + 1 yields `bounds_exceeded` before allocation or writer mutation |
+| `read_sequence_length` | Applies `max_stream_bytes` as the absolute element-work ceiling before host `Int` conversion and returns a bounded `Int` suitable for element loops |
+| `read_byte_sequence` | One complete field preflight; returns a borrowed zero-copy `BytesView`. `max_temporary_allocation` remains for owned allocations only |
+| `write_byte_sequence` | One complete field preflight, then direct emission into the owned writer buffer |
+| Large `UInt` bounds | Values above the host `Int` domain stay open relative to Phase 1 absolute ceilings (same rule as Char8 / wstring bounds) |
+| Fault atomicity | Count, arithmetic, ceiling, truncation, and capacity faults restore the count-field cursor on the reader and leave writer position and bytes unchanged |
+
+### Nested values
+
+Public direction:
+
+```text
+CdrNesting          // immutable token; public depth() observation
+CdrReader::root_nesting() / CdrWriter::root_nesting()  // depth 0
+CdrReader::enter_nested(parent) / CdrWriter::enter_nested(parent)  // child at depth + 1
+```
+
+| Rule | Contract |
+|---|---|
+| Depth budget | `depth <= max_nesting_depth` succeeds. The next level yields `bounds_exceeded` at the current reader/writer offset with `needed =` attempted depth and `remaining = max_nesting_depth` |
+| Token model | Tokens carry depth by value, so sibling branches keep independent state. `enter_nested` leaves cursor and bytes unchanged |
+| Generated use | Generated codecs pass the token through nested aggregate encode/decode calls |
+
+### M1-01c3 acceptance focus
+
+LE/BE sequence counts; exact and over element bounds; high-bit counts; borrowed-view physical identity; temporary-cap independence from borrowed spans; writer atomicity; fixed-array composition; nested structure composition; depth 64 accept / 65 reject and custom depth limits; cross-package public API compile-and-run coverage.
+
 ## Reader and writer API direction
 
 ```text
@@ -147,7 +201,9 @@ BytesView  ->  bounds-checked slice into parent storage the caller retains
 | Semantic primitives | M1-01c1 | `bool`; signed `i8`/`i16`/`i32`/`i64` (`Int`/`Int64`); `Float`/`Double` IEEE bit patterns; `Char8`/`Char16`. Built on raw read/write. `i8`/`i16` writers validate representable ranges. Boolean accepts `0`/`1` only (`invalid_boolean`) |
 | Char8 string | M1-01c2a | `read_string` / `write_string` with optional `max_bytes` (UTF-8 payload bytes excluding NUL); owned `String` decode; direct writer emit after full-field preflight |
 | ROS legacy wstring | M1-01c2b | `read_wstring` / `write_wstring` with optional `max_scalars`; accepted Unicode scalar slots; `invalid_wstring_scalar`; canonical encode with zero top-level tail slack; `ensure_corpus_complete_terminal_wstring` for exact end or four-byte zero tail |
-| Arrays / sequences / views | M1-01c3 | Arrays, sequences, nested-depth guards, borrowed `BytesView` fields |
+| Fixed arrays | M1-01c3 | Schema-declared element count composed from existing element codecs; first-element body-origin alignment |
+| Sequences | M1-01c3 | `read_sequence_length` / `write_sequence_length`; `read_byte_sequence` / `write_byte_sequence` with optional `max_elements`; borrowed byte views |
+| Nesting | M1-01c3 | Immutable `CdrNesting` token; `root_nesting` / `enter_nested`; depth against `max_nesting_depth` |
 
 **Writer capacity:** `capacity = min(max_stream_bytes, max_temporary_allocation)`, counted over the **complete stream including the 4-byte header**. Construction emits the full canonical header immediately (`LE = 00 01 00 00`, `BE = 00 00 00 00`; options always `0x0000`). When temporary capacity is below 4, construction returns `bounds_exceeded` with `needed = 4` and `remaining =` temporary capacity. Each field preflights `pad + size` arithmetic and full capacity before mutating the buffer; faults leave position and bytes byte-identical. `to_bytes` returns an owned snapshot isolated from later writes.
 
@@ -271,7 +327,7 @@ These cases produce typed codec faults and appear in conformance and evidence re
 |---|---|
 | M1-01a | This contract, plan split, PCR and doc routes (documentation freeze) |
 | M1-01b | Bounded stream reader/writer, encapsulation, endian, alignment, limits (including nesting and temporary-allocation defaults), typed errors |
-| M1-01c | Primitives, strings/wstrings (legacy ROS profile, scalar-boundary tests), arrays, sequences, nested values, borrowed `BytesView` fields |
+| M1-01c | Primitives, strings/wstrings (legacy ROS profile, scalar-boundary tests), arrays, sequences, nested values, borrowed `BytesView` fields (c3 contract in this document; implementation M1-01c3b) |
 | M1-01d | Authoritative corpus proof: semantic agreement (CY exact vs FT/ZN four-byte zero tail slack), round trips, malformed input, resource bounds |
 
 M1-01 closes when batches b–d pass their focused tests and the corpus-driven checks. M1-02 and M1-03 consume this surface: M1-02 adds schema keys and per-type bounds; M1-03 adds host buffer leases and keeps CDR layout rules as defined here.
