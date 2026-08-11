@@ -1626,6 +1626,7 @@ test "cdr corpus multi-row comparison identities and big-endian singletons" {
       let f = cdr_fx_find(c.fixture_ids[i])
       assert_eq(f.case_id, c.case_id)
       assert_eq(f.ros_distro, c.ros_distro)
+      assert_eq(f.support_row_id, c.rows[i])
       assert_eq(f.type_name, first.type_name)
       assert_eq(f.semantic_value_sha256, first.semantic_value_sha256)
       assert_eq(f.schema_identity.scheme, first.schema_identity.scheme)

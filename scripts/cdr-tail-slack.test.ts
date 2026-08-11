@@ -7,15 +7,19 @@ import {
   readFile,
   rm,
   symlink,
+  truncate,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
+  ARTIFACT_MAX_BYTES,
   ARTIFACT_REL,
+  BINARY_MAX_BYTES,
   CORPUS_ID,
   CORPUS_REL,
   FROZEN_SUMMARY,
+  MANIFEST_MAX_BYTES,
   MANIFEST_REL,
   asciiCompare,
   buildFromRoot,
@@ -27,6 +31,7 @@ import {
   isFixtureBinaryPath,
   isSafeRelativePath,
   parseCliMode,
+  resolveTrustedRelativeFile,
   runCli,
   selectCanonical,
   sha256Hex,
@@ -605,6 +610,107 @@ describe("cdr-tail-slack I/O adversarial", () => {
         true,
       );
     }
+  });
+
+  test("sparse oversized binary is rejected before content load", async () => {
+    const root = await tempRoot();
+    const corpus = path.join(root, CORPUS_REL);
+    const fixDir = path.join(corpus, "fixtures");
+    await mkdir(fixDir, { recursive: true });
+    const oversizePath = path.join(fixDir, "huge.bin");
+    await writeFile(oversizePath, new Uint8Array(0));
+    await truncate(oversizePath, BINARY_MAX_BYTES + 1);
+    const manifest = {
+      corpus: CORPUS_ID,
+      fixtures: [
+        {
+          id: "huge",
+          case_id: "c",
+          ros_distro: "humble",
+          support_row_id: "H-CY",
+          serialized: {
+            path: "fixtures/huge.bin",
+            byte_length: BINARY_MAX_BYTES + 1,
+            sha256: "00".repeat(32),
+          },
+        },
+      ],
+      comparisons: [],
+    };
+    await writeFile(path.join(root, MANIFEST_REL), JSON.stringify(manifest));
+    const loaded = await buildFromRoot(root);
+    expect(loaded.ok).toBe(false);
+    if (!loaded.ok) {
+      expect(
+        loaded.diagnostics.some(
+          (d) =>
+            d.includes(`exceeds max ${BINARY_MAX_BYTES}`) ||
+            d.includes("byte_length"),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  test("declared byte_length above binary ceiling is rejected without reading", async () => {
+    const root = await tempRoot();
+    const corpus = path.join(root, CORPUS_REL);
+    const fixDir = path.join(corpus, "fixtures");
+    await mkdir(fixDir, { recursive: true });
+    // Tiny on-disk file; declared length alone must fail before open.
+    await writeFile(path.join(fixDir, "tiny.bin"), new Uint8Array([1]));
+    const manifest = {
+      corpus: CORPUS_ID,
+      fixtures: [
+        {
+          id: "declared-huge",
+          case_id: "c",
+          ros_distro: "humble",
+          support_row_id: "H-CY",
+          serialized: {
+            path: "fixtures/tiny.bin",
+            byte_length: BINARY_MAX_BYTES + 64,
+            sha256: "00".repeat(32),
+          },
+        },
+      ],
+      comparisons: [],
+    };
+    await writeFile(path.join(root, MANIFEST_REL), JSON.stringify(manifest));
+    const loaded = await buildFromRoot(root);
+    expect(loaded.ok).toBe(false);
+    if (!loaded.ok) {
+      expect(
+        loaded.diagnostics.some((d) =>
+          d.includes(`byte_length ${BINARY_MAX_BYTES + 64} exceeds max ${BINARY_MAX_BYTES}`),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  test("sparse oversized manifest is rejected by maxBytes before parse", async () => {
+    const root = await tempRoot();
+    await mkdir(path.join(root, CORPUS_REL), { recursive: true });
+    const manPath = path.join(root, MANIFEST_REL);
+    await writeFile(manPath, new Uint8Array(0));
+    await truncate(manPath, MANIFEST_MAX_BYTES + 1);
+    const result = await resolveTrustedRelativeFile(root, MANIFEST_REL, {
+      maxBytes: MANIFEST_MAX_BYTES,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/exceeds max/);
+    }
+    const built = await buildFromRoot(root);
+    expect(built.ok).toBe(false);
+    if (!built.ok) {
+      expect(built.diagnostics.some((d) => d.includes("exceeds max"))).toBe(true);
+    }
+  });
+
+  test("frozen ceilings are the documented production bounds", () => {
+    expect(MANIFEST_MAX_BYTES).toBe(2 * 1024 * 1024);
+    expect(ARTIFACT_MAX_BYTES).toBe(2 * 1024 * 1024);
+    expect(BINARY_MAX_BYTES).toBe(64 * 1024 * 1024);
   });
 
   test("CLI check accepts then rejects drifted artifact with production invariants", async () => {

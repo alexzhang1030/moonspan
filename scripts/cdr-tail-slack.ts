@@ -12,7 +12,8 @@
  *   bun run scripts/cdr-tail-slack.ts --check
  */
 import { createHash, randomBytes } from "node:crypto";
-import { lstat, readFile, rename, unlink, writeFile } from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
+import { lstat, open, readFile, rename, unlink } from "node:fs/promises";
 import path from "node:path";
 
 export const CORPUS_REL = "conformance/cdr";
@@ -22,6 +23,11 @@ export const FIXTURES_PREFIX = "fixtures/";
 export const CORPUS_ID = "moonspan-ros-cdr-v1";
 export const SCHEMA_VERSION = 1;
 export const POLICY = "canonical-prefix-plus-zero-tail-v1";
+
+/** Frozen input size ceilings for trusted corpus I/O. */
+export const MANIFEST_MAX_BYTES = 2 * 1024 * 1024;
+export const ARTIFACT_MAX_BYTES = 2 * 1024 * 1024;
+export const BINARY_MAX_BYTES = 64 * 1024 * 1024;
 
 /** Allowed top-level zero-tail lengths for Phase 1 corpus evidence. */
 export const ALLOWED_ZERO_TAIL_BYTES = [0, 4, 12] as const;
@@ -566,14 +572,27 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  * the root. Intermediate components are regular directories; the final target
  * is a regular file. Symlinks at any component are rejected so the resolved
  * file stays inside the intended subtree.
+ *
+ * When `maxBytes` is provided it must be a safe non-negative integer. The
+ * final file's lstat size is checked before `readFile`, and the read buffer
+ * length is checked again after the read.
  */
 export async function resolveTrustedRelativeFile(
   root: string,
   rel: string,
-  opts?: { requireFixtureBinary?: boolean },
+  opts?: { requireFixtureBinary?: boolean; maxBytes?: number },
 ): Promise<{ ok: true; abs: string; bytes: Uint8Array } | { ok: false; error: string }> {
   if (!isSafeRelativePath(rel)) {
     return { ok: false, error: `unsafe path ${rel}` };
+  }
+  if (opts?.maxBytes !== undefined) {
+    if (
+      typeof opts.maxBytes !== "number" ||
+      !Number.isSafeInteger(opts.maxBytes) ||
+      opts.maxBytes < 0
+    ) {
+      return { ok: false, error: `invalid maxBytes ${String(opts.maxBytes)}` };
+    }
   }
   if (opts?.requireFixtureBinary) {
     // Fixture binaries use corpus-relative paths under fixtures/.
@@ -604,6 +623,7 @@ export async function resolveTrustedRelativeFile(
 
   const parts = rel.split("/");
   let cur = rootAbs;
+  let finalSt: Awaited<ReturnType<typeof lstat>> | null = null;
   for (let i = 0; i < parts.length; i++) {
     const part = parts[i]!;
     cur = path.join(cur, part);
@@ -630,6 +650,7 @@ export async function resolveTrustedRelativeFile(
       if (!st.isFile()) {
         return { ok: false, error: `regular file required: ${rel}` };
       }
+      finalSt = st;
     } else if (!st.isDirectory()) {
       return {
         ok: false,
@@ -637,8 +658,69 @@ export async function resolveTrustedRelativeFile(
       };
     }
   }
+  if (finalSt && opts?.maxBytes !== undefined && finalSt.size > opts.maxBytes) {
+    return {
+      ok: false,
+      error: `file size ${finalSt.size} exceeds max ${opts.maxBytes}: ${rel}`,
+    };
+  }
   const buf = await readFile(cur);
+  if (opts?.maxBytes !== undefined && buf.byteLength > opts.maxBytes) {
+    return {
+      ok: false,
+      error: `read size ${buf.byteLength} exceeds max ${opts.maxBytes}: ${rel}`,
+    };
+  }
   return { ok: true, abs: cur, bytes: new Uint8Array(buf) };
+}
+
+/**
+ * Walk relative directory components under `root`, accepting only real
+ * directories and rejecting symlink components at every level.
+ */
+export async function resolveTrustedRelativeDir(
+  root: string,
+  rel: string,
+): Promise<{ ok: true; abs: string } | { ok: false; error: string }> {
+  if (rel !== "" && rel !== "." && !isSafeRelativePath(rel)) {
+    return { ok: false, error: `unsafe path ${rel}` };
+  }
+  const rootAbs = path.resolve(root);
+  let rootSt;
+  try {
+    rootSt = await lstat(rootAbs);
+  } catch {
+    return { ok: false, error: `missing root ${root}` };
+  }
+  if (rootSt.isSymbolicLink()) {
+    return { ok: false, error: `symlink rejected: ${root}` };
+  }
+  if (!rootSt.isDirectory()) {
+    return { ok: false, error: `directory required: ${root}` };
+  }
+  if (rel === "" || rel === ".") {
+    return { ok: true, abs: rootAbs };
+  }
+  let cur = rootAbs;
+  for (const part of rel.split("/")) {
+    cur = path.join(cur, part);
+    if (!cur.startsWith(rootAbs + path.sep)) {
+      return { ok: false, error: `path escapes root: ${rel}` };
+    }
+    let st;
+    try {
+      st = await lstat(cur);
+    } catch {
+      return { ok: false, error: `missing directory: ${rel}` };
+    }
+    if (st.isSymbolicLink()) {
+      return { ok: false, error: `symlink rejected: ${rel}` };
+    }
+    if (!st.isDirectory()) {
+      return { ok: false, error: `directory required: ${rel}` };
+    }
+  }
+  return { ok: true, abs: cur };
 }
 
 /** Atomic write of tail-slack.json: temp regular file in the same directory, then rename. */
@@ -646,14 +728,38 @@ export async function writeArtifactAtomic(
   root: string,
   content: string,
 ): Promise<void> {
-  const abs = path.resolve(root, ARTIFACT_REL);
-  const dir = path.dirname(abs);
+  const dirResolved = await resolveTrustedRelativeDir(root, CORPUS_REL);
+  if (!dirResolved.ok) {
+    throw new Error(dirResolved.error);
+  }
+  const abs = path.join(dirResolved.abs, path.posix.basename(ARTIFACT_REL));
+  try {
+    const st = await lstat(abs);
+    if (st.isSymbolicLink()) {
+      // Replace the symlink node via rename without following it.
+    } else if (!st.isFile()) {
+      throw new Error(`refusing to write non-regular ${ARTIFACT_REL}`);
+    }
+  } catch (e) {
+    const err = e as NodeJS.ErrnoException;
+    if (err && err.code !== "ENOENT") throw e;
+  }
   const tmp = path.join(
-    dir,
+    dirResolved.abs,
     `.tail-slack.${process.pid}.${randomBytes(8).toString("hex")}.tmp`,
   );
   try {
-    await writeFile(tmp, content, "utf8");
+    const flags =
+      fsConstants.O_WRONLY |
+      fsConstants.O_CREAT |
+      fsConstants.O_EXCL |
+      (fsConstants.O_NOFOLLOW ?? 0);
+    const fh = await open(tmp, flags, 0o644);
+    try {
+      await fh.writeFile(content, "utf8");
+    } finally {
+      await fh.close();
+    }
     await rename(tmp, abs);
   } catch (err) {
     try {
@@ -677,7 +783,9 @@ export async function loadCorpus(
   | { ok: false; diagnostics: string[] }
 > {
   const diagnostics: string[] = [];
-  const manRead = await resolveTrustedRelativeFile(root, MANIFEST_REL);
+  const manRead = await resolveTrustedRelativeFile(root, MANIFEST_REL, {
+    maxBytes: MANIFEST_MAX_BYTES,
+  });
   if (!manRead.ok) return { ok: false, diagnostics: [manRead.error] };
   const sourceManifestSha256 = sha256Hex(manRead.bytes);
 
@@ -733,6 +841,12 @@ export async function loadCorpus(
       );
       continue;
     }
+    if (serialized.byte_length > BINARY_MAX_BYTES) {
+      diagnostics.push(
+        `${entry.id}: byte_length ${serialized.byte_length} exceeds max ${BINARY_MAX_BYTES}`,
+      );
+      continue;
+    }
     if (!isLowerHexSha256(serialized.sha256)) {
       diagnostics.push(`${entry.id}: sha256 must be lowercase 64-hex`);
       continue;
@@ -749,6 +863,7 @@ export async function loadCorpus(
     const binRel = path.posix.join(CORPUS_REL, serialized.path);
     const bin = await resolveTrustedRelativeFile(root, binRel, {
       requireFixtureBinary: true,
+      maxBytes: BINARY_MAX_BYTES,
     });
     if (!bin.ok) {
       diagnostics.push(`${entry.id}: ${bin.error}`);
@@ -867,7 +982,9 @@ export async function runCli(
     console.log(formatStatusLine(built.artifact));
     return 0;
   }
-  const existing = await resolveTrustedRelativeFile(root, ARTIFACT_REL);
+  const existing = await resolveTrustedRelativeFile(root, ARTIFACT_REL, {
+    maxBytes: ARTIFACT_MAX_BYTES,
+  });
   if (!existing.ok) {
     console.error(existing.error);
     console.error("cdr-tail-slack: status=fail");

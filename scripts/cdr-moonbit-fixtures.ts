@@ -17,17 +17,21 @@
  */
 import { createHash, randomBytes } from "node:crypto";
 import { constants as fsConstants } from "node:fs";
-import { lstat, mkdir, open, rename, unlink, writeFile } from "node:fs/promises";
+import { lstat, mkdir, open, rename, unlink } from "node:fs/promises";
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import {
+  ARTIFACT_MAX_BYTES,
   ARTIFACT_REL as TAIL_SLACK_REL,
+  BINARY_MAX_BYTES as CORPUS_BINARY_MAX_BYTES,
   CORPUS_ID,
+  MANIFEST_MAX_BYTES as CORPUS_MANIFEST_MAX_BYTES,
   MANIFEST_REL,
   asciiCompare,
   buildTailSlackModel,
   enforceFrozenSummary,
   loadCorpus,
+  resolveTrustedRelativeDir,
   resolveTrustedRelativeFile,
   sha256Hex as tailSha256Hex,
   stableJsonPretty,
@@ -80,17 +84,24 @@ export type SupportRowId = keyof typeof ROW_TOTALS;
 /**
  * Generated-source size ceiling (bytes, UTF-8).
  *
- * Reasoned value: 256 KiB. The committed corpus carries 12,356 binary payload
- * bytes (max fixture 280). Raw lowercase hex doubles that to ~25 KiB of hex
- * text; fixture metadata, comparisons, and generated MoonBit tests stay well
- * under 64 KiB today. 256 KiB leaves headroom for modest corpus growth while
- * keeping the committed white-box source a practical review surface.
+ * Reasoned value: 256 KiB. The committed bridge is about 85 KiB today
+ * (raw lowercase hex for 12,356 payload bytes plus fixture metadata,
+ * comparisons, and white-box tests). 256 KiB leaves headroom for modest
+ * corpus growth while keeping the committed white-box source a practical
+ * review surface.
  */
 export const GENERATED_SOURCE_MAX_BYTES = 256 * 1024;
 
-export const MANIFEST_MAX_BYTES = 2 * 1024 * 1024;
-export const TAIL_SLACK_MAX_BYTES = 2 * 1024 * 1024;
-export const BINARY_MAX_BYTES = 64 * 1024;
+/** Shared corpus I/O ceilings (re-exported from the hardened tail-slack loader). */
+export const MANIFEST_MAX_BYTES = CORPUS_MANIFEST_MAX_BYTES;
+export const TAIL_SLACK_MAX_BYTES = ARTIFACT_MAX_BYTES;
+export const BINARY_MAX_BYTES = CORPUS_BINARY_MAX_BYTES;
+
+/** Formatter subprocess deadline for `moon fmt` on the generated bridge. */
+export const MOON_FMT_TIMEOUT_MS = 30_000;
+
+/** Fixed mode for temporary regular files created under the trusted root. */
+export const TEMP_FILE_MODE = 0o644;
 
 export const FIXTURE_ID_PATTERN = /^[A-Za-z][A-Za-z0-9_-]{0,127}$/;
 export const SHA256_PATTERN = /^[0-9a-f]{64}$/;
@@ -308,19 +319,161 @@ export async function readBoundedText(absPath: string, maxBytes: number): Promis
 }
 
 /**
- * Atomic write of generated MoonBit source.
+ * Pure generated-source size guard. Runs before temporary formatting and
+ * again after formatting so both stages stay under the committed ceiling.
+ */
+export function assertGeneratedSourceSize(
+  text: string,
+  maxBytes: number = GENERATED_SOURCE_MAX_BYTES,
+  label = "generated source",
+): number {
+  const size = Buffer.byteLength(text, "utf8");
+  if (size > maxBytes) {
+    throw new Error(`${label} ${size} bytes exceeds ceiling ${maxBytes}`);
+  }
+  return size;
+}
+
+/**
+ * Pure identity-join validator between manifest fixture ids and tail evidence ids.
+ * Requires unique ids on both sides and exact set equality.
+ */
+export function validateIdentityJoin(
+  fixtureIds: readonly string[],
+  evidenceIds: readonly string[],
+): { ok: true } | { ok: false; error: string } {
+  const fixtureSet = new Set<string>();
+  for (const id of fixtureIds) {
+    if (fixtureSet.has(id)) {
+      return { ok: false, error: `identity join: duplicate fixture id ${id}` };
+    }
+    fixtureSet.add(id);
+  }
+  const evidenceSet = new Set<string>();
+  for (const id of evidenceIds) {
+    if (evidenceSet.has(id)) {
+      return { ok: false, error: `identity join: duplicate evidence id ${id}` };
+    }
+    evidenceSet.add(id);
+  }
+  if (fixtureSet.size !== evidenceSet.size) {
+    return {
+      ok: false,
+      error: `identity join size mismatch: evidence ${evidenceSet.size} != fixtures ${fixtureSet.size}`,
+    };
+  }
+  for (const id of fixtureSet) {
+    if (!evidenceSet.has(id)) {
+      return { ok: false, error: `identity join: missing tail evidence for ${id}` };
+    }
+  }
+  for (const id of evidenceSet) {
+    if (!fixtureSet.has(id)) {
+      return {
+        ok: false,
+        error: `identity join: tail evidence ${id} has no manifest fixture`,
+      };
+    }
+  }
+  return { ok: true };
+}
+
+/**
+ * Ensure a relative directory under `root` exists as a chain of real directories.
+ * Existing symlink components are rejected; missing components are created one
+ * level at a time without following links.
+ */
+export async function ensureTrustedRelativeDir(
+  root: string,
+  relDir: string,
+): Promise<string> {
+  if (relDir === "" || relDir === ".") {
+    const checked = await resolveTrustedRelativeDir(root, ".");
+    if (!checked.ok) throw new Error(checked.error);
+    return checked.abs;
+  }
+  if (
+    !relDir ||
+    relDir.includes("\0") ||
+    path.isAbsolute(relDir) ||
+    relDir.includes("\\") ||
+    relDir.split("/").some((p) => p === "" || p === "." || p === "..")
+  ) {
+    throw new Error(`path escapes root: ${relDir}`);
+  }
+  const rootAbs = path.resolve(root);
+  let rootSt: Awaited<ReturnType<typeof lstat>>;
+  try {
+    rootSt = await lstat(rootAbs);
+  } catch {
+    throw new Error(`missing root ${root}`);
+  }
+  if (rootSt.isSymbolicLink()) throw new Error(`symlink rejected: ${root}`);
+  if (!rootSt.isDirectory()) throw new Error(`directory required: ${root}`);
+
+  let cur = rootAbs;
+  for (const part of relDir.split("/")) {
+    cur = path.join(cur, part);
+    if (!cur.startsWith(rootAbs + path.sep)) {
+      throw new Error(`path escapes root: ${relDir}`);
+    }
+    try {
+      const st = await lstat(cur);
+      if (st.isSymbolicLink()) {
+        throw new Error(`symlink rejected: ${relDir}`);
+      }
+      if (!st.isDirectory()) {
+        throw new Error(`directory required: ${relDir}`);
+      }
+    } catch (e) {
+      const err = e as NodeJS.ErrnoException;
+      if (err && err.message?.includes("symlink")) throw e;
+      if (err && err.message?.includes("directory required")) throw e;
+      if (err && err.code !== "ENOENT") throw e;
+      await mkdir(cur);
+      const st2 = await lstat(cur);
+      if (st2.isSymbolicLink() || !st2.isDirectory()) {
+        throw new Error(`failed to create real directory: ${relDir}`);
+      }
+    }
+  }
+  return cur;
+}
+
+/** Create a temporary regular file with O_EXCL|O_NOFOLLOW and fixed mode. */
+export async function createExclusiveTempFile(
+  dirAbs: string,
+  prefix: string,
+  extension = ".tmp",
+): Promise<{ abs: string; fd: Awaited<ReturnType<typeof open>> }> {
+  const ext = extension.startsWith(".") ? extension : `.${extension}`;
+  const name = `${prefix}.${process.pid}.${randomBytes(8).toString("hex")}${ext}`;
+  const abs = path.join(dirAbs, name);
+  const flags =
+    fsConstants.O_WRONLY |
+    fsConstants.O_CREAT |
+    fsConstants.O_EXCL |
+    (fsConstants.O_NOFOLLOW ?? 0);
+  const fd = await open(abs, flags, TEMP_FILE_MODE);
+  return { abs, fd };
+}
+
+/**
+ * Atomic write of generated MoonBit source under a trusted directory walk.
  * Rejects an existing output symlink so the external target stays intact.
- * Writes a same-directory temp regular file, then renames into place.
+ * Writes a same-directory temp regular file (O_EXCL|O_NOFOLLOW), then renames.
  */
 export async function writeAtomicText(
-  absPath: string,
+  root: string,
+  relOutput: string,
   text: string,
   maxBytes: number,
 ): Promise<void> {
-  const size = Buffer.byteLength(text, "utf8");
-  if (size > maxBytes) {
-    throw new Error(`write size ${size} exceeds max ${maxBytes}`);
-  }
+  assertGeneratedSourceSize(text, maxBytes, "write size");
+  const relDir = path.posix.dirname(relOutput);
+  const base = path.posix.basename(relOutput);
+  const dirAbs = await ensureTrustedRelativeDir(root, relDir === "." ? "" : relDir);
+  const absPath = path.join(dirAbs, base);
   try {
     const st = await lstat(absPath);
     if (st.isSymbolicLink()) {
@@ -334,31 +487,24 @@ export async function writeAtomicText(
     if (err && err.code !== "ENOENT") throw e;
   }
 
-  const dir = path.dirname(absPath);
-  await mkdir(dir, { recursive: true });
-  const tmp = path.join(
-    dir,
-    `.cdr-moonbit-fixtures.${process.pid}.${randomBytes(8).toString("hex")}.tmp`,
-  );
+  let tmpAbs: string | null = null;
   try {
-    const flags =
-      fsConstants.O_WRONLY |
-      fsConstants.O_CREAT |
-      fsConstants.O_TRUNC |
-      fsConstants.O_EXCL |
-      (fsConstants.O_NOFOLLOW ?? 0);
-    const fh = await open(tmp, flags, 0o644);
+    const tmp = await createExclusiveTempFile(dirAbs, ".cdr-moonbit-fixtures");
+    tmpAbs = tmp.abs;
     try {
-      await fh.writeFile(text, "utf8");
+      await tmp.fd.writeFile(text, "utf8");
     } finally {
-      await fh.close();
+      await tmp.fd.close();
     }
-    await rename(tmp, absPath);
+    await rename(tmpAbs, absPath);
+    tmpAbs = null;
   } catch (err) {
-    try {
-      await unlink(tmp);
-    } catch {
-      // temp already gone
+    if (tmpAbs) {
+      try {
+        await unlink(tmpAbs);
+      } catch {
+        // temp already gone
+      }
     }
     throw err;
   }
@@ -424,6 +570,11 @@ function parseManifestFixtureFull(raw: unknown, label: string): ManifestFixtureF
   const serPath = requireNonemptyString(serialized.path, `${label}.serialized.path`);
   if (!isSafeIntegerNonNeg(serialized.byte_length)) {
     throw new Error(`${label}: serialized.byte_length must be non-negative safe integer`);
+  }
+  if (serialized.byte_length > BINARY_MAX_BYTES) {
+    throw new Error(
+      `${label}: serialized.byte_length ${serialized.byte_length} exceeds max ${BINARY_MAX_BYTES}`,
+    );
   }
   const serSha = requireSha256(serialized.sha256, `${label}.serialized.sha256`);
   const endianness = requireNonemptyString(
@@ -605,27 +756,16 @@ function joinTailEvidence(
   fixtures: ManifestFixtureFull[],
   evidence: readonly FixtureEvidence[],
 ): Map<string, FixtureEvidence> {
+  const join = validateIdentityJoin(
+    fixtures.map((f) => f.id),
+    evidence.map((e) => e.id),
+  );
+  if (!join.ok) {
+    throw new Error(join.error);
+  }
   const byId = new Map<string, FixtureEvidence>();
   for (const e of evidence) {
-    if (byId.has(e.id)) {
-      throw new Error(`tail-slack: duplicate fixture id ${e.id}`);
-    }
     byId.set(e.id, e);
-  }
-  if (byId.size !== fixtures.length) {
-    throw new Error(
-      `identity join size mismatch: tail evidence ${byId.size} != manifest fixtures ${fixtures.length}`,
-    );
-  }
-  for (const f of fixtures) {
-    if (!byId.has(f.id)) {
-      throw new Error(`identity join: missing tail evidence for ${f.id}`);
-    }
-  }
-  for (const id of byId.keys()) {
-    if (!fixtures.some((f) => f.id === id)) {
-      throw new Error(`identity join: tail evidence ${id} has no manifest fixture`);
-    }
   }
   return byId;
 }
@@ -666,11 +806,20 @@ function buildComparisons(
         `comparison ${c.ros_distro}/${c.case_id}: row set mismatch expected=[${rows.join(",")}] actual=[${actualRows.join(",")}]`,
       );
     }
+    // Sort fixture ids by support_row_id (then id) so each rows[i] pairs with
+    // fixture_ids[i].support_row_id in the generated MoonBit comparison tests.
+    const fixtureIds = [...members]
+      .sort((a, b) => {
+        const d = asciiCompare(a.supportRowId, b.supportRowId);
+        if (d !== 0) return d;
+        return asciiCompare(a.id, b.id);
+      })
+      .map((m) => m.id);
     out.push({
       caseId: c.case_id,
       rosDistro: c.ros_distro,
       rows,
-      fixtureIds: members.map((m) => m.id).sort(asciiCompare),
+      fixtureIds,
     });
   }
   out.sort((a, b) => {
@@ -694,14 +843,11 @@ export async function buildBridge(root: string): Promise<BridgeModel> {
   }
 
   // 2) Independent committed tail-slack artifact: SHA pin + regenerated model equality.
-  const tailRead = await resolveTrustedRelativeFile(root, TAIL_SLACK_REL);
+  const tailRead = await resolveTrustedRelativeFile(root, TAIL_SLACK_REL, {
+    maxBytes: TAIL_SLACK_MAX_BYTES,
+  });
   if (!tailRead.ok) {
     throw new Error(`tail-slack: ${tailRead.error}`);
-  }
-  if (tailRead.bytes.byteLength > TAIL_SLACK_MAX_BYTES) {
-    throw new Error(
-      `tail-slack size ${tailRead.bytes.byteLength} exceeds max ${TAIL_SLACK_MAX_BYTES}`,
-    );
   }
   const tailSlackSha256 = tailSha256Hex(tailRead.bytes);
   if (tailSlackSha256 !== FROZEN_TAIL_SLACK_SHA256) {
@@ -742,14 +888,11 @@ export async function buildBridge(root: string): Promise<BridgeModel> {
   }
 
   // 3) Full manifest metadata for d2 fields.
-  const manRead = await resolveTrustedRelativeFile(root, MANIFEST_REL);
+  const manRead = await resolveTrustedRelativeFile(root, MANIFEST_REL, {
+    maxBytes: MANIFEST_MAX_BYTES,
+  });
   if (!manRead.ok) {
     throw new Error(`manifest: ${manRead.error}`);
-  }
-  if (manRead.bytes.byteLength > MANIFEST_MAX_BYTES) {
-    throw new Error(
-      `manifest size ${manRead.bytes.byteLength} exceeds max ${MANIFEST_MAX_BYTES}`,
-    );
   }
   let manRaw: unknown;
   try {
@@ -865,14 +1008,10 @@ export async function buildBridge(root: string): Promise<BridgeModel> {
   }
 
   const rendered = renderMoonBitSource(bridgeFixtures, comparisons);
+  assertGeneratedSourceSize(rendered, GENERATED_SOURCE_MAX_BYTES, "pre-format source");
   // Run through `moon fmt` so the committed source matches package format checks.
   const sourceText = await formatMoonBitSource(root, rendered);
-  const size = Buffer.byteLength(sourceText, "utf8");
-  if (size > GENERATED_SOURCE_MAX_BYTES) {
-    throw new Error(
-      `generated source ${size} bytes exceeds ceiling ${GENERATED_SOURCE_MAX_BYTES}`,
-    );
-  }
+  assertGeneratedSourceSize(sourceText, GENERATED_SOURCE_MAX_BYTES, "formatted source");
 
   return {
     fixtures: bridgeFixtures,
@@ -887,21 +1026,43 @@ export async function buildBridge(root: string): Promise<BridgeModel> {
  * Format generated MoonBit source with `moon fmt` in a same-directory temp file.
  * The temporary path is never the committed OUTPUT_REL, so concurrent checks
  * leave the published bridge file untouched until write renames into place.
+ * Parent directories are walked under the trusted root; temps use O_EXCL|O_NOFOLLOW.
  */
 export async function formatMoonBitSource(
   root: string,
   sourceText: string,
 ): Promise<string> {
-  const outDir = resolveUnderRoot(root, path.dirname(OUTPUT_REL));
-  await mkdir(outDir, { recursive: true });
-  const tmpName = `.cdr-moonbit-fixtures.format.${process.pid}.${randomBytes(8).toString("hex")}.mbt`;
-  const tmpAbs = path.join(outDir, tmpName);
+  assertGeneratedSourceSize(sourceText, GENERATED_SOURCE_MAX_BYTES, "pre-format source");
+  const relDir = path.posix.dirname(OUTPUT_REL);
+  const dirAbs = await ensureTrustedRelativeDir(root, relDir);
+  let tmpAbs: string | null = null;
   try {
-    await writeFile(tmpAbs, sourceText, "utf8");
+    // Use a .mbt suffix so moon fmt targets this file only (not the whole package).
+    const tmp = await createExclusiveTempFile(
+      dirAbs,
+      ".cdr-moonbit-fixtures.format",
+      ".mbt",
+    );
+    tmpAbs = tmp.abs;
+    try {
+      await tmp.fd.writeFile(sourceText, "utf8");
+    } finally {
+      await tmp.fd.close();
+    }
     const result = spawnSync("moon", ["fmt", tmpAbs], {
       cwd: root,
       encoding: "utf8",
+      timeout: MOON_FMT_TIMEOUT_MS,
     });
+    if (result.error) {
+      const err = result.error as NodeJS.ErrnoException & { code?: string };
+      if (err.code === "ETIMEDOUT" || /TIMEDOUT|timeout/i.test(err.message)) {
+        throw new Error(
+          `moon fmt timed out after ${MOON_FMT_TIMEOUT_MS}ms for generated bridge source`,
+        );
+      }
+      throw new Error(`moon fmt failed for generated bridge source: ${err.message}`);
+    }
     if (result.status !== 0) {
       const detail = [result.stderr, result.stdout].filter(Boolean).join("\n").trim();
       throw new Error(
@@ -909,15 +1070,16 @@ export async function formatMoonBitSource(
       );
     }
     const formatted = await readBoundedText(tmpAbs, GENERATED_SOURCE_MAX_BYTES);
-    if (!formatted.endsWith("\n")) {
-      return `${formatted}\n`;
-    }
-    return formatted;
+    const withNl = formatted.endsWith("\n") ? formatted : `${formatted}\n`;
+    assertGeneratedSourceSize(withNl, GENERATED_SOURCE_MAX_BYTES, "formatted source");
+    return withNl;
   } finally {
-    try {
-      await unlink(tmpAbs);
-    } catch {
-      // temp already gone
+    if (tmpAbs) {
+      try {
+        await unlink(tmpAbs);
+      } catch {
+        // temp already gone
+      }
     }
   }
 }
@@ -1339,6 +1501,8 @@ export function renderMoonBitSource(
   lines.push("      let f = cdr_fx_find(c.fixture_ids[i])");
   lines.push("      assert_eq(f.case_id, c.case_id)");
   lines.push("      assert_eq(f.ros_distro, c.ros_distro)");
+  // rows[i] pairs with fixture_ids[i] (both ordered by support_row_id).
+  lines.push("      assert_eq(f.support_row_id, c.rows[i])");
   lines.push("      assert_eq(f.type_name, first.type_name)");
   lines.push("      assert_eq(f.semantic_value_sha256, first.semantic_value_sha256)");
   lines.push("      assert_eq(f.schema_identity.scheme, first.schema_identity.scheme)");
@@ -1377,8 +1541,12 @@ export async function writeBridge(
   root: string,
 ): Promise<{ bytes: number; fixtures: number; comparisons: number }> {
   const model = await buildBridge(root);
-  const outPath = resolveUnderRoot(root, OUTPUT_REL);
-  await writeAtomicText(outPath, model.sourceText, GENERATED_SOURCE_MAX_BYTES);
+  await writeAtomicText(
+    root,
+    OUTPUT_REL,
+    model.sourceText,
+    GENERATED_SOURCE_MAX_BYTES,
+  );
   return {
     bytes: Buffer.byteLength(model.sourceText, "utf8"),
     fixtures: model.fixtures.length,
@@ -1388,7 +1556,12 @@ export async function writeBridge(
 
 export async function checkBridge(root: string): Promise<void> {
   const model = await buildBridge(root);
-  const outPath = resolveUnderRoot(root, OUTPUT_REL);
+  const relDir = path.posix.dirname(OUTPUT_REL);
+  const dirCheck = await resolveTrustedRelativeDir(root, relDir);
+  if (!dirCheck.ok) {
+    throw new Error(dirCheck.error);
+  }
+  const outPath = path.join(dirCheck.abs, path.posix.basename(OUTPUT_REL));
   // Reject output symlink before reading so external targets stay untouched.
   try {
     const st = await lstat(outPath);
@@ -1411,12 +1584,7 @@ export async function checkBridge(root: string): Promise<void> {
       `${OUTPUT_REL}: drift detected (committed bytes differ from regenerated source)`,
     );
   }
-  const size = Buffer.byteLength(disk, "utf8");
-  if (size > GENERATED_SOURCE_MAX_BYTES) {
-    throw new Error(
-      `${OUTPUT_REL}: size ${size} exceeds ceiling ${GENERATED_SOURCE_MAX_BYTES}`,
-    );
-  }
+  assertGeneratedSourceSize(disk, GENERATED_SOURCE_MAX_BYTES, OUTPUT_REL);
 }
 
 async function main(): Promise<void> {

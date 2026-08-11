@@ -7,12 +7,14 @@ import {
   readFile,
   rm,
   symlink,
+  truncate,
   writeFile,
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
   ARTIFACT_REL as TAIL_SLACK_REL,
+  BINARY_MAX_BYTES as CORPUS_BINARY_MAX_BYTES,
   CORPUS_REL,
   MANIFEST_REL,
 } from "./cdr-tail-slack.ts";
@@ -36,6 +38,7 @@ import {
   SINGLETON_BIG_ENDIAN_TOTAL,
   TOTAL_BINARY_PAYLOAD_BYTES,
   TWELVE_BYTE_TAIL_TOTAL,
+  assertGeneratedSourceSize,
   buildBridge,
   checkBridge,
   escapeMoonString,
@@ -47,6 +50,7 @@ import {
   resolveUnderRoot,
   sha256Hex,
   toHex,
+  validateIdentityJoin,
   writeBridge,
 } from "./cdr-moonbit-fixtures.ts";
 
@@ -313,46 +317,10 @@ describe("cdr-moonbit-fixtures write and check", () => {
     await expect(buildBridge(root)).rejects.toThrow(/tail-slack|SHA-256|differs/i);
   });
 
-  test("duplicate identity join fails when tail gains an extra fixture id", async () => {
-    const root = await makeTempRoot();
-    // Corrupt the committed tail so it no longer matches the regenerated model
-    // after a duplicate id injection attempt via truncated fixtures array.
-    const tailPath = path.join(root, TAIL_SLACK_REL);
-    const tail = JSON.parse(await readFile(tailPath, "utf8"));
-    // Drop one evidence entry so identity join size diverges after regeneration
-    // still rebuilds full model — committed bytes will differ first.
-    tail.fixtures = tail.fixtures.slice(0, -1);
-    await writeFile(tailPath, `${JSON.stringify(tail, null, 2)}\n`);
-    await expect(buildBridge(root)).rejects.toThrow(/tail-slack|SHA-256|differs|join/i);
-  });
-
-  test("missing identity join fails when a binary is removed", async () => {
+  test("missing binary fails corpus load before identity join", async () => {
     const root = await makeTempRoot();
     await rm(path.join(root, CORPUS_REL, "fixtures/H-CY/collections.bin"));
-    await expect(buildBridge(root)).rejects.toThrow(/missing|symlink|path/i);
-  });
-
-  test("manifest fixture without matching tail evidence fails after model rebuild path", async () => {
-    // Changing only the committed tail-slack SHA fails the frozen pin before join.
-    // Changing a fixture id in the manifest breaks length/SHA or identity consistency.
-    const root = await makeTempRoot();
-    const manPath = path.join(root, MANIFEST_REL);
-    const man = JSON.parse(await readFile(manPath, "utf8"));
-    man.fixtures[0].id = "Z-MISSING-identity-join";
-    await writeFile(manPath, JSON.stringify(man));
-    await expect(buildBridge(root)).rejects.toThrow(
-      /SHA-256|identity|missing|differs|join|invalid fixture id/i,
-    );
-  });
-
-  test("generated source ceiling is enforced", async () => {
-    expect(GENERATED_SOURCE_MAX_BYTES).toBe(256 * 1024);
-    const root = await makeTempRoot();
-    // Sanity: production source is under the ceiling.
-    const model = await buildBridge(root);
-    expect(Buffer.byteLength(model.sourceText, "utf8")).toBeLessThanOrEqual(
-      GENERATED_SOURCE_MAX_BYTES,
-    );
+    await expect(buildBridge(root)).rejects.toThrow(/missing|path/i);
   });
 
   test("output-path symlink is rejected by write and check with target preserved", async () => {
@@ -373,6 +341,79 @@ describe("cdr-moonbit-fixtures write and check", () => {
     await expect(checkBridge(root)).rejects.toThrow(/symlink/);
     expect(await readFile(targetPath, "utf8")).toBe(sentinel);
   });
+
+  test("parent-directory symlink is rejected and external target stays unchanged", async () => {
+    const root = await makeTempRoot();
+    const outside = path.join(root, "outside-cdr-dir");
+    await mkdir(outside, { recursive: true });
+    const sentinel = path.join(outside, "sentinel.txt");
+    await writeFile(sentinel, "keep-me\n", "utf8");
+    // Replace rclmbt/cdr with a symlink to an external directory.
+    await rm(path.join(root, "rclmbt/cdr"), { recursive: true, force: true });
+    await symlink(outside, path.join(root, "rclmbt/cdr"));
+    await expect(writeBridge(root)).rejects.toThrow(/symlink/);
+    expect(await readFile(sentinel, "utf8")).toBe("keep-me\n");
+    // Formatter path also walks parents under the trusted root.
+    await expect(buildBridge(root)).rejects.toThrow(/symlink/);
+    expect(await readFile(sentinel, "utf8")).toBe("keep-me\n");
+  });
+
+  test("sparse oversized corpus binary is rejected early", async () => {
+    const root = await makeTempRoot();
+    const victim = path.join(root, CORPUS_REL, "fixtures/H-CY/collections.bin");
+    await writeFile(victim, new Uint8Array(0));
+    await truncate(victim, CORPUS_BINARY_MAX_BYTES + 1);
+    const manPath = path.join(root, MANIFEST_REL);
+    const man = JSON.parse(await readFile(manPath, "utf8"));
+    const entry = man.fixtures.find((f: { id: string }) => f.id === "H-CY-collections");
+    entry.serialized.byte_length = CORPUS_BINARY_MAX_BYTES + 1;
+    entry.serialized.sha256 = "00".repeat(32);
+    await writeFile(manPath, JSON.stringify(man));
+    await expect(buildBridge(root)).rejects.toThrow(/exceeds max|byte_length|SHA-256/i);
+  });
+});
+
+describe("cdr-moonbit-fixtures pure guards", () => {
+  test("validateIdentityJoin accepts exact unique sets", () => {
+    expect(validateIdentityJoin(["a", "b"], ["b", "a"])).toEqual({ ok: true });
+  });
+
+  test("validateIdentityJoin rejects duplicate evidence identities", () => {
+    const r = validateIdentityJoin(["a", "b"], ["a", "a"]);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/duplicate evidence id a/);
+  });
+
+  test("validateIdentityJoin rejects missing evidence", () => {
+    const r = validateIdentityJoin(["a", "b"], ["a"]);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toMatch(/missing tail evidence for b|size mismatch/);
+  });
+
+  test("validateIdentityJoin rejects extra evidence", () => {
+    const r = validateIdentityJoin(["a"], ["a", "b"]);
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.error).toMatch(/size mismatch|no manifest fixture/);
+    }
+  });
+
+  test("assertGeneratedSourceSize accepts under-ceiling text", () => {
+    expect(assertGeneratedSourceSize("ok\n", 16)).toBe(3);
+  });
+
+  test("assertGeneratedSourceSize rejects true oversized strings", () => {
+    const huge = "x".repeat(GENERATED_SOURCE_MAX_BYTES + 1);
+    expect(() => assertGeneratedSourceSize(huge)).toThrow(/exceeds ceiling/);
+    expect(() =>
+      assertGeneratedSourceSize("abcd", 3, "sample"),
+    ).toThrow(/sample 4 bytes exceeds ceiling 3/);
+  });
+
+  test("binary ceiling matches shared corpus 64 MiB bound", () => {
+    expect(BINARY_MAX_BYTES).toBe(64 * 1024 * 1024);
+    expect(BINARY_MAX_BYTES).toBe(CORPUS_BINARY_MAX_BYTES);
+  });
 });
 
 describe("cdr-moonbit-fixtures corrupt inputs", () => {
@@ -381,6 +422,23 @@ describe("cdr-moonbit-fixtures corrupt inputs", () => {
     expect(() =>
       parseFullManifestFixtures({ corpus: "x", fixtures: [] }),
     ).toThrow(/corpus/);
+  });
+
+  test("real manifest duplicate fixture id is rejected", async () => {
+    const root = await makeTempRoot();
+    // Keep frozen SHAs valid by only mutating the in-memory parse path:
+    // parseFullManifestFixtures is the identity-surface gate for full metadata.
+    const man = JSON.parse(await readFile(path.join(ROOT, MANIFEST_REL), "utf8"));
+    man.fixtures[1].id = man.fixtures[0].id;
+    expect(() => parseFullManifestFixtures(man)).toThrow(/duplicate fixture id/);
+  });
+
+  test("real manifest frozen fixture count is enforced", async () => {
+    const man = JSON.parse(await readFile(path.join(ROOT, MANIFEST_REL), "utf8"));
+    man.fixtures = man.fixtures.slice(0, FIXTURE_TOTAL - 1);
+    expect(() => parseFullManifestFixtures(man)).toThrow(
+      new RegExp(`fixtures ${FIXTURE_TOTAL - 1} != frozen ${FIXTURE_TOTAL}`),
+    );
   });
 
   test("corrupt committed-style manifest fails build", async () => {
@@ -398,5 +456,17 @@ describe("cdr-moonbit-fixtures corrupt inputs", () => {
     const st = await lstat(path.join(root, OUTPUT_REL));
     expect(st.isSymbolicLink()).toBe(false);
     expect(st.isFile()).toBe(true);
+  });
+
+  test("comparison fixture ids pair with support_row_id rows", async () => {
+    const model = await buildBridge(ROOT);
+    for (const c of model.comparisons) {
+      expect(c.fixtureIds.length).toBe(c.rows.length);
+      for (let i = 0; i < c.fixtureIds.length; i++) {
+        const f = model.fixtures.find((x) => x.id === c.fixtureIds[i]);
+        expect(f).toBeDefined();
+        expect(f!.supportRowId).toBe(c.rows[i]);
+      }
+    }
   });
 });
