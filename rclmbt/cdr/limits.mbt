@@ -67,6 +67,38 @@ pub fn CdrLimits::defaults() -> CdrLimits {
 }
 
 ///|
+/// Validate absolute Phase 1 ranges. Shared by `CdrLimits::new`, reader `open`,
+/// and the future writer constructor (M1-01b2) so public struct literals cannot
+/// bypass factory checks at the trust boundary.
+pub fn CdrLimits::validate(self : CdrLimits) -> Result[Unit, CdrError] {
+  if self.max_stream_bytes < MIN_MAX_STREAM_BYTES ||
+    self.max_stream_bytes > DEFAULT_MAX_STREAM_BYTES {
+    return Err(
+      CdrError::invalid_limits(self.max_stream_bytes, DEFAULT_MAX_STREAM_BYTES),
+    )
+  }
+  if self.max_nesting_depth < MIN_MAX_NESTING_DEPTH ||
+    self.max_nesting_depth > DEFAULT_MAX_NESTING_DEPTH {
+    return Err(
+      CdrError::invalid_limits(
+        self.max_nesting_depth,
+        DEFAULT_MAX_NESTING_DEPTH,
+      ),
+    )
+  }
+  if self.max_temporary_allocation < 0 ||
+    self.max_temporary_allocation > self.max_stream_bytes {
+    return Err(
+      CdrError::invalid_limits(
+        self.max_temporary_allocation,
+        self.max_stream_bytes,
+      ),
+    )
+  }
+  Ok(())
+}
+
+///|
 /// Construct validated limits. Returns `invalid_limits` when a value is outside
 /// the absolute Phase 1 ranges.
 pub fn CdrLimits::new(
@@ -74,22 +106,13 @@ pub fn CdrLimits::new(
   max_nesting_depth : Int,
   max_temporary_allocation : Int,
 ) -> Result[CdrLimits, CdrError] {
-  if max_stream_bytes < MIN_MAX_STREAM_BYTES ||
-    max_stream_bytes > DEFAULT_MAX_STREAM_BYTES {
-    return Err(
-      CdrError::invalid_limits(max_stream_bytes, DEFAULT_MAX_STREAM_BYTES),
-    )
+  let limits : CdrLimits = {
+    max_stream_bytes,
+    max_nesting_depth,
+    max_temporary_allocation,
   }
-  if max_nesting_depth < MIN_MAX_NESTING_DEPTH ||
-    max_nesting_depth > DEFAULT_MAX_NESTING_DEPTH {
-    return Err(
-      CdrError::invalid_limits(max_nesting_depth, DEFAULT_MAX_NESTING_DEPTH),
-    )
+  match limits.validate() {
+    Ok(_) => Ok(limits)
+    Err(e) => Err(e)
   }
-  if max_temporary_allocation < 0 || max_temporary_allocation > max_stream_bytes {
-    return Err(
-      CdrError::invalid_limits(max_temporary_allocation, max_stream_bytes),
-    )
-  }
-  Ok({ max_stream_bytes, max_nesting_depth, max_temporary_allocation })
 }

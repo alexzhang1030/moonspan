@@ -159,8 +159,10 @@ Implementable codec faults with stable codes:
 | Field | Meaning |
 |---|---|
 | `offset` | Absolute fault site (field-start on failed field reads; `0` for open/config faults) |
-| `needed` | Requested or required size (input length when the stream is oversized; computed span/alloc size; header length when truncated; rejected limit value for `invalid_limits`) |
+| `needed` | Requested or required size (input length when the stream is oversized; computed span/alloc size; header length when truncated; rejected limit value for `invalid_limits`). **`needed = 0`** is the sentinel when a `UInt64` length request overflows and cannot be represented as a host `Int` |
 | `remaining` | Available capacity (e.g. `max_stream_bytes` for oversized open; `max_temporary_allocation` for alloc bounds; bytes remaining for field faults) |
+
+`CdrLimits` values are re-validated at every reader/writer trust boundary (`CdrLimits::validate`, used by `CdrLimits::new` and `CdrReader::open`) so public struct fields cannot bypass factory checks.
 
 `checked_span_length` order: multiply → span above `max_stream_bytes` → `length_overflow` → span above remaining → `truncated`.
 `schema_mismatch` and related identity faults belong to M1-02 generated types and M2-01 dynamic projection. Host buffer lease and transfer faults belong to M1-03.
@@ -174,7 +176,7 @@ Implementable codec faults with stable codes:
 | `max_temporary_allocation` | `0..=max_stream_bytes` | **67 108 864** |
 | Field and type bounds | M1-02 generated-schema inputs | — |
 
-Rationale: defaults are the absolute Phase 1 ceilings. Stream and temporary defaults match the R2WP payload ceiling; depth 64 bounds nested decode under a fixed stack budget with headroom for generated ROS schemas. Construction outside these ranges yields `invalid_limits`.
+Rationale: defaults are the absolute Phase 1 ceilings. Stream and temporary defaults match the R2WP payload ceiling; depth 64 bounds nested decode under a fixed stack budget with headroom for generated ROS schemas. Construction or open outside these ranges yields `invalid_limits`.
 
 Borrowed `BytesView` spans (`read_bytes`, `checked_span_length`) are governed by remaining input and `max_stream_bytes`. `max_temporary_allocation` applies only to owned temporary allocations (`checked_alloc_length` and later owned buffers).
 

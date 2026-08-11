@@ -45,10 +45,16 @@ fn is_little(endian : CdrEndian) -> Bool {
 
 ///|
 /// Open a CDR1 reader over `bytes` with validated limits.
+/// Always re-validates `limits` at this trust boundary so public field writes
+/// or package-internal literals cannot bypass `CdrLimits::new`.
 pub fn CdrReader::open(
   bytes : BytesView,
   limits : CdrLimits,
 ) -> Result[CdrReader, CdrError] {
+  match limits.validate() {
+    Ok(_) => ()
+    Err(e) => return Err(e)
+  }
   let len = bytes.length()
   if len > limits.max_stream_bytes {
     // needed = requested input size; remaining = available stream capacity.
@@ -344,6 +350,10 @@ pub fn CdrReader::checked_alloc_length(
 }
 
 ///|
+
+///|
+/// Multiply `count * element_size` into a host `Int`. On overflow that cannot
+/// fit `Int`, returns `length_overflow` with **`needed = 0`** (sentinel).
 fn multiply_length(
   count : UInt64,
   element_size : Int,
@@ -362,7 +372,7 @@ fn multiply_length(
     return Err(CdrError::length_overflow(field_start, 0, rem))
   }
   let bytes_u = count * elem_u
-  // Int-domain ceiling for MoonBit host sizes.
+  // Int-domain ceiling for MoonBit host sizes; needed=0 sentinel.
   if bytes_u > 2147483647UL {
     return Err(CdrError::length_overflow(field_start, 0, rem))
   }

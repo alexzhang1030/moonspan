@@ -345,6 +345,103 @@ test "invalid limits construction" {
 }
 
 ///|
+test "open rejects raw invalid limit literals at trust boundary" {
+  let header = b"\x00\x01\x00\x00"
+  // Negative stream ceiling (bypasses factory).
+  let neg_stream : CdrLimits = {
+    max_stream_bytes: -1,
+    max_nesting_depth: 8,
+    max_temporary_allocation: 0,
+  }
+  match CdrReader::open(header[:], neg_stream) {
+    Ok(_) => abort("expected invalid_limits negative stream")
+    Err(e) => {
+      assert_eq(e.code, CODE_INVALID_LIMITS)
+      assert_eq(e.needed, -1)
+    }
+  }
+  // Oversized stream ceiling above absolute Phase 1 max.
+  let oversized : CdrLimits = {
+    max_stream_bytes: 67108865,
+    max_nesting_depth: 8,
+    max_temporary_allocation: 8,
+  }
+  match CdrReader::open(header[:], oversized) {
+    Ok(_) => abort("expected invalid_limits oversized stream")
+    Err(e) => {
+      assert_eq(e.code, CODE_INVALID_LIMITS)
+      assert_eq(e.needed, 67108865)
+      assert_eq(e.remaining, DEFAULT_MAX_STREAM_BYTES)
+    }
+  }
+  // max Int stream value is overflow-prone and outside the absolute ceiling.
+  let max_int_stream : CdrLimits = {
+    max_stream_bytes: 2147483647,
+    max_nesting_depth: 8,
+    max_temporary_allocation: 8,
+  }
+  match CdrReader::open(header[:], max_int_stream) {
+    Ok(_) => abort("expected invalid_limits max Int stream")
+    Err(e) => {
+      assert_eq(e.code, CODE_INVALID_LIMITS)
+      assert_eq(e.needed, 2147483647)
+    }
+  }
+  // Negative temporary allocation.
+  let neg_temp : CdrLimits = {
+    max_stream_bytes: 64,
+    max_nesting_depth: 8,
+    max_temporary_allocation: -1,
+  }
+  match CdrReader::open(header[:], neg_temp) {
+    Ok(_) => abort("expected invalid_limits negative temp")
+    Err(e) => {
+      assert_eq(e.code, CODE_INVALID_LIMITS)
+      assert_eq(e.needed, -1)
+      assert_eq(e.remaining, 64)
+    }
+  }
+  // Depth zero and depth above absolute max.
+  let bad_depth : CdrLimits = {
+    max_stream_bytes: 64,
+    max_nesting_depth: 0,
+    max_temporary_allocation: 8,
+  }
+  match CdrReader::open(header[:], bad_depth) {
+    Ok(_) => abort("expected invalid_limits depth 0")
+    Err(e) => assert_eq(e.code, CODE_INVALID_LIMITS)
+  }
+  let high_depth : CdrLimits = {
+    max_stream_bytes: 64,
+    max_nesting_depth: 65,
+    max_temporary_allocation: 8,
+  }
+  match CdrReader::open(header[:], high_depth) {
+    Ok(_) => abort("expected invalid_limits depth 65")
+    Err(e) => assert_eq(e.code, CODE_INVALID_LIMITS)
+  }
+}
+
+///|
+test "length_overflow uses needed zero when UInt64 request cannot fit Int" {
+  let r = open_ok(b"\x00\x01\x00\x00"[:])
+  match r.checked_span_length(0xffffffffffffffffUL, 2) {
+    Ok(_) => abort("expected length_overflow")
+    Err(e) => {
+      assert_eq(e.code, CODE_LENGTH_OVERFLOW)
+      assert_eq(e.needed, 0)
+    }
+  }
+  match r.checked_alloc_length(0xffffffffffffffffUL, 2) {
+    Ok(_) => abort("expected length_overflow alloc")
+    Err(e) => {
+      assert_eq(e.code, CODE_LENGTH_OVERFLOW)
+      assert_eq(e.needed, 0)
+    }
+  }
+}
+
+///|
 test "checked span versus alloc length" {
   let r = open_ok(b"\x00\x01\x00\x00"[:])
   match r.checked_span_length(0xffffffffffffffffUL, 2) {
