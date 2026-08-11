@@ -1,123 +1,86 @@
 # Architecture
 
-Moonspan follows a browser-runtime, controlled-edge, ROS-domain architecture. The browser hosts ROS-facing application semantics; the edge owns trust, ROS attachment, scheduling, and network adaptation; the ROS domain retains graph and middleware behavior.
+Moonspan places ROS application semantics in the browser and robot trust at the edge. The ROS domain retains native graph and middleware behavior.
 
-## Mainline system shape
+## System shape
 
 ```text
 Browser application or conformance harness
   TypeScript SDK
-    rclmbt.worker     MoonBit -> Wasm: runtime, graph, QoS, CDR, types
-    io.worker         WebTransport/WSS, framing, buffers, telemetry
-          |
-          | R2WP: fixed binary header + CDR or encoded payload
-          v
-Robot / Edge
+  rclmbt Worker for ROS state and CDR
+  I/O Worker for transport and buffers
+                 |
+                 | R2WP / CDR
+                 v
+Robot edge
   one rclwebd process
-    one selected adapter support row (H-FT | H-CY | J-FT | J-CY)
-    transport session + bounded channel scheduler
-    graph/schema cache + policy + audit + metrics
-    narrow rcl/rmw serialized C ABI adapter
-          |
-          v
-ROS 2 domains under that support row
-  multiple domain IDs, one DDS mapping per process
+  one selected ROS adapter support row
+                 |
+                 v
+ROS 2 domains for that support row
 ```
 
-After the mainline release, the common Studio prototype adds React workspace state plus render and codec workers through the public TypeScript SDK.
+Phase 1 support rows are Humble and Jazzy with Fast DDS and Cyclone DDS. One gateway process binds one row and may expose multiple domain IDs. Applications combine independent SDK sessions across rows.
 
-First-stage adapter support rows are Humble/Jazzy with Fast DDS (`rmw_fastrtps_cpp`) and Cyclone DDS (`rmw_cyclonedds_cpp`). Exact row pins and **Qualification target** status live in the [support matrix](./support-matrix.md). Process topology follows [ADR 0008](./adr/0008-one-adapter-row-per-gateway-process.md). Later topology rows enter through support-matrix qualification.
-
-One gateway process may expose multiple ROS domain IDs within its selected support row. Cross-row application and fleet views compose independent SDK sessions and retain `gateway_instance_id`, `support_row_id`, and `domain_id` provenance.
-
-`gateway_instance_id` is a deployment-provided stable identifier for one logical gateway instance. It persists across ordinary process restart and in-place upgrade when resumable state is preserved. A replacement deployment or intentionally fresh instance receives a new identifier. Matching `gateway_instance_id` supports restart resume; a replacement instance drives a clean session. `support_row_id` is immutable for the running artifact and profile.
+`gateway_instance_id` identifies a logical gateway deployment. `support_row_id` identifies the immutable ROS distribution and RMW profile of its artifact. `domain_id` identifies a ROS domain within that row. These values remain attached to graph, schema, channel, policy, audit, telemetry, and evidence records.
 
 ## Ownership boundaries
 
-| Unit | Owns | Stable boundary |
+| Unit | Responsibility | Boundary |
 |---|---|---|
-| Browser SDK | Session lifecycle, typed APIs, Worker host, telemetry, buffer ownership | Public TypeScript API and versioned events |
-| `io.worker` | WebTransport/WSS I/O, R2WP framing, reconnection, inbound and outbound buffers | R2WP frames and bounded event batches |
-| `rclmbt` | Context, Node, Executor, Graph, QoS, Clock, Service, Action, Parameter, CDR, type registry keyed by `(scheme, value)` | Host `poll` ABI, typed SDK events, R2WP channels |
-| `rclwebd` | One support-row process, sessions, channel scheduler, schema cache by `(scheme, value)`, identity, policy, audit, metrics, compatibility routing | R2WP toward browsers; narrow C ABI toward ROS |
-| ROS C adapter | Generic serialized operations, distro-specific schema acquisition, and ROS integration for the bound support row | Versioned adapter ABI over `rcl` and `rmw` |
-| ROS domain | Discovery, native endpoints, middleware delivery, ROS clocks and liveliness | Domain IDs under one selected first-stage support row |
-| Conformance system | Fixtures, workload definitions, environment manifests, reports, release evidence | Machine-readable results and stable report schemas |
-| Common Studio prototype | Workspace, panels, rendering, media, accessibility, operator interaction | Released browser SDK and policy capability schema |
+| Browser SDK | Public typed API, sessions, Workers, telemetry, and buffer ownership | Versioned TypeScript API and events |
+| I/O Worker | Transport, framing, reconnect, and buffer transfer | R2WP frames and bounded event batches |
+| `rclmbt` | CDR, types, graph, QoS, clocks, executor, and ROS operations | Host poll ABI and typed events |
+| `rclwebd` | ROS attachment, sessions, schema cache, scheduling, policy, audit, and operations | R2WP and the ROS adapter ABI |
+| ROS adapter | Generic serialized operations for one support row | Versioned C ABI |
+| Conformance system | Fixtures, workloads, environments, and reports | Machine-readable evidence |
+| Studio | Post-release workspace and visual application behavior | Released SDK and capability schema |
 
-## Inbound topic path
+## Data paths
 
-1. The ROS adapter receives a serialized sample with graph, type name, schema identity `(scheme, value)`, QoS, time identity, and domain identity.
-2. `rclwebd` attaches `gateway_instance_id` and `support_row_id`, then applies session policy, queue budgets, and channel scheduling.
-3. WebTransport or binary WSS carries the shared R2WP envelope.
-4. `io.worker` validates the frame and transfers a bounded batch to `rclmbt.worker`.
-5. `rclmbt` resolves the schema by `(scheme, value)` with type name, encoding, and schema generation, then decodes generated types or dynamically projects requested fields.
-6. The SDK emits a typed sample plus correlated source, network, queue, decode, delivery, gateway, support-row, and domain telemetry.
+Inbound samples follow this path:
 
-## Outbound command path
+1. The ROS adapter receives serialized data and its type, schema, QoS, time, and domain context.
+2. `rclwebd` applies policy, budgets, scheduling, and deployment provenance.
+3. R2WP carries the sample over WebTransport or binary WebSocket.
+4. The I/O Worker validates and transfers a bounded batch to `rclmbt`.
+5. `rclmbt` resolves the schema and emits typed SDK events with correlated telemetry.
 
-1. The application creates a typed publish, service, action, or parameter operation through the SDK.
-2. `rclmbt` validates the type, schema identity, deadline, clock, and local state transition.
-3. `io.worker` frames the operation and attaches session and trace identity.
-4. `rclwebd` evaluates operation ACLs, concurrency, rate, size, bandwidth, and deadline budgets under the process support row.
-5. The C adapter executes the serialized ROS operation and returns status through the correlated channel.
-6. Audit records retain identity, target, schema identity, `gateway_instance_id`, `support_row_id`, `domain_id`, decision, timing, result, and trace linkage.
+Outbound operations follow this path:
 
-## Buffer and execution model
+1. The application creates a typed publish, Service, Action, or Parameter operation.
+2. `rclmbt` validates type, schema, deadline, clock, and local state.
+3. The I/O Worker frames the request with session and trace identity.
+4. `rclwebd` applies authorization and resource policy.
+5. The ROS adapter executes the serialized operation and returns its correlated result.
 
-- MoonBit/Wasm owns synchronous state machines, CDR work, graph state, QoS state, and executor dispatch.
-- JavaScript owns browser Promises, Worker scheduling, timers, WebTransport, WebSocket, and buffer transfer.
-- One host call delivers a bounded ready-event batch to `rclmbt.poll(batch)`; the result carries outbound work and the next deadline.
-- Cross-origin-isolated deployments use a bounded `SharedArrayBuffer` ring fast path.
-- General deployments use transferable `ArrayBuffer` ownership.
-- Both paths share the same behavioral contract and carry separate performance evidence.
+## Execution and buffers
 
-## Architecture invariants
+MoonBit/Wasm owns synchronous state machines and CDR work. TypeScript Workers own browser scheduling, timers, network APIs, and buffer transfer. A bounded `poll` call joins those execution models.
 
-- CDR stays on the sample hot path from ROS serialization through browser ingress.
-- R2WP framing, control messages, schema identity `(scheme, value)`, QoS negotiation, errors, and queue reasons are versioned shared contracts.
-- Every queue declares sample and byte budgets; each eviction or expiry emits a stable reason.
+Cross-origin-isolated deployments may use a bounded `SharedArrayBuffer` ring. General deployments use transferable `ArrayBuffer` ownership. Both paths implement the same behavior and carry separate performance evidence.
+
+## Invariants
+
+- CDR stays on the main sample path.
+- R2WP framing, control messages, schema identity, errors, and queue reasons are versioned contracts.
+- Every queue declares sample and byte budgets.
 - Browser async work crosses the Wasm boundary in bounded batches.
-- The edge is the robot trust boundary for identity, SROS2, ACLs, resource policy, and audit.
-- WebTransport and WSS carry the same R2WP envelope and semantic events.
-- N1 and N2 define the mainline acceptance surface.
-- Each gateway process binds one first-stage support row and may host multiple domain IDs under that row; fleet aggregation across rows uses independent SDK sessions.
-- Graph, schema, channel, policy, audit, and evidence records carry `gateway_instance_id`, `support_row_id`, and `domain_id` where applicable; `support_row_id` stays fixed for the running profile, while `gateway_instance_id` follows the deployment-provided instance lifecycle.
-- Recording and live transport converge on the same schema identity, channel identity, and SDK subscription model.
-
-## Mainline dependency chain
-
-```text
-Support profile + versioned fixtures
-  -> R2WP + CDR contracts
-  -> rclmbt host/runtime core
-  -> rclwebd ROS and transport path
-  -> graph + publish/subscribe vertical slice
-  -> complete N2 semantics and type handling
-  -> security + compatibility + operations
-  -> browser SDK and release gate
-  -> common Studio prototype
-```
+- The edge owns identity, SROS2, authorization, resource policy, and audit.
+- Both transports carry the same semantic events.
+- Recording and live transport share schema, channel, and SDK event models.
+- Contract changes include fixtures and review from each consumer.
+- Performance and security changes include their relevant evidence.
 
 ## Detail ownership
 
 | Topic | Document |
 |---|---|
-| Product ordering and outcomes | [Product scope](./product-scope.md) |
+| Product sequence | [Product scope](./product-scope.md) |
 | Protocol | [R2WP](./protocol/r2wp.md) |
-| Browser runtime | [`rclmbt`](./runtime/rclmbt.md) |
-| Edge gateway | [`rclwebd`](./gateway/rclwebd.md) |
-| Trust and policy | [Security](./security.md) |
-| Platform tiers | [Compatibility](./compatibility.md) |
-| Exact first-stage pins and row status | [Support matrix](./support-matrix.md) |
-| Process and support-row topology | [ADR 0008](./adr/0008-one-adapter-row-per-gateway-process.md) |
-| Evidence and gates | [Validation](./validation.md) |
-| UI side project | [Common Studio prototype](./prototypes/studio-ui.md) |
-
-## Change rules
-
-- A shared-contract edit includes updated fixtures and review from every consuming owner.
-- A queue or buffer edit includes declared budgets and a memory trace.
-- A hot-path edit includes latency, throughput, copy, queue, and allocation evidence.
-- A security-sensitive edit includes effective permissions, audit identity, resource policy, and failure behavior.
-- A new ROS distro, RMW, browser, transport topology, or recording format enters through the support matrix and compatibility strategy.
+| Runtime | [`rclmbt`](./runtime/rclmbt.md) |
+| Gateway | [`rclwebd`](./gateway/rclwebd.md) |
+| Security | [Security](./security.md) |
+| Platforms | [Compatibility](./compatibility.md), [support matrix](./support-matrix.md) |
+| Evidence | [Validation](./validation.md) |
+| Studio | [Common Studio prototype](./prototypes/studio-ui.md) |
