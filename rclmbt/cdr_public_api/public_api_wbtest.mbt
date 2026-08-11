@@ -332,7 +332,7 @@ test "public ROS wstring codec and corpus completion across packages" {
             Ok(s) => assert_eq(s, "AB")
             Err(e) => abort(e.code)
           }
-          match require_ensure_corpus_complete_terminal_wstring(r) {
+          match require_ensure_complete_with_zero_tail(r, 0) {
             Ok(_) => ()
             Err(e) => abort(e.code)
           }
@@ -358,7 +358,7 @@ test "public ROS wstring codec and corpus completion across packages" {
     }
     Err(e) => abort(e.code)
   }
-  // Corpus completion consumes exactly four zero tail bytes.
+  // Declared zero-tail completion consumes four zero bytes.
   let slack = b"\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
   match @cdr.CdrReader::open_default(slack[:]) {
     Ok(r) => {
@@ -366,7 +366,7 @@ test "public ROS wstring codec and corpus completion across packages" {
         Ok(_) => ()
         Err(e) => abort(e.code)
       }
-      match require_ensure_corpus_complete_terminal_wstring(r) {
+      match require_ensure_complete_with_zero_tail(r, 4) {
         Ok(_) => assert_eq(r.position(), 12)
         Err(e) => abort(e.code)
       }

@@ -31,11 +31,15 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
     - [x] M1-01c1 Semantic CDR1 primitives (bool, signed ints, floats, Char8/Char16).
     - [x] M1-01c2 Strings and ROS legacy wstring.
       - [x] M1-01c2a CDR1 UTF-8 Char8 string (`read_string` / `write_string`, optional payload `max_bytes`).
-      - [x] M1-01c2b ROS legacy wstring and corpus-tail completion.
+      - [x] M1-01c2b ROS legacy wstring (count + N×4; exact encode).
     - [x] M1-01c3 Arrays, sequences, nested-depth guards, borrowed BytesView fields.
       - [x] M1-01c3a Container codec contract (fixed arrays, sequences, nesting).
       - [x] M1-01c3b Implement containers and nesting in `rclmbt/cdr`.
-  - [~] M1-01d Prove the authoritative corpus, semantic agreement (CY exact vs FT/ZN four-byte zero tail slack), round trips, malformed input, and resource bounds.
+  - [~] M1-01d Prove the authoritative corpus, semantic agreement, round trips, malformed input, and resource bounds.
+    - [x] M1-01d0 Top-level zero-tail evidence, contract correction, `ensure_complete_with_zero_tail`.
+    - [~] M1-01d1 Fixture bridge from committed corpus into MoonBit tests.
+    - [ ] M1-01d2 Semantic decode and exact re-encode proof.
+    - [ ] M1-01d3 Malformed/resource cases and final M1-01 gate.
 - [ ] M1-02 Implement generated types and the type registry.
 - [ ] M1-03 Establish the Wasm host ABI and executor poll loop.
 - [ ] M1-04 Implement the serialized ROS C ABI.

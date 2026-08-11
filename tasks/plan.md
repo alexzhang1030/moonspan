@@ -128,6 +128,10 @@ M0 exit requires accepted decisions, clean-checkout root commands, reproducible 
 | M1-01c3a | Complete | Container codec contract: fixed arrays, sequences, nesting tokens | M1-01c2 |
 | M1-01c3b | Complete | Implement arrays, sequences, nesting, borrowed byte sequences in `rclmbt/cdr` | M1-01c3a |
 | M1-01d | Active | Authoritative corpus proof: semantic agreement, round trips, malformed input, resource bounds | M1-01c, M0-04 |
+| M1-01d0 | Complete | Top-level zero-tail evidence, corrected contract, declared completion API | M1-01c3 |
+| M1-01d1 | Active | Fixture bridge from committed corpus into MoonBit tests | M1-01d0 |
+| M1-01d2 | Queued | Semantic decode and exact re-encode proof | M1-01d1 |
+| M1-01d3 | Queued | Malformed/resource cases and final M1-01 gate | M1-01d2 |
 | M1-02 | Queued | Generate types and build the schema-identity registry | M0-04, M1-01 |
 | M1-03 | Queued | Establish the Wasm host ABI and executor poll loop | M0-02, M0-03 |
 | M1-04 | Queued | Implement the serialized ROS C ABI | M0-02, M0-04 |
@@ -154,23 +158,28 @@ M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both 
 | M1-01c1 | Complete | Semantic primitives: bool, signed ints, IEEE floats, Char8/Char16 on raw codecs |
 | M1-01c2 | Complete | Strings and ROS legacy wstring |
 | M1-01c2a | Complete | CDR1 UTF-8 Char8 string: endian-aware length including NUL, optional payload `max_bytes`, strict UTF-8, owned `String`, direct writer emit |
-| M1-01c2b | Complete | ROS legacy wstring (`count * 4`, `invalid_wstring_scalar`) and `ensure_corpus_complete_terminal_wstring` |
+| M1-01c2b | Complete | ROS legacy wstring (`count * 4`, `invalid_wstring_scalar`); canonical encode exact |
 | M1-01c3 | Complete | Arrays, sequences, nested-depth guards, borrowed `BytesView` fields |
 | M1-01c3a | Complete | Container codec contract freeze: fixed arrays, sequence length/byte APIs, `CdrNesting` depth tokens |
 | M1-01c3b | Complete | Sequences, fixed-array composition, nesting, borrowed byte sequences in `rclmbt/cdr` |
-| M1-01d | Active | Corpus-driven proof: CY exact vs FT/ZN four-byte zero tail slack wstring semantic agreement, round trips, malformed input, resource bounds |
+| M1-01d | Active | Corpus-driven proof: semantic agreement, round trips, malformed input, resource bounds |
+| M1-01d0 | Complete | Top-level zero-tail evidence (`tail-slack.json`), contract correction, `ensure_complete_with_zero_tail` |
+| M1-01d1 | Active | Fixture bridge from committed corpus into MoonBit tests |
+| M1-01d2 | Queued | Semantic decode and exact re-encode proof |
+| M1-01d3 | Queued | Malformed/resource cases and final M1-01 gate |
 
 **Acceptance criteria (M1-01 overall):**
 
-- [x] Authoritative contract at `docs/runtime/cdr.md` routed from docs and PCR maps (M1-01a), including body origin at absolute offset 4, ROS 2 legacy wstring profile, exact canonical encode (zero top-level tail slack), and narrow corpus completion for four-byte zero tail slack.
+- [x] Authoritative contract at `docs/runtime/cdr.md` routed from docs and PCR maps (M1-01a), including body origin at absolute offset 4, ROS 2 legacy wstring profile, exact canonical encode, and top-level zero-tail evidence.
 - [x] Bounded CDR1 reader with encapsulation, options metadata, width-exact endian raw reads, origin-4 alignment, limits (stream/temp 67 108 864, depth 64), and structured `CdrError` (M1-01b1).
 - [x] Bounded CDR1 writer with capacity min(stream,temp), deterministic zero padding, options `0x0000`, and owned snapshots (M1-01b2).
 - [x] Semantic primitive codecs (bool, signed ints, floats, Char8/Char16) with LE/BE fidelity and atomic boolean faults (M1-01c1).
 - [x] CDR1 UTF-8 Char8 string codecs with optional payload bound, strict UTF-8, and atomic faults (M1-01c2a).
-- [x] ROS `wstring` core decode of exactly `count * 4`; scalar-boundary tests for `invalid_wstring_scalar`; corpus-tail completion (M1-01c2b).
+- [x] ROS `wstring` core decode of exactly `count * 4`; scalar-boundary tests for `invalid_wstring_scalar` (M1-01c2b).
 - [x] Container codec surface defined: fixed arrays, sequences, nesting tokens, borrowed byte sequences (M1-01c3a).
 - [x] Arrays, sequences, nested-depth guards, borrowed `BytesView` fields implemented in `rclmbt/cdr` (M1-01c3b).
-- [ ] Corpus agreement: exact CY fixtures and FT/ZN four-byte zero tail slack fixtures normalize to one semantic value; strict completion reports `trailing_data` on four-byte zero tail slack samples; adversarial resource cases (M1-01d).
+- [x] Top-level declared zero-tail completion API and frozen tail-slack evidence (M1-01d0).
+- [ ] Corpus fixture bridge, semantic agreement, exact re-encode, and adversarial resource cases (M1-01d1–d3).
 
 **Verification:** focused MoonBit/Wasm tests for `cdr_mbt`; corpus-driven checks against `conformance/cdr/manifest.json`; root `just check`, `just test`, and `just build` when implementation lands.
 

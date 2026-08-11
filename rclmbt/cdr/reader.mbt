@@ -372,3 +372,46 @@ pub fn CdrReader::ensure_complete(self : CdrReader) -> Result[Unit, CdrError] {
   }
   Ok(())
 }
+
+///|
+/// Top-level completion with a declared all-zero tail.
+/// Independent of the final member type. Scans remaining bytes with constant
+/// auxiliary state. Phase 1 schema metadata supplies `0`, `4`, or `12`; the
+/// primitive accepts every valid declaration through `max_stream_bytes`.
+///
+/// - `expected_tail_bytes < 0` → `length_overflow` (needed = 0)
+/// - `expected_tail_bytes > max_stream_bytes` → `bounds_exceeded`
+/// - remaining = 0 → success for every valid declaration
+/// - remaining = expected and every byte is zero → consume tail and succeed
+/// - every other trailing shape → `trailing_data` with cursor fixed
+pub fn CdrReader::ensure_complete_with_zero_tail(
+  self : CdrReader,
+  expected_tail_bytes : Int,
+) -> Result[Unit, CdrError] {
+  let cursor = self.offset
+  let rem = self.remaining()
+  if expected_tail_bytes < 0 {
+    return Err(CdrError::length_overflow(cursor, 0, rem))
+  }
+  let max_stream = self.limits.max_stream_bytes
+  if expected_tail_bytes > max_stream {
+    return Err(
+      CdrError::bounds_exceeded(cursor, expected_tail_bytes, max_stream),
+    )
+  }
+  if rem == 0 {
+    return Ok(())
+  }
+  if rem != expected_tail_bytes {
+    return Err(CdrError::trailing_data(cursor, rem))
+  }
+  let mut i = 0
+  while i < rem {
+    if self.bytes[cursor + i] != b'\x00' {
+      return Err(CdrError::trailing_data(cursor, rem))
+    }
+    i = i + 1
+  }
+  self.offset = cursor + rem
+  Ok(())
+}

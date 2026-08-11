@@ -428,99 +428,115 @@ test "wstring writer capacity and invalid surrogate atomic" {
 }
 
 ///|
-test "wstring strict versus corpus completion" {
-  // Core empty wstring at end of stream
-  let exact = b"\x00\x01\x00\x00\x00\x00\x00\x00"
-  let r0 = wr(exact[:])
-  match r0.read_wstring() {
-    Ok(s) => assert_eq(s, "")
-    Err(e) => abort(e.code)
+test "declared zero tail completion exact end with 0 4 12" {
+  // Header only: remaining 0 after open body origin.
+  let exact = b"\x00\x01\x00\x00"
+  for decl in [0, 4, 12] {
+    let r = wr(exact[:])
+    assert_eq(r.position(), 4)
+    match r.ensure_complete_with_zero_tail(decl) {
+      Ok(_) => assert_eq(r.position(), 4)
+      Err(e) => abort(e.code)
+    }
   }
-  match r0.ensure_complete() {
-    Ok(_) => ()
-    Err(e) => abort(e.code)
-  }
-  match wr(exact[:]).read_wstring() {
-    Ok(_) => ()
-    Err(e) => abort(e.code)
-  }
-  let r0b = wr(exact[:])
-  match r0b.read_wstring() {
-    Ok(_) => ()
-    Err(e) => abort(e.code)
-  }
-  match r0b.ensure_corpus_complete_terminal_wstring() {
-    Ok(_) => ()
-    Err(e) => abort(e.code)
-  }
-  // Four zero tail slack
-  let slack = b"\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-  let rs = wr(slack[:])
-  match rs.read_wstring() {
-    Ok(_) => ()
-    Err(e) => abort(e.code)
-  }
-  assert_eq(rs.position(), 8)
-  match rs.ensure_complete() {
+}
+
+///|
+test "declared zero tail four and twelve success and strict contrast" {
+  // Four zero bytes after header.
+  let four = b"\x00\x01\x00\x00\x00\x00\x00\x00"
+  let r4 = wr(four[:])
+  match r4.ensure_complete() {
     Ok(_) => abort("strict rejects four-zero tail")
     Err(e) => {
       assert_eq(e.code, CODE_TRAILING_DATA)
-      assert_eq(e.offset, 8)
+      assert_eq(e.offset, 4)
       assert_eq(e.remaining, 4)
     }
   }
-  assert_eq(rs.position(), 8)
-  match rs.ensure_corpus_complete_terminal_wstring() {
-    Ok(_) => ()
+  assert_eq(r4.position(), 4)
+  match r4.ensure_complete_with_zero_tail(4) {
+    Ok(_) => assert_eq(r4.position(), 8)
     Err(e) => abort(e.code)
   }
-  assert_eq(rs.position(), 12)
-  // Nonzero four-byte tail
-  let bad4 = b"\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01"
-  let rb = wr(bad4[:])
-  match rb.read_wstring() {
-    Ok(_) => ()
+  // Twelve zero bytes after header.
+  let twelve = b"\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+  let r12 = wr(twelve[:])
+  match r12.ensure_complete() {
+    Ok(_) => abort("strict rejects twelve-zero tail")
+    Err(e) => {
+      assert_eq(e.code, CODE_TRAILING_DATA)
+      assert_eq(e.remaining, 12)
+    }
+  }
+  assert_eq(r12.position(), 4)
+  match r12.ensure_complete_with_zero_tail(12) {
+    Ok(_) => assert_eq(r12.position(), 16)
     Err(e) => abort(e.code)
   }
-  let pos = rb.position()
-  match rb.ensure_corpus_complete_terminal_wstring() {
-    Ok(_) => abort("nonzero four bytes")
+}
+
+///|
+test "declared zero tail mismatch nonzero and declaration faults" {
+  // Four zeros present; declare 12 → trailing_data, cursor fixed.
+  let four = b"\x00\x01\x00\x00\x00\x00\x00\x00"
+  let r = wr(four[:])
+  match r.ensure_complete_with_zero_tail(12) {
+    Ok(_) => abort("expected trailing_data mismatch")
+    Err(e) => {
+      assert_eq(e.code, CODE_TRAILING_DATA)
+      assert_eq(e.offset, 4)
+      assert_eq(e.remaining, 4)
+    }
+  }
+  assert_eq(r.position(), 4)
+  // Zero declaration with remaining bytes.
+  match r.ensure_complete_with_zero_tail(0) {
+    Ok(_) => abort("expected trailing_data zero declaration")
     Err(e) => {
       assert_eq(e.code, CODE_TRAILING_DATA)
       assert_eq(e.remaining, 4)
     }
   }
-  assert_eq(rb.position(), pos)
-  // Short zero suffix (2 bytes)
-  let shortz = b"\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00"
-  let rsh = wr(shortz[:])
-  match rsh.read_wstring() {
-    Ok(_) => ()
-    Err(e) => abort(e.code)
-  }
-  let psh = rsh.position()
-  match rsh.ensure_corpus_complete_terminal_wstring() {
-    Ok(_) => abort("short zero suffix")
+  assert_eq(r.position(), 4)
+  // Nonzero byte inside a matching-length tail.
+  let dirty = b"\x00\x01\x00\x00\x00\x00\x00\x01"
+  let rd = wr(dirty[:])
+  match rd.ensure_complete_with_zero_tail(4) {
+    Ok(_) => abort("expected trailing_data dirty tail")
     Err(e) => {
       assert_eq(e.code, CODE_TRAILING_DATA)
-      assert_eq(e.remaining, 2)
+      assert_eq(e.offset, 4)
+      assert_eq(e.remaining, 4)
     }
   }
-  assert_eq(rsh.position(), psh)
-  // Long zero suffix (8 bytes)
-  let longz = b"\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
-  let rl = wr(longz[:])
-  match rl.read_wstring() {
-    Ok(_) => ()
+  assert_eq(rd.position(), 4)
+  // Negative declaration.
+  let rn = wr(four[:])
+  match rn.ensure_complete_with_zero_tail(-1) {
+    Ok(_) => abort("expected length_overflow")
+    Err(e) => {
+      assert_eq(e.code, CODE_LENGTH_OVERFLOW)
+      assert_eq(e.offset, 4)
+      assert_eq(e.needed, 0)
+      assert_eq(e.remaining, 4)
+    }
+  }
+  assert_eq(rn.position(), 4)
+  // Declaration above max_stream_bytes.
+  let limits = match CdrLimits::new(32, 4, 32) {
+    Ok(l) => l
     Err(e) => abort(e.code)
   }
-  let pl = rl.position()
-  match rl.ensure_corpus_complete_terminal_wstring() {
-    Ok(_) => abort("long zero suffix")
+  let rb = wr_limits(four[:], limits)
+  match rb.ensure_complete_with_zero_tail(33) {
+    Ok(_) => abort("expected bounds_exceeded")
     Err(e) => {
-      assert_eq(e.code, CODE_TRAILING_DATA)
-      assert_eq(e.remaining, 8)
+      assert_eq(e.code, CODE_BOUNDS_EXCEEDED)
+      assert_eq(e.offset, 4)
+      assert_eq(e.needed, 33)
+      assert_eq(e.remaining, 32)
     }
   }
-  assert_eq(rl.position(), pl)
+  assert_eq(rb.position(), 4)
 }

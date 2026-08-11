@@ -1,10 +1,11 @@
 ///|
-/// ROS 2 legacy wstring codecs and corpus-tail completion (M1-01c2b).
+/// ROS 2 legacy wstring codecs (M1-01c2b).
 ///
 /// Wire layout: endian-aware `UInt32` element count `N`, then exactly `N`
 /// endian-aware `UInt32` scalar slots (`N * 4` payload bytes). Empty value is
 /// count 0 with zero payload slots. Canonical encode ends at the core field
-/// boundary (zero top-level tail slack).
+/// boundary. Top-level zero-tail completion is
+/// `CdrReader::ensure_complete_with_zero_tail`.
 ///
 /// Accepted slots: `0x00000000..0x0000D7FF` and `0x0000E000..0x0010FFFF`.
 /// Surrogate halves and values above `0x10FFFF` map to `invalid_wstring_scalar`.
@@ -280,32 +281,6 @@ pub fn CdrReader::read_wstring(
   }
   self.offset = data_start + payload_i
   Ok(sb.to_string())
-}
-
-///|
-/// Corpus completion after a terminal wstring: succeed when the stream is fully
-/// consumed, or when exactly four remaining zero bytes form Phase 1 top-level
-/// tail slack (those four bytes are consumed). Every other trailing shape
-/// returns `trailing_data` and leaves the cursor unchanged.
-pub fn CdrReader::ensure_corpus_complete_terminal_wstring(
-  self : CdrReader,
-) -> Result[Unit, CdrError] {
-  let rem = self.remaining()
-  if rem == 0 {
-    return Ok(())
-  }
-  if rem == 4 {
-    let p = self.offset
-    if self.bytes[p] == b'\x00' &&
-      self.bytes[p + 1] == b'\x00' &&
-      self.bytes[p + 2] == b'\x00' &&
-      self.bytes[p + 3] == b'\x00' {
-      self.offset = p + 4
-      return Ok(())
-    }
-    return Err(CdrError::trailing_data(p, rem))
-  }
-  Err(CdrError::trailing_data(self.offset, rem))
 }
 
 // --- Writer ---

@@ -215,11 +215,12 @@ pub fn require_write_wstring(
 }
 
 ///|
-/// Compile-time binding: corpus completion after a terminal wstring.
-pub fn require_ensure_corpus_complete_terminal_wstring(
+/// Compile-time binding: top-level declared zero-tail completion.
+pub fn require_ensure_complete_with_zero_tail(
   reader : @cdr.CdrReader,
+  expected_tail_bytes : Int,
 ) -> Result[Unit, @cdr.CdrError] {
-  reader.ensure_corpus_complete_terminal_wstring()
+  reader.ensure_complete_with_zero_tail(expected_tail_bytes)
 }
 
 ///|
