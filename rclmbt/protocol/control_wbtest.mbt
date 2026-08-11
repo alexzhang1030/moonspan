@@ -147,7 +147,7 @@ fn session_ready_triple_fields(
 }
 
 ///|
-test "control session ready phase one triples accept all four rows" {
+test "control session ready phase one triples accept all six rows" {
   match
     assert_session_ready_triple(
       session_ready_triple_fields("H-FT", "humble", "rmw_fastrtps_cpp"),
@@ -164,6 +164,13 @@ test "control session ready phase one triples accept all four rows" {
   }
   match
     assert_session_ready_triple(
+      session_ready_triple_fields("H-ZN", "humble", "rmw_zenoh_cpp"),
+    ) {
+    Ok(_) => ()
+    Err(e) => abort(e.reason)
+  }
+  match
+    assert_session_ready_triple(
       session_ready_triple_fields("J-FT", "jazzy", "rmw_fastrtps_cpp"),
     ) {
     Ok(_) => ()
@@ -172,6 +179,13 @@ test "control session ready phase one triples accept all four rows" {
   match
     assert_session_ready_triple(
       session_ready_triple_fields("J-CY", "jazzy", "rmw_cyclonedds_cpp"),
+    ) {
+    Ok(_) => ()
+    Err(e) => abort(e.reason)
+  }
+  match
+    assert_session_ready_triple(
+      session_ready_triple_fields("J-ZN", "jazzy", "rmw_zenoh_cpp"),
     ) {
     Ok(_) => ()
     Err(e) => abort(e.reason)

@@ -1,10 +1,16 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import {
   FIXTURE_SPECS,
+  GENERATED_CORPUS_ENTRIES,
   PLATFORM,
   REQUIRED_COVERAGE,
   SUPPORT_ROWS,
   asciiCompare,
+  digestsEqual,
+  listGeneratedCorpusDigests,
   normalizeSourceText,
   parseCliMode,
   parseSummaryTsv,
@@ -73,5 +79,53 @@ describe("cdr-corpus helpers", () => {
     expect(rows[0]?.endianness).toBe("little");
     expect(rows[1]?.endianness).toBe("big");
     expect(() => parseSummaryTsv("bad\n")).toThrow();
+  });
+});
+
+describe("cdr-corpus reproduce comparison scope", () => {
+  const temps: string[] = [];
+  afterEach(async () => {
+    for (const dir of temps.splice(0)) {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("generated corpus entries are fixtures and manifest only", () => {
+    expect([...GENERATED_CORPUS_ENTRIES]).toEqual(["fixtures", "manifest.json"]);
+  });
+
+  test("listGeneratedCorpusDigests ignores docs and source trees outside the artifact set", async () => {
+    const corpus = await mkdtemp(path.join(tmpdir(), "moonspan-cdr-scope-"));
+    temps.push(corpus);
+    await mkdir(path.join(corpus, "fixtures", "H-FT"), { recursive: true });
+    await mkdir(path.join(corpus, "generate"), { recursive: true });
+    await writeFile(path.join(corpus, "manifest.json"), '{"corpus":"test"}\n');
+    await writeFile(path.join(corpus, "fixtures", "H-FT", "primitive_scalars.bin"), "bin-a");
+    await writeFile(path.join(corpus, "fixtures", "H-FT", "row.json"), '{"id":"H-FT"}\n');
+    await writeFile(path.join(corpus, "README.md"), "# docs outside generated set\n");
+    await writeFile(path.join(corpus, "generate", "Dockerfile"), "FROM scratch\n");
+
+    const digests = await listGeneratedCorpusDigests(corpus);
+    const paths = digests.map(([rel]) => rel).sort(asciiCompare);
+    expect(paths).toEqual([
+      "fixtures/H-FT/primitive_scalars.bin",
+      "fixtures/H-FT/row.json",
+      "manifest.json",
+    ]);
+    expect(paths.some((rel) => rel === "README.md" || rel.startsWith("generate/"))).toBe(
+      false,
+    );
+
+    const twin = await mkdtemp(path.join(tmpdir(), "moonspan-cdr-scope-twin-"));
+    temps.push(twin);
+    await mkdir(path.join(twin, "fixtures", "H-FT"), { recursive: true });
+    await writeFile(path.join(twin, "manifest.json"), '{"corpus":"test"}\n');
+    await writeFile(path.join(twin, "fixtures", "H-FT", "primitive_scalars.bin"), "bin-a");
+    await writeFile(path.join(twin, "fixtures", "H-FT", "row.json"), '{"id":"H-FT"}\n');
+    // Twin has no README.md or generate/ tree — still equal under generated scope.
+    expect(digestsEqual(digests, await listGeneratedCorpusDigests(twin))).toBe(true);
+
+    await writeFile(path.join(twin, "fixtures", "H-FT", "primitive_scalars.bin"), "bin-b");
+    expect(digestsEqual(digests, await listGeneratedCorpusDigests(twin))).toBe(false);
   });
 });

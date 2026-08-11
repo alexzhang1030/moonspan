@@ -1087,6 +1087,9 @@ async function generateCorpus(sourceRoot: string, destination: string): Promise<
   await checkCorpus(sourceRoot, destination);
 }
 
+/** Paths written by generate/write: corpus root `manifest.json` plus everything under `fixtures/`. */
+export const GENERATED_CORPUS_ENTRIES = ["fixtures", "manifest.json"] as const;
+
 async function listFileDigests(root: string, rel = ""): Promise<Array<[string, string]>> {
   const dir = path.join(root, rel);
   const entries = await readdir(dir, { withFileTypes: true });
@@ -1097,6 +1100,31 @@ async function listFileDigests(root: string, rel = ""): Promise<Array<[string, s
     else output.push([childRel, sha256Hex(await readFile(path.join(root, childRel)))]);
   }
   return output;
+}
+
+/**
+ * Digest inventory for reproduce comparison. Scope matches the generated corpus
+ * artifact set only: `manifest.json` and every file under `fixtures/`.
+ * Source trees under `generate/`, docs such as `README.md`, and other non-artifact
+ * paths are excluded so they cannot affect pinned-environment equality.
+ */
+export async function listGeneratedCorpusDigests(
+  corpusRoot: string,
+): Promise<Array<[string, string]>> {
+  const digests: Array<[string, string]> = [];
+  digests.push([
+    "manifest.json",
+    sha256Hex(await readFile(path.join(corpusRoot, "manifest.json"))),
+  ]);
+  digests.push(...(await listFileDigests(corpusRoot, "fixtures")));
+  return digests.sort(([a], [b]) => asciiCompare(a, b));
+}
+
+export function digestsEqual(
+  left: ReadonlyArray<readonly [string, string]>,
+  right: ReadonlyArray<readonly [string, string]>,
+): boolean {
+  return stableJsonCompact(left) === stableJsonCompact(right);
 }
 
 async function writeCorpus(sourceRoot: string): Promise<void> {
@@ -1124,9 +1152,9 @@ async function reproduceCorpus(sourceRoot: string): Promise<void> {
   try {
     const generated = path.join(temp, "cdr");
     await generateCorpus(sourceRoot, generated);
-    const expected = await listFileDigests(path.join(sourceRoot, CORPUS_REL));
-    const actual = await listFileDigests(generated);
-    if (stableJsonCompact(actual) !== stableJsonCompact(expected)) {
+    const expected = await listGeneratedCorpusDigests(path.join(sourceRoot, CORPUS_REL));
+    const actual = await listGeneratedCorpusDigests(generated);
+    if (!digestsEqual(actual, expected)) {
       throw new Error("pinned ROS generation differs from the committed CDR corpus");
     }
     console.log(`cdr-corpus: status=ok mode=reproduce files=${actual.length}`);

@@ -13,7 +13,7 @@
       "expected": {
         "roundtrip": "semantic-equality"
       },
-      "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+      "generator_revision": "sha256:3e3f68923708e35ee8ea715f497bfbc838bfcf1212822c2807280b52beb8b1bd",
       "id": "H-FT-collections",
       "platform": "linux/arm64",
       "rmw_identifier": "rmw_fastrtps_cpp",
@@ -22,7 +22,7 @@
       "schema_generation": 1,
       "schema_identity": {
         "scheme": "moonspan-schema-v1",
-        "value": "1a24c1330a39a37d33370e667fd612246e57a883ddf00c0a1eca52174fbb31bd"
+        "value": "bc40edc0f49c73a9fa9367f2621fec1c0338e03ed67575b4cbc11e098c31a1c4"
       },
       "semantic_value_sha256": "67399065e208e6ed4c129d79b62cae647530d2c35fea78707a5da454df90622c",
       "serialized": {
@@ -35,8 +35,8 @@
       },
       "support_row_id": "H-FT",
       "type_description": {
-        "canonical_bundle_path": "fixtures/bundles/1a24c1330a39a37d33370e667fd612246e57a883ddf00c0a1eca52174fbb31bd.json",
-        "canonical_bundle_sha256": "1a24c1330a39a37d33370e667fd612246e57a883ddf00c0a1eca52174fbb31bd"
+        "canonical_bundle_path": "fixtures/bundles/bc40edc0f49c73a9fa9367f2621fec1c0338e03ed67575b4cbc11e098c31a1c4.json",
+        "canonical_bundle_sha256": "bc40edc0f49c73a9fa9367f2621fec1c0338e03ed67575b4cbc11e098c31a1c4"
       },
       "type_name": "moonspan_cdr_interfaces/msg/Collections",
       "values": {
@@ -73,7 +73,7 @@
       "expected": {
         "roundtrip": "semantic-equality"
       },
-      "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+      "generator_revision": "sha256:3e3f68923708e35ee8ea715f497bfbc838bfcf1212822c2807280b52beb8b1bd",
       "id": "H-FT-echo_nested_request",
       "platform": "linux/arm64",
       "rmw_identifier": "rmw_fastrtps_cpp",
@@ -82,7 +82,7 @@
       "schema_generation": 1,
       "schema_identity": {
         "scheme": "moonspan-schema-v1",
-        "value": "7755eb73700c10c92b1c5a047f3a76480099eb0bd882f5a464f21f667affe2d2"
+        "value": "2408836caae922def813faf61de8a93d73ce1c71ec6c823b0c50698d416c7570"
       },
       "semantic_value_sha256": "09516d45ec8d1ab908c22f6e15a0bf67a0762ae312859aa5db7869db3eb13ab7",
       "serialized": {
@@ -95,8 +95,8 @@
       },
       "support_row_id": "H-FT",
       "type_description": {
-        "canonical_bundle_path": "fixtures/bundles/7755eb73700c10c92b1c5a047f3a76480099eb0bd882f5a464f21f667affe2d2.json",
-        "canonical_bundle_sha256": "7755eb73700c10c92b1c5a047f3a76480099eb0bd882f5a464f21f667affe2d2"
+        "canonical_bundle_path": "fixtures/bundles/2408836caae922def813faf61de8a93d73ce1c71ec6c823b0c50698d416c7570.json",
+        "canonical_bundle_sha256": "2408836caae922def813faf61de8a93d73ce1c71ec6c823b0c50698d416c7570"
       },
       "type_name": "moonspan_cdr_interfaces/srv/EchoNested_Request",
       "values": {
@@ -158,7 +158,7 @@
       "expected": {
         "roundtrip": "semantic-equality"
       },
-      "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+      "generator_revision": "sha256:3e3f68923708e35ee8ea715f497bfbc838bfcf1212822c2807280b52beb8b1bd",
       "id": "H-FT-echo_nested_response",
       "platform": "linux/arm64",
       "rmw_identifier": "rmw_fastrtps_cpp",
@@ -167,7 +167,7 @@
       "schema_generation": 1,
       "schema_identity": {
         "scheme": "moonspan-schema-v1",
-        "value": "4fd8d7a0f44273d5fe87f1a01377543d62b73e8321e8f8e7dfaa138f436bc0d3"
+        "value": "7e67edbd18182a48e6169db141bf7d297dc60415348c27c70dd3b2124c6f49c8"
       },
       "semantic_value_sha256": "26e02462e5b399a01938af52962926997e6738046d9570b8f9f758537bbda082",
       "serialized": {
@@ -180,8 +180,8 @@
       },
       "support_row_id": "H-FT",
       "type_description": {
-        "canonical_bundle_path": "fixtures/bundles/4fd8d7a0f44273d5fe87f1a01377543d62b73e8321e8f8e7dfaa138f436bc0d3.json",
-        "canonical_bundle_sha256": "4fd8d7a0f44273d5fe87f1a01377543d62b73e8321e8f8e7dfaa138f436bc0d3"
+        "canonical_bundle_path": "fixtures/bundles/7e67edbd18182a48e6169db141bf7d297dc60415348c27c70dd3b2124c6f49c8.json",
+        "canonical_bundle_sha256": "7e67edbd18182a48e6169db141bf7d297dc60415348c27c70dd3b2124c6f49c8"
       },
       "type_name": "moonspan_cdr_interfaces/srv/EchoNested_Response",
       "values": {
@@ -244,7 +244,7 @@
       "expected": {
         "roundtrip": "semantic-equality"
       },
-      "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+      "generator_revision": "sha256:3e3f68923708e35ee8ea715f497bfbc838bfcf1212822c2807280b52beb8b1bd",
       "id": "H-FT-measure_sequence_feedback",
       "platform": "linux/arm64",
       "rmw_identifier": "rmw_fastrtps_cpp",
@@ -253,7 +253,7 @@
       "schema_generation": 1,
       "schema_identity": {
         "scheme": "moonspan-schema-v1",
-        "value": "b43d497ec9946a41370f42a28466d7d9d5e5af7db05fd784a852d11977f52b66"
+        "value": "c0905d3b3a0cf993b71cad476cb5496e4cdfb1693e131f5e0a6e8feb66e612c7"
       },
       "semantic_value_sha256": "42ae6751c51bc6d45fd6cd3c64f1133a69047f8edd5c610e986c720363a1b939",
       "serialized": {
@@ -266,8 +266,8 @@
       },
       "support_row_id": "H-FT",
       "type_description": {
-        "canonical_bundle_path": "fixtures/bundles/b43d497ec9946a41370f42a28466d7d9d5e5af7db05fd784a852d11977f52b66.json",
-        "canonical_bundle_sha256": "b43d497ec9946a41370f42a28466d7d9d5e5af7db05fd784a852d11977f52b66"
+        "canonical_bundle_path": "fixtures/bundles/c0905d3b3a0cf993b71cad476cb5496e4cdfb1693e131f5e0a6e8feb66e612c7.json",
+        "canonical_bundle_sha256": "c0905d3b3a0cf993b71cad476cb5496e4cdfb1693e131f5e0a6e8feb66e612c7"
       },
       "type_name": "moonspan_cdr_interfaces/action/MeasureSequence_Feedback",
       "values": {
@@ -330,7 +330,7 @@
       "expected": {
         "roundtrip": "semantic-equality"
       },
-      "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+      "generator_revision": "sha256:3e3f68923708e35ee8ea715f497bfbc838bfcf1212822c2807280b52beb8b1bd",
       "id": "H-FT-measure_sequence_goal",
       "platform": "linux/arm64",
       "rmw_identifier": "rmw_fastrtps_cpp",
@@ -339,7 +339,7 @@
       "schema_generation": 1,
       "schema_identity": {
         "scheme": "moonspan-schema-v1",
-        "value": "a007bcd906ea29cb9239b9748feb3b9800d0be5dbc9b52569d220f8eb8c8ee86"
+        "value": "772e46f5b66bf3daac68ae0dfa043de8130d865e6635c5464239cd73dab0313a"
       },
       "semantic_value_sha256": "b1694c2e9d97d30bbf4e0e786ce5b3ea4998e5b55d59865085fb962dd866ab96",
       "serialized": {
@@ -352,8 +352,8 @@
       },
       "support_row_id": "H-FT",
       "type_description": {
-        "canonical_bundle_path": "fixtures/bundles/a007bcd906ea29cb9239b9748feb3b9800d0be5dbc9b52569d220f8eb8c8ee86.json",
-        "canonical_bundle_sha256": "a007bcd906ea29cb9239b9748feb3b9800d0be5dbc9b52569d220f8eb8c8ee86"
+        "canonical_bundle_path": "fixtures/bundles/772e46f5b66bf3daac68ae0dfa043de8130d865e6635c5464239cd73dab0313a.json",
+        "canonical_bundle_sha256": "772e46f5b66bf3daac68ae0dfa043de8130d865e6635c5464239cd73dab0313a"
       },
       "type_name": "moonspan_cdr_interfaces/action/MeasureSequence_Goal",
       "values": {
@@ -392,7 +392,7 @@
       "expected": {
         "roundtrip": "semantic-equality"
       },
-      "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+      "generator_revision": "sha256:3e3f68923708e35ee8ea715f497bfbc838bfcf1212822c2807280b52beb8b1bd",
       "id": "H-FT-measure_sequence_result",
       "platform": "linux/arm64",
       "rmw_identifier": "rmw_fastrtps_cpp",
@@ -401,7 +401,7 @@
       "schema_generation": 1,
       "schema_identity": {
         "scheme": "moonspan-schema-v1",
-        "value": "f9c7d819c62122edac1c6b19e1323eb6399e5e81db737473ab396cce4775c7a5"
+        "value": "234bcc45bb3a5906514651c0a9dfa9a75a1d6e174e8af4e49849909b86850828"
       },
       "semantic_value_sha256": "42ae55efecd19765cc8d3cf472afe730e47cb4adcdb21c592953ecfc6e8a0fdb",
       "serialized": {
@@ -414,8 +414,8 @@
       },
       "support_row_id": "H-FT",
       "type_description": {
-        "canonical_bundle_path": "fixtures/bundles/f9c7d819c62122edac1c6b19e1323eb6399e5e81db737473ab396cce4775c7a5.json",
-        "canonical_bundle_sha256": "f9c7d819c62122edac1c6b19e1323eb6399e5e81db737473ab396cce4775c7a5"
+        "canonical_bundle_path": "fixtures/bundles/234bcc45bb3a5906514651c0a9dfa9a75a1d6e174e8af4e49849909b86850828.json",
+        "canonical_bundle_sha256": "234bcc45bb3a5906514651c0a9dfa9a75a1d6e174e8af4e49849909b86850828"
       },
       "type_name": "moonspan_cdr_interfaces/action/MeasureSequence_Result",
       "values": {
@@ -476,7 +476,7 @@
       "expected": {
         "roundtrip": "semantic-equality"
       },
-      "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+      "generator_revision": "sha256:3e3f68923708e35ee8ea715f497bfbc838bfcf1212822c2807280b52beb8b1bd",
       "id": "H-FT-nested_sample",
       "platform": "linux/arm64",
       "rmw_identifier": "rmw_fastrtps_cpp",
@@ -485,7 +485,7 @@
       "schema_generation": 1,
       "schema_identity": {
         "scheme": "moonspan-schema-v1",
-        "value": "1ca65d257706c7f6fabd55d6779260e5e9301458b5baa1897c8c37106514fffc"
+        "value": "089d65e60b695ecaecde1fbcfcb7226d6514b038a9c31d9f3193e11c53562f22"
       },
       "semantic_value_sha256": "2d5d696ee4aa920439f4091ad06577a7d465c12fa68e08c2be55968307d415e9",
       "serialized": {
@@ -498,8 +498,8 @@
       },
       "support_row_id": "H-FT",
       "type_description": {
-        "canonical_bundle_path": "fixtures/bundles/1ca65d257706c7f6fabd55d6779260e5e9301458b5baa1897c8c37106514fffc.json",
-        "canonical_bundle_sha256": "1ca65d257706c7f6fabd55d6779260e5e9301458b5baa1897c8c37106514fffc"
+        "canonical_bundle_path": "fixtures/bundles/089d65e60b695ecaecde1fbcfcb7226d6514b038a9c31d9f3193e11c53562f22.json",
+        "canonical_bundle_sha256": "089d65e60b695ecaecde1fbcfcb7226d6514b038a9c31d9f3193e11c53562f22"
       },
       "type_name": "moonspan_cdr_interfaces/msg/NestedSample",
       "values": {
@@ -560,7 +560,7 @@
       "expected": {
         "roundtrip": "semantic-equality"
       },
-      "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+      "generator_revision": "sha256:3e3f68923708e35ee8ea715f497bfbc838bfcf1212822c2807280b52beb8b1bd",
       "id": "H-FT-point_cloud2",
       "platform": "linux/arm64",
       "rmw_identifier": "rmw_fastrtps_cpp",
@@ -569,7 +569,7 @@
       "schema_generation": 1,
       "schema_identity": {
         "scheme": "moonspan-schema-v1",
-        "value": "66e14dca3757eda5527148dcc22af4800d50b397175b43b342741059c00bc8d3"
+        "value": "e6d132e8044bbddcbcfe0f240f09780f8f8146bd8c13299e211d76634313dedf"
       },
       "semantic_value_sha256": "c3b7e18189085ceddf3e44408bcf71ad7ea4c1d37ed6326e7989102783b83dcc",
       "serialized": {
@@ -582,8 +582,8 @@
       },
       "support_row_id": "H-FT",
       "type_description": {
-        "canonical_bundle_path": "fixtures/bundles/66e14dca3757eda5527148dcc22af4800d50b397175b43b342741059c00bc8d3.json",
-        "canonical_bundle_sha256": "66e14dca3757eda5527148dcc22af4800d50b397175b43b342741059c00bc8d3"
+        "canonical_bundle_path": "fixtures/bundles/e6d132e8044bbddcbcfe0f240f09780f8f8146bd8c13299e211d76634313dedf.json",
+        "canonical_bundle_sha256": "e6d132e8044bbddcbcfe0f240f09780f8f8146bd8c13299e211d76634313dedf"
       },
       "type_name": "sensor_msgs/msg/PointCloud2",
       "values": {
@@ -690,7 +690,7 @@
       "expected": {
         "roundtrip": "semantic-equality"
       },
-      "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+      "generator_revision": "sha256:3e3f68923708e35ee8ea715f497bfbc838bfcf1212822c2807280b52beb8b1bd",
       "id": "H-FT-primitive_scalars",
       "platform": "linux/arm64",
       "rmw_identifier": "rmw_fastrtps_cpp",
@@ -699,7 +699,7 @@
       "schema_generation": 1,
       "schema_identity": {
         "scheme": "moonspan-schema-v1",
-        "value": "bbf6a73de830f7d68c869a721e6ba83d317f3a99ce8085974c72a02bd46d26e8"
+        "value": "3aba18ec187625b72e035716e63d060ece2e68946990bf04f77c93802eb669fd"
       },
       "semantic_value_sha256": "a9c402bc6a9c25a4c69352630a9804eab429d5b459cab1e241b3ba378fb3da0d",
       "serialized": {
@@ -712,8 +712,8 @@
       },
       "support_row_id": "H-FT",
       "type_description": {
-        "canonical_bundle_path": "fixtures/bundles/bbf6a73de830f7d68c869a721e6ba83d317f3a99ce8085974c72a02bd46d26e8.json",
-        "canonical_bundle_sha256": "bbf6a73de830f7d68c869a721e6ba83d317f3a99ce8085974c72a02bd46d26e8"
+        "canonical_bundle_path": "fixtures/bundles/3aba18ec187625b72e035716e63d060ece2e68946990bf04f77c93802eb669fd.json",
+        "canonical_bundle_sha256": "3aba18ec187625b72e035716e63d060ece2e68946990bf04f77c93802eb669fd"
       },
       "type_name": "moonspan_cdr_interfaces/msg/PrimitiveScalars",
       "values": {
@@ -746,7 +746,7 @@
       "expected": {
         "roundtrip": "semantic-equality"
       },
-      "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+      "generator_revision": "sha256:3e3f68923708e35ee8ea715f497bfbc838bfcf1212822c2807280b52beb8b1bd",
       "id": "H-FT-primitive_scalars_big_endian",
       "platform": "linux/arm64",
       "rmw_identifier": "rmw_fastrtps_cpp",
@@ -755,7 +755,7 @@
       "schema_generation": 1,
       "schema_identity": {
         "scheme": "moonspan-schema-v1",
-        "value": "bbf6a73de830f7d68c869a721e6ba83d317f3a99ce8085974c72a02bd46d26e8"
+        "value": "3aba18ec187625b72e035716e63d060ece2e68946990bf04f77c93802eb669fd"
       },
       "semantic_value_sha256": "a9c402bc6a9c25a4c69352630a9804eab429d5b459cab1e241b3ba378fb3da0d",
       "serialized": {
@@ -768,8 +768,8 @@
       },
       "support_row_id": "H-FT",
       "type_description": {
-        "canonical_bundle_path": "fixtures/bundles/bbf6a73de830f7d68c869a721e6ba83d317f3a99ce8085974c72a02bd46d26e8.json",
-        "canonical_bundle_sha256": "bbf6a73de830f7d68c869a721e6ba83d317f3a99ce8085974c72a02bd46d26e8"
+        "canonical_bundle_path": "fixtures/bundles/3aba18ec187625b72e035716e63d060ece2e68946990bf04f77c93802eb669fd.json",
+        "canonical_bundle_sha256": "3aba18ec187625b72e035716e63d060ece2e68946990bf04f77c93802eb669fd"
       },
       "type_name": "moonspan_cdr_interfaces/msg/PrimitiveScalars",
       "values": {
@@ -791,7 +791,7 @@
       }
     }
   ],
-  "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+  "generator_revision": "sha256:3e3f68923708e35ee8ea715f497bfbc838bfcf1212822c2807280b52beb8b1bd",
   "schema_version": 1,
   "support_row": {
     "id": "H-FT",
