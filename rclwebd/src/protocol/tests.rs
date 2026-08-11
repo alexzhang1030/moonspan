@@ -1,7 +1,12 @@
-//! Manifest-driven bootstrap fixture tests (valid + malformed).
+//! Manifest-driven bootstrap + frame fixture tests.
 
-use super::{BOOTSTRAP_PREFIX_LENGTH, BootstrapRecord, ProtocolError, parse_bootstrap};
+use super::{
+    BOOTSTRAP_PREFIX_LENGTH, BootstrapRecord, FRAME_HEADER_LENGTH, FRAME_PAYLOAD_MAX_BYTES,
+    FrameOptions, FramePayload, OPCODE_CONTROL_CBOR, OPCODE_MEDIA_CHUNK, OPCODE_ROS_SAMPLE,
+    ProtocolError, parse_bootstrap, parse_frame,
+};
 use serde_json::Value;
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -20,6 +25,112 @@ fn read_json(path: &Path) -> Value {
 fn load_bin(root: &Path, rel: &str) -> Vec<u8> {
     let path = root.join("protocol/testdata").join(rel);
     fs::read(&path).unwrap_or_else(|e| panic!("read {}: {e}", path.display()))
+}
+
+fn frame_options_from_context(ctx: &Value) -> FrameOptions {
+    let mut opts = FrameOptions::default();
+    if let Some(v) = ctx.get("selectedVersion").and_then(|x| x.as_u64()) {
+        opts.selected_version = v as u8;
+    }
+    if let Some(v) = ctx
+        .get("experimentalOpcodesEnabled")
+        .and_then(|x| x.as_bool())
+    {
+        opts.experimental_opcodes_enabled = v;
+    }
+    if let Some(arr) = ctx.get("availableClockIds").and_then(|x| x.as_array()) {
+        opts.available_clock_ids = arr
+            .iter()
+            .filter_map(|x| x.as_u64().map(|n| n as u8))
+            .collect::<BTreeSet<_>>();
+    }
+    opts
+}
+
+/// Parse a manifest integer that may be a JSON number or `{ "$type": "bigint", "value": "..." }`.
+fn parse_manifest_i64(v: &Value, label: &str) -> i64 {
+    if let Some(n) = v.as_i64() {
+        return n;
+    }
+    if let Some(n) = v.as_u64() {
+        return i64::try_from(n).unwrap_or_else(|_| panic!("{label}: u64 out of i64 range"));
+    }
+    if v.get("$type").and_then(|t| t.as_str()) == Some("bigint") {
+        let s = v["value"]
+            .as_str()
+            .unwrap_or_else(|| panic!("{label}: bigint value must be string"));
+        return s
+            .parse::<i64>()
+            .unwrap_or_else(|e| panic!("{label}: parse bigint {s}: {e}"));
+    }
+    panic!("{label}: expected number or bigint wrapper, got {v}");
+}
+
+fn parse_hex_pattern(hex: &str) -> Vec<u8> {
+    assert!(
+        hex.len().is_multiple_of(2) && !hex.is_empty(),
+        "pattern_hex must be nonempty even-length"
+    );
+    assert!(
+        hex.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f')),
+        "pattern_hex must be lowercase hex"
+    );
+    (0..hex.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
+        .collect()
+}
+
+/// Materialize one segment_recipe frame from a valid/boundary manifest entry.
+fn materialize_segment_recipe_frame(entry: &Value) -> (Vec<u8>, u8, u32, u64, u8, u8, u32) {
+    assert_eq!(entry["kind"], "frame");
+    assert_eq!(entry["representation"], "segment_recipe");
+    assert!(entry["path"].is_null(), "segment_recipe path must be null");
+
+    let source = &entry["source"];
+    assert_eq!(source["$type"], "frame");
+    let opcode = source["opcode"].as_u64().expect("opcode") as u8;
+    let channel_id = source["channelId"].as_u64().expect("channelId") as u32;
+    let sequence = source["sequence"].as_u64().expect("sequence");
+    let priority = source["priority"].as_u64().expect("priority") as u8;
+    let clock_id = source["clockId"].as_u64().expect("clockId") as u8;
+
+    let recipe = &source["payload"];
+    assert_eq!(recipe["$type"], "recipe");
+    assert_eq!(recipe["kind"], "pattern_fill");
+    let pattern_hex = recipe["pattern_hex"].as_str().expect("pattern_hex");
+    let pattern = parse_hex_pattern(pattern_hex);
+    let payload_len = recipe["length"].as_u64().expect("recipe length") as u32;
+    assert_eq!(
+        entry["payload_length"].as_u64().expect("payload_length") as u32,
+        payload_len
+    );
+    let byte_length = entry["byte_length"].as_u64().expect("byte_length") as usize;
+    assert_eq!(byte_length, FRAME_HEADER_LENGTH + payload_len as usize);
+
+    let mut bytes = vec![0u8; byte_length];
+    bytes[0] = 0; // selected version 0
+    bytes[1] = opcode;
+    bytes[4..8].copy_from_slice(&channel_id.to_be_bytes());
+    bytes[8..16].copy_from_slice(&sequence.to_be_bytes());
+    // source_time_ns 0 for clock NONE (and default when absent)
+    bytes[24..28].copy_from_slice(&payload_len.to_be_bytes());
+    // extension_len 0
+    bytes[30] = priority;
+    bytes[31] = clock_id;
+    let payload = &mut bytes[FRAME_HEADER_LENGTH..];
+    for (i, b) in payload.iter_mut().enumerate() {
+        *b = pattern[i % pattern.len()];
+    }
+    (
+        bytes,
+        opcode,
+        channel_id,
+        sequence,
+        priority,
+        clock_id,
+        payload_len,
+    )
 }
 
 #[test]
@@ -103,6 +214,162 @@ fn valid_bootstrap_fixtures_parse_key_fields() {
 }
 
 #[test]
+fn valid_frame_fixtures_parse_key_fields() {
+    let root = repo_root();
+    let manifest = read_json(&root.join("protocol/testdata/manifest.json"));
+    let fixtures = manifest["fixtures"].as_array().expect("fixtures array");
+
+    let mut seen = 0usize;
+    for entry in fixtures {
+        if entry["kind"].as_str() != Some("frame") {
+            continue;
+        }
+        if entry["representation"].as_str() != Some("binary") {
+            continue;
+        }
+        let id = entry["id"].as_str().unwrap();
+        let path = entry["path"].as_str().expect("binary frame path");
+        let bytes = load_bin(&root, path);
+        assert_eq!(
+            bytes.len(),
+            entry["byte_length"].as_u64().unwrap() as usize,
+            "{id} length"
+        );
+        let frame = parse_frame(&bytes, None).unwrap_or_else(|e| {
+            panic!("{id}: expected success, got {e:?}");
+        });
+        let source = &entry["source"];
+        let opcode = source["opcode"].as_u64().unwrap() as u8;
+        assert_eq!(frame.opcode, opcode, "{id} opcode");
+        assert_eq!(frame.version, 0, "{id} version");
+        if let Some(ch) = source.get("channelId").and_then(|x| x.as_u64()) {
+            assert_eq!(frame.channel_id, ch as u32, "{id} channel");
+        }
+        if let Some(seq) = source.get("sequence") {
+            if let Some(n) = seq.as_u64() {
+                assert_eq!(frame.sequence, n, "{id} sequence");
+            } else if seq.get("$type").and_then(|t| t.as_str()) == Some("bigint") {
+                let v = seq["value"].as_str().unwrap();
+                assert_eq!(frame.sequence, v.parse::<u64>().unwrap(), "{id} sequence");
+            }
+        }
+        if let Some(pri) = source.get("priority").and_then(|x| x.as_u64()) {
+            assert_eq!(frame.priority, pri as u8, "{id} priority");
+        }
+        if let Some(clk) = source.get("clockId").and_then(|x| x.as_u64()) {
+            assert_eq!(frame.clock_id, clk as u8, "{id} clock");
+        }
+        if let Some(flags) = source.get("flags").and_then(|x| x.as_u64()) {
+            assert_eq!(frame.flags, flags as u16, "{id} flags");
+        }
+        if let Some(st) = source.get("sourceTimeNs") {
+            let expected = parse_manifest_i64(st, &format!("{id} sourceTimeNs"));
+            assert_eq!(frame.source_time_ns, expected, "{id} sourceTimeNs");
+        }
+        match &frame.payload {
+            FramePayload::Control(msg) => {
+                assert_eq!(frame.opcode, OPCODE_CONTROL_CBOR, "{id}");
+                assert!(msg.kind >= 1 && msg.kind <= 15, "{id} control kind");
+                if id.contains("session-ready") {
+                    assert_eq!(msg.kind, 2, "{id} SessionReady kind");
+                }
+                if id.contains("schema-request") {
+                    assert_eq!(msg.kind, 5, "{id} SchemaRequest kind");
+                }
+            }
+            FramePayload::Application(p) => {
+                assert_eq!(p.len(), frame.payload_len as usize, "{id} payload len");
+                if id.contains("media-chunk") {
+                    assert_eq!(frame.opcode, OPCODE_MEDIA_CHUNK);
+                }
+                if id.contains("ros-sample") {
+                    assert_eq!(frame.opcode, OPCODE_ROS_SAMPLE);
+                }
+            }
+        }
+        if id.contains("service-request-trace") {
+            assert!(
+                frame.extensions.iter().any(|e| e.type_id == 1),
+                "{id} TRACE"
+            );
+            assert!(frame.extensions.iter().any(|e| e.type_id == 2), "{id} OPID");
+        }
+        seen += 1;
+    }
+    assert_eq!(
+        seen, 16,
+        "expected exactly 16 materialized valid frame bins"
+    );
+}
+
+#[test]
+fn valid_segment_recipe_64mib_frame_parses_with_borrowed_payload() {
+    let root = repo_root();
+    let manifest = read_json(&root.join("protocol/testdata/manifest.json"));
+    let fixtures = manifest["fixtures"].as_array().expect("fixtures array");
+    let recipes: Vec<&Value> = fixtures
+        .iter()
+        .filter(|f| f["representation"] == "segment_recipe")
+        .collect();
+    assert_eq!(
+        recipes.len(),
+        1,
+        "expected exactly one segment_recipe entry"
+    );
+    let entry = recipes[0];
+    assert_eq!(entry["id"], "frame-app-payload-64mib-recipe");
+
+    let (bytes, opcode, channel_id, sequence, priority, clock_id, payload_len) =
+        materialize_segment_recipe_frame(entry);
+    assert_eq!(opcode, OPCODE_ROS_SAMPLE);
+    assert_eq!(channel_id, 13);
+    assert_eq!(sequence, 0);
+    assert_eq!(priority, 2);
+    assert_eq!(clock_id, 0);
+    assert_eq!(payload_len, FRAME_PAYLOAD_MAX_BYTES);
+    assert_eq!(bytes.len(), FRAME_HEADER_LENGTH + payload_len as usize);
+
+    let frame = parse_frame(&bytes, None).expect("segment_recipe frame parses");
+    assert_eq!(frame.opcode, opcode);
+    assert_eq!(frame.channel_id, 13);
+    assert_eq!(frame.sequence, sequence);
+    assert_eq!(frame.priority, priority);
+    assert_eq!(frame.clock_id, clock_id);
+    assert_eq!(frame.payload_len, payload_len);
+    match frame.payload {
+        FramePayload::Application(p) => {
+            assert_eq!(p.len(), payload_len as usize);
+            assert_eq!(p.as_ptr(), bytes[FRAME_HEADER_LENGTH..].as_ptr());
+            // pattern_hex a55a from manifest
+            assert_eq!(p[0], 0xa5);
+            assert_eq!(p[1], 0x5a);
+            assert_eq!(p[p.len() - 2], 0xa5);
+            assert_eq!(p[p.len() - 1], 0x5a);
+        }
+        _ => panic!("expected application payload"),
+    }
+}
+
+#[test]
+fn corpus_totals_20_valid_and_55_malformed() {
+    let root = repo_root();
+    let valid = read_json(&root.join("protocol/testdata/manifest.json"));
+    let malformed = read_json(&root.join("protocol/testdata/malformed/manifest.json"));
+    let vf = valid["fixtures"].as_array().unwrap();
+    let mf = malformed["fixtures"].as_array().unwrap();
+    assert_eq!(vf.len(), 20, "valid fixtures total");
+    assert_eq!(mf.len(), 55, "malformed fixtures total");
+    let vb = vf.iter().filter(|f| f["kind"] == "bootstrap").count();
+    let vf_frames = vf.iter().filter(|f| f["kind"] == "frame").count();
+    let mb = mf.iter().filter(|f| f["kind"] == "bootstrap").count();
+    let mf_frames = mf.iter().filter(|f| f["kind"] == "frame").count();
+    assert_eq!(vb + vf_frames, 20);
+    assert_eq!(mb, 14);
+    assert_eq!(mf_frames, 41);
+    assert_eq!(mb + mf_frames, 55);
+}
+
+#[test]
 fn malformed_bootstrap_fixtures_match_expected_oracle() {
     let root = repo_root();
     let manifest = read_json(&root.join("protocol/testdata/malformed/manifest.json"));
@@ -156,6 +423,70 @@ fn malformed_bootstrap_fixtures_match_expected_oracle() {
 }
 
 #[test]
+fn malformed_frame_fixtures_match_expected_oracle() {
+    let root = repo_root();
+    let manifest = read_json(&root.join("protocol/testdata/malformed/manifest.json"));
+    let fixtures = manifest["fixtures"].as_array().expect("fixtures array");
+
+    let mut seen = 0usize;
+    for entry in fixtures {
+        if entry["kind"].as_str() != Some("frame") {
+            continue;
+        }
+        let path = entry["path"]
+            .as_str()
+            .unwrap_or_else(|| panic!("{}: missing path", entry["id"]));
+        let id = entry["id"].as_str().unwrap();
+        let bytes = load_bin(&root, path);
+        let expected = &entry["expected"];
+        let ctx = entry
+            .get("decoder_context")
+            .cloned()
+            .unwrap_or(Value::Object(Default::default()));
+        let opts = frame_options_from_context(&ctx);
+        let err = parse_frame(&bytes, Some(&opts)).expect_err(&format!("{id} should fail"));
+
+        assert_eq!(
+            err.code,
+            expected["registry_code"].as_u64().unwrap() as u32,
+            "{id} code"
+        );
+        assert_eq!(
+            err.name,
+            expected["registry_name"].as_str().unwrap(),
+            "{id} name"
+        );
+        assert_eq!(
+            err.reason,
+            expected["reason"].as_str().unwrap(),
+            "{id} reason got={} expected={}",
+            err.reason,
+            expected["reason"]
+        );
+        assert_eq!(
+            err.offset,
+            expected["offset"].as_u64().unwrap() as usize,
+            "{id} offset got={} expected={}",
+            err.offset,
+            expected["offset"]
+        );
+        assert_eq!(err.plane, expected["plane"].as_str().unwrap(), "{id} plane");
+        assert_eq!(
+            err.step,
+            expected["step"].as_u64().unwrap() as u8,
+            "{id} step got={} expected={}",
+            err.step,
+            expected["step"]
+        );
+        seen += 1;
+    }
+    assert_eq!(
+        seen, 41,
+        "expected exactly 41 executable malformed frame bins"
+    );
+}
+
+#[test]
 fn protocol_error_fields_are_agreement_ready() {
     let err = ProtocolError::malformed_bootstrap("bad_magic", 0, 2);
     assert_eq!(err.code, 1);
@@ -168,6 +499,10 @@ fn protocol_error_fields_are_agreement_ready() {
     let s = err.to_string();
     assert!(s.contains("malformed_bootstrap"));
     assert!(s.contains("bad_magic"));
+
+    let fe = ProtocolError::malformed_frame("truncated_header", 0, 1);
+    assert_eq!(fe.plane, "selected_frame");
+    assert_eq!(fe.code, 3);
 }
 
 #[test]
@@ -201,4 +536,10 @@ fn short_and_adversarial_inputs_return_stable_errors() {
     assert_eq!(err.step, 8);
     assert_eq!(err.reason, "cbor_profile");
     assert_eq!(err.offset, BOOTSTRAP_PREFIX_LENGTH);
+
+    // Frame short header → step 1.
+    let err = parse_frame(&[0u8; 31], None).unwrap_err();
+    assert_eq!(err.step, 1);
+    assert_eq!(err.reason, "truncated_header");
+    assert_eq!(err.plane, "selected_frame");
 }
