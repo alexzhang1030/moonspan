@@ -2,8 +2,8 @@
 /**
  * Qualification report v1 filesystem checker and CLI (M0-05a).
  *
- * Pure contract logic lives in evidence-contract.ts. This module owns schema
- * write/check, corpus closure, artifact integrity, and the thin CLI.
+ * Contract: evidence-contract.ts. Schema generation: evidence-schema.ts.
+ * This module owns schema write/check, corpus closure, artifact integrity, CLI.
  */
 import { createHash } from "node:crypto";
 import { lstat, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
@@ -16,10 +16,13 @@ import {
   VALID_DIR_REL,
   asciiCompare,
   resolveUnderRoot,
-  schemaCanonicalBytes,
   stableJsonPretty,
   validateReportDocument,
 } from "./evidence-contract.ts";
+import {
+  buildQualificationReportSchema,
+  schemaCanonicalBytes,
+} from "./evidence-schema.ts";
 
 export type EvidenceCheckResult = {
   ok: boolean;
@@ -30,7 +33,7 @@ export type EvidenceCheckResult = {
 
 export type Mode = "check" | "write";
 
-// Re-export the stable test-facing contract API.
+// Re-export the stable test-facing API.
 export {
   ARTIFACT_MAX_BYTES,
   ARTIFACT_ROLES,
@@ -41,22 +44,24 @@ export {
   LEVELS_REQUIRING_SUPPORT_ROW,
   MEDIA_TYPE_MAX_LENGTH,
   PATH_MAX_LENGTH,
+  PATH_RELATIVE_PATTERN,
   PLATFORMS,
   REPORT_ID,
   REPORT_MAX_BYTES,
+  SAFE_NUMBER_MAX,
+  SAFE_NUMBER_MIN,
   SCHEMA_MAX_BYTES,
   SCHEMA_REL,
   SCHEMA_VERSION,
   SUPPORT_ROWS,
   VALID_DIR_REL,
   asciiCompare,
-  buildQualificationReportSchema,
   isValidCalendarDate,
   resolveUnderRoot,
-  schemaCanonicalBytes,
   stableJsonPretty,
   validateReportDocument,
 } from "./evidence-contract.ts";
+export { buildQualificationReportSchema, schemaCanonicalBytes } from "./evidence-schema.ts";
 
 export function parseCliMode(args: string[]): { mode: Mode } | { error: string } {
   if (args.length === 0) return { mode: "check" };
@@ -200,28 +205,29 @@ async function readRegularFileBytes(
 
 export async function writeSchema(root: string): Promise<void> {
   const text = schemaCanonicalBytes();
-  const chain = await ensureRealPathChain(root, path.dirname(SCHEMA_REL), {
+  const parentRel = path.dirname(SCHEMA_REL);
+  const parentChain = await ensureRealPathChain(root, parentRel, {
     mustExist: true,
     expect: "directory",
   });
-  if (!chain.ok) throw new Error(`schema write: ${chain.error}`);
+  if (!parentChain.ok) throw new Error(`schema write: ${parentChain.error}`);
   const target = path.join(root, SCHEMA_REL);
-  // Ensure parent of schema file is real (schema dir already checked).
-  const leafChain = await ensureRealPathChain(root, SCHEMA_REL, {
-    mustExist: false,
-    expect: "file",
-  });
-  if (!leafChain.ok && !leafChain.error.includes("path lstat failed")) {
-    // If file exists and is symlink, reject.
-    if (leafChain.error.includes("symlink")) throw new Error(`schema write: ${leafChain.error}`);
-  }
   try {
     const st = await lstat(target);
     if (st.isSymbolicLink()) throw new Error("schema write: target is a symlink");
-  } catch {
-    // missing is fine
+    if (st.isDirectory()) throw new Error("schema write: target is a directory");
+    if (!st.isFile()) throw new Error("schema write: target is not a regular file");
+  } catch (error) {
+    const err = error as NodeJS.ErrnoException;
+    if (err?.code === "ENOENT") {
+      // creatable leaf
+    } else if (error instanceof Error && error.message.startsWith("schema write:")) {
+      throw error;
+    } else {
+      const msg = error instanceof Error ? error.message : String(error);
+      throw new Error(`schema write: target lstat failed: ${msg}`);
+    }
   }
-  await mkdir(path.dirname(target), { recursive: true });
   await writeFile(target, text, "utf8");
 }
 

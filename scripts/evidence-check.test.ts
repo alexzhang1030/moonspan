@@ -12,11 +12,15 @@ import {
   LEVELS_REQUIRING_SUPPORT_ROW,
   MEDIA_TYPE_MAX_LENGTH,
   PATH_MAX_LENGTH,
+  PATH_RELATIVE_PATTERN,
   REPORT_ID,
+  SAFE_NUMBER_MAX,
+  SAFE_NUMBER_MIN,
   SCHEMA_REL,
   SCHEMA_VERSION,
   SUPPORT_ROWS,
   asciiCompare,
+  buildQualificationReportSchema,
   checkEvidence,
   checkSchema,
   isValidCalendarDate,
@@ -307,6 +311,93 @@ describe("schema/runtime boundary parity", () => {
       ARTIFACT_MAX_BYTES,
     );
   });
+
+  test("generated schema encodes gate/level mapping and N1/N2 provenance", () => {
+    const schema = buildQualificationReportSchema() as {
+      allOf: Array<Record<string, unknown>>;
+      properties: {
+        artifacts: {
+          items: { properties: { path: { pattern: string } } };
+        };
+        review: {
+          properties: { decision_date: { format?: string; pattern?: string } };
+        };
+        invocation: {
+          properties: {
+            budgets: { additionalProperties: { anyOf: unknown[] } };
+          };
+        };
+        measurements: {
+          properties: {
+            queues: { additionalProperties: { anyOf: unknown[] } };
+            resources: { additionalProperties: { anyOf: unknown[] } };
+          };
+        };
+      };
+    };
+    expect(schema.allOf.length).toBeGreaterThanOrEqual(7);
+    const n1n2 = schema.allOf.find((clause) => {
+      const iff = clause.if as { properties?: { evidence_level?: { enum?: string[] } } };
+      return iff?.properties?.evidence_level?.enum?.includes("N1");
+    });
+    expect(n1n2).toBeDefined();
+    const then = n1n2!.then as {
+      required: string[];
+      properties: { provenance: { required: string[] } };
+    };
+    expect(then.required).toContain("provenance");
+    expect(then.properties.provenance.required).toContain("support_row_id");
+    const m0 = schema.allOf.find((clause) => {
+      const iff = clause.if as { properties?: { gate?: { const?: string } } };
+      return iff?.properties?.gate?.const === "M0";
+    });
+    expect(
+      ((m0!.then as { properties: { evidence_level: { enum: string[] } } }).properties
+        .evidence_level.enum),
+    ).toEqual(["foundation"]);
+    expect(schema.properties.artifacts.items.properties.path.pattern).toBe(
+      PATH_RELATIVE_PATTERN,
+    );
+    expect(schema.properties.review.properties.decision_date.format).toBe("date");
+    expect(schema.properties.review.properties.decision_date.pattern).toBe(
+      "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+    );
+    const budgetAnyOf = schema.properties.invocation.properties.budgets
+      .additionalProperties.anyOf as Array<Record<string, unknown>>;
+    expect(budgetAnyOf).toHaveLength(3);
+    const numberBranch = budgetAnyOf.find((b) => b.type === "number") as {
+      minimum: number;
+      maximum: number;
+    };
+    expect(numberBranch.minimum).toBe(SAFE_NUMBER_MIN);
+    expect(numberBranch.maximum).toBe(SAFE_NUMBER_MAX);
+    expect(
+      schema.properties.measurements.properties.queues.additionalProperties.anyOf,
+    ).toHaveLength(3);
+    expect(
+      schema.properties.measurements.properties.resources.additionalProperties.anyOf,
+    ).toHaveLength(3);
+  });
+
+  test("runtime rejects numbers outside shared safe bounds", () => {
+    const report = baseReport();
+    (report.invocation as Record<string, unknown>).budgets = {
+      timeout_seconds: SAFE_NUMBER_MAX + 1,
+    };
+    expect(validateReportDocument(report).some((d) => d.includes("safe bounds"))).toBe(true);
+    (report.invocation as Record<string, unknown>).budgets = {
+      timeout_seconds: SAFE_NUMBER_MIN - 1,
+    };
+    expect(validateReportDocument(report).some((d) => d.includes("safe bounds"))).toBe(true);
+  });
+
+  test("runtime rejects path pattern counterexamples", () => {
+    for (const bad of ["../escape.json", "a//b.json", "/abs.json", "a\\b.json", ".hidden/x"]) {
+      const report = baseReport();
+      (report.artifacts as Array<Record<string, unknown>>)[0]!.path = bad;
+      expect(validateReportDocument(report).some((d) => d.includes("path"))).toBe(true);
+    }
+  });
 });
 
 describe("schema write/check identity", () => {
@@ -364,6 +455,31 @@ describe("schema write/check identity", () => {
       await writeFile(path.join(temp, SCHEMA_REL), Buffer.from([0xff, 0xfe, 0xfd]));
       const diags = await checkSchema(temp);
       expect(diags.some((d) => d.includes("UTF-8"))).toBe(true);
+    } finally {
+      await rm(temp, { recursive: true, force: true });
+    }
+  });
+
+  test("writeSchema rejects existing symlink leaf with stable error", async () => {
+    const temp = await mkdtemp(path.join(tmpdir(), "moonspan-evidence-schema-symlink-"));
+    try {
+      await mkdir(path.join(temp, "evidence", "schema"), { recursive: true });
+      const external = path.join(temp, "outside.json");
+      await writeFile(external, "{}\n");
+      await symlink(external, path.join(temp, SCHEMA_REL));
+      await expect(writeSchema(temp)).rejects.toThrow(/symlink/);
+    } finally {
+      await rm(temp, { recursive: true, force: true });
+    }
+  });
+
+  test("writeSchema rejects existing directory leaf with stable error", async () => {
+    const temp = await mkdtemp(path.join(tmpdir(), "moonspan-evidence-schema-dir-"));
+    try {
+      await mkdir(path.join(temp, "evidence", "schema", "qualification-report-v1.json"), {
+        recursive: true,
+      });
+      await expect(writeSchema(temp)).rejects.toThrow(/directory/);
     } finally {
       await rm(temp, { recursive: true, force: true });
     }

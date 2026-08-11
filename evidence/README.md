@@ -6,11 +6,15 @@ Moonspan stores machine-readable qualification evidence under `evidence/`.
 
 | Path | Role |
 |---|---|
-| [`schema/qualification-report-v1.json`](./schema/qualification-report-v1.json) | Public JSON Schema 2020-12 generated from `scripts/evidence-contract.ts` |
-| [`testdata/valid/`](./testdata/valid/) | Committed valid report fixtures only (closed corpus) |
-| [`testdata/payloads/`](./testdata/payloads/) | Small payload files referenced by valid fixtures |
+| [`schema/qualification-report-v1.json`](./schema/qualification-report-v1.json) | Public JSON Schema 2020-12 generated from `scripts/evidence-schema.ts` |
+| [`testdata/valid/`](./testdata/valid/) | Closed valid report fixtures |
+| [`testdata/payloads/`](./testdata/payloads/) | Payload files referenced by valid fixtures |
 
-The Bun checker and the committed JSON Schema share one TypeScript contract source. Report JSON and referenced payloads are untrusted input.
+**Module split:** `scripts/evidence-contract.ts` holds constants and runtime document validation; `scripts/evidence-schema.ts` builds the public schema; `scripts/evidence-check.ts` owns filesystem I/O and the CLI.
+
+The public schema carries expressible structure and semantics (gate/level mapping, N1/N2 provenance, scalar anyOf bounds, path segment pattern, date format). The Bun checker adds canonical ordering, real calendar dates, path confinement, symlink rejection, closed corpus checks, and artifact integrity.
+
+Report JSON and referenced payloads are untrusted input.
 
 ### Required fields
 

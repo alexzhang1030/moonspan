@@ -1,8 +1,8 @@
 /**
  * Pure qualification report v1 contract (M0-05a).
  *
- * Single source of enums, bounds, JSON Schema 2020-12 generation, and document
- * validation. Filesystem I/O lives in evidence-check.ts.
+ * Enums, bounds, helpers, and runtime document validation.
+ * JSON Schema generation lives in evidence-schema.ts; filesystem I/O in evidence-check.ts.
  */
 import path from "node:path";
 
@@ -36,6 +36,12 @@ export const DOMAIN_ID_MAX = 232;
 export const DURATION_MAX_SECONDS = 2_592_000;
 export const SAMPLE_COUNT_MAX = 100_000_000;
 export const WARMUP_COUNT_MAX = 1_000_000;
+/** Shared finite scalar number bounds for budgets/queues/resources. */
+export const SAFE_NUMBER_MIN = -1e15;
+export const SAFE_NUMBER_MAX = 1e15;
+/** Relative path pattern matching resolveUnderRoot segment rules. */
+export const PATH_RELATIVE_PATTERN =
+  "^[A-Za-z0-9][A-Za-z0-9._-]*(?:/[A-Za-z0-9][A-Za-z0-9._-]*)*$";
 
 export const GATES = ["M0", "M1", "M2", "M3", "U0", "X0"] as const;
 export const EVIDENCE_LEVELS = [
@@ -215,6 +221,9 @@ export function resolveUnderRoot(
   if (!segments.every((part) => PATH_SEGMENT_RE.test(part))) {
     return { ok: false, error: `path segment rejected: ${rel}` };
   }
+  if (!new RegExp(PATH_RELATIVE_PATTERN).test(rel)) {
+    return { ok: false, error: `path pattern rejected: ${rel}` };
+  }
   const abs = path.resolve(root, rel);
   const rootResolved = path.resolve(root);
   if (abs !== rootResolved && !abs.startsWith(rootResolved + path.sep)) {
@@ -331,7 +340,7 @@ function validateScalarMap(
       continue;
     }
     if (opts.allowNumber && typeof entry === "number") {
-      if (!Number.isFinite(entry) || entry < -1e15 || entry > 1e15) {
+      if (!Number.isFinite(entry) || entry < SAFE_NUMBER_MIN || entry > SAFE_NUMBER_MAX) {
         push(diags, `${pathLabel}.${key}: number out of safe bounds`);
       }
       continue;
@@ -827,303 +836,6 @@ export function validateReportDocument(
   return diags;
 }
 
-/** Build the public JSON Schema 2020-12 document from contract constants. */
-export function buildQualificationReportSchema(): Record<string, unknown> {
-  const stringBounds = (min: number, max: number) => ({
-    type: "string",
-    minLength: min,
-    maxLength: max,
-  });
-  return {
-    $schema: "https://json-schema.org/draft/2020-12/schema",
-    $id: "https://moonspan.dev/schemas/qualification-report-v1.json",
-    title: "Moonspan qualification report v1",
-    description:
-      "Closed machine-readable qualification evidence contract for Moonspan gates. Generated from scripts/evidence-contract.ts; the Bun checker enforces the same constants.",
-    type: "object",
-    additionalProperties: false,
-    required: [
-      "schema_version",
-      "report_id",
-      "gate",
-      "evidence_level",
-      "identity",
-      "invocation",
-      "artifacts",
-      "measurements",
-      "review",
-    ],
-    properties: {
-      schema_version: { type: "integer", const: SCHEMA_VERSION },
-      report_id: { type: "string", const: REPORT_ID },
-      gate: { type: "string", enum: [...GATES] },
-      evidence_level: { type: "string", enum: [...EVIDENCE_LEVELS] },
-      identity: {
-        type: "object",
-        additionalProperties: false,
-        required: [...IDENTITY_KEYS],
-        properties: {
-          code_revision: { type: "string", pattern: GIT_SHA_RE.source },
-          fixture_manifests: {
-            type: "object",
-            minProperties: 1,
-            maxProperties: MAP_MAX_32,
-            propertyNames: {
-              type: "string",
-              minLength: 1,
-              maxLength: TEXT_64,
-              pattern: FIXTURE_CORPUS_ID_RE.source,
-            },
-            additionalProperties: {
-              type: "string",
-              pattern: SHA256_RE.source,
-            },
-          },
-          package_versions: {
-            type: "object",
-            minProperties: 1,
-            maxProperties: MAP_MAX_64,
-            propertyNames: {
-              type: "string",
-              minLength: 1,
-              maxLength: TEXT_128,
-              pattern: PACKAGE_NAME_RE.source,
-            },
-            additionalProperties: stringBounds(TEXT_1, TEXT_256),
-          },
-          image_digests: {
-            type: "object",
-            minProperties: 0,
-            maxProperties: MAP_MAX_32,
-            propertyNames: stringBounds(TEXT_1, TEXT_128),
-            additionalProperties: {
-              type: "string",
-              pattern: IMAGE_DIGEST_RE.source,
-            },
-          },
-          environment: {
-            type: "object",
-            additionalProperties: false,
-            required: ["environment_id", "platform", "toolchain"],
-            properties: {
-              environment_id: {
-                type: "string",
-                pattern: ENVIRONMENT_ID_RE.source,
-              },
-              platform: { type: "string", enum: [...PLATFORMS] },
-              toolchain: {
-                type: "object",
-                minProperties: 1,
-                maxProperties: 16,
-                propertyNames: stringBounds(TEXT_1, TEXT_64),
-                additionalProperties: stringBounds(TEXT_1, TEXT_128),
-              },
-              attributes: {
-                type: "object",
-                minProperties: 0,
-                maxProperties: MAP_MAX_32,
-                propertyNames: stringBounds(TEXT_1, TEXT_64),
-                additionalProperties: stringBounds(TEXT_1, TEXT_256),
-              },
-            },
-          },
-        },
-      },
-      provenance: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          support_row_id: { type: "string", enum: [...SUPPORT_ROWS] },
-          gateway_instance_id: stringBounds(TEXT_1, TEXT_128),
-          domain_ids: {
-            type: "array",
-            minItems: 1,
-            maxItems: ARRAY_MAX_64,
-            uniqueItems: true,
-            items: { type: "integer", minimum: 0, maximum: DOMAIN_ID_MAX },
-          },
-          adapter_profile: stringBounds(TEXT_1, TEXT_128),
-        },
-      },
-      invocation: {
-        type: "object",
-        additionalProperties: false,
-        required: [
-          "commands",
-          "workload",
-          "budgets",
-          "duration_seconds",
-          "sample_count",
-          "warmup_count",
-        ],
-        properties: {
-          commands: {
-            type: "array",
-            minItems: 1,
-            maxItems: ARRAY_MAX_64,
-            items: stringBounds(TEXT_1, TEXT_1024),
-          },
-          workload: stringBounds(TEXT_1, TEXT_4096),
-          budgets: {
-            type: "object",
-            minProperties: 1,
-            maxProperties: MAP_MAX_32,
-            propertyNames: stringBounds(TEXT_1, TEXT_64),
-            additionalProperties: {
-              type: ["string", "number", "boolean"],
-              maxLength: TEXT_256,
-            },
-          },
-          duration_seconds: {
-            type: "number",
-            minimum: 0,
-            maximum: DURATION_MAX_SECONDS,
-          },
-          sample_count: {
-            type: "integer",
-            minimum: 0,
-            maximum: SAMPLE_COUNT_MAX,
-          },
-          warmup_count: {
-            type: "integer",
-            minimum: 0,
-            maximum: WARMUP_COUNT_MAX,
-          },
-          variance: stringBounds(TEXT_1, TEXT_1024),
-        },
-      },
-      artifacts: {
-        type: "array",
-        minItems: 1,
-        maxItems: ARRAY_MAX_64,
-        items: {
-          type: "object",
-          additionalProperties: false,
-          required: [...ARTIFACT_KEYS],
-          properties: {
-            role: { type: "string", enum: [...ARTIFACT_ROLES] },
-            path: {
-              type: "string",
-              minLength: TEXT_1,
-              maxLength: PATH_MAX_LENGTH,
-              pattern: "^[A-Za-z0-9][A-Za-z0-9._/-]*$",
-            },
-            sha256: { type: "string", pattern: SHA256_RE.source },
-            byte_length: {
-              type: "integer",
-              minimum: 0,
-              maximum: ARTIFACT_MAX_BYTES,
-            },
-            media_type: {
-              type: "string",
-              minLength: 3,
-              maxLength: MEDIA_TYPE_MAX_LENGTH,
-              pattern: MEDIA_TYPE_RE.source,
-            },
-            retention_policy: stringBounds(TEXT_1, TEXT_128),
-          },
-        },
-      },
-      measurements: {
-        type: "object",
-        additionalProperties: false,
-        required: ["errors", "dispositions"],
-        properties: {
-          timestamps: {
-            type: "object",
-            maxProperties: MAP_MAX_32,
-            propertyNames: stringBounds(TEXT_1, TEXT_64),
-            additionalProperties: stringBounds(TEXT_1, TEXT_64),
-          },
-          queues: {
-            type: "object",
-            maxProperties: MAP_MAX_32,
-            propertyNames: stringBounds(TEXT_1, TEXT_64),
-            additionalProperties: {
-              type: ["number", "string", "boolean"],
-              maxLength: TEXT_256,
-            },
-          },
-          resources: {
-            type: "object",
-            maxProperties: MAP_MAX_32,
-            propertyNames: stringBounds(TEXT_1, TEXT_64),
-            additionalProperties: {
-              type: ["number", "string", "boolean"],
-              maxLength: TEXT_256,
-            },
-          },
-          errors: {
-            type: "array",
-            maxItems: ARRAY_MAX_256,
-            items: {
-              type: "object",
-              additionalProperties: false,
-              required: ["code", "message"],
-              properties: {
-                code: stringBounds(TEXT_1, TEXT_64),
-                message: stringBounds(TEXT_1, TEXT_1024),
-              },
-            },
-          },
-          dispositions: {
-            type: "array",
-            maxItems: ARRAY_MAX_256,
-            items: {
-              type: "object",
-              additionalProperties: false,
-              required: ["name", "count"],
-              properties: {
-                name: stringBounds(TEXT_1, TEXT_64),
-                count: {
-                  type: "integer",
-                  minimum: 0,
-                  maximum: SAMPLE_COUNT_MAX,
-                },
-              },
-            },
-          },
-        },
-      },
-      review: {
-        type: "object",
-        additionalProperties: false,
-        required: ["decision", "known_limits"],
-        properties: {
-          decision: { type: "string", enum: [...DECISIONS] },
-          reviewer: stringBounds(TEXT_1, TEXT_128),
-          decision_date: {
-            type: "string",
-            pattern: "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
-          },
-          known_limits: {
-            type: "array",
-            maxItems: ARRAY_MAX_64,
-            items: stringBounds(TEXT_1, TEXT_1024),
-          },
-        },
-        allOf: [
-          {
-            if: { properties: { decision: { const: "pending" } }, required: ["decision"] },
-            then: {
-              not: {
-                anyOf: [{ required: ["reviewer"] }, { required: ["decision_date"] }],
-              },
-            },
-            else: {
-              required: ["reviewer", "decision_date"],
-            },
-          },
-        ],
-      },
-    },
-  };
-}
-
 export function stableJsonPretty(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
-}
-
-export function schemaCanonicalBytes(): string {
-  return stableJsonPretty(buildQualificationReportSchema());
 }
