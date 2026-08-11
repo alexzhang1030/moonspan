@@ -132,3 +132,116 @@ test "unsigned assembly preserves high-bit u32 patterns" {
     Err(e) => abort(e.code)
   }
 }
+
+///|
+test "public semantic primitive codecs across package boundary" {
+  let limits = match @cdr.CdrLimits::new(128, 8, 128) {
+    Ok(l) => l
+    Err(e) => abort(e.code)
+  }
+  match @cdr.CdrWriter::new(@cdr.CdrEndian::little(), limits) {
+    Ok(w) => {
+      match require_write_bool(w, true) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      match require_write_i8(w, -128) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      match require_write_i16(w, -32768) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      match require_write_i32(w, -2147483648) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      match require_write_i64(w, -9223372036854775807L - 1L) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      let f32_bits = 0xc1480000U
+      let f64_bits = 0x40c81c9000000000UL
+      match require_write_f32(w, Float::reinterpret_from_uint(f32_bits)) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      match require_write_f64(w, UInt64::reinterpret_as_double(f64_bits)) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      match require_write_char8(w, b'A') {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      match require_write_char16(w, (0x6708).to_uint16()) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      match @cdr.CdrReader::open_default(w.to_bytes()[:]) {
+        Ok(r) => {
+          match require_read_bool(r) {
+            Ok(v) => assert_eq(v, true)
+            Err(e) => abort(e.code)
+          }
+          match require_read_i8(r) {
+            Ok(v) => assert_eq(v, -128)
+            Err(e) => abort(e.code)
+          }
+          match require_read_i16(r) {
+            Ok(v) => assert_eq(v, -32768)
+            Err(e) => abort(e.code)
+          }
+          match require_read_i32(r) {
+            Ok(v) => assert_eq(v, -2147483648)
+            Err(e) => abort(e.code)
+          }
+          match require_read_i64(r) {
+            Ok(v) => assert_eq(v, -9223372036854775807L - 1L)
+            Err(e) => abort(e.code)
+          }
+          match require_read_f32(r) {
+            Ok(v) => assert_eq(Float::reinterpret_as_uint(v), f32_bits)
+            Err(e) => abort(e.code)
+          }
+          match require_read_f64(r) {
+            Ok(v) => assert_eq(v.reinterpret_as_uint64(), f64_bits)
+            Err(e) => abort(e.code)
+          }
+          match require_read_char8(r) {
+            Ok(v) => assert_eq(v, b'A')
+            Err(e) => abort(e.code)
+          }
+          match require_read_char16(r) {
+            Ok(v) => assert_eq(v, (0x6708).to_uint16())
+            Err(e) => abort(e.code)
+          }
+        }
+        Err(e) => abort(e.code)
+      }
+    }
+    Err(e) => abort(e.code)
+  }
+}
+
+///|
+test "public invalid_boolean error fields across package boundary" {
+  let input = b"\x00\x01\x00\x00\x02"
+  match @cdr.CdrReader::open_default(input[:]) {
+    Ok(r) => {
+      assert_eq(r.position(), 4)
+      match require_read_bool(r) {
+        Ok(_) => abort("expected invalid_boolean")
+        Err(e) => {
+          assert_eq(e.code, @cdr.CODE_INVALID_BOOLEAN)
+          assert_eq(e.offset, 4)
+          assert_eq(e.needed, 1)
+          assert_eq(e.remaining, 1)
+        }
+      }
+      assert_eq(r.position(), 4)
+    }
+    Err(e) => abort(e.code)
+  }
+}

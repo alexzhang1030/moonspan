@@ -29,3 +29,132 @@ pub fn require_read_u64(
 ) -> Result[UInt64, @cdr.CdrError] {
   reader.read_u64()
 }
+
+///|
+pub fn require_read_bool(
+  reader : @cdr.CdrReader,
+) -> Result[Bool, @cdr.CdrError] {
+  reader.read_bool()
+}
+
+///|
+pub fn require_read_i8(reader : @cdr.CdrReader) -> Result[Int, @cdr.CdrError] {
+  reader.read_i8()
+}
+
+///|
+pub fn require_read_i16(reader : @cdr.CdrReader) -> Result[Int, @cdr.CdrError] {
+  reader.read_i16()
+}
+
+///|
+pub fn require_read_i32(reader : @cdr.CdrReader) -> Result[Int, @cdr.CdrError] {
+  reader.read_i32()
+}
+
+///|
+pub fn require_read_i64(
+  reader : @cdr.CdrReader,
+) -> Result[Int64, @cdr.CdrError] {
+  reader.read_i64()
+}
+
+///|
+pub fn require_read_f32(
+  reader : @cdr.CdrReader,
+) -> Result[Float, @cdr.CdrError] {
+  reader.read_f32()
+}
+
+///|
+pub fn require_read_f64(
+  reader : @cdr.CdrReader,
+) -> Result[Double, @cdr.CdrError] {
+  reader.read_f64()
+}
+
+///|
+pub fn require_read_char8(
+  reader : @cdr.CdrReader,
+) -> Result[Byte, @cdr.CdrError] {
+  reader.read_char8()
+}
+
+///|
+pub fn require_read_char16(
+  reader : @cdr.CdrReader,
+) -> Result[UInt16, @cdr.CdrError] {
+  reader.read_char16()
+}
+
+///|
+pub fn require_write_bool(
+  writer : @cdr.CdrWriter,
+  value : Bool,
+) -> Result[Unit, @cdr.CdrError] {
+  writer.write_bool(value)
+}
+
+///|
+pub fn require_write_i8(
+  writer : @cdr.CdrWriter,
+  value : Int,
+) -> Result[Unit, @cdr.CdrError] {
+  writer.write_i8(value)
+}
+
+///|
+pub fn require_write_i16(
+  writer : @cdr.CdrWriter,
+  value : Int,
+) -> Result[Unit, @cdr.CdrError] {
+  writer.write_i16(value)
+}
+
+///|
+pub fn require_write_i32(
+  writer : @cdr.CdrWriter,
+  value : Int,
+) -> Result[Unit, @cdr.CdrError] {
+  writer.write_i32(value)
+}
+
+///|
+pub fn require_write_i64(
+  writer : @cdr.CdrWriter,
+  value : Int64,
+) -> Result[Unit, @cdr.CdrError] {
+  writer.write_i64(value)
+}
+
+///|
+pub fn require_write_f32(
+  writer : @cdr.CdrWriter,
+  value : Float,
+) -> Result[Unit, @cdr.CdrError] {
+  writer.write_f32(value)
+}
+
+///|
+pub fn require_write_f64(
+  writer : @cdr.CdrWriter,
+  value : Double,
+) -> Result[Unit, @cdr.CdrError] {
+  writer.write_f64(value)
+}
+
+///|
+pub fn require_write_char8(
+  writer : @cdr.CdrWriter,
+  value : Byte,
+) -> Result[Unit, @cdr.CdrError] {
+  writer.write_char8(value)
+}
+
+///|
+pub fn require_write_char16(
+  writer : @cdr.CdrWriter,
+  value : UInt16,
+) -> Result[Unit, @cdr.CdrError] {
+  writer.write_char16(value)
+}

@@ -27,10 +27,10 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
   - [x] M1-01b Bounded stream reader/writer, encapsulation, endian, alignment, limits, and typed errors.
     - [x] M1-01b1 Bounded CDR1 reader (`rclmbt/cdr`, Wasm tests).
     - [x] M1-01b2 Bounded CDR1 writer (`rclmbt/cdr`, Wasm tests).
-  - [~] M1-01c Primitives, strings/wstrings, arrays, sequences, nested values.
+  - [~] M1-01c Primitives, strings/wstrings, arrays, sequences, nested values, borrowed BytesView fields.
     - [x] M1-01c1 Semantic CDR1 primitives (bool, signed ints, floats, Char8/Char16).
     - [ ] M1-01c2 Strings and ROS legacy wstring.
-    - [ ] M1-01c3 Arrays, sequences, nested-depth guards.
+    - [ ] M1-01c3 Arrays, sequences, nested-depth guards, borrowed BytesView fields.
   - [ ] M1-01d Prove the authoritative corpus, semantic agreement (CY exact vs FT/ZN four-byte zero tail slack), round trips, malformed input, and resource bounds.
 - [ ] M1-02 Implement generated types and the type registry.
 - [ ] M1-03 Establish the Wasm host ABI and executor poll loop.
