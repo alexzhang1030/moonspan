@@ -36,14 +36,6 @@ fn network_u16(hi : Byte, lo : Byte) -> Int {
 }
 
 ///|
-fn is_little(endian : CdrEndian) -> Bool {
-  match endian {
-    CdrEndian::Little => true
-    CdrEndian::Big => false
-  }
-}
-
-///|
 /// Open a CDR1 reader over `bytes` with validated limits.
 /// Always re-validates `limits` at this trust boundary so public field writes
 /// or package-internal literals cannot bypass `CdrLimits::new`.
@@ -134,21 +126,6 @@ pub fn CdrReader::little_endian(self : CdrReader) -> Bool {
 /// Active resource limits.
 pub fn CdrReader::limits(self : CdrReader) -> CdrLimits {
   self.limits
-}
-
-///|
-/// Padding bytes required so `((offset - BODY_ORIGIN) % align) == 0`.
-fn padding_for(offset : Int, align : Int) -> Int {
-  if align <= 1 {
-    return 0
-  }
-  let body_rel = offset - BODY_ORIGIN
-  let rem = body_rel % align
-  if rem == 0 {
-    0
-  } else {
-    align - rem
-  }
 }
 
 ///|

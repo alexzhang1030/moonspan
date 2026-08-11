@@ -128,12 +128,21 @@ CdrReader  ->  pull the same surface with bounds checks
 BytesView  ->  bounds-checked slice into parent storage the caller retains
 ```
 
-- Writers append into a bounded buffer and return a typed fault when growth would exceed the stream or allocation ceiling.
+- Writers append into a bounded owned buffer and return a typed fault when growth would exceed capacity.
 - Readers advance an internal cursor. Padding is computed from origin and alignment. When padding would pass the stream end the fault is `alignment_overflow`. When a field ends past available bytes the fault is `truncated`.
 - Public codecs are deterministic: the same logical value, the same CDR1 endianness, and the same writer limits produce the same bytes.
 - Large binary fields return a bounds-checked `BytesView` into parent storage. The parent buffer remains retained by the caller for the view’s lifetime. Host lease tracking and buffer release live in M1-03.
 
-MoonBit reader surface lands in M1-01b1 (`rclmbt/cdr`); writer in M1-01b2; semantic primitives, strings, collections, and ROS wstring in M1-01c. Raw integer bit patterns use width-exact MoonBit types: `Byte` / `UInt16` / `UInt` / `UInt64`. This document freezes the behavioral contract those signatures implement.
+### MoonBit surface (`rclmbt/cdr`)
+
+| Surface | Batch | Notes |
+|---|---|---|
+| `CdrReader` | M1-01b1 | Encapsulation parse, origin-4 alignment, zero-copy `read_bytes`, strict completion |
+| `CdrWriter` | M1-01b2 | Canonical header on construct, deterministic zero padding, owned `to_bytes` snapshots |
+| Raw integers | b1/b2 | Width-exact `Byte` / `UInt16` / `UInt` / `UInt64` |
+| Semantics | M1-01c | Primitives, strings, collections, ROS wstring |
+
+**Writer capacity:** `capacity = min(max_stream_bytes, max_temporary_allocation)`, counted over the **complete stream including the 4-byte header**. Construction emits the full canonical header immediately (`LE = 00 01 00 00`, `BE = 00 00 00 00`; options always `0x0000`). When temporary capacity is below 4, construction returns `bounds_exceeded` with `needed = 4` and `remaining =` temporary capacity. Each field preflights `pad + size` arithmetic and full capacity before mutating the buffer; faults leave position and bytes byte-identical. `to_bytes` returns an owned snapshot isolated from later writes.
 
 ## Typed error taxonomy (`cdr_mbt`)
 

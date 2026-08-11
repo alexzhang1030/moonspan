@@ -42,6 +42,16 @@ pub enum CdrEndian {
 }
 
 ///|
+pub fn CdrEndian::little() -> CdrEndian {
+  CdrEndian::Little
+}
+
+///|
+pub fn CdrEndian::big() -> CdrEndian {
+  CdrEndian::Big
+}
+
+///|
 /// Codec resource ceilings for one encode or decode.
 /// Defaults are absolute Phase 1 ceilings; construction validates ranges.
 pub struct CdrLimits {
@@ -68,8 +78,8 @@ pub fn CdrLimits::defaults() -> CdrLimits {
 
 ///|
 /// Validate absolute Phase 1 ranges. Shared by `CdrLimits::new`, reader `open`,
-/// and the future writer constructor (M1-01b2) so public struct literals cannot
-/// bypass factory checks at the trust boundary.
+/// and writer construction so public struct literals cannot bypass factory
+/// checks at the trust boundary.
 pub fn CdrLimits::validate(self : CdrLimits) -> Result[Unit, CdrError] {
   if self.max_stream_bytes < MIN_MAX_STREAM_BYTES ||
     self.max_stream_bytes > DEFAULT_MAX_STREAM_BYTES {

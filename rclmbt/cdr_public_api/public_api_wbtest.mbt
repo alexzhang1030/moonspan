@@ -59,3 +59,50 @@ test "public oversized open needed remaining convention across packages" {
     }
   }
 }
+
+///|
+test "public writer API and width-exact types across packages" {
+  let limits = match @cdr.CdrLimits::new(32, 8, 32) {
+    Ok(l) => l
+    Err(e) => abort(e.code)
+  }
+  match @cdr.CdrWriter::new(@cdr.CdrEndian::little(), limits) {
+    Ok(w) => {
+      assert_eq(w.representation(), @cdr.REPRESENTATION_CDR_LE)
+      assert_eq(w.options(), 0)
+      assert_eq(w.little_endian(), true)
+      assert_eq(w.position(), 4)
+      match w.write_u16((0xffff).to_uint16()) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      match w.write_u32(0xffffffffU) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      match w.write_u64(0xffffffffffffffffUL) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      let snap = w.to_bytes()
+      match @cdr.CdrReader::open_default(snap[:]) {
+        Ok(r) => {
+          match r.read_u16() {
+            Ok(v) => assert_eq(v, (0xffff).to_uint16())
+            Err(e) => abort(e.code)
+          }
+          match r.read_u32() {
+            Ok(v) => assert_eq(v, 0xffffffffU)
+            Err(e) => abort(e.code)
+          }
+          match r.read_u64() {
+            Ok(v) => assert_eq(v, 0xffffffffffffffffUL)
+            Err(e) => abort(e.code)
+          }
+        }
+        Err(e) => abort(e.code)
+      }
+    }
+    Err(e) => abort(e.code)
+  }
+}

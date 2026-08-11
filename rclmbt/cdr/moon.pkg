@@ -1,4 +1,8 @@
-// CDR core package (M1-01b1). Bounded CDR1 reader surface only.
-// Writer lands in M1-01b2. Production dependency surface uses core/prelude only.
+// CDR core package (M1-01b). Bounded CDR1 reader and writer surfaces.
+// Production dependency surface uses core/prelude and core buffer.
 
 supported_targets = "wasm"
+
+import {
+  "moonbitlang/core/buffer",
+}
