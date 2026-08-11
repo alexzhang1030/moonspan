@@ -144,6 +144,8 @@ BytesView  ->  bounds-checked slice into parent storage the caller retains
 
 **Writer capacity:** `capacity = min(max_stream_bytes, max_temporary_allocation)`, counted over the **complete stream including the 4-byte header**. Construction emits the full canonical header immediately (`LE = 00 01 00 00`, `BE = 00 00 00 00`; options always `0x0000`). When temporary capacity is below 4, construction returns `bounds_exceeded` with `needed = 4` and `remaining =` temporary capacity. Each field preflights `pad + size` arithmetic and full capacity before mutating the buffer; faults leave position and bytes byte-identical. `to_bytes` returns an owned snapshot isolated from later writes.
 
+**Writer allocation:** the owned core `Buffer` starts with `size_hint = HEADER_LENGTH` (`WRITER_INITIAL_SIZE_HINT`). Buffer growth is lazy under the logical `capacity` hard ceiling; defaults do **not** allocate the full 64 MiB Phase 1 stream cap at construction. Position and remaining capacity derive from `buf.length()` as the single stream-length source. `CdrWriter` fields are package-private; external packages construct only through `CdrWriter::new` / `new_default`.
+
 ## Typed error taxonomy (`cdr_mbt`)
 
 Implementable codec faults with stable codes:

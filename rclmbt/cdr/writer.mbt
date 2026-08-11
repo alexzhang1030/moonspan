@@ -3,17 +3,28 @@
 /// Canonical encapsulation, deterministic zero padding, width-exact raw
 /// integers, and capacity min(max_stream_bytes, max_temporary_allocation)
 /// over the complete stream including the 4-byte header.
+///
+/// Initial `Buffer` allocation uses `HEADER_LENGTH` as a small lazy size_hint.
+/// Core Buffer grows on demand; the logical hard ceiling remains `capacity`
+/// (Phase 1 absolute backing cap still 64 MiB via limits). Position is always
+/// `buf.length()` — the single mutable stream-length source.
+
+///|
+/// Initial Buffer size_hint: header only. Growth is lazy under the logical ceiling.
+pub const WRITER_INITIAL_SIZE_HINT : Int = HEADER_LENGTH
 
 ///|
 /// Mutable CDR1 writer into an owned buffer.
+/// Package-private fields: external packages construct only via `new` /
+/// `new_default` (MoonBit forbids foreign package struct literals for
+/// non-exported field construction; factory validation is the sole entry).
 pub struct CdrWriter {
-  buf : Buffer
-  mut offset : Int
-  capacity : Int
-  limits : CdrLimits
-  endian : CdrEndian
-  representation : Int
-  options : Int
+  priv buf : Buffer
+  priv capacity : Int
+  priv limits : CdrLimits
+  priv endian : CdrEndian
+  priv representation : Int
+  priv options : Int
 }
 
 ///|
@@ -22,6 +33,9 @@ pub struct CdrWriter {
 /// Capacity is `min(max_stream_bytes, max_temporary_allocation)` including
 /// the header. Temporary capacity below 4 bytes yields `bounds_exceeded`
 /// with `needed = 4` and `remaining =` temporary capacity.
+///
+/// Allocation: `Buffer(size_hint=HEADER_LENGTH)` — small initial backing;
+/// writes grow lazily until the logical `capacity` ceiling.
 pub fn CdrWriter::new(
   endian : CdrEndian,
   limits : CdrLimits,
@@ -42,7 +56,7 @@ pub fn CdrWriter::new(
   }
   let representation = representation_of(endian)
   let options = 0
-  let buf = Buffer(size_hint=capacity)
+  let buf = Buffer(size_hint=WRITER_INITIAL_SIZE_HINT)
   // Canonical header: representation network-order, options 0x0000.
   if is_little(endian) {
     buf.write_byte(b'\x00')
@@ -53,15 +67,7 @@ pub fn CdrWriter::new(
   }
   buf.write_byte(b'\x00')
   buf.write_byte(b'\x00')
-  Ok({
-    buf,
-    offset: HEADER_LENGTH,
-    capacity,
-    limits,
-    endian,
-    representation,
-    options,
-  })
+  Ok({ buf, capacity, limits, endian, representation, options })
 }
 
 ///|
@@ -73,15 +79,21 @@ pub fn CdrWriter::new_default(
 }
 
 ///|
-/// Absolute write cursor (equals the current stream length).
+/// Absolute write cursor — always `buf.length()` after a successful mutation.
 pub fn CdrWriter::position(self : CdrWriter) -> Int {
-  self.offset
+  self.buf.length()
 }
 
 ///|
-/// Bytes remaining until the capacity ceiling.
+/// Bytes remaining until the logical capacity ceiling.
 pub fn CdrWriter::remaining_capacity(self : CdrWriter) -> Int {
-  self.capacity - self.offset
+  self.capacity - self.buf.length()
+}
+
+///|
+/// Logical hard ceiling (bytes), including the header.
+pub fn CdrWriter::capacity(self : CdrWriter) -> Int {
+  self.capacity
 }
 
 ///|
@@ -115,20 +127,21 @@ pub fn CdrWriter::limits(self : CdrWriter) -> CdrLimits {
 }
 
 ///|
-/// Owned snapshot of the stream so far. Later writes leave prior snapshots unchanged.
+/// Owned snapshot of the stream so far (length ≤ capacity). Later writes leave
+/// prior snapshots unchanged.
 pub fn CdrWriter::to_bytes(self : CdrWriter) -> Bytes {
   self.buf.to_bytes()
 }
 
 ///|
 /// Preflight pad + size against capacity without mutating the buffer.
-/// On success, writes deterministic zero padding and advances the cursor.
+/// On success, writes deterministic zero padding. Position is `buf.length()`.
 fn CdrWriter::align_and_reserve(
   self : CdrWriter,
   align : Int,
   size : Int,
 ) -> Result[Unit, CdrError] {
-  let field_start = self.offset
+  let field_start = self.buf.length()
   if size < 0 {
     return Err(
       CdrError::length_overflow(field_start, 0, self.remaining_capacity()),
@@ -163,7 +176,6 @@ fn CdrWriter::align_and_reserve(
         self.buf.write_byte(b'\x00')
         i = i + 1
       }
-      self.offset = field_start + pad
       Ok(())
     }
   }
@@ -180,7 +192,6 @@ pub fn CdrWriter::write_u8(
     Err(e) => return Err(e)
   }
   self.buf.write_byte(value)
-  self.offset = self.offset + 1
   Ok(())
 }
 
@@ -199,7 +210,6 @@ pub fn CdrWriter::write_u16(
   } else {
     self.buf.write_uint16_be(value)
   }
-  self.offset = self.offset + 2
   Ok(())
 }
 
@@ -218,7 +228,6 @@ pub fn CdrWriter::write_u32(
   } else {
     self.buf.write_uint_be(value)
   }
-  self.offset = self.offset + 4
   Ok(())
 }
 
@@ -237,12 +246,11 @@ pub fn CdrWriter::write_u64(
   } else {
     self.buf.write_uint64_be(value)
   }
-  self.offset = self.offset + 8
   Ok(())
 }
 
 ///|
-/// Copy `n` bytes from `data` into the stream (alignment width 1).
+/// Copy bytes from `data` into the stream (alignment width 1).
 pub fn CdrWriter::write_bytes(
   self : CdrWriter,
   data : BytesView,
@@ -253,6 +261,5 @@ pub fn CdrWriter::write_bytes(
     Err(e) => return Err(e)
   }
   self.buf.write_bytes(data)
-  self.offset = self.offset + n
   Ok(())
 }

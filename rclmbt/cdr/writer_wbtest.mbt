@@ -38,14 +38,38 @@ fn expect_bytes_eq(got : Bytes, expected : Array[Byte]) -> Unit raise {
 test "canonical LE and BE headers with zero options" {
   let le = writer_ok(CdrEndian::Little, CdrLimits::defaults())
   assert_eq(le.position(), 4)
+  assert_eq(le.capacity(), DEFAULT_MAX_STREAM_BYTES)
+  assert_eq(le.remaining_capacity(), DEFAULT_MAX_STREAM_BYTES - 4)
+  assert_eq(WRITER_INITIAL_SIZE_HINT, HEADER_LENGTH)
   assert_eq(le.representation(), REPRESENTATION_CDR_LE)
   assert_eq(le.options(), 0)
   assert_eq(le.little_endian(), true)
   expect_bytes_eq(le.to_bytes(), [b'\x00', b'\x01', b'\x00', b'\x00'])
+  // Logical stream length is header-sized after construct (lazy Buffer growth).
+  assert_eq(le.to_bytes().length(), HEADER_LENGTH)
   let be = writer_ok(CdrEndian::Big, CdrLimits::defaults())
   assert_eq(be.representation(), REPRESENTATION_CDR_BE)
   assert_eq(be.options(), 0)
   expect_bytes_eq(be.to_bytes(), [b'\x00', b'\x00', b'\x00', b'\x00'])
+}
+
+///|
+test "position tracks buf length as single state source" {
+  let w = writer_ok(CdrEndian::Little, wlimits_ok(32, 8, 32))
+  assert_eq(w.position(), 4)
+  match w.write_u8(b'\x11') {
+    Ok(_) => ()
+    Err(e) => abort(e.code)
+  }
+  assert_eq(w.position(), 5)
+  assert_eq(w.to_bytes().length(), 5)
+  match w.write_u16((0x2233).to_uint16()) {
+    Ok(_) => ()
+    Err(e) => abort(e.code)
+  }
+  // pad 1 + 2 payload after offset 5
+  assert_eq(w.position(), 8)
+  assert_eq(w.to_bytes().length(), 8)
 }
 
 ///|

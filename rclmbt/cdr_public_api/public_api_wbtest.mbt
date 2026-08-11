@@ -66,12 +66,18 @@ test "public writer API and width-exact types across packages" {
     Ok(l) => l
     Err(e) => abort(e.code)
   }
+  // External packages construct only via factory methods (fields are private).
   match @cdr.CdrWriter::new(@cdr.CdrEndian::little(), limits) {
     Ok(w) => {
       assert_eq(w.representation(), @cdr.REPRESENTATION_CDR_LE)
       assert_eq(w.options(), 0)
       assert_eq(w.little_endian(), true)
       assert_eq(w.position(), 4)
+      assert_eq(w.capacity(), 32)
+      assert_eq(w.remaining_capacity(), 28)
+      // Snapshot length equals logical stream length (header only at start).
+      assert_eq(w.to_bytes().length(), @cdr.HEADER_LENGTH)
+      assert_eq(@cdr.WRITER_INITIAL_SIZE_HINT, @cdr.HEADER_LENGTH)
       match w.write_u16((0xffff).to_uint16()) {
         Ok(_) => ()
         Err(e) => abort(e.code)
