@@ -23,12 +23,12 @@ Corpus encoding identity is `CDR1` in [`conformance/cdr/manifest.json`](../../co
 Frozen framing for top-level sample streams (DDS-XTypes 1.3 Clause **7.4.1** PLAIN_CDR / encoding version 1, Clause **7.4.3** XCDR stream model, **Table 60** RTPS encapsulation identifier):
 
 1. **Encapsulation header (absolute offsets 0–3)**
-   - Bytes 0–1: representation identifier (`ENC_HEADER` / RTPS encapsulation identifier).
-   - Bytes 2–3: options field, captured as `UInt16` metadata.
+   - Bytes 0–1: representation identifier (`ENC_HEADER` / RTPS encapsulation identifier), interpreted as network-order `UInt16`: `(byte0 << 8) | byte1`.
+   - Bytes 2–3: options field, captured as network-order `UInt16` metadata: `(byte2 << 8) | byte3`.
    - Accepted representation identifiers for M1:
      - `0x0001` (`CDR_LE`) — CDR1 little endian
      - `0x0000` (`CDR_BE`) — CDR1 big endian
-   - **Options handling (M1 freeze):** the decoder accepts the full two-byte options value and stores it as metadata. Field alignment and body layout ignore options contents. The canonical writer emits options `0x0000`.
+   - **Options handling (M1 freeze):** the decoder accepts every two-byte options value and stores that network-order `UInt16`. Field alignment and body layout ignore options contents. The canonical writer emits options `0x0000`.
 
 2. **Body alignment origin**
    The codec body origin is **absolute byte offset 4**, immediately after the identifier and options. All subsequent alignment uses:
@@ -133,7 +133,7 @@ BytesView  ->  bounds-checked slice into parent storage the caller retains
 - Public codecs are deterministic: the same logical value, the same CDR1 endianness, and the same writer limits produce the same bytes.
 - Large binary fields return a bounds-checked `BytesView` into parent storage. The parent buffer remains retained by the caller for the view’s lifetime. Host lease tracking and buffer release live in M1-03.
 
-Exact MoonBit signatures land in M1-01b and M1-01c. This document freezes the behavioral contract those signatures implement.
+MoonBit reader surface lands in M1-01b1 (`rclmbt/cdr`); writer in M1-01b2; semantic primitives, strings, collections, and ROS wstring in M1-01c. This document freezes the behavioral contract those signatures implement.
 
 ## Typed error taxonomy (`cdr_mbt`)
 
@@ -161,8 +161,10 @@ Implementable codec faults with stable codes:
 |---|---|---|
 | Maximum stream bytes (one encode or decode) | **67 108 864** (64 MiB) | Matches the R2WP absolute frame payload ceiling (`frame_payload_max_bytes`) |
 | Field and type bounds (string max, sequence max, …) | Generated-schema inputs | Supplied by M1-02 type metadata for each interface |
-| Maximum nesting depth | **M1-01b decision** | Finite positive integer recorded as an M1-01b acceptance input with rationale in that batch |
-| Maximum temporary allocation per codec operation | **M1-01b decision** | Finite budget recorded as an M1-01b acceptance input; must stay at or below the stream ceiling |
+| Maximum nesting depth | **64** | Finite recursion bound with headroom for generated ROS schemas (M1-01b) |
+| Maximum temporary allocation per codec operation | **67 108 864** (64 MiB) | Matches the stream / R2WP payload ceiling (M1-01b) |
+
+Rationale: stream and temporary ceilings share the R2WP payload ceiling so one sample cannot force larger codec buffers than the wire absolute max; depth 64 bounds nested decode under a fixed stack budget while covering typical ROS interface nesting.
 
 Crossing a limit returns a typed fault from the taxonomy above. On failed encode, caller-owned output buffers remain unchanged. Where the API documents atomic field reads, a failed field leaves the reader cursor at the start of that field.
 

@@ -116,7 +116,9 @@ M0 exit requires accepted decisions, clean-checkout root commands, reproducible 
 |---|---|---|---|
 | M1-01 | Active | Implement the MoonBit CDR core and bounded views | M0-02, M0-04 |
 | M1-01a | Complete | Freeze the CDR core contract and conformance plan | M0-04 |
-| M1-01b | Queued | Bounded stream reader/writer, encapsulation, endian, alignment, limits, typed errors | M1-01a |
+| M1-01b | Active | Bounded stream reader/writer, encapsulation, endian, alignment, limits, typed errors | M1-01a |
+| M1-01b1 | Complete | Bounded CDR1 reader (header, options, origin-4 alignment, raw reads, limits, strict completion) | M1-01a |
+| M1-01b2 | Queued | Bounded CDR1 writer (deterministic zero padding, options `0x0000`, matching limits) | M1-01b1 |
 | M1-01c | Queued | Primitives, strings/wstrings, arrays, sequences, nested values, borrowed BytesView fields | M1-01b |
 | M1-01d | Queued | Authoritative corpus proof: semantic agreement, round trips, malformed input, resource bounds | M1-01c, M0-04 |
 | M1-02 | Queued | Generate types and build the schema-identity registry | M0-04, M1-01 |
@@ -138,14 +140,17 @@ M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both 
 | ID | State | Scope |
 |---|---|---|
 | M1-01a | Complete | Documentation and plan freeze: CDR1 little and big endian target; body origin absolute offset 4; ROS 2 legacy wstring profile (count + count×4; four-byte zero tail slack policy); XCDR2 stream foundations as follow-on; semantic cross-row agreement; 4-byte encapsulation framing; deterministic zero-fill encoder padding; official sources |
-| M1-01b | Queued | Bounded stream reader/writer, encapsulation, options metadata, endian, alignment, limits, typed errors |
+| M1-01b | Active | Bounded stream reader/writer split into b1 reader and b2 writer |
+| M1-01b1 | Complete | Bounded CDR1 reader in `rclmbt/cdr`: encapsulation, network-order options `UInt16`, origin-4 alignment, raw u8/u16/u32/u64, borrowed `BytesView`, frozen limits, strict completion |
+| M1-01b2 | Queued | Bounded CDR1 writer: deterministic zero padding, options `0x0000`, matching limits and error taxonomy |
 | M1-01c | Queued | Primitives, strings/wstrings (legacy ROS profile, `invalid_wstring_scalar` boundary), arrays, sequences, nested values, borrowed `BytesView` fields |
 | M1-01d | Queued | Corpus-driven proof: CY exact vs FT/ZN four-byte zero tail slack wstring semantic agreement, round trips, malformed input, resource bounds |
 
 **Acceptance criteria (M1-01 overall):**
 
 - [x] Authoritative contract at `docs/runtime/cdr.md` routed from docs and PCR maps (M1-01a), including body origin at absolute offset 4, ROS 2 legacy wstring profile, exact canonical encode (zero top-level tail slack), and narrow corpus completion for four-byte zero tail slack.
-- [ ] Reader/writer, encapsulation, options as `UInt16` metadata, endian, alignment from origin 4, limits, and typed errors (M1-01b).
+- [x] Bounded CDR1 reader with encapsulation, options metadata, endian raw reads, origin-4 alignment, limits (stream/temp 67 108 864, depth 64), and structured `CdrError` (M1-01b1).
+- [ ] Bounded CDR1 writer with deterministic zero padding and options `0x0000` (M1-01b2).
 - [ ] Primitive and container codecs with borrowed views; ROS `wstring` core decode of exactly `count * 4`; scalar-boundary tests for `invalid_wstring_scalar` (M1-01c).
 - [ ] Corpus agreement: exact CY fixtures and FT/ZN four-byte zero tail slack fixtures normalize to one semantic value; strict completion reports `trailing_data` on four-byte zero tail slack samples; adversarial resource cases (M1-01d).
 

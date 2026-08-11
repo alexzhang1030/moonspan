@@ -1,0 +1,4 @@
+// CDR core package (M1-01b). Bounded CDR1 reader/writer surface.
+// Production dependency surface uses core/prelude only.
+
+supported_targets = "wasm"

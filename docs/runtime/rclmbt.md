@@ -18,7 +18,7 @@
 |---|---|
 | `rclmbt_core` | Runtime state, executor, clocks, and logging |
 | `rmw_web_mbt` | Graph, data, operations, QoS, and liveliness |
-| `cdr_mbt` | CDR codecs, alignment, endian handling, and bounded views |
+| `cdr_mbt` (`rclmbt/cdr`) | CDR codecs, alignment, endian handling, and bounded views |
 | `rosidl_mbt_runtime` | ROS primitive and container types |
 | `rosidl_generator_mbt` | Generated MoonBit and TypeScript bindings |
 | `type_registry_mbt` | Schema cache and dynamic field plans |
@@ -64,7 +64,7 @@ The runtime receives normalized schema records from the gateway and remains inde
 
 ## CDR and buffers
 
-`cdr_mbt` implements the [CDR core contract](./cdr.md). M1 targets CDR1 for the authoritative ROS corpus in little and big endian. Body alignment origin is absolute offset 4. ROS `wstring` follows the legacy wire profile (`UInt32` count then `count * 4` payload; core decode exact; canonical encode with zero top-level tail slack; corpus completion may accept four-byte zero tail slack after a terminal wstring). XCDR2 stream foundations remain a follow-on surface for later schema work. The codec returns typed faults for encapsulation, unsupported representation, truncation, bounds, length overflow, alignment overflow, and string encoding.
+`cdr_mbt` (package `rclmbt/cdr`) implements the [CDR core contract](./cdr.md). M1-01b1 provides the bounded CDR1 reader (encapsulation, options as network-order `UInt16`, origin-4 alignment, raw integer patterns, borrowed `BytesView`, limits, strict completion). M1 targets CDR1 for the authoritative ROS corpus in little and big endian. ROS `wstring` follows the legacy wire profile (`UInt32` count then `count * 4` payload; core decode exact; canonical encode with zero top-level tail slack; corpus completion may accept four-byte zero tail slack after a terminal wstring). XCDR2 stream foundations remain a follow-on surface for later schema work. The codec returns structured `CdrError` faults for encapsulation, unsupported representation, truncation, bounds, length overflow, alignment overflow, and string encoding.
 
 Large fields return bounds-checked views into parent storage that the caller retains. Host buffer leases, release, and transferred-buffer lifecycle belong to the Wasm host poll ABI (M1-03). Applications that keep payload data past host release copy or extend the host lease through the host API. Shared rings and transferable buffers implement the same host event lifecycle and expose their costs through telemetry.
 
