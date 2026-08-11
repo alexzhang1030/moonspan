@@ -119,15 +119,15 @@ M0 exit requires accepted decisions, clean-checkout root commands, reproducible 
 | M1-01b | Complete | Bounded stream reader/writer, encapsulation, endian, alignment, limits, typed errors | M1-01a |
 | M1-01b1 | Complete | Bounded CDR1 reader (header, options, origin-4 alignment, raw reads, limits, strict completion) | M1-01a |
 | M1-01b2 | Complete | Bounded CDR1 writer (deterministic zero padding, options `0x0000`, matching limits) | M1-01b1 |
-| M1-01c | Active | Primitives, strings/wstrings, arrays, sequences, nested values, borrowed BytesView fields | M1-01b |
+| M1-01c | Complete | Primitives, strings/wstrings, arrays, sequences, nested values, borrowed BytesView fields | M1-01b |
 | M1-01c1 | Complete | Semantic CDR1 primitive codecs (bool, signed ints, floats, Char8/Char16) | M1-01b |
 | M1-01c2 | Complete | Strings and ROS legacy wstring | M1-01c1 |
 | M1-01c2a | Complete | CDR1 UTF-8 Char8 string (`read_string` / `write_string`, optional payload `max_bytes`) | M1-01c1 |
 | M1-01c2b | Complete | ROS legacy wstring and corpus-tail completion | M1-01c2a |
-| M1-01c3 | Active | Arrays, sequences, nested-depth guards, borrowed BytesView fields | M1-01c2 |
+| M1-01c3 | Complete | Arrays, sequences, nested-depth guards, borrowed BytesView fields | M1-01c2 |
 | M1-01c3a | Complete | Container codec contract: fixed arrays, sequences, nesting tokens | M1-01c2 |
-| M1-01c3b | Queued | Implement arrays, sequences, nesting, borrowed byte sequences in `rclmbt/cdr` | M1-01c3a |
-| M1-01d | Queued | Authoritative corpus proof: semantic agreement, round trips, malformed input, resource bounds | M1-01c, M0-04 |
+| M1-01c3b | Complete | Implement arrays, sequences, nesting, borrowed byte sequences in `rclmbt/cdr` | M1-01c3a |
+| M1-01d | Active | Authoritative corpus proof: semantic agreement, round trips, malformed input, resource bounds | M1-01c, M0-04 |
 | M1-02 | Queued | Generate types and build the schema-identity registry | M0-04, M1-01 |
 | M1-03 | Queued | Establish the Wasm host ABI and executor poll loop | M0-02, M0-03 |
 | M1-04 | Queued | Implement the serialized ROS C ABI | M0-02, M0-04 |
@@ -150,15 +150,15 @@ M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both 
 | M1-01b | Complete | Bounded stream reader/writer split into b1 reader and b2 writer |
 | M1-01b1 | Complete | Bounded CDR1 reader in `rclmbt/cdr`: encapsulation, network-order options `UInt16`, origin-4 alignment, width-exact raw reads, borrowed `BytesView`, frozen limits, strict completion |
 | M1-01b2 | Complete | Bounded CDR1 writer: canonical header, capacity min(stream,temp), deterministic zero padding, options `0x0000`, owned `to_bytes` snapshots |
-| M1-01c | Active | Primitives, strings/wstrings, arrays, sequences, nested values, borrowed `BytesView` fields |
+| M1-01c | Complete | Primitives, strings/wstrings, arrays, sequences, nested values, borrowed `BytesView` fields |
 | M1-01c1 | Complete | Semantic primitives: bool, signed ints, IEEE floats, Char8/Char16 on raw codecs |
 | M1-01c2 | Complete | Strings and ROS legacy wstring |
 | M1-01c2a | Complete | CDR1 UTF-8 Char8 string: endian-aware length including NUL, optional payload `max_bytes`, strict UTF-8, owned `String`, direct writer emit |
 | M1-01c2b | Complete | ROS legacy wstring (`count * 4`, `invalid_wstring_scalar`) and `ensure_corpus_complete_terminal_wstring` |
-| M1-01c3 | Active | Arrays, sequences, nested-depth guards, borrowed `BytesView` fields |
+| M1-01c3 | Complete | Arrays, sequences, nested-depth guards, borrowed `BytesView` fields |
 | M1-01c3a | Complete | Container codec contract freeze: fixed arrays, sequence length/byte APIs, `CdrNesting` depth tokens |
-| M1-01c3b | Queued | Implement sequences, fixed-array composition, nesting, borrowed byte sequences in `rclmbt/cdr` |
-| M1-01d | Queued | Corpus-driven proof: CY exact vs FT/ZN four-byte zero tail slack wstring semantic agreement, round trips, malformed input, resource bounds |
+| M1-01c3b | Complete | Sequences, fixed-array composition, nesting, borrowed byte sequences in `rclmbt/cdr` |
+| M1-01d | Active | Corpus-driven proof: CY exact vs FT/ZN four-byte zero tail slack wstring semantic agreement, round trips, malformed input, resource bounds |
 
 **Acceptance criteria (M1-01 overall):**
 
@@ -169,7 +169,7 @@ M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both 
 - [x] CDR1 UTF-8 Char8 string codecs with optional payload bound, strict UTF-8, and atomic faults (M1-01c2a).
 - [x] ROS `wstring` core decode of exactly `count * 4`; scalar-boundary tests for `invalid_wstring_scalar`; corpus-tail completion (M1-01c2b).
 - [x] Container codec surface defined: fixed arrays, sequences, nesting tokens, borrowed byte sequences (M1-01c3a).
-- [ ] Arrays, sequences, nested-depth guards, borrowed `BytesView` fields implemented in `rclmbt/cdr` (M1-01c3b).
+- [x] Arrays, sequences, nested-depth guards, borrowed `BytesView` fields implemented in `rclmbt/cdr` (M1-01c3b).
 - [ ] Corpus agreement: exact CY fixtures and FT/ZN four-byte zero tail slack fixtures normalize to one semantic value; strict completion reports `trailing_data` on four-byte zero tail slack samples; adversarial resource cases (M1-01d).
 
 **Verification:** focused MoonBit/Wasm tests for `cdr_mbt`; corpus-driven checks against `conformance/cdr/manifest.json`; root `just check`, `just test`, and `just build` when implementation lands.

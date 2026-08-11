@@ -27,15 +27,15 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
   - [x] M1-01b Bounded stream reader/writer, encapsulation, endian, alignment, limits, and typed errors.
     - [x] M1-01b1 Bounded CDR1 reader (`rclmbt/cdr`, Wasm tests).
     - [x] M1-01b2 Bounded CDR1 writer (`rclmbt/cdr`, Wasm tests).
-  - [~] M1-01c Primitives, strings/wstrings, arrays, sequences, nested values, borrowed BytesView fields.
+  - [x] M1-01c Primitives, strings/wstrings, arrays, sequences, nested values, borrowed BytesView fields.
     - [x] M1-01c1 Semantic CDR1 primitives (bool, signed ints, floats, Char8/Char16).
     - [x] M1-01c2 Strings and ROS legacy wstring.
       - [x] M1-01c2a CDR1 UTF-8 Char8 string (`read_string` / `write_string`, optional payload `max_bytes`).
       - [x] M1-01c2b ROS legacy wstring and corpus-tail completion.
-    - [~] M1-01c3 Arrays, sequences, nested-depth guards, borrowed BytesView fields.
+    - [x] M1-01c3 Arrays, sequences, nested-depth guards, borrowed BytesView fields.
       - [x] M1-01c3a Container codec contract (fixed arrays, sequences, nesting).
-      - [ ] M1-01c3b Implement containers and nesting in `rclmbt/cdr`.
-  - [ ] M1-01d Prove the authoritative corpus, semantic agreement (CY exact vs FT/ZN four-byte zero tail slack), round trips, malformed input, and resource bounds.
+      - [x] M1-01c3b Implement containers and nesting in `rclmbt/cdr`.
+  - [~] M1-01d Prove the authoritative corpus, semantic agreement (CY exact vs FT/ZN four-byte zero tail slack), round trips, malformed input, and resource bounds.
 - [ ] M1-02 Implement generated types and the type registry.
 - [ ] M1-03 Establish the Wasm host ABI and executor poll loop.
 - [ ] M1-04 Implement the serialized ROS C ABI.

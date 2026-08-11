@@ -221,3 +221,75 @@ pub fn require_ensure_corpus_complete_terminal_wstring(
 ) -> Result[Unit, @cdr.CdrError] {
   reader.ensure_corpus_complete_terminal_wstring()
 }
+
+///|
+pub fn require_read_sequence_length(
+  reader : @cdr.CdrReader,
+  max_elements? : UInt,
+) -> Result[Int, @cdr.CdrError] {
+  match max_elements {
+    Some(n) => reader.read_sequence_length(max_elements=n)
+    None => reader.read_sequence_length()
+  }
+}
+
+///|
+pub fn require_write_sequence_length(
+  writer : @cdr.CdrWriter,
+  length : Int,
+  max_elements? : UInt,
+) -> Result[Unit, @cdr.CdrError] {
+  match max_elements {
+    Some(n) => writer.write_sequence_length(length, max_elements=n)
+    None => writer.write_sequence_length(length)
+  }
+}
+
+///|
+pub fn require_read_byte_sequence(
+  reader : @cdr.CdrReader,
+  max_elements? : UInt,
+) -> Result[BytesView, @cdr.CdrError] {
+  match max_elements {
+    Some(n) => reader.read_byte_sequence(max_elements=n)
+    None => reader.read_byte_sequence()
+  }
+}
+
+///|
+pub fn require_write_byte_sequence(
+  writer : @cdr.CdrWriter,
+  value : BytesView,
+  max_elements? : UInt,
+) -> Result[Unit, @cdr.CdrError] {
+  match max_elements {
+    Some(n) => writer.write_byte_sequence(value, max_elements=n)
+    None => writer.write_byte_sequence(value)
+  }
+}
+
+///|
+pub fn require_root_nesting_reader(reader : @cdr.CdrReader) -> @cdr.CdrNesting {
+  reader.root_nesting()
+}
+
+///|
+pub fn require_root_nesting_writer(writer : @cdr.CdrWriter) -> @cdr.CdrNesting {
+  writer.root_nesting()
+}
+
+///|
+pub fn require_enter_nested_reader(
+  reader : @cdr.CdrReader,
+  parent : @cdr.CdrNesting,
+) -> Result[@cdr.CdrNesting, @cdr.CdrError] {
+  reader.enter_nested(parent)
+}
+
+///|
+pub fn require_enter_nested_writer(
+  writer : @cdr.CdrWriter,
+  parent : @cdr.CdrNesting,
+) -> Result[@cdr.CdrNesting, @cdr.CdrError] {
+  writer.enter_nested(parent)
+}

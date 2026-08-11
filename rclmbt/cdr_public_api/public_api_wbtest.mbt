@@ -376,6 +376,54 @@ test "public ROS wstring codec and corpus completion across packages" {
 }
 
 ///|
+test "public sequence nesting and byte sequence across packages" {
+  let limits = match @cdr.CdrLimits::new(128, 8, 128) {
+    Ok(l) => l
+    Err(e) => abort(e.code)
+  }
+  match @cdr.CdrWriter::new(@cdr.CdrEndian::little(), limits) {
+    Ok(w) => {
+      let root = require_root_nesting_writer(w)
+      assert_eq(root.depth(), 0)
+      match require_enter_nested_writer(w, root) {
+        Ok(n) => assert_eq(n.depth(), 1)
+        Err(e) => abort(e.code)
+      }
+      match require_write_sequence_length(w, 2, max_elements=2U) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      match require_write_byte_sequence(w, b"\x01\x02"[:], max_elements=2U) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      match @cdr.CdrReader::open_default(w.to_bytes()[:]) {
+        Ok(r) => {
+          let rr = require_root_nesting_reader(r)
+          match require_enter_nested_reader(r, rr) {
+            Ok(n) => assert_eq(n.depth(), 1)
+            Err(e) => abort(e.code)
+          }
+          match require_read_sequence_length(r, max_elements=2U) {
+            Ok(n) => assert_eq(n, 2)
+            Err(e) => abort(e.code)
+          }
+          match require_read_byte_sequence(r, max_elements=2U) {
+            Ok(bv) => {
+              assert_eq(bv.length(), 2)
+              assert_eq(bv[0], b'\x01')
+            }
+            Err(e) => abort(e.code)
+          }
+        }
+        Err(e) => abort(e.code)
+      }
+    }
+    Err(e) => abort(e.code)
+  }
+}
+
+///|
 test "public string invalid_utf8 and missing terminator across packages" {
   let bad_utf8 = b"\x00\x01\x00\x00\x03\x00\x00\x00\xc3\x28\x00"
   match @cdr.CdrReader::open_default(bad_utf8[:]) {
