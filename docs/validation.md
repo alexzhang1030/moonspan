@@ -80,7 +80,7 @@ Checked-in scripts derive reports from raw artifacts.
 - adapter profile mismatch and readiness behavior;
 - stable deployment resume and replacement deployment session creation;
 - oversized data, rate pressure, command concurrency, cache pressure, and audit outage;
-- Humble and Jazzy with Fast DDS and Cyclone DDS on each declared CPU architecture;
+- Humble and Jazzy with Fast DDS, Cyclone DDS, and Zenoh (H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN) on each declared CPU architecture;
 - multi-domain isolation within a row and independent composition across rows;
 - browser capability tiers and deployment profiles;
 - install, upgrade, rollback, credential rotation, and recovery.

@@ -20,7 +20,7 @@ Robot edge
 ROS 2 domains for that support row
 ```
 
-Phase 1 support rows are Humble and Jazzy with Fast DDS and Cyclone DDS. One gateway process binds one row and may expose multiple domain IDs. Applications combine independent SDK sessions across rows.
+Phase 1 support rows are Humble and Jazzy with Fast DDS, Cyclone DDS, and Zenoh: H-FT, H-CY, H-ZN, J-FT, J-CY, and J-ZN. Fast DDS is the reference row per distro. One gateway process binds one row and may expose multiple domain IDs. Applications combine independent SDK sessions across rows.
 
 `gateway_instance_id` identifies a logical gateway deployment. `support_row_id` identifies the immutable ROS distribution and RMW profile of its artifact. `domain_id` identifies a ROS domain within that row. These values remain attached to graph, schema, channel, policy, audit, telemetry, and evidence records.
 
