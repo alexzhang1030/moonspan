@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>moonspan_cdr_generator</name>
+  <version>0.0.0</version>
+  <description>ROS-backed generator for the Moonspan CDR conformance corpus.</description>
+  <maintainer email="maintainers@moonspan.dev">Moonspan maintainers</maintainer>
+  <license>LicenseRef-Pending-D06</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>moonspan_cdr_interfaces</depend>
+  <depend>rclcpp</depend>
+  <depend>rcutils</depend>
+  <depend>rosidl_runtime_c</depend>
+  <depend>rosidl_typesupport_cpp</depend>
+  <depend>rosidl_typesupport_fastrtps_cpp</depend>
+  <depend>sensor_msgs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
