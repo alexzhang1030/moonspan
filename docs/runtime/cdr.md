@@ -16,7 +16,7 @@ Authoritative runtime contract for Moonspan CDR in `cdr_mbt` (M1-01). Generated 
 
 M1 qualifies **CDR1** (OMG DDS-XTypes 1.3 encoding version 1 / PLAIN_CDR rules for final types) against the committed ROS corpus. XCDR2 stream foundations are a follow-on surface for later schema identity work. M1-01 acceptance covers CDR1 little and big endian only.
 
-Corpus encoding identity is `CDR1` in [`conformance/cdr/manifest.json`](../../conformance/cdr/manifest.json) (`corpus` = `moonspan-ros-cdr-v1`, `schema_version` = 1).
+Corpus encoding identity is `CDR1` in [`conformance/cdr/manifest.json`](../../conformance/cdr/manifest.json) (`corpus` = `moonspan-ros-cdr-v1`; manifest `schema_version` = 1; runtime `schema_generation` = 1).
 
 ## CDR1 framing and alignment
 
@@ -132,7 +132,8 @@ The authoritative corpus is [`conformance/cdr/`](../../conformance/cdr/README.md
 |---|---|
 | Corpus id | `moonspan-ros-cdr-v1` |
 | Encoding | `CDR1` |
-| Schema version | `1` (`schema_version`) |
+| Manifest schema version | `1` (`schema_version`) |
+| Runtime schema generation | `1` (`schema_generation`) |
 | Support rows | H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN (six environments) |
 | Fixtures | 56 |
 | Cross-row comparisons | 18 |

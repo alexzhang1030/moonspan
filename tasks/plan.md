@@ -131,7 +131,7 @@ M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both 
 
 #### M1-01 — MoonBit CDR core
 
-**Description:** Implement `cdr_mbt` against the frozen [CDR core contract](../docs/runtime/cdr.md) and the committed ROS corpus (`moonspan-ros-cdr-v1`, `schema_version` 1, 56 fixtures, six Phase 1 rows, 18 semantic comparisons).
+**Description:** Implement `cdr_mbt` against the frozen [CDR core contract](../docs/runtime/cdr.md) and the committed ROS corpus (`moonspan-ros-cdr-v1`, manifest `schema_version` 1, runtime `schema_generation` 1, 56 fixtures, six Phase 1 rows, 18 semantic comparisons).
 
 **Sub-batches:**
 
