@@ -266,6 +266,11 @@ test "public UTF-8 string codec across package boundary" {
         Ok(_) => ()
         Err(e) => abort(e.code)
       }
+      // Large legal UInt bound stays permissive across the package boundary.
+      match require_write_string(w, "Z"[:], max_bytes=0xffffffffU) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
       match @cdr.CdrReader::open_default(w.to_bytes()[:]) {
         Ok(r) => {
           match require_read_string(r) {
@@ -278,6 +283,10 @@ test "public UTF-8 string codec across package boundary" {
           }
           match require_read_string(r, max_bytes=2U) {
             Ok(s) => assert_eq(s, "AB")
+            Err(e) => abort(e.code)
+          }
+          match require_read_string(r, max_bytes=0xffffffffU) {
+            Ok(s) => assert_eq(s, "Z")
             Err(e) => abort(e.code)
           }
         }

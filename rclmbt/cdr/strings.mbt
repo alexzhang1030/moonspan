@@ -26,6 +26,24 @@ fn uint_size_field(v : UInt) -> Int {
 }
 
 ///|
+/// Normalize an optional type bound for payload comparisons.
+/// Bounds above `HOST_INT_MAX_U` are treated as non-binding: every payload that
+/// fits the 64 MiB stream ceiling also fits such a bound, so the ceiling is
+/// left open. Bounds that fit host `Int` remain active comparison ceilings.
+/// Error metrics still use `uint_size_field` when a finite bound is exceeded.
+fn type_bound_ceiling(bound : UInt?) -> Int? {
+  match bound {
+    Some(b) =>
+      if b > HOST_INT_MAX_U {
+        None
+      } else {
+        Some(b.reinterpret_as_int())
+      }
+    None => None
+  }
+}
+
+///|
 /// Maximum UTF-8 payload bytes that fit the writer field from `field_start`
 /// given `rem_cap` remaining capacity. Returns `-1` when even an empty string
 /// field (pad + UInt32 + NUL) exceeds remaining capacity.
@@ -82,15 +100,13 @@ fn measure_utf8_payload(
   rem_cap : Int,
   pad : Int,
 ) -> Result[Int, CdrError] {
-  let type_max : Int? = match type_bound {
-    Some(b) => Some(uint_size_field(b))
-    None => None
-  }
+  // Large legal UInt bounds (above host Int) stay non-binding for comparison.
+  let type_max = type_bound_ceiling(type_bound)
   let u16_len = view.length()
   // Early lower bound: UTF-16 length already exceeds a typed payload bound.
   match type_max {
     Some(t) =>
-      if t >= 0 && u16_len > t {
+      if u16_len > t {
         return Err(CdrError::bounds_exceeded(field_start, u16_len, t))
       }
     None => ()
@@ -127,7 +143,7 @@ fn measure_utf8_payload(
       // Type bound takes precedence when both ceilings are crossed.
       match type_max {
         Some(t) =>
-          if t >= 0 && next > t {
+          if next > t {
             return Err(CdrError::bounds_exceeded(field_start, next, t))
           }
         None => ()
@@ -149,7 +165,7 @@ fn measure_utf8_payload(
       }
       match type_max {
         Some(t) =>
-          if t >= 0 && next > t {
+          if next > t {
             return Err(CdrError::bounds_exceeded(field_start, next, t))
           }
         None => ()

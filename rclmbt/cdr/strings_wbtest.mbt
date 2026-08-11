@@ -545,6 +545,43 @@ test "string error precedence length zero before other faults" {
 }
 
 ///|
+test "string large UInt max_bytes stays permissive on write and read" {
+  // Bounds above HOST_INT_MAX_U remain non-binding for every stream-admitted
+  // payload. Regression: max_bytes=0xffffffffU must accept a small string.
+  let large = 0xffffffffU
+  let w = swriter(CdrEndian::Little)
+  match w.write_string("A"[:], max_bytes=large) {
+    Ok(_) => ()
+    Err(e) => abort(e.code)
+  }
+  let bytes = w.to_bytes()
+  match sreader(bytes[:]).read_string(max_bytes=large) {
+    Ok(s) => assert_eq(s, "A")
+    Err(e) => abort(e.code)
+  }
+  // Finite bound still binds; large bound leaves capacity as the active ceiling.
+  let limits = match CdrLimits::new(20, 4, 20) {
+    Ok(l) => l
+    Err(e) => abort(e.code)
+  }
+  let w2 = swriter_limits(CdrEndian::Little, limits)
+  let before = w2.to_bytes()
+  let pos = w2.position()
+  let big = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+  match w2.write_string(big[:], max_bytes=large) {
+    Ok(_) => abort("expected capacity bounds with large type bound")
+    Err(e) => {
+      assert_eq(e.code, CODE_BOUNDS_EXCEEDED)
+      assert_eq(e.offset, pos)
+      // pad0 + 4 + (11+1) + 1 = 17 against rem 16
+      assert_eq(e.needed, 17)
+      assert_eq(e.remaining, 16)
+    }
+  }
+  expect_writer_unchanged(w2, before, pos)
+}
+
+///|
 test "string declared span above max_stream length_overflow before truncated" {
   // max_stream=64; declared length 65 fits host Int and exceeds the ceiling.
   let limits = match CdrLimits::new(64, 4, 64) {
