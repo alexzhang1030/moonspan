@@ -352,43 +352,57 @@ test "raw invalid CdrLimits literals reject at writer trust boundary" {
 }
 
 ///|
-test "checked pad plus size overflow is typed and atomic" {
-  // White-box: align_and_reserve with HOST_INT_MAX size overflows pad+size.
-  let w = writer_ok(CdrEndian::Little, wlimits_ok(64, 8, 64))
-  let before_pos = w.position()
-  let before_bytes = w.to_bytes()
-  match w.align_and_reserve(1, HOST_INT_MAX) {
-    Ok(_) => abort("expected length_overflow")
-    Err(e) => {
-      assert_eq(e.code, CODE_LENGTH_OVERFLOW)
-      assert_eq(e.needed, 0)
-      assert_eq(e.offset, before_pos)
-    }
-  }
-  assert_eq(w.position(), before_pos)
-  let after_bytes = w.to_bytes()
-  assert_eq(after_bytes.length(), before_bytes.length())
+
+///|
+fn assert_bytes_eq(a : Bytes, b : Bytes) -> Unit raise {
+  assert_eq(a.length(), b.length())
   let mut i = 0
-  while i < after_bytes.length() {
-    assert_eq(after_bytes[i], before_bytes[i])
+  while i < a.length() {
+    assert_eq(a[i], b[i])
     i = i + 1
   }
-  // Also overflow when field_start + needed exceeds Int.
-  match w.align_and_reserve(1, HOST_INT_MAX - 2) {
-    Ok(_) => abort("expected length_overflow end")
+}
+
+///|
+test "layout arithmetic overflow stages pad-plus-size and field-start-plus-needed" {
+  // Stage 1: pad + size overflows.
+  // Offset 5 (body-rel 1), align 2 => pad = 1; checked_add_int(1, HOST_INT_MAX) fails.
+  let w1 = writer_ok(CdrEndian::Little, wlimits_ok(64, 8, 64))
+  match w1.write_u8(b'\x11') {
+    Ok(_) => ()
+    Err(e) => abort(e.code)
+  }
+  assert_eq(w1.position(), 5)
+  let snap1_pos = w1.position()
+  let snap1 = w1.to_bytes()
+  match w1.align_and_reserve(2, HOST_INT_MAX) {
+    Ok(_) => abort("expected pad+size length_overflow")
     Err(e) => {
       assert_eq(e.code, CODE_LENGTH_OVERFLOW)
       assert_eq(e.needed, 0)
+      assert_eq(e.offset, snap1_pos)
     }
   }
-  assert_eq(w.position(), before_pos)
-  let after2 = w.to_bytes()
-  assert_eq(after2.length(), before_bytes.length())
-  i = 0
-  while i < after2.length() {
-    assert_eq(after2[i], before_bytes[i])
-    i = i + 1
+  assert_eq(w1.position(), snap1_pos)
+  assert_bytes_eq(w1.to_bytes(), snap1)
+
+  // Stage 2: pad = 0 at offset 4, pad+size fits HOST_INT_MAX, field_start+needed overflows.
+  // align=1, size=HOST_INT_MAX: checked_add_int(0, HOST_INT_MAX)=HOST_INT_MAX,
+  // then checked_add_int(4, HOST_INT_MAX) fails.
+  let w2 = writer_ok(CdrEndian::Little, wlimits_ok(64, 8, 64))
+  assert_eq(w2.position(), 4)
+  let snap2_pos = w2.position()
+  let snap2 = w2.to_bytes()
+  match w2.align_and_reserve(1, HOST_INT_MAX) {
+    Ok(_) => abort("expected field_start+needed length_overflow")
+    Err(e) => {
+      assert_eq(e.code, CODE_LENGTH_OVERFLOW)
+      assert_eq(e.needed, 0)
+      assert_eq(e.offset, snap2_pos)
+    }
   }
+  assert_eq(w2.position(), snap2_pos)
+  assert_bytes_eq(w2.to_bytes(), snap2)
 }
 
 ///|

@@ -587,3 +587,25 @@ test "read_bytes truncated restores cursor" {
   }
   assert_eq(r.position(), 4)
 }
+
+///|
+test "reader preflight pad-plus-size overflow preserves cursor" {
+  // Stream long enough that pad does not fail first: header + two body bytes.
+  // After one byte, offset 5, align 2 => pad 1; checked_add_int(1, HOST_INT_MAX) overflows.
+  let input = b"\x00\x01\x00\x00\xaa\xbb"
+  let r = open_ok(input[:])
+  match r.read_u8() {
+    Ok(_) => ()
+    Err(e) => abort(e.code)
+  }
+  assert_eq(r.position(), 5)
+  match r.preflight(5, 2, HOST_INT_MAX) {
+    Ok(_) => abort("expected length_overflow")
+    Err(e) => {
+      assert_eq(e.code, CODE_LENGTH_OVERFLOW)
+      assert_eq(e.needed, 0)
+      assert_eq(e.offset, 5)
+    }
+  }
+  assert_eq(r.position(), 5)
+}

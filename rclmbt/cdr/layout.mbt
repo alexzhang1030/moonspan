@@ -49,9 +49,9 @@ fn writer_capacity(limits : CdrLimits) -> Int {
 const HOST_INT_MAX : Int = 2147483647
 
 ///|
-/// Checked `a + b` into host `Int`. Overflow yields `None`.
+/// Checked `a + b` into host `Int`. Rejects negative operands; overflow yields `None`.
 fn checked_add_int(a : Int, b : Int) -> Int? {
-  if b < 0 {
+  if a < 0 || b < 0 {
     return None
   }
   if a > HOST_INT_MAX - b {
