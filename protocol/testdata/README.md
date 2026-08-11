@@ -107,7 +107,7 @@ just protocol-agree
 just protocol-agree-write
 ```
 
-Agreement layout, digests, and h1–h4 commits: [agreement/README.md](./agreement/README.md).
+Agreement layout and commands: [agreement/README.md](./agreement/README.md).
 
 Standalone corpus commands (complete write/check surface):
 
@@ -147,7 +147,7 @@ cover H-FT, H-CY, J-FT, and J-CY.
 
 **Rust consumer:** [`rclwebd/src/protocol/`](../../rclwebd/src/protocol/) loads
 the valid/boundary and malformed corpora through locked crate tests. It covers
-bootstrap steps 1–9, selected-frame steps 1–16, the 64 MiB segment recipe, and
+bootstrap steps 1-9, selected-frame steps 1-16, the 64 MiB segment recipe, and
 exact error code/name/reason/offset/plane/step outcomes. The integration test
 [`rclwebd/tests/protocol_agreement.rs`](../../rclwebd/tests/protocol_agreement.rs)
 emits the Rust agreement projection.
