@@ -111,11 +111,19 @@ matrix (20 rows) covers dual-transport semantics (topic/service/action reliabili
 paths, WSS one-frame/latest-wins/HOL evidence) and is cross-bound to
 `protocol/registry/r2wp-v0.json`.
 
-**Counts (M0-03e review Accept):** malformed 55 fixtures; sequences 13 scenarios /
-26 events; parity 46 shared identities + 20 rules. Commits `3600ff4`, `63f21df`,
-`154afb1`. Aggregate two-write parity SHA-256
-`d75d07e46f878be00bb05fd395ccec768ad52950f749cad8b9fcd28a208f80c9`. Phase-one rows
-remain H-FT, H-CY, J-FT, and J-CY.
+**Counts (M0-03e review Accept):** malformed 55 fixtures (14 bootstrap / 41 frame);
+sequences 13 scenarios / 26 events; parity 46 shared identities + 20 rules.
+Commits `3600ff4`, `63f21df`, `154afb1`. Aggregate two-write parity SHA-256
+`d75d07e46f878be00bb05fd395ccec768ad52950f749cad8b9fcd28a208f80c9`. Phase 1 support
+rows remain H-FT, H-CY, J-FT, and J-CY.
+
+**Rust consumer (M0-03f review Accept):** [`rclwebd/src/protocol/`](../../rclwebd/src/protocol/)
+loads the valid/boundary and malformed corpora specifically through locked crate
+tests (`cargo test --locked -p rclwebd` 55 of 55). Bootstrap steps 1–9 and
+selected-frame steps 1–16 cover all 20 valid entries (including the
+manifest-driven 64 MiB segment recipe) and all 55 malformed binaries with exact
+code/name/reason/offset/plane/step. Commits `9c07b4a`, `cca270c`. Sequences and
+parity feed later agreement and runtime work (M0-03g–h and beyond).
 
 ## Coverage highlights (valid/boundary)
 

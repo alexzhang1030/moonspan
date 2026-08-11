@@ -11,12 +11,12 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
   - [x] M0-03b Contract validator and root command (verified; `scripts/protocol-check.ts` + root wiring).
   - [x] M0-03c TypeScript deterministic CBOR subset (`sdk/typescript/src/protocol`; verified).
   - [x] M0-03d TypeScript bootstrap/frame codec and valid/boundary fixtures (verified; codecs `bootstrap`/`extension`/`control`/`frame`; 20 fixtures via `scripts/protocol-fixtures.ts` + `protocol/testdata/`; commits `5c21f74`…`fc18b3d`; fixture tests 25/25, full `bun test` 332/332).
-  - [x] M0-03e Malformed, state-sequence, and transport parity fixtures (verified; e1–e4 review Accept; M0-03 remains active for f–h).
+  - [x] M0-03e Malformed, state-sequence, and transport parity fixtures (verified; e1–e4 review Accept).
     - [x] M0-03e1 Static malformed wire corpus (55 fixtures; `protocol/testdata/malformed/`, `scripts/protocol-malformed-fixtures.ts`; commit `3600ff4`).
     - [x] M0-03e2 State-sequence corpus (13 scenarios / 26 events; `protocol/testdata/sequences/`, `scripts/protocol-sequence-fixtures.ts`; commit `63f21df`).
     - [x] M0-03e3 Transport parity and aggregate checking (46 shared identities + 20 registry-bound rules; aggregate order `valid_boundary → malformed → sequences → parity` once each; commit `154afb1`; parity SHA-256 `d75d07e46f878be00bb05fd395ccec768ad52950f749cad8b9fcd28a208f80c9` after two aggregate writes).
     - [x] M0-03e4 Documentation/status closeout after e1–e3 evidence (commit subject `docs(plan): record r2wp scenario fixture completion`).
-  - [ ] M0-03f Rust reference parser (`rclwebd/src/protocol`; depends on completed M0-03e).
+  - [x] M0-03f Rust reference parser in `rclwebd` (verified; review Accept; commits `9c07b4a` bootstrap, `cca270c` frame; `cargo test --locked -p rclwebd` 55 of 55; M0-03 remains active for g/h).
   - [ ] M0-03g MoonBit reference parser (`rclmbt/protocol`).
   - [ ] M0-03h Cross-language agreement and M0-03 gate.
 - [ ] M0-04 Generate the authoritative ROS CDR corpus.

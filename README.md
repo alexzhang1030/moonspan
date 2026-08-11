@@ -100,16 +100,17 @@ Bun script meanings:
 | `bun run --filter @moonspan/sdk test:extension` | Focused extension TLV codec tests |
 | `bun run --filter @moonspan/sdk test:control` | Focused CONTROL_CBOR codec tests |
 | `bun run --filter @moonspan/sdk test:frame` | Focused selected-frame codec tests |
+| `cargo test --locked -p rclwebd` | Focused R2WP Rust reference parser tests (bootstrap, frame, fixture oracles; 55 tests) |
 
-Current R2WP foundation progress: M0-03a–e are verified. Normative freeze and contract validator stand; TypeScript codecs cover CBOR, bootstrap, extension TLVs, all 15 CONTROL kinds, and selected-frame steps 1–16 at `sdk/typescript/src/protocol/{cbor,bootstrap,extension,control,frame}.ts` (package root continues to export `src/index.ts`). Fixture corpora: [protocol/testdata/README.md](./protocol/testdata/README.md) — valid/boundary (20 entries), malformed (55 fixtures), sequences (13 scenarios / 26 events), parity (46 shared identities + 20 registry-bound rules); aggregate check via `bun run protocol-fixtures:check`. Commits `3600ff4`, `63f21df`, `154afb1`. M0-03 remains active for M0-03f Rust, M0-03g MoonBit, and M0-03h agreement. Phase-one support rows remain H-FT, H-CY, J-FT, and J-CY; Jazzy+ is later expansion; Studio enrollment begins at U0 after M3.
+Current R2WP foundation progress: M0-03a–f are verified. Normative freeze and contract validator stand; TypeScript codecs cover CBOR, bootstrap, extension TLVs, all 15 CONTROL kinds, and selected-frame steps 1–16 at `sdk/typescript/src/protocol/{cbor,bootstrap,extension,control,frame}.ts` (package root continues to export `src/index.ts`). Rust reference parser at `rclwebd/src/protocol/` covers bootstrap steps 1–9 and selected-frame steps 1–16 against the same fixtures (`cargo test --locked -p rclwebd` 55 of 55; commits `9c07b4a`, `cca270c`). Fixture corpora: [protocol/testdata/README.md](./protocol/testdata/README.md) — valid/boundary (20 entries), malformed (55 fixtures: 14 bootstrap / 41 frame), sequences (13 scenarios / 26 events), parity (46 shared identities + 20 registry-bound rules); aggregate check via `bun run protocol-fixtures:check`. Fixture commits `3600ff4`, `63f21df`, `154afb1`. M0-03 remains active for M0-03g MoonBit and M0-03h agreement. Phase 1 support rows remain H-FT, H-CY, J-FT, and J-CY; Jazzy+ is later expansion; Studio is a U0 side project after M3.
 
-The repository currently carries **zero external package dependencies**. Workspace members stay private at version `0.0.0`. Repository `LICENSE` / `NOTICE` wait on the [D-06](./tasks/plan.md#13-kickoff-decision-register) human ruling.
+Bun carries workspace identity only. The `rclwebd` normal tree is std only. The `serde_json` dev dependency serves fixture tests. Workspace members stay private at version `0.0.0`. Repository `LICENSE` / `NOTICE` wait on the [D-06](./tasks/plan.md#13-kickoff-decision-register) human ruling.
 
 ## Workspace ownership
 
 | Path | Role |
 |---|---|
-| `rclwebd/` | Rust edge gateway crate (Cargo workspace member) |
+| `rclwebd/` | Rust edge gateway crate (Cargo workspace member; R2WP reference parser under `src/protocol/`) |
 | `rclmbt/` | MoonBit/Wasm runtime module (`moon.work` member) |
 | `sdk/typescript/` | Private `@moonspan/sdk` Bun workspace package |
 | `examples/*` | Reserved mainline examples glob (empty until examples land) |
@@ -157,7 +158,7 @@ After checkout, the workflow initializes `artifacts/ci/` placeholders (`environm
 - `moonspan-documentation-evidence-<run_id>-<attempt>` — README, docs, `.agents/docs`, tasks, workflow, pin/lock manifests, and check/environment logs (hidden paths included).
 - `moonspan-test-build-evidence-<run_id>-<attempt>` — environment, toolchain-check, test, and build logs.
 
-**Evidence scope:** this foundation lane records generic M0 tooling proof. Humble/Jazzy support rows **H-FT**, **H-CY**, **J-FT**, and **J-CY** land in later ROS container qualification workflows. Studio workspace enrollment begins at U0. Jazzy+ expansion remains a later matrix step.
+**Evidence scope:** this foundation lane records generic M0 tooling proof. Phase 1 Humble/Jazzy support rows **H-FT**, **H-CY**, **J-FT**, and **J-CY** land in later ROS container qualification workflows. Studio is a U0 side project after M3. Jazzy+ expansion remains a later matrix step.
 
 Current CI evidence is local `actionlint` plus pinned root commands on this machine. The first hosted run will record artifact URLs for review. M0-02 CI acceptance stays open until that hosted evidence is reviewed.
 

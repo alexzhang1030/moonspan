@@ -2,7 +2,7 @@
 
 R2WP is Moonspan's versioned browser transport for ROS 2 semantics and serialized data. It carries bootstrap negotiation, a fixed 32-byte selected-version frame header, deterministic CBOR control maps, and CDR or media payloads over WebTransport and binary WebSocket.
 
-**Status:** wire version **0** accepted normative freeze ([ADR 0009](../adr/0009-r2wp-v0-wire-encoding.md)); M0-03a–e complete (contract, validator, TypeScript codecs, valid/boundary + malformed + sequence + parity fixtures); M0-03f–h continue multi-language parsers and cross-language agreement against this contract.
+**Status:** wire version **0** accepted normative freeze ([ADR 0009](../adr/0009-r2wp-v0-wire-encoding.md)); M0-03a–f complete (contract, validator, TypeScript codecs, fixture corpora, Rust reference parser in `rclwebd`); M0-03g–h continue MoonBit parser and cross-language agreement against this contract.
 
 | Surface | File |
 |---|---|
@@ -18,10 +18,11 @@ R2WP is Moonspan's versioned browser transport for ROS 2 semantics and serialize
 | State-sequence corpus | [sequences/](../../protocol/testdata/sequences/) (13 scenarios / 26 events; `scripts/protocol-sequence-fixtures.ts`) |
 | Transport parity corpus | [parity.json](../../protocol/testdata/parity.json) (46 shared identities + 20 registry-bound rules; `scripts/protocol-parity-fixtures.ts`) |
 | Aggregate fixture write/check | [scripts/protocol-fixtures.ts](../../scripts/protocol-fixtures.ts) (`bun run protocol-fixtures:check` / `protocol-fixtures:write`, `just protocol-fixtures-check` / `protocol-fixtures-write`; order `valid_boundary → malformed → sequences → parity`) |
+| Rust reference parser (`rclwebd`) | [`rclwebd/src/protocol/`](../../rclwebd/src/protocol/) (`parse_bootstrap`, `parse_frame`; `cargo test --locked -p rclwebd`) |
 | Encoding ADR | [ADR 0009](../adr/0009-r2wp-v0-wire-encoding.md) |
 | Versioning model | [ADR 0005](../adr/0005-r2wp-wire-versioning.md) |
 
-This page is the design overview and documentation entry. Byte-level rules, registries, absolute limits, dispositions, and transport length rules are normative in the protocol package above. The contract validator checks normative package consistency. TypeScript codecs implement deterministic CBOR, bootstrap records, extension TLVs, all 15 CONTROL kinds, and selected-frame static steps 1–16. Bun fixture tooling under `protocol/testdata/` and `scripts/protocol-*-fixtures.ts` covers valid/boundary goldens, static malformed wire, receiver state sequences, and dual-transport parity through one aggregate check path. Normative authority remains the three-file protocol package.
+This page is the design overview and documentation entry. Byte-level rules, registries, absolute limits, dispositions, and transport length rules are normative in the protocol package above. The contract validator checks normative package consistency. TypeScript codecs implement deterministic CBOR, bootstrap records, extension TLVs, all 15 CONTROL kinds, and selected-frame static steps 1–16. The Rust reference parser in [`rclwebd`](../gateway/rclwebd.md) consumes the same committed fixtures for bootstrap steps 1–9 and selected-frame steps 1–16. Bun fixture tooling under `protocol/testdata/` and `scripts/protocol-*-fixtures.ts` covers valid/boundary goldens, static malformed wire, receiver state sequences, and dual-transport parity through one aggregate check path. Normative authority remains the three-file protocol package.
 
 The browser-internal CBOR codec implements the R2WP v0 deterministic subset: definite lengths, shortest integer/length arguments, unsigned map keys sorted by encoded-key order, nesting depth 16, map entry ceiling 4096, and rejection of tags, floats, indefinite forms, and malformed UTF-8. Decode failures use `CborDecodeError` with `code: "invalid_control"`, a typed reason, and a byte offset. Decode yields an atomic whole value. Input-driven and native decoder failures normalize to `CborDecodeError`.
 
@@ -66,7 +67,7 @@ Bootstrap: 12-byte prefix + deterministic CBOR; client sends exactly one ClientH
 
 Selected-version frame: 32-byte big-endian header; total length `32 + extension_len + payload_len`; `extension_len` multiple of 4 with per-TLV zero padding; channel 0 = control; application channels `1..2^32-1`.
 
-Sequence: sender assigns contiguous sequences from 0 without wrap; reliable receivers require exact next; best-effort receivers allow gaps (`sequence_gap`) and drop stale sequences (`stale_sequence`); success disposition is `delivered`.
+Sequence: sender assigns contiguous sequences from 0; wrap is prohibited; reliable receivers require exact next; best-effort receivers allow gaps (`sequence_gap`) and drop stale sequences (`stale_sequence`); success disposition is `delivered`.
 
 Application fragmentation is prohibited; reserved fragment bit yields `unsupported_flags`. CONTROL_CBOR requires channel 0, priority CONTROL, reliable control stream, and control payload ceiling. The CONTROL priority check belongs to selected-frame **step 9**: both checks execute within step 9 in this order — first reject unassigned numeric priority (`0..4`), then enforce opcode-specific CONTROL_CBOR priority CONTROL (0); subsequent step numbers remain unchanged; both failures are `protocol_violation` (25). Service frames and Action GOAL/CANCEL/RESULT use reliable streams with OPERATION_ID; Action FEEDBACK/STATUS select reliable stream or best-effort datagram/sample-scoped stream from their effective topic QoS, still with `(channel_id, OPERATION_ID, direction)`. KEYFRAME is MEDIA_CHUNK-only; RETAINED marks retained-history ROS_SAMPLE replay; ROS_RELIABLE matches negotiated QoS.
 
@@ -78,7 +79,7 @@ Ready-required control kinds (before ready → `session_not_ready`): GraphSnapsh
 
 Channel lifecycle: client allocates a previously unused `channel_id` (no reuse in-session); OpenChannel pending → ChannelReady active or failed → CloseChannel terminal. **SERVICE_SERVER** and **ACTION_SERVER** are valid browser OpenChannel roles (inverse directions from CLIENT roles); graph endpoint roles remain independent. Opcode and direction MUST match the active `operation_kind`.
 
-Session resume acks and `CloseChannel.final_sequence` cover **default** `(channel_id, direction)` domains only. Service/Action operation streams reset or close on resume and never byte-resume. `next_sequence` is the next sequence of the channel’s active data sender (side from `operation_kind`: gateway→browser for subscribe/media/recording/asset; browser→gateway for publish). Reliable resume uses contiguous default-domain acks; best-effort acks report the highest accepted sequence.
+Session resume acks and `CloseChannel.final_sequence` cover **default** `(channel_id, direction)` domains only. Service and Action operation streams use reset or close recovery. `next_sequence` is the next sequence of the channel’s active data sender (side from `operation_kind`: gateway→browser for subscribe/media/recording/asset; browser→gateway for publish). Reliable resume uses contiguous default-domain acks; best-effort acks report the highest accepted sequence.
 
 OPERATION_ID lifecycle: Service initiator allocates unique nonzero per-call IDs (response echoes); terminates on response or operation-scoped Error (`cancelled` for cancel). Action GOAL allocates a goal-lifecycle ID; multi-goal cancel uses its own ID; ACTION_STATUS all-zero lasts for the channel. ROS goal UUID stays in CDR; adapter maps to wire ID.
 
@@ -119,7 +120,7 @@ Moonspan wire QoS integers include SYSTEM_DEFAULT, RELIABLE/BEST_EFFORT, TRANSIE
 
 - Each channel advertises maximum samples, bytes, message size, bandwidth, concurrency, and deadline policy under absolute v0 ceilings.
 - Peers expose queue occupancy, admitted bytes, evictions, expiries, dispositions, and transport backpressure.
-- Reliable default-domain streams resume from contiguous acknowledged sequence state when capabilities match; `next_sequence` tracks the active data sender for that `operation_kind`. Service/Action operation streams reset or close rather than byte-resume.
+- Reliable default-domain streams resume from contiguous acknowledged sequence state when capabilities match; `next_sequence` tracks the active data sender for that `operation_kind`. Service and Action operation streams use reset or close recovery and fresh operation sequences.
 - Datagram loss appears as sequence gaps with source and receive timing and `sequence_gap` disposition.
 - Large-message cancellation releases stream, Wasm, and application buffers through a correlated lifecycle event.
 - Graph and schema generations let clients discard stale channel state after reconnect or topology change.
@@ -180,11 +181,18 @@ Sequence coverage includes `no_common_version`, fresh open and resume success, g
 
 Aggregate write/check runs exactly once per corpus in order `valid_boundary → malformed → sequences → parity` via [scripts/protocol-fixtures.ts](../../scripts/protocol-fixtures.ts). Layout and commands: [protocol/testdata/README.md](../../protocol/testdata/README.md). Root verification: `bun run protocol-fixtures:check` / `just protocol-fixtures-check`; included in `bun run check` after `docs:check` and `protocol-check`. Focused suite: `bun run test:protocol-fixtures` (four files once each).
 
-### Planned (M0-03f–h)
+### Delivered (M0-03f Rust reference parser)
 
-M0-03f–h scope is multi-language consumption of the committed TypeScript corpora:
+M0-03f (review Accept; commits `9c07b4a`, `cca270c`) lands the Rust reference parser under [`rclwebd/src/protocol/`](../../rclwebd/src/protocol/):
 
-- M0-03f — Rust (`rclwebd`) reference parser consuming the same bytes with matching semantic records or stable error codes;
+- bootstrap receiver steps 1–9 (`parse_bootstrap`) and selected-frame steps 1–16 (`parse_frame`);
+- deterministic CBOR decoder; extension TLV structural and unknown-critical validation; all 15 CONTROL kinds with nested CDDL shape rules;
+- all 20 valid/boundary entries, including the manifest-driven 64 MiB segment recipe, with structured records and borrowed extension/application payloads;
+- all 55 malformed binaries (14 bootstrap / 41 frame) with exact registry code, name, reason, absolute offset, plane, and step;
+- locked crate tests `cargo test --locked -p rclwebd` 55 of 55; the `rclwebd` normal tree is std only; the `serde_json` dev dependency serves fixture tests.
+
+### Planned (M0-03g–h)
+
 - M0-03g — MoonBit (`rclmbt`) reference parser with the same agreement surface;
 - M0-03h — cross-language agreement report that closes M0-03.
 

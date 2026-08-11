@@ -22,8 +22,9 @@ The planning baseline uses five core engineers, 18 weeks for the mainline, and 6
 - M0-03b is verified complete: `scripts/protocol-check.ts` validates the frozen contract; root entrypoints are `bun run protocol-check`, `just protocol-check`, and `bun run test:protocol`.
 - M0-03c is verified complete: browser-internal deterministic CBOR encode/decode in `sdk/typescript/src/protocol/cbor.ts`; package root continues to export `src/index.ts`.
 - M0-03d is verified complete: TypeScript bootstrap, extension, CONTROL_CBOR (all 15 kinds), and selected-frame codecs; valid/boundary fixtures with versioned manifest and checker. Implementations live at `sdk/typescript/src/protocol/{bootstrap,extension,control,frame}.ts` and their tests.
-- M0-03e is verified complete (e1–e4 review Accept): static malformed corpus (55 fixtures), receiver state sequences (13 scenarios / 26 events), dual-transport parity (46 shared identities + 20 registry-bound rules), and documentation closeout. Aggregate write/check order is exactly `valid_boundary → malformed → sequences → parity` once each via `scripts/protocol-fixtures.ts`. Commits: `3600ff4` (e1), `63f21df` (e2), `154afb1` (e3). Root `bun run check` runs `docs:check`, `protocol-check`, then aggregate `protocol-fixtures:check`. M0-03 remains active for M0-03f Rust, M0-03g MoonBit, and M0-03h agreement.
-- Active mainline workspaces: `rclwebd/` (Cargo), `rclmbt/` (`moon.work`), `sdk/typescript/` (`@moonspan/sdk`). Studio workspace enrollment begins at U0.
+- M0-03e is verified complete (e1–e4 review Accept): static malformed corpus (55 fixtures), receiver state sequences (13 scenarios / 26 events), dual-transport parity (46 shared identities + 20 registry-bound rules), and documentation closeout. Aggregate write/check order is exactly `valid_boundary → malformed → sequences → parity` once each via `scripts/protocol-fixtures.ts`. Commits: `3600ff4` (e1), `63f21df` (e2), `154afb1` (e3). Root `bun run check` runs `docs:check`, `protocol-check`, then aggregate `protocol-fixtures:check`.
+- M0-03f is verified complete (review Accept): Rust reference parser in `rclwebd` covers bootstrap receiver steps 1–9 and selected-frame steps 1–16, deterministic CBOR, extension TLVs, all 15 CONTROL kinds with nested CDDL, all 20 valid fixtures including the manifest-driven 64 MiB segment recipe, and all 55 malformed binaries (14 bootstrap / 41 frame) with exact code/name/reason/offset/plane/step. Commits: `9c07b4ad2679cf00056c3ae8ebcfcddd096ee55e` (`feat(rclwebd): add r2wp bootstrap parser`), `cca270cae74c28e3d7f1a98c224bafc837d19d85` (`feat(rclwebd): add r2wp frame parser`). Locked crate tests 55 of 55; the `rclwebd` normal tree is std only; the `serde_json` dev dependency serves fixture tests. M0-03 remains active for M0-03g MoonBit and M0-03h agreement.
+- Active mainline workspaces: `rclwebd/` (Cargo), `rclmbt/` (`moon.work`), `sdk/typescript/` (`@moonspan/sdk`). Studio is a U0 side project after M3.
 - R2WP, MoonBit/Wasm, Rust/C ABI, ROS support, and performance values are design baselines awaiting their named gates.
 - The mainline and UI side-project boundary is fixed in [product scope](../docs/product-scope.md).
 
@@ -322,17 +323,20 @@ Every task clears these conditions:
 
 ##### M0-03f — Rust reference parser in rclwebd
 
-**Description:** Implement the wire version 0 parser inside the gateway crate.
+**Description:** Implement the wire version 0 parser inside the gateway crate as sequential slices: bootstrap/CBOR (f1), selected-frame/extension/CONTROL (f2), and documentation closeout (f3).
 
 **Acceptance criteria:**
 
-- [ ] `rclwebd` parses valid fixtures into structured records and maps malformed fixtures to registry error codes.
-- [ ] Locked Cargo tests load committed fixture bytes from `protocol/testdata/`.
+- [x] `rclwebd` parses valid fixtures into structured records and maps malformed fixtures to registry error codes with stable `code` / `name` / `reason` / absolute `offset` / `plane` / `step`.
+- [x] Locked Cargo tests load committed fixture bytes from `protocol/testdata/` (manifest-driven valid/boundary and malformed corpora).
+- [x] Bootstrap receiver steps 1–9 and selected-frame steps 1–16; deterministic CBOR; extension TLVs; all 15 CONTROL kinds with nested CDDL; borrowed extension and application payloads.
+- [x] Coverage includes all 20 valid entries (including the manifest-driven 64 MiB segment recipe) and all 55 malformed binaries (14 bootstrap / 41 frame).
+- [x] The `rclwebd` normal tree is std only; the `serde_json` dev dependency serves fixture tests.
 
-**Verification:** `cargo test --locked -p rclwebd`.
+**Verification (review Accept):** full hashes `9c07b4ad2679cf00056c3ae8ebcfcddd096ee55e` (f1 bootstrap; short `9c07b4a`) and `cca270cae74c28e3d7f1a98c224bafc837d19d85` (f2 frame; short `cca270c`); `cargo test --locked -p rclwebd` 55 of 55; `cargo fmt --all -- --check`; `cargo clippy --locked -p rclwebd --all-targets -- -D warnings`; full `bun test` 584 of 584; pinned `just check` under Bun 1.3.14 / Rust 1.97.1 / moonc 0.10.6+80dc50f24 / just 1.50.0; `git diff --check` clean. Conventional Commit subject for documentation closeout: `docs(plan): record rust r2wp parser completion`.
 
 - **Dependencies:** M0-03e
-- **Likely files:** `rclwebd/src/protocol/mod.rs`, `rclwebd/src/protocol/frame.rs`, `rclwebd/src/protocol/bootstrap.rs`, `rclwebd/src/protocol/tests.rs`, `rclwebd/Cargo.toml`
+- **Likely files:** `rclwebd/src/protocol/{mod,error,cbor,bootstrap,extension,control,frame,tests}.rs`, `rclwebd/src/lib.rs`, `rclwebd/Cargo.toml`, `Cargo.lock`, `docs/protocol/r2wp.md`, `docs/validation.md`, `docs/gateway/rclwebd.md`, `README.md`, `.agents/docs/technology-stack.md`, `.agents/docs/validation.md`, `tasks/plan.md`, `tasks/todo.md`, `protocol/testdata/README.md`
 - **Scope:** M
 
 ##### M0-03g — MoonBit reference parser in rclmbt
