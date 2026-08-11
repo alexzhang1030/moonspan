@@ -1664,6 +1664,230 @@ export function parseCliMode(argv: string[]): { mode: "write" | "check" } | { er
   return { mode: write === 1 ? "write" : "check" };
 }
 
+// ---------------------------------------------------------------------------
+// Aggregate runner (M0-03e3): valid_boundary → malformed → sequences → parity
+// ---------------------------------------------------------------------------
+
+export type CorpusCounts = Record<string, number>;
+
+export type CorpusRunnerResult = {
+  ok: boolean;
+  diagnostics: string[];
+  counts: CorpusCounts;
+};
+
+export type CorpusRunner = {
+  name: "valid_boundary" | "malformed" | "sequences" | "parity";
+  write: (root: string) => Promise<CorpusRunnerResult>;
+  check: (root: string) => Promise<CorpusRunnerResult>;
+};
+
+/** Fixed aggregate order for both write and check. */
+export const AGGREGATE_CORPUS_ORDER = [
+  "valid_boundary",
+  "malformed",
+  "sequences",
+  "parity",
+] as const;
+
+export type AggregateTraceEntry = {
+  corpus: (typeof AGGREGATE_CORPUS_ORDER)[number];
+  mode: "write" | "check";
+  ok: boolean;
+  counts: CorpusCounts;
+};
+
+export type AggregateResult = {
+  ok: boolean;
+  diagnostics: string[];
+  trace: AggregateTraceEntry[];
+  counts: Record<string, CorpusCounts>;
+};
+
+function prefixDiags(corpus: string, diags: string[]): string[] {
+  return diags.map((d) => (d.startsWith(`${corpus}:`) ? d : `${corpus}: ${d}`));
+}
+
+/** Default corpus runners. Dependency-injectable for exact-once order tests. */
+export function defaultCorpusRunners(): CorpusRunner[] {
+  return [
+    {
+      name: "valid_boundary",
+      write: async (root) => {
+        await writeFixtures(root);
+        const { manifest } = buildManifest();
+        return {
+          ok: true,
+          diagnostics: [],
+          counts: { fixtures: manifest.fixtures.length },
+        };
+      },
+      check: async (root) => {
+        const result = await checkFixtures(root);
+        const { manifest } = buildManifest();
+        return {
+          ok: result.ok,
+          diagnostics: result.diagnostics,
+          counts: { fixtures: manifest.fixtures.length },
+        };
+      },
+    },
+    {
+      name: "malformed",
+      write: async (root) => {
+        const { writeMalformedFixtures } = await import("./protocol-malformed-fixtures.ts");
+        const m = await writeMalformedFixtures(root);
+        return {
+          ok: true,
+          diagnostics: [],
+          counts: { fixtures: m.fixtures.length },
+        };
+      },
+      check: async (root) => {
+        const { checkMalformedFixtures } = await import("./protocol-malformed-fixtures.ts");
+        const r = await checkMalformedFixtures(root);
+        return {
+          ok: r.diags.length === 0 && r.manifest !== null,
+          diagnostics: r.diags,
+          counts: { fixtures: r.manifest?.fixtures.length ?? 0 },
+        };
+      },
+    },
+    {
+      name: "sequences",
+      write: async (root) => {
+        const { writeSequenceFixtures } = await import("./protocol-sequence-fixtures.ts");
+        const m = await writeSequenceFixtures(root);
+        return {
+          ok: true,
+          diagnostics: [],
+          counts: { scenarios: m.scenarios.length, events: m.events.length },
+        };
+      },
+      check: async (root) => {
+        const { checkSequenceFixtures } = await import("./protocol-sequence-fixtures.ts");
+        const r = await checkSequenceFixtures(root);
+        return {
+          ok: r.diags.length === 0 && r.manifest !== null,
+          diagnostics: r.diags,
+          counts: {
+            scenarios: r.manifest?.scenarios.length ?? 0,
+            events: r.manifest?.events.length ?? 0,
+          },
+        };
+      },
+    },
+    {
+      name: "parity",
+      write: async (root) => {
+        const { writeParityFixtures } = await import("./protocol-parity-fixtures.ts");
+        const doc = await writeParityFixtures(root);
+        return {
+          ok: true,
+          diagnostics: [],
+          counts: {
+            shared_artifacts: doc.shared_artifacts.length,
+            transport_rules: doc.transport_rules.length,
+          },
+        };
+      },
+      check: async (root) => {
+        // Parity check reads source manifests and registry directly via its own disk-first checker.
+        const { checkParityFixtures } = await import("./protocol-parity-fixtures.ts");
+        const r = await checkParityFixtures(root);
+        return {
+          ok: r.diags.length === 0 && r.document !== null,
+          diagnostics: r.diags,
+          counts: {
+            shared_artifacts: r.document?.shared_artifacts.length ?? 0,
+            transport_rules: r.document?.transport_rules.length ?? 0,
+          },
+        };
+      },
+    },
+  ];
+}
+
+export async function runAggregateWrite(
+  root: string,
+  runners: CorpusRunner[] = defaultCorpusRunners(),
+): Promise<AggregateResult> {
+  const byName = new Map(runners.map((r) => [r.name, r]));
+  const trace: AggregateTraceEntry[] = [];
+  const counts: Record<string, CorpusCounts> = {};
+  const diagnostics: string[] = [];
+  for (const name of AGGREGATE_CORPUS_ORDER) {
+    const runner = byName.get(name);
+    if (!runner) {
+      diagnostics.push(`aggregate: missing runner ${name}`);
+      return { ok: false, diagnostics: sortAscii(diagnostics), trace, counts };
+    }
+    try {
+      const result = await runner.write(root);
+      trace.push({ corpus: name, mode: "write", ok: result.ok, counts: result.counts });
+      counts[name] = result.counts;
+      if (!result.ok) {
+        diagnostics.push(...prefixDiags(name, result.diagnostics));
+        return { ok: false, diagnostics: sortAscii(diagnostics), trace, counts };
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      diagnostics.push(`${name}: write failed: ${msg}`);
+      trace.push({ corpus: name, mode: "write", ok: false, counts: {} });
+      return { ok: false, diagnostics: sortAscii(diagnostics), trace, counts };
+    }
+  }
+  return { ok: true, diagnostics: [], trace, counts };
+}
+
+export async function runAggregateCheck(
+  root: string,
+  runners: CorpusRunner[] = defaultCorpusRunners(),
+): Promise<AggregateResult> {
+  const byName = new Map(runners.map((r) => [r.name, r]));
+  const trace: AggregateTraceEntry[] = [];
+  const counts: Record<string, CorpusCounts> = {};
+  const diagnostics: string[] = [];
+  for (const name of AGGREGATE_CORPUS_ORDER) {
+    const runner = byName.get(name);
+    if (!runner) {
+      diagnostics.push(`aggregate: missing runner ${name}`);
+      continue;
+    }
+    try {
+      const result = await runner.check(root);
+      trace.push({ corpus: name, mode: "check", ok: result.ok, counts: result.counts });
+      counts[name] = result.counts;
+      if (!result.ok) {
+        diagnostics.push(...prefixDiags(name, result.diagnostics));
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      diagnostics.push(`${name}: check failed: ${msg}`);
+      trace.push({ corpus: name, mode: "check", ok: false, counts: {} });
+    }
+  }
+  return {
+    ok: diagnostics.length === 0,
+    diagnostics: sortAscii(diagnostics),
+    trace,
+    counts,
+  };
+}
+
+function formatCounts(counts: Record<string, CorpusCounts>): string {
+  const parts: string[] = [];
+  for (const name of AGGREGATE_CORPUS_ORDER) {
+    const c = counts[name];
+    if (!c) continue;
+    const inner = Object.entries(c)
+      .map(([k, v]) => `${k}=${v}`)
+      .join(",");
+    parts.push(`${name}{${inner}}`);
+  }
+  return parts.join(" ");
+}
+
 async function main(argv: string[]): Promise<number> {
   const parsed = parseCliMode(argv);
   if ("error" in parsed) {
@@ -1672,22 +1896,25 @@ async function main(argv: string[]): Promise<number> {
   }
   const root = process.cwd();
   if (parsed.mode === "write") {
-    await writeFixtures(root);
-    const { manifest } = buildManifest();
+    const result = await runAggregateWrite(root);
+    if (!result.ok) {
+      for (const d of result.diagnostics) console.error(d);
+      console.error(`status=fail mode=write diagnostics=${result.diagnostics.length}`);
+      return 1;
+    }
     console.log(
-      `status=ok mode=write fixtures=${manifest.fixtures.length} manifest=${MANIFEST_REL}`,
+      `status=ok mode=write order=${result.trace.map((t) => t.corpus).join(",")} ${formatCounts(result.counts)}`,
     );
     return 0;
   }
-  const result = await checkFixtures(root);
+  const result = await runAggregateCheck(root);
   if (!result.ok) {
     for (const d of result.diagnostics) console.error(d);
-    console.error(`status=fail diagnostics=${result.diagnostics.length}`);
+    console.error(`status=fail mode=check diagnostics=${result.diagnostics.length}`);
     return 1;
   }
-  const { manifest } = buildManifest();
   console.log(
-    `status=ok mode=check fixtures=${manifest.fixtures.length} schema_version=${SCHEMA_VERSION}`,
+    `status=ok mode=check order=${result.trace.map((t) => t.corpus).join(",")} ${formatCounts(result.counts)}`,
   );
   return 0;
 }

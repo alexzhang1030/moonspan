@@ -1,0 +1,3347 @@
+{
+  "schema_version": 1,
+  "protocol": "r2wp-v0",
+  "generated_by": "scripts/protocol-parity-fixtures.ts",
+  "source_manifests": [
+    {
+      "id": "sequences",
+      "path": "protocol/testdata/sequences/manifest.json",
+      "byte_length": 18235,
+      "sha256": "a1e693a4986280017920f1bcfa5bee6bd68e216f7ed5611f1310a46f9af957be"
+    },
+    {
+      "id": "valid_boundary",
+      "path": "protocol/testdata/manifest.json",
+      "byte_length": 40068,
+      "sha256": "8ee9c147370e2435ccbe554dc52c75273daa136060799e68f78f65f4b42e5f23"
+    }
+  ],
+  "shared_artifacts": [
+    {
+      "id": "sequences:evt-authenticate",
+      "source_corpus": "sequences",
+      "source_id": "evt-authenticate",
+      "byte_length": 65,
+      "sha256": "f383423110bc61bb232592bdad252eefd39bcc5f1ca1912e84f49ba8c7e7a5b7",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-authenticate",
+        "byte_length": 65,
+        "sha256": "f383423110bc61bb232592bdad252eefd39bcc5f1ca1912e84f49ba8c7e7a5b7"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-authenticate",
+        "byte_length": 65,
+        "sha256": "f383423110bc61bb232592bdad252eefd39bcc5f1ca1912e84f49ba8c7e7a5b7"
+      }
+    },
+    {
+      "id": "sequences:evt-bootstrap-error-no-common",
+      "source_corpus": "sequences",
+      "source_id": "evt-bootstrap-error-no-common",
+      "byte_length": 54,
+      "sha256": "b2c58cf73086ca387ccacc21abd2ad7946366388d2eb54d6b0b5672a5bc298e2",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-bootstrap-error-no-common",
+        "byte_length": 54,
+        "sha256": "b2c58cf73086ca387ccacc21abd2ad7946366388d2eb54d6b0b5672a5bc298e2"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-bootstrap-error-no-common",
+        "byte_length": 54,
+        "sha256": "b2c58cf73086ca387ccacc21abd2ad7946366388d2eb54d6b0b5672a5bc298e2"
+      }
+    },
+    {
+      "id": "sequences:evt-channel-ready-ch1-best-effort",
+      "source_corpus": "sequences",
+      "source_id": "evt-channel-ready-ch1-best-effort",
+      "byte_length": 94,
+      "sha256": "2e5ac580ae078f1ca7d9706c67ef97657582f83523cd59ece6a8ca0f7d49d2ce",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-channel-ready-ch1-best-effort",
+        "byte_length": 94,
+        "sha256": "2e5ac580ae078f1ca7d9706c67ef97657582f83523cd59ece6a8ca0f7d49d2ce"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-channel-ready-ch1-best-effort",
+        "byte_length": 94,
+        "sha256": "2e5ac580ae078f1ca7d9706c67ef97657582f83523cd59ece6a8ca0f7d49d2ce"
+      }
+    },
+    {
+      "id": "sequences:evt-channel-ready-ch1-reliable",
+      "source_corpus": "sequences",
+      "source_id": "evt-channel-ready-ch1-reliable",
+      "byte_length": 94,
+      "sha256": "58c355eea4c2f5eeb03122955250c1ef09a564fb88aafe6974579a2694b9d722",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-channel-ready-ch1-reliable",
+        "byte_length": 94,
+        "sha256": "58c355eea4c2f5eeb03122955250c1ef09a564fb88aafe6974579a2694b9d722"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-channel-ready-ch1-reliable",
+        "byte_length": 94,
+        "sha256": "58c355eea4c2f5eeb03122955250c1ef09a564fb88aafe6974579a2694b9d722"
+      }
+    },
+    {
+      "id": "sequences:evt-channel-ready-ch2-d1",
+      "source_corpus": "sequences",
+      "source_id": "evt-channel-ready-ch2-d1",
+      "byte_length": 94,
+      "sha256": "9c1a65aabe3911421a8f41008cea4998458dd769807bff077ec46f5b505bac21",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-channel-ready-ch2-d1",
+        "byte_length": 94,
+        "sha256": "9c1a65aabe3911421a8f41008cea4998458dd769807bff077ec46f5b505bac21"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-channel-ready-ch2-d1",
+        "byte_length": 94,
+        "sha256": "9c1a65aabe3911421a8f41008cea4998458dd769807bff077ec46f5b505bac21"
+      }
+    },
+    {
+      "id": "sequences:evt-client-hello-no-common",
+      "source_corpus": "sequences",
+      "source_id": "evt-client-hello-no-common",
+      "byte_length": 32,
+      "sha256": "15d67173be03b1849f15c4553d2373b0961acfc96bf85490185a7d92e0c98885",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-client-hello-no-common",
+        "byte_length": 32,
+        "sha256": "15d67173be03b1849f15c4553d2373b0961acfc96bf85490185a7d92e0c98885"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-client-hello-no-common",
+        "byte_length": 32,
+        "sha256": "15d67173be03b1849f15c4553d2373b0961acfc96bf85490185a7d92e0c98885"
+      }
+    },
+    {
+      "id": "sequences:evt-client-hello-v0",
+      "source_corpus": "sequences",
+      "source_id": "evt-client-hello-v0",
+      "byte_length": 33,
+      "sha256": "9046976cfcecff199985f39188f0dc2b9355967d081ba9017517506569d46927",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-client-hello-v0",
+        "byte_length": 33,
+        "sha256": "9046976cfcecff199985f39188f0dc2b9355967d081ba9017517506569d46927"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-client-hello-v0",
+        "byte_length": 33,
+        "sha256": "9046976cfcecff199985f39188f0dc2b9355967d081ba9017517506569d46927"
+      }
+    },
+    {
+      "id": "sequences:evt-open-channel-d0",
+      "source_corpus": "sequences",
+      "source_id": "evt-open-channel-d0",
+      "byte_length": 218,
+      "sha256": "f201a85fe92dc04fa783d0b8942ab7d7a66d9dda6fb70d136fab57beaba5390b",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-open-channel-d0",
+        "byte_length": 218,
+        "sha256": "f201a85fe92dc04fa783d0b8942ab7d7a66d9dda6fb70d136fab57beaba5390b"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-open-channel-d0",
+        "byte_length": 218,
+        "sha256": "f201a85fe92dc04fa783d0b8942ab7d7a66d9dda6fb70d136fab57beaba5390b"
+      }
+    },
+    {
+      "id": "sequences:evt-open-channel-d1",
+      "source_corpus": "sequences",
+      "source_id": "evt-open-channel-d1",
+      "byte_length": 215,
+      "sha256": "499340d784faeab212721c5cfb1417c67380bacd0cd4d6a531dbad391527cc18",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-open-channel-d1",
+        "byte_length": 215,
+        "sha256": "499340d784faeab212721c5cfb1417c67380bacd0cd4d6a531dbad391527cc18"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-open-channel-d1",
+        "byte_length": 215,
+        "sha256": "499340d784faeab212721c5cfb1417c67380bacd0cd4d6a531dbad391527cc18"
+      }
+    },
+    {
+      "id": "sequences:evt-open-channel-pre-ready",
+      "source_corpus": "sequences",
+      "source_id": "evt-open-channel-pre-ready",
+      "byte_length": 216,
+      "sha256": "d3ae498d9996ab521b9cec36b78f397f243a248ea38c036667c0884bd5fca41d",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-open-channel-pre-ready",
+        "byte_length": 216,
+        "sha256": "d3ae498d9996ab521b9cec36b78f397f243a248ea38c036667c0884bd5fca41d"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-open-channel-pre-ready",
+        "byte_length": 216,
+        "sha256": "d3ae498d9996ab521b9cec36b78f397f243a248ea38c036667c0884bd5fca41d"
+      }
+    },
+    {
+      "id": "sequences:evt-resume-result-accept",
+      "source_corpus": "sequences",
+      "source_id": "evt-resume-result-accept",
+      "byte_length": 66,
+      "sha256": "e89581ed509e188d06e45668b9fdd2eb018a7bda3e45a467f05030efc5e22d3a",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-resume-result-accept",
+        "byte_length": 66,
+        "sha256": "e89581ed509e188d06e45668b9fdd2eb018a7bda3e45a467f05030efc5e22d3a"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-resume-result-accept",
+        "byte_length": 66,
+        "sha256": "e89581ed509e188d06e45668b9fdd2eb018a7bda3e45a467f05030efc5e22d3a"
+      }
+    },
+    {
+      "id": "sequences:evt-resume-result-gateway-mismatch",
+      "source_corpus": "sequences",
+      "source_id": "evt-resume-result-gateway-mismatch",
+      "byte_length": 83,
+      "sha256": "e39f09fccc88a2eaaa053305997686bd06bbf74cd62c9c8d9a3c5a087741ca4d",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-resume-result-gateway-mismatch",
+        "byte_length": 83,
+        "sha256": "e39f09fccc88a2eaaa053305997686bd06bbf74cd62c9c8d9a3c5a087741ca4d"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-resume-result-gateway-mismatch",
+        "byte_length": 83,
+        "sha256": "e39f09fccc88a2eaaa053305997686bd06bbf74cd62c9c8d9a3c5a087741ca4d"
+      }
+    },
+    {
+      "id": "sequences:evt-resume-result-row-mismatch",
+      "source_corpus": "sequences",
+      "source_id": "evt-resume-result-row-mismatch",
+      "byte_length": 79,
+      "sha256": "5c57fa818b5cf522986d9aec57166570421799c1db069213d552b1e6ed7e62be",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-resume-result-row-mismatch",
+        "byte_length": 79,
+        "sha256": "5c57fa818b5cf522986d9aec57166570421799c1db069213d552b1e6ed7e62be"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-resume-result-row-mismatch",
+        "byte_length": 79,
+        "sha256": "5c57fa818b5cf522986d9aec57166570421799c1db069213d552b1e6ed7e62be"
+      }
+    },
+    {
+      "id": "sequences:evt-ros-sample-be-seq-0",
+      "source_corpus": "sequences",
+      "source_id": "evt-ros-sample-be-seq-0",
+      "byte_length": 35,
+      "sha256": "62188779c6e8ec2fe112b559350fb6ff8e3580e35b4bbd19652d963626535df6",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-ros-sample-be-seq-0",
+        "byte_length": 35,
+        "sha256": "62188779c6e8ec2fe112b559350fb6ff8e3580e35b4bbd19652d963626535df6"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-ros-sample-be-seq-0",
+        "byte_length": 35,
+        "sha256": "62188779c6e8ec2fe112b559350fb6ff8e3580e35b4bbd19652d963626535df6"
+      }
+    },
+    {
+      "id": "sequences:evt-ros-sample-be-seq-1",
+      "source_corpus": "sequences",
+      "source_id": "evt-ros-sample-be-seq-1",
+      "byte_length": 35,
+      "sha256": "6e0f892d687d66c19752e5b7efdc10aed5b4fca07f9c975939d02d4c6e0ee999",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-ros-sample-be-seq-1",
+        "byte_length": 35,
+        "sha256": "6e0f892d687d66c19752e5b7efdc10aed5b4fca07f9c975939d02d4c6e0ee999"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-ros-sample-be-seq-1",
+        "byte_length": 35,
+        "sha256": "6e0f892d687d66c19752e5b7efdc10aed5b4fca07f9c975939d02d4c6e0ee999"
+      }
+    },
+    {
+      "id": "sequences:evt-ros-sample-be-seq-2",
+      "source_corpus": "sequences",
+      "source_id": "evt-ros-sample-be-seq-2",
+      "byte_length": 35,
+      "sha256": "25b5113ff6bce4106afdc2e7c2d7385c6a4cf74388c96d761d07b22b415cc824",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-ros-sample-be-seq-2",
+        "byte_length": 35,
+        "sha256": "25b5113ff6bce4106afdc2e7c2d7385c6a4cf74388c96d761d07b22b415cc824"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-ros-sample-be-seq-2",
+        "byte_length": 35,
+        "sha256": "25b5113ff6bce4106afdc2e7c2d7385c6a4cf74388c96d761d07b22b415cc824"
+      }
+    },
+    {
+      "id": "sequences:evt-ros-sample-rel-seq-0",
+      "source_corpus": "sequences",
+      "source_id": "evt-ros-sample-rel-seq-0",
+      "byte_length": 35,
+      "sha256": "06d376a1d6968cffa67d55fbf328c0d1b2fadde5f2e54b4d4c8797ad1068b3b2",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-ros-sample-rel-seq-0",
+        "byte_length": 35,
+        "sha256": "06d376a1d6968cffa67d55fbf328c0d1b2fadde5f2e54b4d4c8797ad1068b3b2"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-ros-sample-rel-seq-0",
+        "byte_length": 35,
+        "sha256": "06d376a1d6968cffa67d55fbf328c0d1b2fadde5f2e54b4d4c8797ad1068b3b2"
+      }
+    },
+    {
+      "id": "sequences:evt-ros-sample-rel-seq-2",
+      "source_corpus": "sequences",
+      "source_id": "evt-ros-sample-rel-seq-2",
+      "byte_length": 35,
+      "sha256": "e0842c89da515d401d37c002566ee65c1e4bf47c08f8cd529250d738ac561408",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-ros-sample-rel-seq-2",
+        "byte_length": 35,
+        "sha256": "e0842c89da515d401d37c002566ee65c1e4bf47c08f8cd529250d738ac561408"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-ros-sample-rel-seq-2",
+        "byte_length": 35,
+        "sha256": "e0842c89da515d401d37c002566ee65c1e4bf47c08f8cd529250d738ac561408"
+      }
+    },
+    {
+      "id": "sequences:evt-server-hello-v0",
+      "source_corpus": "sequences",
+      "source_id": "evt-server-hello-v0",
+      "byte_length": 55,
+      "sha256": "f1a9ef4e09eb579b7fc41a2c4558edb12aaa44a86068b9194bcb5009b0d5fe76",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-server-hello-v0",
+        "byte_length": 55,
+        "sha256": "f1a9ef4e09eb579b7fc41a2c4558edb12aaa44a86068b9194bcb5009b0d5fe76"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-server-hello-v0",
+        "byte_length": 55,
+        "sha256": "f1a9ef4e09eb579b7fc41a2c4558edb12aaa44a86068b9194bcb5009b0d5fe76"
+      }
+    },
+    {
+      "id": "sequences:evt-session-ready-h-cy",
+      "source_corpus": "sequences",
+      "source_id": "evt-session-ready-h-cy",
+      "byte_length": 202,
+      "sha256": "f1b85afc5e87a259a74c6de2184ccdab2afe20da249b55d06c8530a0b53d2566",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-session-ready-h-cy",
+        "byte_length": 202,
+        "sha256": "f1b85afc5e87a259a74c6de2184ccdab2afe20da249b55d06c8530a0b53d2566"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-session-ready-h-cy",
+        "byte_length": 202,
+        "sha256": "f1b85afc5e87a259a74c6de2184ccdab2afe20da249b55d06c8530a0b53d2566"
+      }
+    },
+    {
+      "id": "sequences:evt-session-ready-h-ft",
+      "source_corpus": "sequences",
+      "source_id": "evt-session-ready-h-ft",
+      "byte_length": 200,
+      "sha256": "d5da47e1beb2e05b3025532d5d9bfadf02f43f113d90810e2c7c72790f40c978",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-session-ready-h-ft",
+        "byte_length": 200,
+        "sha256": "d5da47e1beb2e05b3025532d5d9bfadf02f43f113d90810e2c7c72790f40c978"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-session-ready-h-ft",
+        "byte_length": 200,
+        "sha256": "d5da47e1beb2e05b3025532d5d9bfadf02f43f113d90810e2c7c72790f40c978"
+      }
+    },
+    {
+      "id": "sequences:evt-session-ready-j-cy",
+      "source_corpus": "sequences",
+      "source_id": "evt-session-ready-j-cy",
+      "byte_length": 201,
+      "sha256": "d9438c82bc5e7784dbc6d044032c0ba2ec22053aab56383484178d29a3147a75",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-session-ready-j-cy",
+        "byte_length": 201,
+        "sha256": "d9438c82bc5e7784dbc6d044032c0ba2ec22053aab56383484178d29a3147a75"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-session-ready-j-cy",
+        "byte_length": 201,
+        "sha256": "d9438c82bc5e7784dbc6d044032c0ba2ec22053aab56383484178d29a3147a75"
+      }
+    },
+    {
+      "id": "sequences:evt-session-ready-j-ft",
+      "source_corpus": "sequences",
+      "source_id": "evt-session-ready-j-ft",
+      "byte_length": 199,
+      "sha256": "48a8901e869d08eb82562fe4ee801c82a3572fc1c75d0ceb7ab559356c746b2e",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-session-ready-j-ft",
+        "byte_length": 199,
+        "sha256": "48a8901e869d08eb82562fe4ee801c82a3572fc1c75d0ceb7ab559356c746b2e"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-session-ready-j-ft",
+        "byte_length": 199,
+        "sha256": "48a8901e869d08eb82562fe4ee801c82a3572fc1c75d0ceb7ab559356c746b2e"
+      }
+    },
+    {
+      "id": "sequences:evt-session-resume",
+      "source_corpus": "sequences",
+      "source_id": "evt-session-resume",
+      "byte_length": 170,
+      "sha256": "ca1f15134176e054c22cf9fbdd45bb8be2ae2c2c3722ab020b3715d4a17477c8",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-session-resume",
+        "byte_length": 170,
+        "sha256": "ca1f15134176e054c22cf9fbdd45bb8be2ae2c2c3722ab020b3715d4a17477c8"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-session-resume",
+        "byte_length": 170,
+        "sha256": "ca1f15134176e054c22cf9fbdd45bb8be2ae2c2c3722ab020b3715d4a17477c8"
+      }
+    },
+    {
+      "id": "sequences:evt-session-resume-wrong-gateway",
+      "source_corpus": "sequences",
+      "source_id": "evt-session-resume-wrong-gateway",
+      "byte_length": 166,
+      "sha256": "58614f7fa1ba324672882b248da559f2047ce91f870e16985e27f1ec8b60035e",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-session-resume-wrong-gateway",
+        "byte_length": 166,
+        "sha256": "58614f7fa1ba324672882b248da559f2047ce91f870e16985e27f1ec8b60035e"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-session-resume-wrong-gateway",
+        "byte_length": 166,
+        "sha256": "58614f7fa1ba324672882b248da559f2047ce91f870e16985e27f1ec8b60035e"
+      }
+    },
+    {
+      "id": "sequences:evt-session-resume-wrong-row",
+      "source_corpus": "sequences",
+      "source_id": "evt-session-resume-wrong-row",
+      "byte_length": 165,
+      "sha256": "b816a4426cc5d6a592d39990b833d8981b028ee6e13295cabf1db6fbd4b6caf5",
+      "webtransport": {
+        "semantic_identity": "sequences/evt-session-resume-wrong-row",
+        "byte_length": 165,
+        "sha256": "b816a4426cc5d6a592d39990b833d8981b028ee6e13295cabf1db6fbd4b6caf5"
+      },
+      "binary_wss": {
+        "semantic_identity": "sequences/evt-session-resume-wrong-row",
+        "byte_length": 165,
+        "sha256": "b816a4426cc5d6a592d39990b833d8981b028ee6e13295cabf1db6fbd4b6caf5"
+      }
+    },
+    {
+      "id": "valid_boundary:bootstrap-client-hello-maxima",
+      "source_corpus": "valid_boundary",
+      "source_id": "bootstrap-client-hello-maxima",
+      "byte_length": 187,
+      "sha256": "6f3c12bbb7887d1d80ea8e09d39a4fb95927fb17950cccc43c8b83ed5ab3db8c",
+      "webtransport": {
+        "semantic_identity": "valid_boundary/bootstrap-client-hello-maxima",
+        "byte_length": 187,
+        "sha256": "6f3c12bbb7887d1d80ea8e09d39a4fb95927fb17950cccc43c8b83ed5ab3db8c"
+      },
+      "binary_wss": {
+        "semantic_identity": "valid_boundary/bootstrap-client-hello-maxima",
+        "byte_length": 187,
+        "sha256": "6f3c12bbb7887d1d80ea8e09d39a4fb95927fb17950cccc43c8b83ed5ab3db8c"
+      }
+    },
+    {
+      "id": "valid_boundary:bootstrap-error-text-4096",
+      "source_corpus": "valid_boundary",
+      "source_id": "bootstrap-error-text-4096",
+      "byte_length": 8215,
+      "sha256": "41c023cb9722fa9a99b20b1f24b1f1f41fde301a86c244674fa4e9d59c705711",
+      "webtransport": {
+        "semantic_identity": "valid_boundary/bootstrap-error-text-4096",
+        "byte_length": 8215,
+        "sha256": "41c023cb9722fa9a99b20b1f24b1f1f41fde301a86c244674fa4e9d59c705711"
+      },
+      "binary_wss": {
+        "semantic_identity": "valid_boundary/bootstrap-error-text-4096",
+        "byte_length": 8215,
+        "sha256": "41c023cb9722fa9a99b20b1f24b1f1f41fde301a86c244674fa4e9d59c705711"
+      }
+    },
+    {
+      "id": "valid_boundary:bootstrap-server-hello-ceilings",
+      "source_corpus": "valid_boundary",
+      "source_id": "bootstrap-server-hello-ceilings",
+      "byte_length": 64,
+      "sha256": "470387e7b248415dc28601963737819de3f9a6f1e2c2d7e4c7bdeede243aac1b",
+      "webtransport": {
+        "semantic_identity": "valid_boundary/bootstrap-server-hello-ceilings",
+        "byte_length": 64,
+        "sha256": "470387e7b248415dc28601963737819de3f9a6f1e2c2d7e4c7bdeede243aac1b"
+      },
+      "binary_wss": {
+        "semantic_identity": "valid_boundary/bootstrap-server-hello-ceilings",
+        "byte_length": 64,
+        "sha256": "470387e7b248415dc28601963737819de3f9a6f1e2c2d7e4c7bdeede243aac1b"
+      }
+    },
+    {
+      "id": "valid_boundary:frame-app-payload-64mib-recipe",
+      "source_corpus": "valid_boundary",
+      "source_id": "frame-app-payload-64mib-recipe",
+      "byte_length": 67108896,
+      "sha256": "2c62aac0b2979ca2cb898e05222295c0758acf6473cbaeebd9da04c859978bd5",
+      "webtransport": {
+        "semantic_identity": "valid_boundary/frame-app-payload-64mib-recipe",
+        "byte_length": 67108896,
+        "sha256": "2c62aac0b2979ca2cb898e05222295c0758acf6473cbaeebd9da04c859978bd5"
+      },
+      "binary_wss": {
+        "semantic_identity": "valid_boundary/frame-app-payload-64mib-recipe",
+        "byte_length": 67108896,
+        "sha256": "2c62aac0b2979ca2cb898e05222295c0758acf6473cbaeebd9da04c859978bd5"
+      }
+    },
+    {
+      "id": "valid_boundary:frame-control-payload-1mib",
+      "source_corpus": "valid_boundary",
+      "source_id": "frame-control-payload-1mib",
+      "byte_length": 1048608,
+      "sha256": "f4f15dcc3499679fa9e472c5516e50564fe5b594eb154f18385f1e1ffccfb72a",
+      "webtransport": {
+        "semantic_identity": "valid_boundary/frame-control-payload-1mib",
+        "byte_length": 1048608,
+        "sha256": "f4f15dcc3499679fa9e472c5516e50564fe5b594eb154f18385f1e1ffccfb72a"
+      },
+      "binary_wss": {
+        "semantic_identity": "valid_boundary/frame-control-payload-1mib",
+        "byte_length": 1048608,
+        "sha256": "f4f15dcc3499679fa9e472c5516e50564fe5b594eb154f18385f1e1ffccfb72a"
+      }
+    },
+    {
+      "id": "valid_boundary:frame-extension-area-4096-unknown-noncritical",
+      "source_corpus": "valid_boundary",
+      "source_id": "frame-extension-area-4096-unknown-noncritical",
+      "byte_length": 4129,
+      "sha256": "26c8a786ec88278dfb88f41fbf0996c16efd4f400b4382f601eabbfaba4e2361",
+      "webtransport": {
+        "semantic_identity": "valid_boundary/frame-extension-area-4096-unknown-noncritical",
+        "byte_length": 4129,
+        "sha256": "26c8a786ec88278dfb88f41fbf0996c16efd4f400b4382f601eabbfaba4e2361"
+      },
+      "binary_wss": {
+        "semantic_identity": "valid_boundary/frame-extension-area-4096-unknown-noncritical",
+        "byte_length": 4129,
+        "sha256": "26c8a786ec88278dfb88f41fbf0996c16efd4f400b4382f601eabbfaba4e2361"
+      }
+    },
+    {
+      "id": "valid_boundary:frame-media-chunk-keyframe",
+      "source_corpus": "valid_boundary",
+      "source_id": "frame-media-chunk-keyframe",
+      "byte_length": 47,
+      "sha256": "87511bbd5a456695c9019ce284d1b39ade63f1c9c7c0f6e8f7d2e846b04c2205",
+      "webtransport": {
+        "semantic_identity": "valid_boundary/frame-media-chunk-keyframe",
+        "byte_length": 47,
+        "sha256": "87511bbd5a456695c9019ce284d1b39ade63f1c9c7c0f6e8f7d2e846b04c2205"
+      },
+      "binary_wss": {
+        "semantic_identity": "valid_boundary/frame-media-chunk-keyframe",
+        "byte_length": 47,
+        "sha256": "87511bbd5a456695c9019ce284d1b39ade63f1c9c7c0f6e8f7d2e846b04c2205"
+      }
+    },
+    {
+      "id": "valid_boundary:frame-ros-sample-channel-u32-max",
+      "source_corpus": "valid_boundary",
+      "source_id": "frame-ros-sample-channel-u32-max",
+      "byte_length": 33,
+      "sha256": "d17786ff2a95a10831d2bd6397ffa6d6c365874c6993c3f39bcb1c44dbf0d790",
+      "webtransport": {
+        "semantic_identity": "valid_boundary/frame-ros-sample-channel-u32-max",
+        "byte_length": 33,
+        "sha256": "d17786ff2a95a10831d2bd6397ffa6d6c365874c6993c3f39bcb1c44dbf0d790"
+      },
+      "binary_wss": {
+        "semantic_identity": "valid_boundary/frame-ros-sample-channel-u32-max",
+        "byte_length": 33,
+        "sha256": "d17786ff2a95a10831d2bd6397ffa6d6c365874c6993c3f39bcb1c44dbf0d790"
+      }
+    },
+    {
+      "id": "valid_boundary:frame-ros-sample-flags-reliable-retained",
+      "source_corpus": "valid_boundary",
+      "source_id": "frame-ros-sample-flags-reliable-retained",
+      "byte_length": 33,
+      "sha256": "36082c6e666136590a4239834d1674b1e9eaf2729fbc25c32cc0af422e8d7a4d",
+      "webtransport": {
+        "semantic_identity": "valid_boundary/frame-ros-sample-flags-reliable-retained",
+        "byte_length": 33,
+        "sha256": "36082c6e666136590a4239834d1674b1e9eaf2729fbc25c32cc0af422e8d7a4d"
+      },
+      "binary_wss": {
+        "semantic_identity": "valid_boundary/frame-ros-sample-flags-reliable-retained",
+        "byte_length": 33,
+        "sha256": "36082c6e666136590a4239834d1674b1e9eaf2729fbc25c32cc0af422e8d7a4d"
+      }
+    },
+    {
+      "id": "valid_boundary:frame-ros-sample-priority4-clock4",
+      "source_corpus": "valid_boundary",
+      "source_id": "frame-ros-sample-priority4-clock4",
+      "byte_length": 33,
+      "sha256": "5d0b41a4e1eed19fa3d97976244a68309fa546a0af85d02a018a58afd0e39aaf",
+      "webtransport": {
+        "semantic_identity": "valid_boundary/frame-ros-sample-priority4-clock4",
+        "byte_length": 33,
+        "sha256": "5d0b41a4e1eed19fa3d97976244a68309fa546a0af85d02a018a58afd0e39aaf"
+      },
+      "binary_wss": {
+        "semantic_identity": "valid_boundary/frame-ros-sample-priority4-clock4",
+        "byte_length": 33,
+        "sha256": "5d0b41a4e1eed19fa3d97976244a68309fa546a0af85d02a018a58afd0e39aaf"
+      }
+    },
+    {
+      "id": "valid_boundary:frame-ros-sample-sequence-u64-max",
+      "source_corpus": "valid_boundary",
+      "source_id": "frame-ros-sample-sequence-u64-max",
+      "byte_length": 33,
+      "sha256": "47e0119fa1951f1732d4f292f143069cb86e3508e7a3d4593d3b6ed97874f009",
+      "webtransport": {
+        "semantic_identity": "valid_boundary/frame-ros-sample-sequence-u64-max",
+        "byte_length": 33,
+        "sha256": "47e0119fa1951f1732d4f292f143069cb86e3508e7a3d4593d3b6ed97874f009"
+      },
+      "binary_wss": {
+        "semantic_identity": "valid_boundary/frame-ros-sample-sequence-u64-max",
+        "byte_length": 33,
+        "sha256": "47e0119fa1951f1732d4f292f143069cb86e3508e7a3d4593d3b6ed97874f009"
+      }
+    },
+    {
+      "id": "valid_boundary:frame-ros-sample-time-i64-max",
+      "source_corpus": "valid_boundary",
+      "source_id": "frame-ros-sample-time-i64-max",
+      "byte_length": 33,
+      "sha256": "6703a9d56b12fec8ca38ef0c16f5b73e07b560a3c06c77a6ec63581286fb073f",
+      "webtransport": {
+        "semantic_identity": "valid_boundary/frame-ros-sample-time-i64-max",
+        "byte_length": 33,
+        "sha256": "6703a9d56b12fec8ca38ef0c16f5b73e07b560a3c06c77a6ec63581286fb073f"
+      },
+      "binary_wss": {
+        "semantic_identity": "valid_boundary/frame-ros-sample-time-i64-max",
+        "byte_length": 33,
+        "sha256": "6703a9d56b12fec8ca38ef0c16f5b73e07b560a3c06c77a6ec63581286fb073f"
+      }
+    },
+    {
+      "id": "valid_boundary:frame-ros-sample-time-i64-min",
+      "source_corpus": "valid_boundary",
+      "source_id": "frame-ros-sample-time-i64-min",
+      "byte_length": 33,
+      "sha256": "11fcce3fc8ac223597af17f8ab4357c8890fec8c8860f3e2b7c2a13b7758d072",
+      "webtransport": {
+        "semantic_identity": "valid_boundary/frame-ros-sample-time-i64-min",
+        "byte_length": 33,
+        "sha256": "11fcce3fc8ac223597af17f8ab4357c8890fec8c8860f3e2b7c2a13b7758d072"
+      },
+      "binary_wss": {
+        "semantic_identity": "valid_boundary/frame-ros-sample-time-i64-min",
+        "byte_length": 33,
+        "sha256": "11fcce3fc8ac223597af17f8ab4357c8890fec8c8860f3e2b7c2a13b7758d072"
+      }
+    },
+    {
+      "id": "valid_boundary:frame-schema-request-moonspan-schema-v1",
+      "source_corpus": "valid_boundary",
+      "source_id": "frame-schema-request-moonspan-schema-v1",
+      "byte_length": 163,
+      "sha256": "98887a9ebd2ae9b07f6245c238ef3ecc0fde509c409fbc30035acb6f52a54c26",
+      "webtransport": {
+        "semantic_identity": "valid_boundary/frame-schema-request-moonspan-schema-v1",
+        "byte_length": 163,
+        "sha256": "98887a9ebd2ae9b07f6245c238ef3ecc0fde509c409fbc30035acb6f52a54c26"
+      },
+      "binary_wss": {
+        "semantic_identity": "valid_boundary/frame-schema-request-moonspan-schema-v1",
+        "byte_length": 163,
+        "sha256": "98887a9ebd2ae9b07f6245c238ef3ecc0fde509c409fbc30035acb6f52a54c26"
+      }
+    },
+    {
+      "id": "valid_boundary:frame-schema-request-rep2011-rihs",
+      "source_corpus": "valid_boundary",
+      "source_id": "frame-schema-request-rep2011-rihs",
+      "byte_length": 164,
+      "sha256": "679562398fe7f4ad38f2ec13c4e83b61f26986e4024c327d1eb2e4d38985a238",
+      "webtransport": {
+        "semantic_identity": "valid_boundary/frame-schema-request-rep2011-rihs",
+        "byte_length": 164,
+        "sha256": "679562398fe7f4ad38f2ec13c4e83b61f26986e4024c327d1eb2e4d38985a238"
+      },
+      "binary_wss": {
+        "semantic_identity": "valid_boundary/frame-schema-request-rep2011-rihs",
+        "byte_length": 164,
+        "sha256": "679562398fe7f4ad38f2ec13c4e83b61f26986e4024c327d1eb2e4d38985a238"
+      }
+    },
+    {
+      "id": "valid_boundary:frame-service-request-trace-opid",
+      "source_corpus": "valid_boundary",
+      "source_id": "frame-service-request-trace-opid",
+      "byte_length": 90,
+      "sha256": "63f5ba7fb77f0c77b17386f53396d454aa7cb4d3f9f368dd33adeaf7c913876d",
+      "webtransport": {
+        "semantic_identity": "valid_boundary/frame-service-request-trace-opid",
+        "byte_length": 90,
+        "sha256": "63f5ba7fb77f0c77b17386f53396d454aa7cb4d3f9f368dd33adeaf7c913876d"
+      },
+      "binary_wss": {
+        "semantic_identity": "valid_boundary/frame-service-request-trace-opid",
+        "byte_length": 90,
+        "sha256": "63f5ba7fb77f0c77b17386f53396d454aa7cb4d3f9f368dd33adeaf7c913876d"
+      }
+    },
+    {
+      "id": "valid_boundary:frame-session-ready-H-CY",
+      "source_corpus": "valid_boundary",
+      "source_id": "frame-session-ready-H-CY",
+      "byte_length": 201,
+      "sha256": "170463da01dee588be828df07a287c064bfd8666df1411f0b72c59cb5cfe2ac8",
+      "webtransport": {
+        "semantic_identity": "valid_boundary/frame-session-ready-H-CY",
+        "byte_length": 201,
+        "sha256": "170463da01dee588be828df07a287c064bfd8666df1411f0b72c59cb5cfe2ac8"
+      },
+      "binary_wss": {
+        "semantic_identity": "valid_boundary/frame-session-ready-H-CY",
+        "byte_length": 201,
+        "sha256": "170463da01dee588be828df07a287c064bfd8666df1411f0b72c59cb5cfe2ac8"
+      }
+    },
+    {
+      "id": "valid_boundary:frame-session-ready-H-FT-trace",
+      "source_corpus": "valid_boundary",
+      "source_id": "frame-session-ready-H-FT-trace",
+      "byte_length": 235,
+      "sha256": "bb319304bb028871c9a41e7f30145e5f38b3523cfb809365580368ce92c927bd",
+      "webtransport": {
+        "semantic_identity": "valid_boundary/frame-session-ready-H-FT-trace",
+        "byte_length": 235,
+        "sha256": "bb319304bb028871c9a41e7f30145e5f38b3523cfb809365580368ce92c927bd"
+      },
+      "binary_wss": {
+        "semantic_identity": "valid_boundary/frame-session-ready-H-FT-trace",
+        "byte_length": 235,
+        "sha256": "bb319304bb028871c9a41e7f30145e5f38b3523cfb809365580368ce92c927bd"
+      }
+    },
+    {
+      "id": "valid_boundary:frame-session-ready-J-CY",
+      "source_corpus": "valid_boundary",
+      "source_id": "frame-session-ready-J-CY",
+      "byte_length": 200,
+      "sha256": "c883948d3d01eb6daf8ae4e66a348873a97fc10fc0d27be66e18fbe1c53c8f88",
+      "webtransport": {
+        "semantic_identity": "valid_boundary/frame-session-ready-J-CY",
+        "byte_length": 200,
+        "sha256": "c883948d3d01eb6daf8ae4e66a348873a97fc10fc0d27be66e18fbe1c53c8f88"
+      },
+      "binary_wss": {
+        "semantic_identity": "valid_boundary/frame-session-ready-J-CY",
+        "byte_length": 200,
+        "sha256": "c883948d3d01eb6daf8ae4e66a348873a97fc10fc0d27be66e18fbe1c53c8f88"
+      }
+    },
+    {
+      "id": "valid_boundary:frame-session-ready-J-FT",
+      "source_corpus": "valid_boundary",
+      "source_id": "frame-session-ready-J-FT",
+      "byte_length": 198,
+      "sha256": "3f4e9d104d177339c6bf575183a244bb4616ebe4f60a77fcc9dac240b5eeac27",
+      "webtransport": {
+        "semantic_identity": "valid_boundary/frame-session-ready-J-FT",
+        "byte_length": 198,
+        "sha256": "3f4e9d104d177339c6bf575183a244bb4616ebe4f60a77fcc9dac240b5eeac27"
+      },
+      "binary_wss": {
+        "semantic_identity": "valid_boundary/frame-session-ready-J-FT",
+        "byte_length": 198,
+        "sha256": "3f4e9d104d177339c6bf575183a244bb4616ebe4f60a77fcc9dac240b5eeac27"
+      }
+    }
+  ],
+  "transport_rules": [
+    {
+      "id": "action_cancel_reliable_stream",
+      "plane": "both",
+      "semantic": "action_cancel",
+      "opcode": "ACTION_CANCEL",
+      "reliability": "reliable",
+      "wt_transport": "reliable_stream",
+      "wss_message_rule": "one_complete_frame_per_message",
+      "negotiation": null,
+      "max_datagram_size": null,
+      "frame_size": null,
+      "fallback_reason": null,
+      "wss_admission": null,
+      "wss_prewrite_drop": null,
+      "wss_after_write": "reliable",
+      "wss_hol": null,
+      "registry_bind": {
+        "opcodes": [
+          {
+            "name": "ACTION_CANCEL",
+            "require": [
+              {
+                "path": [
+                  "transport"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          }
+        ],
+        "payload_mappings": [
+          {
+            "semantic": "action_client",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_CANCEL"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "action_server",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_CANCEL"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          }
+        ],
+        "transport": [
+          {
+            "path": [
+              "operation_frame_transport_rule",
+              "action_goal_cancel_result"
+            ],
+            "equals": "ACTION_GOAL, ACTION_CANCEL, ACTION_RESULT always use reliable_stream"
+          },
+          {
+            "path": [
+              "binary_wss",
+              "message_rule"
+            ],
+            "equals": "Exactly one complete bootstrap record or selected-version frame per WebSocket message."
+          },
+          {
+            "path": [
+              "shared_semantic_fixtures"
+            ],
+            "equals": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "action_feedback_be_datagram_negotiated_sizefit",
+      "plane": "webtransport",
+      "semantic": "action_feedback",
+      "opcode": "ACTION_FEEDBACK",
+      "reliability": "best_effort",
+      "wt_transport": "datagram",
+      "wss_message_rule": null,
+      "negotiation": true,
+      "max_datagram_size": 1200,
+      "frame_size": 400,
+      "fallback_reason": null,
+      "wss_admission": null,
+      "wss_prewrite_drop": null,
+      "wss_after_write": null,
+      "wss_hol": null,
+      "registry_bind": {
+        "opcodes": [
+          {
+            "name": "ACTION_FEEDBACK",
+            "require": [
+              {
+                "path": [
+                  "transport",
+                  "source"
+                ],
+                "equals": "effective_action_qos.feedback_topic.reliability"
+              },
+              {
+                "path": [
+                  "transport",
+                  "RELIABLE"
+                ],
+                "equals": "reliable_stream"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT",
+                  "datagram"
+                ],
+                "equals": "when negotiated and frame fits maxDatagramSize"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT",
+                  "sample_scoped_stream"
+                ],
+                "equals": "when datagram unavailable or frame exceeds maxDatagramSize"
+              }
+            ]
+          }
+        ],
+        "payload_mappings": [
+          {
+            "semantic": "action_client",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_FEEDBACK",
+                  "from"
+                ],
+                "equals": "effective_action_qos.feedback_topic"
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_FEEDBACK",
+                  "BEST_EFFORT"
+                ],
+                "equals": "datagram_if_negotiated_and_size_fit_else_sample_scoped_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "action_server",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_FEEDBACK",
+                  "from"
+                ],
+                "equals": "effective_action_qos.feedback_topic"
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_FEEDBACK",
+                  "BEST_EFFORT"
+                ],
+                "equals": "datagram_if_negotiated_and_size_fit_else_sample_scoped_stream"
+              }
+            ]
+          }
+        ],
+        "transport": [
+          {
+            "path": [
+              "webtransport",
+              "datagram_rule"
+            ],
+            "equals": "Exactly one complete selected-version best-effort frame matching channel QoS and opcode transport rules (ROS_SAMPLE when topic BEST_EFFORT; ACTION_FEEDBACK/ACTION_STATUS when the respective effective topic reliability is BEST_EFFORT). Size MUST fit negotiated maxDatagramSize."
+          },
+          {
+            "path": [
+              "operation_frame_transport_rule",
+              "action_feedback_status"
+            ],
+            "equals": "ACTION_FEEDBACK uses effective_action_qos.feedback_topic.reliability; ACTION_STATUS uses effective_action_qos.status_topic.reliability; RELIABLE -> reliable_stream; BEST_EFFORT -> datagram (WebTransport when negotiated and size-fit) or sample_scoped_stream / WSS best-effort path"
+          },
+          {
+            "path": [
+              "shared_semantic_fixtures"
+            ],
+            "equals": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "action_feedback_be_sample_scoped_oversize",
+      "plane": "webtransport",
+      "semantic": "action_feedback",
+      "opcode": "ACTION_FEEDBACK",
+      "reliability": "best_effort",
+      "wt_transport": "sample_scoped_stream",
+      "wss_message_rule": null,
+      "negotiation": true,
+      "max_datagram_size": 1200,
+      "frame_size": 2400,
+      "fallback_reason": "frame_exceeds_max_datagram_size",
+      "wss_admission": null,
+      "wss_prewrite_drop": null,
+      "wss_after_write": null,
+      "wss_hol": null,
+      "registry_bind": {
+        "opcodes": [
+          {
+            "name": "ACTION_FEEDBACK",
+            "require": [
+              {
+                "path": [
+                  "transport",
+                  "source"
+                ],
+                "equals": "effective_action_qos.feedback_topic.reliability"
+              },
+              {
+                "path": [
+                  "transport",
+                  "RELIABLE"
+                ],
+                "equals": "reliable_stream"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT",
+                  "datagram"
+                ],
+                "equals": "when negotiated and frame fits maxDatagramSize"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT",
+                  "sample_scoped_stream"
+                ],
+                "equals": "when datagram unavailable or frame exceeds maxDatagramSize"
+              }
+            ]
+          }
+        ],
+        "payload_mappings": [
+          {
+            "semantic": "action_client",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_FEEDBACK",
+                  "from"
+                ],
+                "equals": "effective_action_qos.feedback_topic"
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_FEEDBACK",
+                  "BEST_EFFORT"
+                ],
+                "equals": "datagram_if_negotiated_and_size_fit_else_sample_scoped_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "action_server",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_FEEDBACK",
+                  "from"
+                ],
+                "equals": "effective_action_qos.feedback_topic"
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_FEEDBACK",
+                  "BEST_EFFORT"
+                ],
+                "equals": "datagram_if_negotiated_and_size_fit_else_sample_scoped_stream"
+              }
+            ]
+          }
+        ],
+        "transport": [
+          {
+            "path": [
+              "operation_frame_transport_rule",
+              "action_feedback_status"
+            ],
+            "equals": "ACTION_FEEDBACK uses effective_action_qos.feedback_topic.reliability; ACTION_STATUS uses effective_action_qos.status_topic.reliability; RELIABLE -> reliable_stream; BEST_EFFORT -> datagram (WebTransport when negotiated and size-fit) or sample_scoped_stream / WSS best-effort path"
+          },
+          {
+            "path": [
+              "shared_semantic_fixtures"
+            ],
+            "equals": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "action_feedback_be_sample_scoped_unavailable",
+      "plane": "webtransport",
+      "semantic": "action_feedback",
+      "opcode": "ACTION_FEEDBACK",
+      "reliability": "best_effort",
+      "wt_transport": "sample_scoped_stream",
+      "wss_message_rule": null,
+      "negotiation": false,
+      "max_datagram_size": null,
+      "frame_size": 400,
+      "fallback_reason": "datagram_unavailable",
+      "wss_admission": null,
+      "wss_prewrite_drop": null,
+      "wss_after_write": null,
+      "wss_hol": null,
+      "registry_bind": {
+        "opcodes": [
+          {
+            "name": "ACTION_FEEDBACK",
+            "require": [
+              {
+                "path": [
+                  "transport",
+                  "source"
+                ],
+                "equals": "effective_action_qos.feedback_topic.reliability"
+              },
+              {
+                "path": [
+                  "transport",
+                  "RELIABLE"
+                ],
+                "equals": "reliable_stream"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT",
+                  "datagram"
+                ],
+                "equals": "when negotiated and frame fits maxDatagramSize"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT",
+                  "sample_scoped_stream"
+                ],
+                "equals": "when datagram unavailable or frame exceeds maxDatagramSize"
+              }
+            ]
+          }
+        ],
+        "payload_mappings": [
+          {
+            "semantic": "action_client",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_FEEDBACK",
+                  "from"
+                ],
+                "equals": "effective_action_qos.feedback_topic"
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_FEEDBACK",
+                  "BEST_EFFORT"
+                ],
+                "equals": "datagram_if_negotiated_and_size_fit_else_sample_scoped_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "action_server",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_FEEDBACK",
+                  "from"
+                ],
+                "equals": "effective_action_qos.feedback_topic"
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_FEEDBACK",
+                  "BEST_EFFORT"
+                ],
+                "equals": "datagram_if_negotiated_and_size_fit_else_sample_scoped_stream"
+              }
+            ]
+          }
+        ],
+        "transport": [
+          {
+            "path": [
+              "operation_frame_transport_rule",
+              "action_feedback_status"
+            ],
+            "equals": "ACTION_FEEDBACK uses effective_action_qos.feedback_topic.reliability; ACTION_STATUS uses effective_action_qos.status_topic.reliability; RELIABLE -> reliable_stream; BEST_EFFORT -> datagram (WebTransport when negotiated and size-fit) or sample_scoped_stream / WSS best-effort path"
+          },
+          {
+            "path": [
+              "shared_semantic_fixtures"
+            ],
+            "equals": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "action_feedback_reliable_stream",
+      "plane": "both",
+      "semantic": "action_feedback",
+      "opcode": "ACTION_FEEDBACK",
+      "reliability": "reliable",
+      "wt_transport": "reliable_stream",
+      "wss_message_rule": "one_complete_frame_per_message",
+      "negotiation": null,
+      "max_datagram_size": null,
+      "frame_size": null,
+      "fallback_reason": null,
+      "wss_admission": null,
+      "wss_prewrite_drop": null,
+      "wss_after_write": "reliable",
+      "wss_hol": null,
+      "registry_bind": {
+        "opcodes": [
+          {
+            "name": "ACTION_FEEDBACK",
+            "require": [
+              {
+                "path": [
+                  "transport",
+                  "source"
+                ],
+                "equals": "effective_action_qos.feedback_topic.reliability"
+              },
+              {
+                "path": [
+                  "transport",
+                  "RELIABLE"
+                ],
+                "equals": "reliable_stream"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT",
+                  "datagram"
+                ],
+                "equals": "when negotiated and frame fits maxDatagramSize"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT",
+                  "sample_scoped_stream"
+                ],
+                "equals": "when datagram unavailable or frame exceeds maxDatagramSize"
+              }
+            ]
+          }
+        ],
+        "payload_mappings": [
+          {
+            "semantic": "action_client",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_FEEDBACK",
+                  "from"
+                ],
+                "equals": "effective_action_qos.feedback_topic"
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_FEEDBACK",
+                  "RELIABLE"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "action_server",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_FEEDBACK",
+                  "from"
+                ],
+                "equals": "effective_action_qos.feedback_topic"
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_FEEDBACK",
+                  "RELIABLE"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          }
+        ],
+        "transport": [
+          {
+            "path": [
+              "operation_frame_transport_rule",
+              "action_feedback_status"
+            ],
+            "equals": "ACTION_FEEDBACK uses effective_action_qos.feedback_topic.reliability; ACTION_STATUS uses effective_action_qos.status_topic.reliability; RELIABLE -> reliable_stream; BEST_EFFORT -> datagram (WebTransport when negotiated and size-fit) or sample_scoped_stream / WSS best-effort path"
+          },
+          {
+            "path": [
+              "binary_wss",
+              "message_rule"
+            ],
+            "equals": "Exactly one complete bootstrap record or selected-version frame per WebSocket message."
+          },
+          {
+            "path": [
+              "shared_semantic_fixtures"
+            ],
+            "equals": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "action_goal_reliable_stream",
+      "plane": "both",
+      "semantic": "action_goal",
+      "opcode": "ACTION_GOAL",
+      "reliability": "reliable",
+      "wt_transport": "reliable_stream",
+      "wss_message_rule": "one_complete_frame_per_message",
+      "negotiation": null,
+      "max_datagram_size": null,
+      "frame_size": null,
+      "fallback_reason": null,
+      "wss_admission": null,
+      "wss_prewrite_drop": null,
+      "wss_after_write": "reliable",
+      "wss_hol": null,
+      "registry_bind": {
+        "opcodes": [
+          {
+            "name": "ACTION_GOAL",
+            "require": [
+              {
+                "path": [
+                  "transport"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          }
+        ],
+        "payload_mappings": [
+          {
+            "semantic": "action_client",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_GOAL"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "action_server",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_GOAL"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          }
+        ],
+        "transport": [
+          {
+            "path": [
+              "operation_frame_transport_rule",
+              "action_goal_cancel_result"
+            ],
+            "equals": "ACTION_GOAL, ACTION_CANCEL, ACTION_RESULT always use reliable_stream"
+          },
+          {
+            "path": [
+              "binary_wss",
+              "message_rule"
+            ],
+            "equals": "Exactly one complete bootstrap record or selected-version frame per WebSocket message."
+          },
+          {
+            "path": [
+              "shared_semantic_fixtures"
+            ],
+            "equals": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "action_result_reliable_stream",
+      "plane": "both",
+      "semantic": "action_result",
+      "opcode": "ACTION_RESULT",
+      "reliability": "reliable",
+      "wt_transport": "reliable_stream",
+      "wss_message_rule": "one_complete_frame_per_message",
+      "negotiation": null,
+      "max_datagram_size": null,
+      "frame_size": null,
+      "fallback_reason": null,
+      "wss_admission": null,
+      "wss_prewrite_drop": null,
+      "wss_after_write": "reliable",
+      "wss_hol": null,
+      "registry_bind": {
+        "opcodes": [
+          {
+            "name": "ACTION_RESULT",
+            "require": [
+              {
+                "path": [
+                  "transport"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          }
+        ],
+        "payload_mappings": [
+          {
+            "semantic": "action_client",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_RESULT"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "action_server",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_RESULT"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          }
+        ],
+        "transport": [
+          {
+            "path": [
+              "operation_frame_transport_rule",
+              "action_goal_cancel_result"
+            ],
+            "equals": "ACTION_GOAL, ACTION_CANCEL, ACTION_RESULT always use reliable_stream"
+          },
+          {
+            "path": [
+              "binary_wss",
+              "message_rule"
+            ],
+            "equals": "Exactly one complete bootstrap record or selected-version frame per WebSocket message."
+          },
+          {
+            "path": [
+              "shared_semantic_fixtures"
+            ],
+            "equals": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "action_status_be_datagram_negotiated_sizefit",
+      "plane": "webtransport",
+      "semantic": "action_status",
+      "opcode": "ACTION_STATUS",
+      "reliability": "best_effort",
+      "wt_transport": "datagram",
+      "wss_message_rule": null,
+      "negotiation": true,
+      "max_datagram_size": 1200,
+      "frame_size": 300,
+      "fallback_reason": null,
+      "wss_admission": null,
+      "wss_prewrite_drop": null,
+      "wss_after_write": null,
+      "wss_hol": null,
+      "registry_bind": {
+        "opcodes": [
+          {
+            "name": "ACTION_STATUS",
+            "require": [
+              {
+                "path": [
+                  "transport",
+                  "source"
+                ],
+                "equals": "effective_action_qos.status_topic.reliability"
+              },
+              {
+                "path": [
+                  "transport",
+                  "RELIABLE"
+                ],
+                "equals": "reliable_stream"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT",
+                  "datagram"
+                ],
+                "equals": "when negotiated and frame fits maxDatagramSize"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT",
+                  "sample_scoped_stream"
+                ],
+                "equals": "when datagram unavailable or frame exceeds maxDatagramSize"
+              }
+            ]
+          }
+        ],
+        "payload_mappings": [
+          {
+            "semantic": "action_client",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_STATUS",
+                  "from"
+                ],
+                "equals": "effective_action_qos.status_topic"
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_STATUS",
+                  "BEST_EFFORT"
+                ],
+                "equals": "datagram_if_negotiated_and_size_fit_else_sample_scoped_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "action_server",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_STATUS",
+                  "from"
+                ],
+                "equals": "effective_action_qos.status_topic"
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_STATUS",
+                  "BEST_EFFORT"
+                ],
+                "equals": "datagram_if_negotiated_and_size_fit_else_sample_scoped_stream"
+              }
+            ]
+          }
+        ],
+        "transport": [
+          {
+            "path": [
+              "webtransport",
+              "datagram_rule"
+            ],
+            "equals": "Exactly one complete selected-version best-effort frame matching channel QoS and opcode transport rules (ROS_SAMPLE when topic BEST_EFFORT; ACTION_FEEDBACK/ACTION_STATUS when the respective effective topic reliability is BEST_EFFORT). Size MUST fit negotiated maxDatagramSize."
+          },
+          {
+            "path": [
+              "operation_frame_transport_rule",
+              "action_feedback_status"
+            ],
+            "equals": "ACTION_FEEDBACK uses effective_action_qos.feedback_topic.reliability; ACTION_STATUS uses effective_action_qos.status_topic.reliability; RELIABLE -> reliable_stream; BEST_EFFORT -> datagram (WebTransport when negotiated and size-fit) or sample_scoped_stream / WSS best-effort path"
+          },
+          {
+            "path": [
+              "shared_semantic_fixtures"
+            ],
+            "equals": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "action_status_be_sample_scoped_oversize",
+      "plane": "webtransport",
+      "semantic": "action_status",
+      "opcode": "ACTION_STATUS",
+      "reliability": "best_effort",
+      "wt_transport": "sample_scoped_stream",
+      "wss_message_rule": null,
+      "negotiation": true,
+      "max_datagram_size": 1200,
+      "frame_size": 4096,
+      "fallback_reason": "frame_exceeds_max_datagram_size",
+      "wss_admission": null,
+      "wss_prewrite_drop": null,
+      "wss_after_write": null,
+      "wss_hol": null,
+      "registry_bind": {
+        "opcodes": [
+          {
+            "name": "ACTION_STATUS",
+            "require": [
+              {
+                "path": [
+                  "transport",
+                  "source"
+                ],
+                "equals": "effective_action_qos.status_topic.reliability"
+              },
+              {
+                "path": [
+                  "transport",
+                  "RELIABLE"
+                ],
+                "equals": "reliable_stream"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT",
+                  "datagram"
+                ],
+                "equals": "when negotiated and frame fits maxDatagramSize"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT",
+                  "sample_scoped_stream"
+                ],
+                "equals": "when datagram unavailable or frame exceeds maxDatagramSize"
+              }
+            ]
+          }
+        ],
+        "payload_mappings": [
+          {
+            "semantic": "action_client",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_STATUS",
+                  "from"
+                ],
+                "equals": "effective_action_qos.status_topic"
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_STATUS",
+                  "BEST_EFFORT"
+                ],
+                "equals": "datagram_if_negotiated_and_size_fit_else_sample_scoped_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "action_server",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_STATUS",
+                  "from"
+                ],
+                "equals": "effective_action_qos.status_topic"
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_STATUS",
+                  "BEST_EFFORT"
+                ],
+                "equals": "datagram_if_negotiated_and_size_fit_else_sample_scoped_stream"
+              }
+            ]
+          }
+        ],
+        "transport": [
+          {
+            "path": [
+              "operation_frame_transport_rule",
+              "action_feedback_status"
+            ],
+            "equals": "ACTION_FEEDBACK uses effective_action_qos.feedback_topic.reliability; ACTION_STATUS uses effective_action_qos.status_topic.reliability; RELIABLE -> reliable_stream; BEST_EFFORT -> datagram (WebTransport when negotiated and size-fit) or sample_scoped_stream / WSS best-effort path"
+          },
+          {
+            "path": [
+              "shared_semantic_fixtures"
+            ],
+            "equals": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "action_status_be_sample_scoped_unavailable",
+      "plane": "webtransport",
+      "semantic": "action_status",
+      "opcode": "ACTION_STATUS",
+      "reliability": "best_effort",
+      "wt_transport": "sample_scoped_stream",
+      "wss_message_rule": null,
+      "negotiation": false,
+      "max_datagram_size": null,
+      "frame_size": 300,
+      "fallback_reason": "datagram_unavailable",
+      "wss_admission": null,
+      "wss_prewrite_drop": null,
+      "wss_after_write": null,
+      "wss_hol": null,
+      "registry_bind": {
+        "opcodes": [
+          {
+            "name": "ACTION_STATUS",
+            "require": [
+              {
+                "path": [
+                  "transport",
+                  "source"
+                ],
+                "equals": "effective_action_qos.status_topic.reliability"
+              },
+              {
+                "path": [
+                  "transport",
+                  "RELIABLE"
+                ],
+                "equals": "reliable_stream"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT",
+                  "datagram"
+                ],
+                "equals": "when negotiated and frame fits maxDatagramSize"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT",
+                  "sample_scoped_stream"
+                ],
+                "equals": "when datagram unavailable or frame exceeds maxDatagramSize"
+              }
+            ]
+          }
+        ],
+        "payload_mappings": [
+          {
+            "semantic": "action_client",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_STATUS",
+                  "from"
+                ],
+                "equals": "effective_action_qos.status_topic"
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_STATUS",
+                  "BEST_EFFORT"
+                ],
+                "equals": "datagram_if_negotiated_and_size_fit_else_sample_scoped_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "action_server",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_STATUS",
+                  "from"
+                ],
+                "equals": "effective_action_qos.status_topic"
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_STATUS",
+                  "BEST_EFFORT"
+                ],
+                "equals": "datagram_if_negotiated_and_size_fit_else_sample_scoped_stream"
+              }
+            ]
+          }
+        ],
+        "transport": [
+          {
+            "path": [
+              "operation_frame_transport_rule",
+              "action_feedback_status"
+            ],
+            "equals": "ACTION_FEEDBACK uses effective_action_qos.feedback_topic.reliability; ACTION_STATUS uses effective_action_qos.status_topic.reliability; RELIABLE -> reliable_stream; BEST_EFFORT -> datagram (WebTransport when negotiated and size-fit) or sample_scoped_stream / WSS best-effort path"
+          },
+          {
+            "path": [
+              "shared_semantic_fixtures"
+            ],
+            "equals": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "action_status_reliable_stream",
+      "plane": "both",
+      "semantic": "action_status",
+      "opcode": "ACTION_STATUS",
+      "reliability": "reliable",
+      "wt_transport": "reliable_stream",
+      "wss_message_rule": "one_complete_frame_per_message",
+      "negotiation": null,
+      "max_datagram_size": null,
+      "frame_size": null,
+      "fallback_reason": null,
+      "wss_admission": null,
+      "wss_prewrite_drop": null,
+      "wss_after_write": "reliable",
+      "wss_hol": null,
+      "registry_bind": {
+        "opcodes": [
+          {
+            "name": "ACTION_STATUS",
+            "require": [
+              {
+                "path": [
+                  "transport",
+                  "source"
+                ],
+                "equals": "effective_action_qos.status_topic.reliability"
+              },
+              {
+                "path": [
+                  "transport",
+                  "RELIABLE"
+                ],
+                "equals": "reliable_stream"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT",
+                  "datagram"
+                ],
+                "equals": "when negotiated and frame fits maxDatagramSize"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT",
+                  "sample_scoped_stream"
+                ],
+                "equals": "when datagram unavailable or frame exceeds maxDatagramSize"
+              }
+            ]
+          }
+        ],
+        "payload_mappings": [
+          {
+            "semantic": "action_client",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_STATUS",
+                  "from"
+                ],
+                "equals": "effective_action_qos.status_topic"
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_STATUS",
+                  "RELIABLE"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "action_server",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_STATUS",
+                  "from"
+                ],
+                "equals": "effective_action_qos.status_topic"
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_STATUS",
+                  "RELIABLE"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          }
+        ],
+        "transport": [
+          {
+            "path": [
+              "operation_frame_transport_rule",
+              "action_feedback_status"
+            ],
+            "equals": "ACTION_FEEDBACK uses effective_action_qos.feedback_topic.reliability; ACTION_STATUS uses effective_action_qos.status_topic.reliability; RELIABLE -> reliable_stream; BEST_EFFORT -> datagram (WebTransport when negotiated and size-fit) or sample_scoped_stream / WSS best-effort path"
+          },
+          {
+            "path": [
+              "binary_wss",
+              "message_rule"
+            ],
+            "equals": "Exactly one complete bootstrap record or selected-version frame per WebSocket message."
+          },
+          {
+            "path": [
+              "shared_semantic_fixtures"
+            ],
+            "equals": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "binary_wss_one_complete_frame_per_message",
+      "plane": "binary_wss",
+      "semantic": "selected_version_frame",
+      "opcode": null,
+      "reliability": null,
+      "wt_transport": null,
+      "wss_message_rule": "one_complete_frame_per_message",
+      "negotiation": null,
+      "max_datagram_size": null,
+      "frame_size": null,
+      "fallback_reason": null,
+      "wss_admission": null,
+      "wss_prewrite_drop": null,
+      "wss_after_write": "reliable",
+      "wss_hol": null,
+      "registry_bind": {
+        "opcodes": [],
+        "payload_mappings": [],
+        "transport": [
+          {
+            "path": [
+              "binary_wss",
+              "message_rule"
+            ],
+            "equals": "Exactly one complete bootstrap record or selected-version frame per WebSocket message."
+          },
+          {
+            "path": [
+              "shared_semantic_fixtures"
+            ],
+            "equals": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "service_request_reliable_stream",
+      "plane": "both",
+      "semantic": "service_request",
+      "opcode": "SERVICE_REQUEST",
+      "reliability": "reliable",
+      "wt_transport": "reliable_stream",
+      "wss_message_rule": "one_complete_frame_per_message",
+      "negotiation": null,
+      "max_datagram_size": null,
+      "frame_size": null,
+      "fallback_reason": null,
+      "wss_admission": null,
+      "wss_prewrite_drop": null,
+      "wss_after_write": "reliable",
+      "wss_hol": null,
+      "registry_bind": {
+        "opcodes": [
+          {
+            "name": "SERVICE_REQUEST",
+            "require": [
+              {
+                "path": [
+                  "transport"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          }
+        ],
+        "payload_mappings": [
+          {
+            "semantic": "service_client",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "SERVICE_REQUEST",
+                  "SERVICE_RESPONSE"
+                ]
+              },
+              {
+                "path": [
+                  "transport"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "service_server",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "SERVICE_REQUEST",
+                  "SERVICE_RESPONSE"
+                ]
+              },
+              {
+                "path": [
+                  "transport"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          }
+        ],
+        "transport": [
+          {
+            "path": [
+              "operation_frame_transport_rule",
+              "service"
+            ],
+            "equals": "SERVICE_REQUEST and SERVICE_RESPONSE always use reliable_stream"
+          },
+          {
+            "path": [
+              "binary_wss",
+              "message_rule"
+            ],
+            "equals": "Exactly one complete bootstrap record or selected-version frame per WebSocket message."
+          },
+          {
+            "path": [
+              "shared_semantic_fixtures"
+            ],
+            "equals": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "service_response_reliable_stream",
+      "plane": "both",
+      "semantic": "service_response",
+      "opcode": "SERVICE_RESPONSE",
+      "reliability": "reliable",
+      "wt_transport": "reliable_stream",
+      "wss_message_rule": "one_complete_frame_per_message",
+      "negotiation": null,
+      "max_datagram_size": null,
+      "frame_size": null,
+      "fallback_reason": null,
+      "wss_admission": null,
+      "wss_prewrite_drop": null,
+      "wss_after_write": "reliable",
+      "wss_hol": null,
+      "registry_bind": {
+        "opcodes": [
+          {
+            "name": "SERVICE_RESPONSE",
+            "require": [
+              {
+                "path": [
+                  "transport"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          }
+        ],
+        "payload_mappings": [
+          {
+            "semantic": "service_client",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "SERVICE_REQUEST",
+                  "SERVICE_RESPONSE"
+                ]
+              },
+              {
+                "path": [
+                  "transport"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "service_server",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "SERVICE_REQUEST",
+                  "SERVICE_RESPONSE"
+                ]
+              },
+              {
+                "path": [
+                  "transport"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          }
+        ],
+        "transport": [
+          {
+            "path": [
+              "operation_frame_transport_rule",
+              "service"
+            ],
+            "equals": "SERVICE_REQUEST and SERVICE_RESPONSE always use reliable_stream"
+          },
+          {
+            "path": [
+              "binary_wss",
+              "message_rule"
+            ],
+            "equals": "Exactly one complete bootstrap record or selected-version frame per WebSocket message."
+          },
+          {
+            "path": [
+              "shared_semantic_fixtures"
+            ],
+            "equals": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "topic_be_wt_datagram_negotiated_sizefit",
+      "plane": "webtransport",
+      "semantic": "topic",
+      "opcode": "ROS_SAMPLE",
+      "reliability": "best_effort",
+      "wt_transport": "datagram",
+      "wss_message_rule": null,
+      "negotiation": true,
+      "max_datagram_size": 1200,
+      "frame_size": 512,
+      "fallback_reason": null,
+      "wss_admission": null,
+      "wss_prewrite_drop": null,
+      "wss_after_write": null,
+      "wss_hol": null,
+      "registry_bind": {
+        "opcodes": [
+          {
+            "name": "ROS_SAMPLE",
+            "require": [
+              {
+                "path": [
+                  "datagram_ok_if_best_effort"
+                ],
+                "equals": true
+              },
+              {
+                "path": [
+                  "sample_scoped_stream_ok_if_best_effort"
+                ],
+                "equals": true
+              }
+            ]
+          }
+        ],
+        "payload_mappings": [
+          {
+            "semantic": "topic_publish",
+            "require": [
+              {
+                "path": [
+                  "opcode"
+                ],
+                "equals": "ROS_SAMPLE"
+              },
+              {
+                "path": [
+                  "transport",
+                  "when_effective_reliability_BEST_EFFORT_small"
+                ],
+                "equals": "datagram"
+              }
+            ]
+          },
+          {
+            "semantic": "topic_subscribe",
+            "require": [
+              {
+                "path": [
+                  "opcode"
+                ],
+                "equals": "ROS_SAMPLE"
+              },
+              {
+                "path": [
+                  "transport",
+                  "selection"
+                ],
+                "equals": "from_effective_qos_reliability"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT"
+                ],
+                "equals": "datagram_or_sample_scoped_stream_by_size"
+              }
+            ]
+          }
+        ],
+        "transport": [
+          {
+            "path": [
+              "webtransport",
+              "datagram_rule"
+            ],
+            "equals": "Exactly one complete selected-version best-effort frame matching channel QoS and opcode transport rules (ROS_SAMPLE when topic BEST_EFFORT; ACTION_FEEDBACK/ACTION_STATUS when the respective effective topic reliability is BEST_EFFORT). Size MUST fit negotiated maxDatagramSize."
+          },
+          {
+            "path": [
+              "shared_semantic_fixtures"
+            ],
+            "equals": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "topic_be_wt_sample_scoped_oversize",
+      "plane": "webtransport",
+      "semantic": "topic",
+      "opcode": "ROS_SAMPLE",
+      "reliability": "best_effort",
+      "wt_transport": "sample_scoped_stream",
+      "wss_message_rule": null,
+      "negotiation": true,
+      "max_datagram_size": 1200,
+      "frame_size": 2048,
+      "fallback_reason": "frame_exceeds_max_datagram_size",
+      "wss_admission": null,
+      "wss_prewrite_drop": null,
+      "wss_after_write": null,
+      "wss_hol": null,
+      "registry_bind": {
+        "opcodes": [
+          {
+            "name": "ROS_SAMPLE",
+            "require": [
+              {
+                "path": [
+                  "datagram_ok_if_best_effort"
+                ],
+                "equals": true
+              },
+              {
+                "path": [
+                  "sample_scoped_stream_ok_if_best_effort"
+                ],
+                "equals": true
+              }
+            ]
+          }
+        ],
+        "payload_mappings": [
+          {
+            "semantic": "topic_publish",
+            "require": [
+              {
+                "path": [
+                  "opcode"
+                ],
+                "equals": "ROS_SAMPLE"
+              },
+              {
+                "path": [
+                  "transport",
+                  "when_effective_reliability_BEST_EFFORT_large"
+                ],
+                "equals": "sample_scoped_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "topic_subscribe",
+            "require": [
+              {
+                "path": [
+                  "opcode"
+                ],
+                "equals": "ROS_SAMPLE"
+              },
+              {
+                "path": [
+                  "transport",
+                  "selection"
+                ],
+                "equals": "from_effective_qos_reliability"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT"
+                ],
+                "equals": "datagram_or_sample_scoped_stream_by_size"
+              }
+            ]
+          }
+        ],
+        "transport": [
+          {
+            "path": [
+              "webtransport",
+              "datagram_rule"
+            ],
+            "equals": "Exactly one complete selected-version best-effort frame matching channel QoS and opcode transport rules (ROS_SAMPLE when topic BEST_EFFORT; ACTION_FEEDBACK/ACTION_STATUS when the respective effective topic reliability is BEST_EFFORT). Size MUST fit negotiated maxDatagramSize."
+          },
+          {
+            "path": [
+              "shared_semantic_fixtures"
+            ],
+            "equals": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "topic_be_wt_sample_scoped_unavailable",
+      "plane": "webtransport",
+      "semantic": "topic",
+      "opcode": "ROS_SAMPLE",
+      "reliability": "best_effort",
+      "wt_transport": "sample_scoped_stream",
+      "wss_message_rule": null,
+      "negotiation": false,
+      "max_datagram_size": null,
+      "frame_size": 512,
+      "fallback_reason": "datagram_unavailable",
+      "wss_admission": null,
+      "wss_prewrite_drop": null,
+      "wss_after_write": null,
+      "wss_hol": null,
+      "registry_bind": {
+        "opcodes": [
+          {
+            "name": "ROS_SAMPLE",
+            "require": [
+              {
+                "path": [
+                  "datagram_ok_if_best_effort"
+                ],
+                "equals": true
+              },
+              {
+                "path": [
+                  "sample_scoped_stream_ok_if_best_effort"
+                ],
+                "equals": true
+              }
+            ]
+          }
+        ],
+        "payload_mappings": [
+          {
+            "semantic": "topic_publish",
+            "require": [
+              {
+                "path": [
+                  "opcode"
+                ],
+                "equals": "ROS_SAMPLE"
+              },
+              {
+                "path": [
+                  "transport",
+                  "when_effective_reliability_BEST_EFFORT_large"
+                ],
+                "equals": "sample_scoped_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "topic_subscribe",
+            "require": [
+              {
+                "path": [
+                  "opcode"
+                ],
+                "equals": "ROS_SAMPLE"
+              },
+              {
+                "path": [
+                  "transport",
+                  "selection"
+                ],
+                "equals": "from_effective_qos_reliability"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT"
+                ],
+                "equals": "datagram_or_sample_scoped_stream_by_size"
+              }
+            ]
+          }
+        ],
+        "transport": [
+          {
+            "path": [
+              "webtransport",
+              "datagram_rule"
+            ],
+            "equals": "Exactly one complete selected-version best-effort frame matching channel QoS and opcode transport rules (ROS_SAMPLE when topic BEST_EFFORT; ACTION_FEEDBACK/ACTION_STATUS when the respective effective topic reliability is BEST_EFFORT). Size MUST fit negotiated maxDatagramSize."
+          },
+          {
+            "path": [
+              "shared_semantic_fixtures"
+            ],
+            "equals": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "topic_reliable_wss_one_frame_reliable_delivery",
+      "plane": "binary_wss",
+      "semantic": "topic",
+      "opcode": "ROS_SAMPLE",
+      "reliability": "reliable",
+      "wt_transport": null,
+      "wss_message_rule": "one_complete_frame_per_message",
+      "negotiation": null,
+      "max_datagram_size": null,
+      "frame_size": null,
+      "fallback_reason": null,
+      "wss_admission": null,
+      "wss_prewrite_drop": null,
+      "wss_after_write": "reliable",
+      "wss_hol": null,
+      "registry_bind": {
+        "opcodes": [
+          {
+            "name": "ROS_SAMPLE",
+            "require": [
+              {
+                "path": [
+                  "datagram_ok_if_best_effort"
+                ],
+                "equals": true
+              },
+              {
+                "path": [
+                  "sample_scoped_stream_ok_if_best_effort"
+                ],
+                "equals": true
+              }
+            ]
+          }
+        ],
+        "payload_mappings": [
+          {
+            "semantic": "topic_publish",
+            "require": [
+              {
+                "path": [
+                  "opcode"
+                ],
+                "equals": "ROS_SAMPLE"
+              },
+              {
+                "path": [
+                  "transport",
+                  "when_effective_reliability_RELIABLE"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "topic_subscribe",
+            "require": [
+              {
+                "path": [
+                  "opcode"
+                ],
+                "equals": "ROS_SAMPLE"
+              },
+              {
+                "path": [
+                  "transport",
+                  "selection"
+                ],
+                "equals": "from_effective_qos_reliability"
+              },
+              {
+                "path": [
+                  "transport",
+                  "RELIABLE"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          }
+        ],
+        "transport": [
+          {
+            "path": [
+              "binary_wss",
+              "message_rule"
+            ],
+            "equals": "Exactly one complete bootstrap record or selected-version frame per WebSocket message."
+          },
+          {
+            "path": [
+              "shared_semantic_fixtures"
+            ],
+            "equals": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "topic_reliable_wt_reliable_stream",
+      "plane": "webtransport",
+      "semantic": "topic",
+      "opcode": "ROS_SAMPLE",
+      "reliability": "reliable",
+      "wt_transport": "reliable_stream",
+      "wss_message_rule": null,
+      "negotiation": null,
+      "max_datagram_size": null,
+      "frame_size": null,
+      "fallback_reason": null,
+      "wss_admission": null,
+      "wss_prewrite_drop": null,
+      "wss_after_write": null,
+      "wss_hol": null,
+      "registry_bind": {
+        "opcodes": [
+          {
+            "name": "ROS_SAMPLE",
+            "require": [
+              {
+                "path": [
+                  "datagram_ok_if_best_effort"
+                ],
+                "equals": true
+              },
+              {
+                "path": [
+                  "sample_scoped_stream_ok_if_best_effort"
+                ],
+                "equals": true
+              }
+            ]
+          }
+        ],
+        "payload_mappings": [
+          {
+            "semantic": "topic_publish",
+            "require": [
+              {
+                "path": [
+                  "opcode"
+                ],
+                "equals": "ROS_SAMPLE"
+              },
+              {
+                "path": [
+                  "transport",
+                  "when_effective_reliability_RELIABLE"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "topic_subscribe",
+            "require": [
+              {
+                "path": [
+                  "opcode"
+                ],
+                "equals": "ROS_SAMPLE"
+              },
+              {
+                "path": [
+                  "transport",
+                  "selection"
+                ],
+                "equals": "from_effective_qos_reliability"
+              },
+              {
+                "path": [
+                  "transport",
+                  "RELIABLE"
+                ],
+                "equals": "reliable_stream"
+              }
+            ]
+          }
+        ],
+        "transport": [
+          {
+            "path": [
+              "shared_semantic_fixtures"
+            ],
+            "equals": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "wss_be_latest_wins_prewrite_gap_postwrite_reliable_hol",
+      "plane": "binary_wss",
+      "semantic": "topic_or_action_feedback_status_best_effort",
+      "opcode": null,
+      "reliability": "best_effort",
+      "wt_transport": null,
+      "wss_message_rule": "one_complete_frame_per_message",
+      "negotiation": null,
+      "max_datagram_size": null,
+      "frame_size": null,
+      "fallback_reason": null,
+      "wss_admission": "bounded_latest_wins_prewrite",
+      "wss_prewrite_drop": "sequence_gap",
+      "wss_after_write": "reliable",
+      "wss_hol": "transport_evidence",
+      "registry_bind": {
+        "opcodes": [
+          {
+            "name": "ROS_SAMPLE",
+            "require": [
+              {
+                "path": [
+                  "datagram_ok_if_best_effort"
+                ],
+                "equals": true
+              },
+              {
+                "path": [
+                  "sample_scoped_stream_ok_if_best_effort"
+                ],
+                "equals": true
+              }
+            ]
+          },
+          {
+            "name": "ACTION_FEEDBACK",
+            "require": [
+              {
+                "path": [
+                  "transport",
+                  "source"
+                ],
+                "equals": "effective_action_qos.feedback_topic.reliability"
+              },
+              {
+                "path": [
+                  "transport",
+                  "RELIABLE"
+                ],
+                "equals": "reliable_stream"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT",
+                  "datagram"
+                ],
+                "equals": "when negotiated and frame fits maxDatagramSize"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT",
+                  "sample_scoped_stream"
+                ],
+                "equals": "when datagram unavailable or frame exceeds maxDatagramSize"
+              }
+            ]
+          },
+          {
+            "name": "ACTION_STATUS",
+            "require": [
+              {
+                "path": [
+                  "transport",
+                  "source"
+                ],
+                "equals": "effective_action_qos.status_topic.reliability"
+              },
+              {
+                "path": [
+                  "transport",
+                  "RELIABLE"
+                ],
+                "equals": "reliable_stream"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT",
+                  "datagram"
+                ],
+                "equals": "when negotiated and frame fits maxDatagramSize"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT",
+                  "sample_scoped_stream"
+                ],
+                "equals": "when datagram unavailable or frame exceeds maxDatagramSize"
+              }
+            ]
+          }
+        ],
+        "payload_mappings": [
+          {
+            "semantic": "topic_publish",
+            "require": [
+              {
+                "path": [
+                  "opcode"
+                ],
+                "equals": "ROS_SAMPLE"
+              },
+              {
+                "path": [
+                  "transport",
+                  "when_effective_reliability_BEST_EFFORT_small"
+                ],
+                "equals": "datagram"
+              }
+            ]
+          },
+          {
+            "semantic": "topic_publish",
+            "require": [
+              {
+                "path": [
+                  "opcode"
+                ],
+                "equals": "ROS_SAMPLE"
+              },
+              {
+                "path": [
+                  "transport",
+                  "when_effective_reliability_BEST_EFFORT_large"
+                ],
+                "equals": "sample_scoped_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "topic_subscribe",
+            "require": [
+              {
+                "path": [
+                  "opcode"
+                ],
+                "equals": "ROS_SAMPLE"
+              },
+              {
+                "path": [
+                  "transport",
+                  "selection"
+                ],
+                "equals": "from_effective_qos_reliability"
+              },
+              {
+                "path": [
+                  "transport",
+                  "BEST_EFFORT"
+                ],
+                "equals": "datagram_or_sample_scoped_stream_by_size"
+              }
+            ]
+          },
+          {
+            "semantic": "action_client",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_FEEDBACK",
+                  "from"
+                ],
+                "equals": "effective_action_qos.feedback_topic"
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_FEEDBACK",
+                  "BEST_EFFORT"
+                ],
+                "equals": "datagram_if_negotiated_and_size_fit_else_sample_scoped_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "action_server",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_FEEDBACK",
+                  "from"
+                ],
+                "equals": "effective_action_qos.feedback_topic"
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_FEEDBACK",
+                  "BEST_EFFORT"
+                ],
+                "equals": "datagram_if_negotiated_and_size_fit_else_sample_scoped_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "action_client",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_STATUS",
+                  "from"
+                ],
+                "equals": "effective_action_qos.status_topic"
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_STATUS",
+                  "BEST_EFFORT"
+                ],
+                "equals": "datagram_if_negotiated_and_size_fit_else_sample_scoped_stream"
+              }
+            ]
+          },
+          {
+            "semantic": "action_server",
+            "require": [
+              {
+                "path": [
+                  "opcodes"
+                ],
+                "equals": [
+                  "ACTION_GOAL",
+                  "ACTION_FEEDBACK",
+                  "ACTION_RESULT",
+                  "ACTION_STATUS",
+                  "ACTION_CANCEL"
+                ]
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_STATUS",
+                  "from"
+                ],
+                "equals": "effective_action_qos.status_topic"
+              },
+              {
+                "path": [
+                  "transport",
+                  "ACTION_STATUS",
+                  "BEST_EFFORT"
+                ],
+                "equals": "datagram_if_negotiated_and_size_fit_else_sample_scoped_stream"
+              }
+            ]
+          }
+        ],
+        "transport": [
+          {
+            "path": [
+              "binary_wss",
+              "message_rule"
+            ],
+            "equals": "Exactly one complete bootstrap record or selected-version frame per WebSocket message."
+          },
+          {
+            "path": [
+              "binary_wss",
+              "best_effort_topic_and_action_feedback_status",
+              "applies_to"
+            ],
+            "equals": [
+              "ROS_SAMPLE when effective reliability is BEST_EFFORT",
+              "ACTION_FEEDBACK when effective_action_qos.feedback_topic reliability is BEST_EFFORT",
+              "ACTION_STATUS when effective_action_qos.status_topic reliability is BEST_EFFORT"
+            ]
+          },
+          {
+            "path": [
+              "binary_wss",
+              "best_effort_topic_and_action_feedback_status",
+              "admission"
+            ],
+            "equals": "Bounded latest-wins admission and eviction BEFORE write to the WebSocket."
+          },
+          {
+            "path": [
+              "binary_wss",
+              "best_effort_topic_and_action_feedback_status",
+              "dropped_before_write"
+            ],
+            "equals": "Receiver observes sequence_gap for frames dropped by admission/eviction."
+          },
+          {
+            "path": [
+              "binary_wss",
+              "best_effort_topic_and_action_feedback_status",
+              "after_write"
+            ],
+            "equals": "Once frame bytes are written to the WebSocket, delivery is reliable under RFC 6455 (no post-write best-effort drop)."
+          },
+          {
+            "path": [
+              "binary_wss",
+              "best_effort_topic_and_action_feedback_status",
+              "head_of_line",
+              "status"
+            ],
+            "equals": "transport_evidence"
+          },
+          {
+            "path": [
+              "binary_wss",
+              "best_effort_topic_and_action_feedback_status",
+              "no_datagram_plane"
+            ],
+            "equals": true
+          },
+          {
+            "path": [
+              "binary_wss",
+              "best_effort_topic_and_action_feedback_status",
+              "one_complete_frame_per_message"
+            ],
+            "equals": true
+          },
+          {
+            "path": [
+              "shared_semantic_fixtures"
+            ],
+            "equals": true
+          }
+        ]
+      }
+    }
+  ]
+}

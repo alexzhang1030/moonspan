@@ -16,31 +16,39 @@ toolchain-check:
 protocol-check: toolchain-check
     cd "{{root}}" && bun run protocol-check
 
-# Regenerate R2WP v0 valid/boundary fixtures and manifest.
+# Aggregate write: valid/boundary → malformed → sequences → parity (scripts/protocol-fixtures.ts).
 [group('quality')]
 protocol-fixtures-write: toolchain-check
     cd "{{root}}" && bun run protocol-fixtures:write
 
-# Reconstruct and verify R2WP v0 fixtures against the committed manifest and binaries.
+# Aggregate check: valid/boundary → malformed → sequences → parity (exactly once each).
 [group('quality')]
 protocol-fixtures-check: toolchain-check
     cd "{{root}}" && bun run protocol-fixtures:check
 
-# Validate R2WP v0 static malformed fixtures (scripts/protocol-malformed-fixtures.ts).
+# Standalone write R2WP v0 static malformed fixtures.
 protocol-malformed-fixtures-write: toolchain-check
     cd "{{root}}" && bun run protocol-malformed-fixtures:write
 
-# Check R2WP v0 static malformed fixtures against committed artifacts.
+# Standalone check R2WP v0 static malformed fixtures.
 protocol-malformed-fixtures-check: toolchain-check
     cd "{{root}}" && bun run protocol-malformed-fixtures:check
 
-# Write R2WP v0 state-sequence fixtures.
+# Standalone write R2WP v0 state-sequence fixtures.
 protocol-sequence-fixtures-write: toolchain-check
     cd "{{root}}" && bun run protocol-sequence-fixtures:write
 
-# Check R2WP v0 state-sequence fixtures.
+# Standalone check R2WP v0 state-sequence fixtures.
 protocol-sequence-fixtures-check: toolchain-check
     cd "{{root}}" && bun run protocol-sequence-fixtures:check
+
+# Standalone write R2WP v0 dual-transport parity corpus.
+protocol-parity-fixtures-write: toolchain-check
+    cd "{{root}}" && bun run protocol-parity-fixtures:write
+
+# Standalone check R2WP v0 dual-transport parity corpus.
+protocol-parity-fixtures-check: toolchain-check
+    cd "{{root}}" && bun run protocol-parity-fixtures:check
 
 # Toolchain identity, Bun docs + protocol validation, Rust fmt/clippy, MoonBit format/check, TypeScript check.
 [group('quality')]

@@ -11,6 +11,7 @@ Valid and boundary golden fixtures for wire version 0. Generated and checked by
 | `valid/*.bin` | Materialized exact wire bytes for small and medium fixtures |
 | `malformed/` | Static malformed wire corpus (M0-03e1); own manifest + `*.bin` |
 | `sequences/` | Receiver state-sequence corpus (M0-03e2); scenarios + events |
+| `parity.json` | Dual-transport parity corpus (M0-03e3); shared artifact identities + transport rule matrix |
 
 ## Representations
 
@@ -67,37 +68,42 @@ Executable closed tags for encode inputs:
 
 ## Commands
 
+Aggregate (M0-03e3 owner: `scripts/protocol-fixtures.ts`):
+
 ```bash
-bun run protocol-fixtures:write   # regenerate manifest + valid/*.bin
-bun run protocol-fixtures:check   # reconstruct and verify everything
-bun test scripts/protocol-fixtures.test.ts
+bun run protocol-fixtures:write   # valid_boundary → malformed → sequences → parity
+bun run protocol-fixtures:check   # same order, exactly once each
+bun run test:protocol-fixtures    # four test files exactly once, fixed order
 ```
 
-Root `bun run check` and `just check` include `protocol-fixtures:check` after
-`protocol-check`, then `protocol-malformed-fixtures:check`, then `protocol-sequence-fixtures:check`.
+Root `bun run check` and `just check` run aggregate `protocol-fixtures:check`
+after `protocol-check`. Aggregate ownership lives in `scripts/protocol-fixtures.ts`
+and covers valid_boundary, malformed, sequences, and parity in that fixed order.
 
-Malformed corpus commands:
+Standalone corpus commands:
 
 ```bash
 bun run protocol-malformed-fixtures:write
 bun run protocol-malformed-fixtures:check
 bun test scripts/protocol-malformed-fixtures.test.ts
-```
 
-State-sequence corpus commands (M0-03e2):
-
-```bash
-bun run protocol-sequence-fixtures:write   # regenerate sequences/{manifest,scenarios,events}
-bun run protocol-sequence-fixtures:check   # parse + replay on-disk corpus (creates nothing)
+bun run protocol-sequence-fixtures:write
+bun run protocol-sequence-fixtures:check
 bun test scripts/protocol-sequence-fixtures.test.ts
-just protocol-sequence-fixtures-write
-just protocol-sequence-fixtures-check
+
+bun run protocol-parity-fixtures:write
+bun run protocol-parity-fixtures:check
+bun test scripts/protocol-parity-fixtures.test.ts
+just protocol-parity-fixtures-write
+just protocol-parity-fixtures-check
 ```
 
-`--check` is disk-first: it bounded-reads `manifest.json`, closed-validates schema,
-loads every referenced scenario JSON and event bytes, verifies length/sha256, then
-replays event bytes through codecs and the state oracle comparing stored outcomes
-and full `state_after` projections. `buildCorpus` is the write-side reference only.
+`parity.json` indexes the exact union of 20 valid/boundary fixture identities and
+26 sequence event identities with WebTransport and binary_wss transport refs that
+must share semantic identity, length, and SHA-256. A separate `transport_rules`
+matrix covers dual-transport semantics (topic/service/action reliability paths,
+WSS one-frame/latest-wins/HOL evidence) and is cross-bound to
+`protocol/registry/r2wp-v0.json`.
 
 ## Coverage highlights
 
