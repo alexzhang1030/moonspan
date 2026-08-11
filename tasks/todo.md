@@ -25,8 +25,8 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
 - [~] M1-01 Implement `cdr_mbt` ([CDR core contract](../docs/runtime/cdr.md)).
   - [x] M1-01a Freeze the CDR core contract and conformance plan.
   - [ ] M1-01b Bounded stream reader/writer, encapsulation, endian, alignment, limits, and typed errors.
-  - [ ] M1-01c Primitives, strings/wstrings, arrays, sequences, nested values, and borrowed BytesView fields.
-  - [ ] M1-01d Prove the authoritative corpus, semantic agreement, round trips, malformed input, and resource bounds.
+  - [ ] M1-01c Primitives, strings/wstrings (legacy profile, wstring scalar boundary), arrays, sequences, nested values, and borrowed BytesView fields.
+  - [ ] M1-01d Prove the authoritative corpus, semantic agreement (CY exact vs FT/ZN four-byte zero tail slack), round trips, malformed input, and resource bounds.
 - [ ] M1-02 Implement generated types and the type registry.
 - [ ] M1-03 Establish the Wasm host ABI and executor poll loop.
 - [ ] M1-04 Implement the serialized ROS C ABI.

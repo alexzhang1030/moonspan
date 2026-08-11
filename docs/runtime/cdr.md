@@ -20,16 +20,24 @@ Corpus encoding identity is `CDR1` in [`conformance/cdr/manifest.json`](../../co
 
 ## CDR1 framing and alignment
 
-Frozen framing for top-level sample streams (DDS-XTypes 1.3 Clause **7.4.1** PLAIN_CDR / encoding version 1, Clause **7.4.3** XCDR stream model, **Table 60** RTPS encapsulation identifier, and the TOP_LEVEL serialization rule):
+Frozen framing for top-level sample streams (DDS-XTypes 1.3 Clause **7.4.1** PLAIN_CDR / encoding version 1, Clause **7.4.3** XCDR stream model, **Table 60** RTPS encapsulation identifier):
 
-1. **Encapsulation header (4 bytes)**
-   - 2-byte representation identifier (`ENC_HEADER` / RTPS encapsulation identifier).
-   - 2 option bytes following the identifier (RTPS OMG CDR encapsulation options, as referenced from XTypes Table 60 discussion and Sub Clause 10.2.1.2 of RTPS).
-   - CDR1 little endian uses encapsulation identifier `{0x00, 0x01}` (`CDR_LE`).
-   - CDR1 big endian uses encapsulation identifier `{0x00, 0x00}` (`CDR_BE`).
+1. **Encapsulation header (absolute offsets 0–3)**
+   - Bytes 0–1: representation identifier (`ENC_HEADER` / RTPS encapsulation identifier).
+   - Bytes 2–3: options field, captured as `UInt16` metadata.
+   - Accepted representation identifiers for M1:
+     - `0x0001` (`CDR_LE`) — CDR1 little endian
+     - `0x0000` (`CDR_BE`) — CDR1 big endian
+   - **Options handling (M1 freeze):** the decoder accepts the full two-byte options value and stores it as metadata. Field alignment and body layout ignore options contents. The canonical writer emits options `0x0000`.
 
 2. **Body alignment origin**
-   After the 4-byte encapsulation header, the stream body begins with alignment origin reset so subsequent padding is computed from that body origin (TOP_LEVEL rule: `ENC_HEADER`, origin push, options, then nested body under the active origin).
+   The codec body origin is **absolute byte offset 4**, immediately after the identifier and options. All subsequent alignment uses:
+
+   ```text
+   ((absolute_offset - 4) % alignment) == 0
+   ```
+
+   **Corpus proof:** in committed `primitive_scalars` fixtures, after `bool` / `byte` / `char` and one padding byte, **Float64 begins at absolute offset 12**, which is body-relative offset **8**. That placement matches an origin of 4 with 8-byte Float64 alignment (Table 31).
 
 3. **Primitive alignment (CDR1 / encoding version 1)**
    From **Table 31 – Serialization of primitive types in version 1 encoding**:
@@ -41,10 +49,10 @@ Frozen framing for top-level sample streams (DDS-XTypes 1.3 Clause **7.4.1** PLA
    | 4 | 4 | Int32, UInt32, Float32 |
    | 8 | 8 | Int64, UInt64, Float64 |
 
-   The stream inserts the minimum padding required so `((offset - origin) % alignment) == 0` before each multi-byte value (Clause **7.4.3.2**). Encoder padding bytes are **zero**. The decoder advances over the legal padding span and accepts any padding byte values in that span.
+   The stream inserts the minimum padding required so the body-relative alignment condition holds before each multi-byte value (Clause **7.4.3.2**). Encoder padding bytes are **zero**. The decoder advances over the legal padding span and accepts any padding byte values in that span.
 
 4. **Containers and nesting**
-   Sequences and strings carry a length prefix, then elements under the same alignment rules. Nested structures continue on the same stream origin for the active nested encode/decode.
+   Sequences and strings carry a length prefix, then elements under the same alignment rules. Nested structures continue with the same body origin (absolute offset 4) for the active nested encode/decode.
 
 ## Strings and wide strings
 
@@ -58,59 +66,59 @@ Grounded in DDS-XTypes 1.3 Clause **7.4.1.1.2 Character Data** for `String<Char8
 | Serialized length | Number of **bytes** occupied by the characters **including the terminating NUL character** |
 | Terminator | Required single `0x00` byte at the end of the character data; the length field accounts for that byte |
 
-A Char8 string whose length claims character data without a final `0x00` inside the declared span surfaces `missing_string_terminator`. Invalid UTF-8 surfaces `invalid_utf8`. Boolean values other than `0` (false) and `1` (true) surface `invalid_boolean` (Table 31).
+When the declared Char8 span ends on a nonzero byte, the fault is `missing_string_terminator`. Invalid UTF-8 surfaces `invalid_utf8`. Boolean values outside the set `{0, 1}` surface `invalid_boolean` (Table 31: `0` false, `1` true).
 
 ### ROS 2 legacy `wstring` wire profile (authoritative for M1)
 
-DDS-XTypes 1.3 Clause **7.4.1.1.2** defines generic `String<Char16>` as UTF-16 code units with a **byte** length and without a trailing NUL. **The committed ROS fixtures use a different layout:** the ROS 2 / Fast-CDR legacy wide-string form produced by generated typesupport.
+DDS-XTypes 1.3 Clause **7.4.1.1.2** also defines generic `String<Char16>` as UTF-16 code units whose value boundary follows its **byte** length. That generic Char16 / UTF-16 surface is reserved for a follow-on representation. **Phase 1 ROS fixtures use the ROS 2 / Fast-CDR legacy wide-string form** produced by generated typesupport.
 
-Pinned **Fast-CDR v1.0.29** (`Cdr::serialize(const wchar_t*)` / `Cdr::deserialize(wchar_t*&)` in [Cdr.cpp](https://raw.githubusercontent.com/eProsima/Fast-CDR/v1.0.29/src/cpp/Cdr.cpp)) writes a `uint32` element count (`wstrlen`), then `wstrlen * 4` payload bytes, and documents that wide strings omit a terminating zero. `readWString` / deserialize consume `length * 4` after the count. That is the core wstring value.
+Pinned **Fast-CDR v1.0.29** (`Cdr::serialize(const wchar_t*)` / `Cdr::deserialize(wchar_t*&)` in [Cdr.cpp](https://raw.githubusercontent.com/eProsima/Fast-CDR/v1.0.29/src/cpp/Cdr.cpp)) writes a `uint32` element count (`wstrlen`), then `wstrlen * 4` payload bytes. The Fast-CDR value ends after those `N` slots. `readWString` / deserialize consume `length * 4` after the count. That is the core wstring value.
 
 | Rule | ROS 2 legacy wstring profile |
 |---|---|
 | Length field | `UInt32` **element count** `N` (number of 32-bit character / code-unit slots) |
 | Character payload | Exactly **`N * 4` bytes**: `N` endian-aware 32-bit slots (little: `08 67 00 00` for U+6708; big: `00 00 67 08`) |
-| Core decode | Consumes **exactly** the count field plus `N * 4` payload bytes; the declared value ends there |
-| Terminator inside the value | None (Fast-CDR: wide strings omit a terminating zero) |
+| Core decode value boundary | Count field plus **`N * 4`** payload bytes |
+| Accepted slot values | Unicode scalar values produced by the ROS `u16string_to_wstring` conversion; M1-01c tests the scalar boundary |
 | Endianness | Follows the CDR1 encapsulation identifier |
 | Canonical Moonspan encode | Exact form only: count + `N * 4` payload; **zero top-level tail slack** |
 
 #### Top-level tail slack (outside the wstring value)
 
-Some Phase 1 fixtures carry **four extra zero bytes after a terminal wstring**. Those bytes are **top-level sample tail slack** from the RMW serialization path (pre-zeroed buffers and size budgeting), **not** part of the declared wstring value.
+Some Phase 1 fixtures carry **four-byte zero tail slack** after a terminal wstring. Those tail bytes belong exclusively to **top-level sample tail slack** from the RMW serialization path (pre-zeroed buffers and size budgeting). The declared wstring value boundary remains count + `N * 4`.
 
-Upstream chain that produces one preallocated zero slot:
+Upstream chain that produces one preallocated zero slot of tail slack:
 
 1. Humble `rosidl_typesupport_fastrtps_cpp` ([`msg__type_support.cpp.em`](https://raw.githubusercontent.com/ros2/rosidl_typesupport_fastrtps/humble/rosidl_typesupport_fastrtps_cpp/resource/msg__type_support.cpp.em)) converts `u16string` to `std::wstring` on the AbstractWString serialize branch (`u16string_to_wstring` then `cdr << wstr`).
 2. The same template’s `get_serialized_size` budgets `wchar_size * (message.size() + 1)` with `wchar_size = 4`, so the size estimate includes one extra 32-bit unit beyond the character payload.
-3. Fast-CDR v1.0.29 still writes only `wstrlen` and `wstrlen * 4` payload bytes (no terminating zero in the value).
-4. When RMW serialization runs into a zero-filled buffer sized from that estimate, the unused final slot remains as four zero bytes of **tail slack** after a terminal wstring.
+3. Fast-CDR v1.0.29 writes `wstrlen` and `wstrlen * 4` payload bytes; the Fast-CDR value ends after those `N` slots.
+4. When RMW serialization runs into a zero-filled buffer sized from that estimate, the unused final slot remains as **four-byte zero tail slack** after a terminal wstring.
 
 | Observation | Rows / cases | After core wstring |
 |---|---|---|
-| Exact sample end | Cyclone (H-CY, J-CY); Fast DDS big-endian `primitive_scalars` | No extra bytes |
-| One trailing `UInt32` zero | Fast DDS and Zenoh little-endian (H-FT, H-ZN, J-FT, J-ZN) | Exactly four `0x00` bytes of top-level tail slack after a **terminal** wstring |
+| Exact sample end | Cyclone (H-CY, J-CY); Fast DDS big-endian `primitive_scalars` | **0** slack bytes |
+| Four-byte zero tail slack | Fast DDS and Zenoh little-endian (H-FT, H-ZN, J-FT, J-ZN) | Exactly four `0x00` bytes after a **terminal** wstring |
 
 Binding corpus evidence (Phase 1 contract):
 
-- H-FT `primitive_scalars`: `N = 5`, five LE slots for `月面CDR`, then four zero bytes of top-level tail slack → total sample **104** bytes.
-- H-FT `primitive_scalars_big_endian`: `N = 5`, five BE slots, exact end → **100** bytes.
-- H-CY `collections`: `N = 16`, sixteen slots for `0123456789abcdef`, exact end → **156** bytes.
-- H-FT / H-ZN `collections`: same `N = 16` and slots, then four zero bytes of tail slack → **160** bytes. Jazzy rows follow the same CY versus FT/ZN split.
+- H-FT `primitive_scalars`: `N = 5`, five LE slots for `月面CDR`, then four-byte zero tail slack → total sample **104** bytes.
+- H-FT `primitive_scalars_big_endian`: `N = 5`, five BE slots, exact sample end (0 slack) → **100** bytes.
+- H-CY `collections`: `N = 16`, sixteen slots for `0123456789abcdef`, exact sample end → **156** bytes.
+- H-FT / H-ZN `collections`: same `N = 16` and slots, then four-byte zero tail slack → **160** bytes. Jazzy rows follow the same CY versus FT/ZN split.
 
 #### Completion modes
 
 | Mode | Behavior after a fully decoded sample whose last member is a wstring |
 |---|---|
-| **Core field decode** | Always stops after count + `N * 4`; tail slack is not part of the value |
-| **Corpus completion** | Accepts the narrow Phase 1 row-compatible tail: **exactly one trailing `UInt32` zero** and only when the wstring is terminal in the sample |
+| **Core field decode** | Value boundary is count + `N * 4`; any following bytes are handled only by the chosen completion mode |
+| **Corpus completion** | Accepts the narrow Phase 1 row-compatible tail: **exactly four-byte zero tail slack** (`UInt32` zero) when the wstring is terminal in the sample |
 | **Strict completion** | Requires a fully consumed stream; the same four zero bytes surface as `trailing_data` |
 
-Cross-row semantic agreement compares the decoded logical string. M1-01d proves exact CY fixtures and FT/ZN zero-tail fixtures normalize to the same value (for example `月面CDR` or `0123456789abcdef`).
+Cross-row semantic agreement compares the decoded logical string. M1-01d proves exact CY fixtures and FT/ZN four-byte zero tail slack fixtures normalize to the same value (for example `月面CDR` or `0123456789abcdef`).
 
-When a later member follows a wstring, generated schema plans (M1-02) supply the next alignment so core decode ends at count + `N * 4` and the next member begins cleanly. Non-terminal tail-slack cases stay outside the narrow corpus completion policy until the corpus expands.
+When a later member follows a wstring, generated schema plans (M1-02) supply the next alignment so core decode ends at count + `N * 4` and the next member begins cleanly. The narrow corpus completion policy covers terminal wstring samples in the current corpus; expanded non-terminal cases land with those schema plans.
 
-`invalid_utf16` covers a 32-bit character slot outside the accepted Unicode scalar rules for this ROS profile. A missing required Char8 NUL remains `missing_string_terminator`.
+`invalid_wstring_scalar` covers a 32-bit character slot outside the accepted Unicode scalar values for this ROS profile. When a Char8 declared span ends on a nonzero byte, the fault is `missing_string_terminator`.
 
 ## Reader and writer API direction
 
@@ -133,17 +141,17 @@ Implementable codec faults with stable codes:
 
 | Code | When it surfaces |
 |---|---|
-| `invalid_encapsulation` | Header is shorter than 4 bytes or options/identifier framing is malformed |
-| `unsupported_representation` | Representation identifier is outside the accepted CDR1 little/big set for this call |
+| `invalid_encapsulation` | The 4-byte header is truncated or structurally unavailable |
+| `unsupported_representation` | Representation identifier is outside `{0x0000, 0x0001}` |
 | `truncated` | Input ends before a required field completes |
 | `invalid_boolean` | Boolean byte is outside `{0, 1}` |
 | `invalid_utf8` | Char8 string payload fails UTF-8 well-formedness |
-| `invalid_utf16` | ROS `wstring` 32-bit character slot fails accepted Unicode scalar rules for this profile |
-| `missing_string_terminator` | Char8 string length span lacks the required terminating NUL |
+| `invalid_wstring_scalar` | ROS legacy `wstring` 32-bit slot is outside accepted Unicode scalar values from `u16string_to_wstring` |
+| `missing_string_terminator` | Char8 declared span ends on a nonzero byte |
 | `bounds_exceeded` | Sequence or string length exceeds a configured codec or type bound available to the call |
 | `length_overflow` | Length or size arithmetic exceeds the stream ceiling or host size domain |
 | `alignment_overflow` | Required padding would advance past the end of the stream |
-| `trailing_data` | Strict completion mode requires a fully consumed stream and unread bytes remain (including top-level wstring tail slack) |
+| `trailing_data` | Strict completion mode requires a fully consumed stream and unread bytes remain (including four-byte zero tail slack) |
 
 `schema_mismatch` and related identity faults belong to M1-02 generated types and M2-01 dynamic projection. Host buffer lease and transfer faults belong to M1-03.
 
@@ -205,11 +213,12 @@ Legal ROS encoders may emit distinct bytes for one logical value, including exac
 M1-01d proves:
 
 - decode of every committed fixture yields the expected semantic value;
-- exact CY fixtures and FT/ZN zero-tail fixtures for the same logical wstring normalize to one semantic value;
-- encode under Moonspan CDR1 uses exact wstring form (zero tail slack) and round-trips with semantic equality;
+- exact CY fixtures and FT/ZN four-byte zero tail slack fixtures for the same logical wstring normalize to one semantic value;
+- encode under Moonspan CDR1 uses exact wstring form (zero top-level tail slack) and round-trips with semantic equality;
 - malformed truncation, illegal lengths, and alignment overflow return the typed error taxonomy above;
 - resource bounds reject oversized streams with stable codes;
-- strict completion reports `trailing_data` on FT/ZN zero-tail samples; corpus completion accepts that narrow tail.
+- strict completion reports `trailing_data` on FT/ZN four-byte zero tail slack samples; corpus completion accepts that narrow tail;
+- M1-01c exercises `invalid_wstring_scalar` at the Unicode scalar boundary for legacy wstring slots.
 
 ## Security and resource cases
 
@@ -228,8 +237,8 @@ These cases produce typed codec faults and appear in conformance and evidence re
 |---|---|
 | M1-01a | This contract, plan split, PCR and doc routes (documentation freeze) |
 | M1-01b | Bounded stream reader/writer, encapsulation, endian, alignment, limits (including nesting and temporary-allocation defaults), typed errors |
-| M1-01c | Primitives, strings/wstrings (legacy ROS profile), arrays, sequences, nested values, borrowed `BytesView` fields |
-| M1-01d | Authoritative corpus proof: semantic agreement (CY exact vs FT/ZN zero-tail), round trips, malformed input, resource bounds |
+| M1-01c | Primitives, strings/wstrings (legacy ROS profile, scalar-boundary tests), arrays, sequences, nested values, borrowed `BytesView` fields |
+| M1-01d | Authoritative corpus proof: semantic agreement (CY exact vs FT/ZN four-byte zero tail slack), round trips, malformed input, resource bounds |
 
 M1-01 closes when batches b–d pass their focused tests and the corpus-driven checks. M1-02 and M1-03 consume this surface: M1-02 adds schema keys and per-type bounds; M1-03 adds host buffer leases and keeps CDR layout rules as defined here.
 
@@ -252,7 +261,7 @@ Official references that ground this contract:
 | OMG DDS-XTypes 1.3 About | https://www.omg.org/spec/DDS-XTypes/1.3/About-DDS-XTypes/ | Specification overview and document set |
 | OMG DDS-XTypes 1.3 PDF | https://www.omg.org/spec/DDS-XTypes/1.3/PDF | Clause **7.4.1** PLAIN_CDR (encoding version 1); Clause **7.4.1.1.2** character data (generic Char8 / Char16 rules; Phase 1 ROS `wstring` uses the legacy Fast-CDR profile above); **Table 31** primitive size and alignment; Clause **7.4.3** XCDR stream model and TOP_LEVEL encapsulation; **Table 60** RTPS encapsulation identifiers; XCDR2 as encoding version 2 follow-on |
 | ROS 2 Creating an RMW Implementation | https://docs.ros.org/en/ros2_documentation/jazzy/Tutorials/Advanced/Creating-An-RMW-Implementation.html | RMW serialization boundary, typesupport expectations, and distribution-facing encode/decode responsibilities |
-| eProsima Fast-CDR v1.0.29 `Cdr.cpp` | https://raw.githubusercontent.com/eProsima/Fast-CDR/v1.0.29/src/cpp/Cdr.cpp | Upstream `serialize(const wchar_t*)` / wide-string deserialize: `uint32` count then `count * 4` payload; comment that wide strings omit a terminating zero |
+| eProsima Fast-CDR v1.0.29 `Cdr.cpp` | https://raw.githubusercontent.com/eProsima/Fast-CDR/v1.0.29/src/cpp/Cdr.cpp | Upstream `serialize(const wchar_t*)` / wide-string deserialize: `uint32` count then `count * 4` payload; Fast-CDR value ends after `N` slots |
 | ROS 2 Humble `rosidl_typesupport_fastrtps_cpp` template | https://raw.githubusercontent.com/ros2/rosidl_typesupport_fastrtps/humble/rosidl_typesupport_fastrtps_cpp/resource/msg__type_support.cpp.em | AbstractWString serialize: `u16string_to_wstring` then Fast-CDR `<<`; `get_serialized_size` budgets `wchar_size * (size() + 1)` — explains one preallocated zero slot of top-level **tail slack** when the buffer is zero-filled |
 | MoonBit core `@bytes` package | https://mooncakes.io/docs/moonbitlang/core/bytes | Core bytes and view APIs used for buffer slices |
 | MoonBit language fundamentals | https://docs.moonbitlang.com/en/latest/language/fundamentals.html | Owned `Bytes` versus borrowed `BytesView` table and language-level slicing model |
