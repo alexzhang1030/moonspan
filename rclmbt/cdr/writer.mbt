@@ -134,7 +134,7 @@ pub fn CdrWriter::to_bytes(self : CdrWriter) -> Bytes {
 }
 
 ///|
-/// Preflight pad + size against capacity without mutating the buffer.
+/// Preflight pad + size against capacity; mutate only after preflight succeeds.
 /// On success, writes deterministic zero padding. Position is `buf.length()`.
 fn CdrWriter::align_and_reserve(
   self : CdrWriter,

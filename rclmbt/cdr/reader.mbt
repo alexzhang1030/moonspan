@@ -37,8 +37,8 @@ fn network_u16(hi : Byte, lo : Byte) -> Int {
 
 ///|
 /// Open a CDR1 reader over `bytes` with validated limits.
-/// Always re-validates `limits` at this trust boundary so public field writes
-/// or package-internal literals cannot bypass `CdrLimits::new`.
+/// Revalidation enforces the factory ranges for every received `CdrLimits`
+/// object at this trust boundary.
 pub fn CdrReader::open(
   bytes : BytesView,
   limits : CdrLimits,
@@ -210,8 +210,8 @@ pub fn CdrReader::read_u16(self : CdrReader) -> Result[UInt16, CdrError] {
 
 ///|
 /// Read a 32-bit unsigned bit pattern in stream endianness (align 4).
-/// Bytes are widened with `Byte::to_uint`; shifts stay on `UInt` through the
-/// full `0x80000000..0xffffffff` range without signed intermediates.
+/// Bytes are widened with `Byte::to_uint`; shifts use unsigned intermediates
+/// throughout the full `0x80000000..0xffffffff` range.
 pub fn CdrReader::read_u32(self : CdrReader) -> Result[UInt, CdrError] {
   match self.align_to(4, 4) {
     Ok(_) => ()
@@ -258,8 +258,8 @@ pub fn CdrReader::read_u64(self : CdrReader) -> Result[UInt64, CdrError] {
 
 ///|
 /// Read `n` raw bytes as a borrowed zero-copy subview (alignment width 1).
-/// Length is governed by remaining input and max stream size only.
-/// `max_temporary_allocation` does not apply to borrowed spans.
+/// Length is governed by remaining input and max stream size exclusively
+/// (stream-bounds path).
 pub fn CdrReader::read_bytes(
   self : CdrReader,
   n : Int,
@@ -285,7 +285,7 @@ pub fn CdrReader::read_bytes(
 ///|
 /// Checked `count * element_size` for a borrowed span length.
 /// Order: multiply → absolute stream ceiling (`length_overflow`) → remaining
-/// (`truncated`). Does not consult `max_temporary_allocation`.
+/// (`truncated`). Uses stream bounds exclusively.
 pub fn CdrReader::checked_span_length(
   self : CdrReader,
   count : UInt64,
@@ -336,8 +336,8 @@ pub fn CdrReader::checked_alloc_length(
 ///|
 
 ///|
-/// Multiply `count * element_size` into a host `Int`. On overflow that cannot
-/// fit `Int`, returns `length_overflow` with **`needed = 0`** (sentinel).
+/// Multiply `count * element_size` into a host `Int`. When the product exceeds
+/// the host `Int` domain, returns `length_overflow` with **`needed = 0`** (sentinel).
 fn multiply_length(
   count : UInt64,
   element_size : Int,

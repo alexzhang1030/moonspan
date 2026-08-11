@@ -347,7 +347,7 @@ test "invalid limits construction" {
 ///|
 test "open rejects raw invalid limit literals at trust boundary" {
   let header = b"\x00\x01\x00\x00"
-  // Negative stream ceiling (bypasses factory).
+  // Negative stream ceiling as a raw limit literal (trust-boundary revalidation).
   let neg_stream : CdrLimits = {
     max_stream_bytes: -1,
     max_nesting_depth: 8,
@@ -423,7 +423,7 @@ test "open rejects raw invalid limit literals at trust boundary" {
 }
 
 ///|
-test "length_overflow uses needed zero when UInt64 request cannot fit Int" {
+test "length_overflow uses needed zero when UInt64 request exceeds Int domain" {
   let r = open_ok(b"\x00\x01\x00\x00"[:])
   match r.checked_span_length(0xffffffffffffffffUL, 2) {
     Ok(_) => abort("expected length_overflow")
@@ -590,8 +590,8 @@ test "read_bytes truncated restores cursor" {
 
 ///|
 test "reader preflight pad-plus-size overflow preserves cursor" {
-  // Stream long enough that pad does not fail first: header + two body bytes.
-  // After one byte, offset 5, align 2 => pad 1; checked_add_int(1, HOST_INT_MAX) overflows.
+  // Header + two body bytes: after one byte, offset 5, one legal pad byte remains
+  // for align 2; checked_add_int(1, HOST_INT_MAX) overflows pad+size.
   let input = b"\x00\x01\x00\x00\xaa\xbb"
   let r = open_ok(input[:])
   match r.read_u8() {

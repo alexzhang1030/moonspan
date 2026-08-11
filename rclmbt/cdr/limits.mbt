@@ -78,8 +78,8 @@ pub fn CdrLimits::defaults() -> CdrLimits {
 
 ///|
 /// Validate absolute Phase 1 ranges. Shared by `CdrLimits::new`, reader `open`,
-/// and writer construction so public struct literals cannot bypass factory
-/// checks at the trust boundary.
+/// and writer construction. Revalidation enforces the factory ranges for all
+/// received limit objects at the trust boundary.
 pub fn CdrLimits::validate(self : CdrLimits) -> Result[Unit, CdrError] {
   if self.max_stream_bytes < MIN_MAX_STREAM_BYTES ||
     self.max_stream_bytes > DEFAULT_MAX_STREAM_BYTES {

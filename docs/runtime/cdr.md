@@ -144,7 +144,7 @@ BytesView  ->  bounds-checked slice into parent storage the caller retains
 
 **Writer capacity:** `capacity = min(max_stream_bytes, max_temporary_allocation)`, counted over the **complete stream including the 4-byte header**. Construction emits the full canonical header immediately (`LE = 00 01 00 00`, `BE = 00 00 00 00`; options always `0x0000`). When temporary capacity is below 4, construction returns `bounds_exceeded` with `needed = 4` and `remaining =` temporary capacity. Each field preflights `pad + size` arithmetic and full capacity before mutating the buffer; faults leave position and bytes byte-identical. `to_bytes` returns an owned snapshot isolated from later writes.
 
-**Writer allocation:** the owned core `Buffer` starts with `size_hint = HEADER_LENGTH` (`WRITER_INITIAL_SIZE_HINT`). Buffer growth is lazy under the logical `capacity` hard ceiling; defaults do **not** allocate the full 64 MiB Phase 1 stream cap at construction. Position and remaining capacity derive from `buf.length()` as the single stream-length source. `CdrWriter` fields are package-private; external packages construct only through `CdrWriter::new` / `new_default`.
+**Writer allocation:** default construction allocates header-sized backing storage (`size_hint = HEADER_LENGTH` / `WRITER_INITIAL_SIZE_HINT`) and grows lazily under the logical `capacity` hard ceiling (Phase 1 absolute cap remains 64 MiB via limits). Position and remaining capacity derive from `buf.length()` as the single stream-length source. `CdrWriter` fields are package-private; external packages construct only through `CdrWriter::new` / `new_default`.
 
 ## Typed error taxonomy (`cdr_mbt`)
 
@@ -170,10 +170,10 @@ Implementable codec faults with stable codes:
 | Field | Meaning |
 |---|---|
 | `offset` | Absolute fault site (field-start on failed field reads; `0` for open/config faults) |
-| `needed` | Requested or required size (input length when the stream is oversized; computed span/alloc size; header length when truncated; rejected limit value for `invalid_limits`). **`needed = 0`** is the sentinel when a `UInt64` length request overflows and cannot be represented as a host `Int` |
+| `needed` | Requested or required size (input length when the stream is oversized; computed span/alloc size; header length when truncated; rejected limit value for `invalid_limits`). **`needed = 0`** is the sentinel when the `UInt64` request exceeds the host `Int` domain |
 | `remaining` | Available capacity (e.g. `max_stream_bytes` for oversized open; `max_temporary_allocation` for alloc bounds; bytes remaining for field faults) |
 
-`CdrLimits` values are re-validated at every reader/writer trust boundary (`CdrLimits::validate`, used by `CdrLimits::new` and `CdrReader::open`) so public struct fields cannot bypass factory checks.
+`CdrLimits` values are re-validated at every reader/writer trust boundary (`CdrLimits::validate`, used by `CdrLimits::new`, `CdrReader::open`, and `CdrWriter::new`). Revalidation enforces the factory ranges for all received limit objects.
 
 `checked_span_length` order: multiply → span above `max_stream_bytes` → `length_overflow` → span above remaining → `truncated`.
 `schema_mismatch` and related identity faults belong to M1-02 generated types and M2-01 dynamic projection. Host buffer lease and transfer faults belong to M1-03.
