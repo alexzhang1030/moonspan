@@ -5,20 +5,25 @@
   "evidence_level": "foundation",
   "identity": {
     "code_revision": "e8d546af63c5fb8297f07d13a0d908b719a2cc1a",
-    "fixture_manifest_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+    "fixture_manifests": {
+      "cdr": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "r2wp": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
+    },
     "package_versions": {
       "bun": "1.3.14",
       "just": "1.50.0"
     },
-    "image_digests": {
-      "ci-runner": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-    },
+    "image_digests": {},
     "environment": {
+      "environment_id": "local-foundation-smoke-arm64",
       "platform": "linux/arm64",
       "toolchain": {
         "bun": "1.3.14",
         "moonc": "0.10.6+80dc50f24",
         "rustc": "1.97.1"
+      },
+      "attributes": {
+        "host_class": "developer-workstation"
       }
     }
   },
@@ -74,12 +79,10 @@
     ]
   },
   "review": {
-    "reviewer": "codex-local-smoke",
-    "decision": "provisional",
-    "decision_date": "2026-08-11",
+    "decision": "pending",
     "known_limits": [
       "Hosted CI artifact URLs remain pending for M0-02.",
-      "This smoke report is a contract fixture, not release qualification."
+      "This smoke report is a contract fixture awaiting human review."
     ]
   }
 }

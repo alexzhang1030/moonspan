@@ -97,16 +97,16 @@ M0 exit requires accepted decisions, clean-checkout root commands, reproducible 
 
 **Acceptance criteria:**
 
-- [x] JSON Schema 2020-12 at `evidence/schema/qualification-report-v1.json`.
-- [x] Dependency-free `scripts/evidence-check.ts` enforces closed keys, enums, bounds, sorted collections, path confinement, symlink rejection, and artifact integrity.
-- [x] Valid corpus under `evidence/testdata/valid/` with referenced artifacts.
-- [x] Focused tests, `bun run evidence:check`, `just evidence-check`, and root `bun run check` include the checker exactly once.
+- [x] JSON Schema 2020-12 at `evidence/schema/qualification-report-v1.json` generated from `scripts/evidence-contract.ts` with `--write`/`--check` byte identity.
+- [x] Dependency-free contract module + FS checker enforce closed keys, enums, bounds, gate/level mapping, pending/human review lifecycle, sorted collections, path confinement, ancestor symlink rejection, closed valid corpus, and artifact integrity.
+- [x] Valid corpus under `evidence/testdata/valid/` with referenced payloads under `evidence/testdata/payloads/`.
+- [x] Focused tests, `bun run evidence:write`/`evidence:check`, `just evidence-check`, and root `bun run check` include the checker exactly once.
 - [x] Docs/PCR/tasks route to `evidence/README.md`. Top-level M0-05 remains active for collector and hosted integration.
 
-**Verification:** focused `bun run test:evidence`; `bun run evidence:check`; `bun run check`; `just check`; `just test`; `just build`; `git diff --check` clean.
+**Verification:** focused `bun run test:evidence`; `bun run evidence:write` then `evidence:check` identity; `bun run check`; `just check`; `just test`; `just build`; `git diff --check` clean.
 
 - **Dependencies:** M0-02
-- **Likely files:** `evidence/**`, `scripts/evidence-check.ts`, `scripts/evidence-check.test.ts`, `package.json`, `justfile`, `docs/README.md`, `docs/validation.md`, `.agents/docs/README.md`, `tasks/plan.md`, `tasks/todo.md`
+- **Likely files:** `evidence/**`, `scripts/evidence-contract.ts`, `scripts/evidence-check.ts`, `scripts/evidence-check.test.ts`, `package.json`, `justfile`, `docs/README.md`, `docs/validation.md`, `.agents/docs/README.md`, `tasks/plan.md`, `tasks/todo.md`
 - **Scope:** M
 
 ### M1: Core data path
