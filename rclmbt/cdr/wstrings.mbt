@@ -73,45 +73,61 @@ fn wstring_capacity_bounds_error(
 }
 
 ///|
-/// Collect validated Unicode scalars from `view` under type and capacity
-/// ceilings. Stops measurement once the scalar count crosses the effective
-/// ceiling. Fault order: type-bound excess, then writer-capacity excess;
-/// unpaired surrogates map to `invalid_wstring_scalar`.
-fn measure_wstring_scalars(
+/// Decode the next Unicode scalar from `view` at UTF-16 index `i`.
+/// Advances `i` by one code unit or a surrogate pair. Returns the scalar as
+/// `UInt` and the new index. Unpaired surrogates yield `None`.
+fn next_wstring_scalar(view : StringView, i : Int) -> (UInt, Int)? {
+  let n = view.length()
+  if i >= n {
+    return None
+  }
+  let unit = view[i].to_int()
+  if unit >= 0xD800 && unit <= 0xDBFF {
+    if i + 1 >= n {
+      return None
+    }
+    let trail = view[i + 1].to_int()
+    if trail < 0xDC00 || trail > 0xDFFF {
+      return None
+    }
+    let cp = ((unit - 0xD800) << 10) + (trail - 0xDC00) + 0x10000
+    Some((cp.reinterpret_as_uint(), i + 2))
+  } else if unit >= 0xDC00 && unit <= 0xDFFF {
+    None
+  } else {
+    Some((unit.reinterpret_as_uint(), i + 1))
+  }
+}
+
+///|
+/// Validate UTF-16 scalars in `view` and return only the scalar count.
+/// Uses constant auxiliary state: a running count and UTF-16 index. Stops once
+/// the count crosses type or capacity ceilings. Fault order: type-bound excess,
+/// then writer-capacity excess; unpaired surrogates map to
+/// `invalid_wstring_scalar`.
+fn count_wstring_scalars(
   view : StringView,
   type_bound : UInt?,
   cap_max_scalars : Int,
   field_start : Int,
   rem_cap : Int,
   pad : Int,
-) -> Result[Array[UInt], CdrError] {
+) -> Result[Int, CdrError] {
   let type_max = type_bound_ceiling(type_bound)
-  let out : Array[UInt] = []
   let n = view.length()
   let mut i = 0
+  let mut count = 0
   while i < n {
-    let unit = view[i].to_int()
-    let scalar : UInt = if unit >= 0xD800 && unit <= 0xDBFF {
-      if i + 1 >= n {
-        return Err(CdrError::invalid_wstring_scalar(field_start, rem_cap))
-      }
-      let trail = view[i + 1].to_int()
-      if trail < 0xDC00 || trail > 0xDFFF {
-        return Err(CdrError::invalid_wstring_scalar(field_start, rem_cap))
-      }
-      let cp = ((unit - 0xD800) << 10) + (trail - 0xDC00) + 0x10000
-      i = i + 2
-      cp.reinterpret_as_uint()
-    } else if unit >= 0xDC00 && unit <= 0xDFFF {
-      return Err(CdrError::invalid_wstring_scalar(field_start, rem_cap))
-    } else {
-      i = i + 1
-      unit.reinterpret_as_uint()
+    let step = match next_wstring_scalar(view, i) {
+      Some(pair) => pair
+      None => return Err(CdrError::invalid_wstring_scalar(field_start, rem_cap))
     }
+    let scalar = step.0
+    i = step.1
     if !is_accepted_wstring_scalar(scalar) {
       return Err(CdrError::invalid_wstring_scalar(field_start, rem_cap))
     }
-    let next_count = out.length() + 1
+    let next_count = count + 1
     match type_max {
       Some(t) =>
         if next_count > t {
@@ -125,9 +141,34 @@ fn measure_wstring_scalars(
         wstring_capacity_bounds_error(field_start, rem_cap, pad, min_n),
       )
     }
-    out.push(scalar)
+    count = next_count
   }
-  Ok(out)
+  Ok(count)
+}
+
+///|
+/// Second writer walk: emit validated scalars from immutable `view` directly
+/// into `buf`. Caller has already reserved capacity and written the count;
+/// the view was validated by `count_wstring_scalars` so this walk is infallible
+/// for well-formed inputs that passed the first pass.
+fn emit_wstring_scalars(buf : Buffer, view : StringView, little : Bool) -> Unit {
+  let n = view.length()
+  let mut i = 0
+  while i < n {
+    // First pass already accepted every scalar; decode is structural only.
+    let step = match next_wstring_scalar(view, i) {
+      Some(pair) => pair
+      None =>
+        abort("wstring emit: unexpected unpaired surrogate after validation")
+    }
+    let scalar = step.0
+    i = step.1
+    if little {
+      buf.write_uint_le(scalar)
+    } else {
+      buf.write_uint_be(scalar)
+    }
+  }
 }
 
 ///|
@@ -273,8 +314,10 @@ pub fn CdrReader::ensure_corpus_complete_terminal_wstring(
 /// Encode a ROS 2 legacy wstring from `value`.
 ///
 /// `max_scalars`, when supplied, is the maximum Unicode scalar / slot count.
-/// After validation and one complete field preflight, emits count and slots
-/// directly into the owned writer buffer (zero top-level tail slack).
+/// First pass validates and counts under type/capacity ceilings with constant
+/// auxiliary state. After one complete field preflight, a second walk emits
+/// count and slots directly into the owned writer buffer (zero top-level tail
+/// slack). Failed writes leave position and bytes unchanged.
 pub fn CdrWriter::write_wstring(
   self : CdrWriter,
   value : StringView,
@@ -288,14 +331,11 @@ pub fn CdrWriter::write_wstring(
     Some(b) => Some(b)
     None => None
   }
-  let scalars = match
-    measure_wstring_scalars(
-      value, type_bound, cap_max, field_start, rem_cap, pad,
-    ) {
-    Ok(s) => s
+  let count = match
+    count_wstring_scalars(value, type_bound, cap_max, field_start, rem_cap, pad) {
+    Ok(n) => n
     Err(e) => return Err(e)
   }
-  let count = scalars.length()
   let payload = match checked_add_int(count, count) {
     None => return Err(CdrError::length_overflow(field_start, 0, rem_cap))
     Some(n) =>
@@ -313,20 +353,12 @@ pub fn CdrWriter::write_wstring(
     Err(e) => return Err(e)
   }
   let count_u = count.reinterpret_as_uint()
-  if is_little(self.endian) {
+  let little = is_little(self.endian)
+  if little {
     self.buf.write_uint_le(count_u)
-    let mut i = 0
-    while i < count {
-      self.buf.write_uint_le(scalars[i])
-      i = i + 1
-    }
   } else {
     self.buf.write_uint_be(count_u)
-    let mut i = 0
-    while i < count {
-      self.buf.write_uint_be(scalars[i])
-      i = i + 1
-    }
   }
+  emit_wstring_scalars(self.buf, value, little)
   Ok(())
 }

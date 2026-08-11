@@ -46,6 +46,16 @@ fn expect_writer_frozen(w : CdrWriter, before : Bytes, pos : Int) -> Unit raise 
 }
 
 ///|
+fn expect_full_wire(got : Bytes, expect : Array[Byte]) -> Unit raise {
+  assert_eq(got.length(), expect.length())
+  let mut i = 0
+  while i < expect.length() {
+    assert_eq(got[i], expect[i])
+    i = i + 1
+  }
+}
+
+///|
 fn yuemian() -> String {
   "月面CDR"
 }
@@ -86,45 +96,42 @@ test "wstring empty exact LE and BE" {
 
 ///|
 test "wstring yuemian CDR exact LE and BE round trip" {
-  // N=5; LE slots: 08 67 00 00 | 62 97 00 00 | 43 00 00 00 | 44 00 00 00 | 52 00 00 00
+  // Full wire: header + count 5 + five UInt32 slots for 月 面 C D R.
+  let le_expect : Array[Byte] = [
+    b'\x00', b'\x01', b'\x00', b'\x00', // header LE
+     b'\x05', b'\x00', b'\x00', b'\x00', // N=5 LE
+     b'\x08', b'\x67', b'\x00', b'\x00', // U+6708 月
+     b'\x62', b'\x97', b'\x00', b'\x00', // U+9762 面
+     b'\x43', b'\x00', b'\x00', b'\x00', // C
+     b'\x44', b'\x00', b'\x00', b'\x00', // D
+     b'\x52', b'\x00', b'\x00', b'\x00', // R
+  ]
+  let be_expect : Array[Byte] = [
+    b'\x00', b'\x00', b'\x00', b'\x00', // header BE
+     b'\x00', b'\x00', b'\x00', b'\x05', // N=5 BE
+     b'\x00', b'\x00', b'\x67', b'\x08', // U+6708 月
+     b'\x00', b'\x00', b'\x97', b'\x62', // U+9762 面
+     b'\x00', b'\x00', b'\x00', b'\x43', // C
+     b'\x00', b'\x00', b'\x00', b'\x44', // D
+     b'\x00', b'\x00', b'\x00', b'\x52', // R
+  ]
   let wle = ww(CdrEndian::Little)
   match wle.write_wstring(yuemian()[:]) {
     Ok(_) => ()
     Err(e) => abort(e.code)
   }
-  let le = wle.to_bytes()
-  assert_eq(le.length(), 4 + 4 + 20)
-  assert_eq(le[4], b'\x05')
-  assert_eq(le[5], b'\x00')
-  assert_eq(le[6], b'\x00')
-  assert_eq(le[7], b'\x00')
-  assert_eq(le[8], b'\x08')
-  assert_eq(le[9], b'\x67')
-  assert_eq(le[10], b'\x00')
-  assert_eq(le[11], b'\x00')
-  assert_eq(le[12], b'\x62')
-  assert_eq(le[13], b'\x97')
-  assert_eq(le[24], b'\x52')
-  assert_eq(le[25], b'\x00')
+  expect_full_wire(wle.to_bytes(), le_expect)
   let wbe = ww(CdrEndian::Big)
   match wbe.write_wstring(yuemian()[:]) {
     Ok(_) => ()
     Err(e) => abort(e.code)
   }
-  let be = wbe.to_bytes()
-  assert_eq(be[4], b'\x00')
-  assert_eq(be[5], b'\x00')
-  assert_eq(be[6], b'\x00')
-  assert_eq(be[7], b'\x05')
-  assert_eq(be[8], b'\x00')
-  assert_eq(be[9], b'\x00')
-  assert_eq(be[10], b'\x67')
-  assert_eq(be[11], b'\x08')
-  match wr(le[:]).read_wstring() {
+  expect_full_wire(wbe.to_bytes(), be_expect)
+  match wr(wle.to_bytes()[:]).read_wstring() {
     Ok(s) => assert_eq(s, yuemian())
     Err(e) => abort(e.code)
   }
-  match wr(be[:]).read_wstring() {
+  match wr(wbe.to_bytes()[:]).read_wstring() {
     Ok(s) => assert_eq(s, yuemian())
     Err(e) => abort(e.code)
   }
@@ -132,33 +139,38 @@ test "wstring yuemian CDR exact LE and BE round trip" {
 
 ///|
 test "wstring non-BMP scalar both endians" {
-  // U+1F600 😀 → one slot 0x0001F600
+  // U+1F600 😀 → one slot 0x0001F600; full LE/BE wire including count.
   let grin = "😀"
-  for endian in [CdrEndian::Little, CdrEndian::Big] {
-    let w = ww(endian)
-    match w.write_wstring(grin[:]) {
-      Ok(_) => ()
-      Err(e) => abort(e.code)
-    }
-    let bytes = w.to_bytes()
-    assert_eq(bytes.length(), 4 + 4 + 4)
-    match wr(bytes[:]).read_wstring() {
-      Ok(s) => assert_eq(s, grin)
-      Err(e) => abort(e.code)
-    }
-  }
-  // LE payload bytes for 0x0001F600
+  let le_expect : Array[Byte] = [
+    b'\x00', b'\x01', b'\x00', b'\x00', // header LE
+     b'\x01', b'\x00', b'\x00', b'\x00', // N=1 LE
+     b'\x00', b'\xf6', b'\x01', b'\x00', // 0x0001F600 LE
+  ]
+  let be_expect : Array[Byte] = [
+    b'\x00', b'\x00', b'\x00', b'\x00', // header BE
+     b'\x00', b'\x00', b'\x00', b'\x01', // N=1 BE
+     b'\x00', b'\x01', b'\xf6', b'\x00', // 0x0001F600 BE
+  ]
   let wle = ww(CdrEndian::Little)
   match wle.write_wstring(grin[:]) {
     Ok(_) => ()
     Err(e) => abort(e.code)
   }
-  let le = wle.to_bytes()
-  assert_eq(le[4], b'\x01')
-  assert_eq(le[8], b'\x00')
-  assert_eq(le[9], b'\xf6')
-  assert_eq(le[10], b'\x01')
-  assert_eq(le[11], b'\x00')
+  expect_full_wire(wle.to_bytes(), le_expect)
+  let wbe = ww(CdrEndian::Big)
+  match wbe.write_wstring(grin[:]) {
+    Ok(_) => ()
+    Err(e) => abort(e.code)
+  }
+  expect_full_wire(wbe.to_bytes(), be_expect)
+  match wr(wle.to_bytes()[:]).read_wstring() {
+    Ok(s) => assert_eq(s, grin)
+    Err(e) => abort(e.code)
+  }
+  match wr(wbe.to_bytes()[:]).read_wstring() {
+    Ok(s) => assert_eq(s, grin)
+    Err(e) => abort(e.code)
+  }
 }
 
 ///|
