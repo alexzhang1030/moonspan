@@ -2,7 +2,7 @@
 
 Moonspan connects browser applications to ROS 2 through a versioned wire protocol, a MoonBit/Wasm runtime, a Rust gateway, and a TypeScript SDK.
 
-The project is in its M0 foundation phase. R2WP v0 is complete, while the remaining M0 work covers support decisions, hosted CI evidence, the ROS CDR corpus, and the evidence schema.
+Active work is on the M1 core data path (CDR codecs, host boundary, publish/subscribe). R2WP v0 and the authoritative ROS CDR corpus are complete; remaining M0 items (support decisions, hosted CI evidence review, evidence collector) continue in parallel.
 
 ## Scope
 
@@ -47,7 +47,7 @@ Protocol-specific commands are documented with the [R2WP fixtures](./protocol/te
 
 ## Status
 
-M0-03 is complete. The [completion note](./docs/milestones/m0-03-r2wp-foundation.md) records its scope, while the [execution checklist](./tasks/todo.md) tracks the rest of M0.
+M1 is the active mainline phase: MoonBit CDR core, Wasm host boundary, and browser graph/publish-subscribe. Tracked M0 carryover (architecture/support close-out, hosted CI evidence review, evidence harness) continues alongside. The [execution checklist](./tasks/todo.md) and [plan](./tasks/plan.md) are the live trackers; the [M0-03 completion note](./docs/milestones/m0-03-r2wp-foundation.md) records the R2WP foundation.
 
 ## Workspace ownership
 
@@ -63,7 +63,7 @@ Lockfiles: commit `Cargo.lock` and `bun.lock`. Generated outputs stay ignored (`
 
 ## Continuous integration
 
-[`.github/workflows/ci.yml`](./.github/workflows/ci.yml) runs the pinned toolchain checks on pushes, pull requests, and manual runs. M0-02 closes after the hosted artifacts receive review. ROS qualification and Studio follow their own phase gates.
+[`.github/workflows/ci.yml`](./.github/workflows/ci.yml) runs the pinned toolchain checks on pushes, pull requests, and manual runs. Hosted CI evidence review is tracked under M0-02 carryover. ROS qualification (N1/N2) and Studio follow their own phase gates.
 
 ## Start here
 
