@@ -85,6 +85,16 @@ cdr-tail-slack-check: toolchain-check
 cdr-tail-slack-write: toolchain-check
     cd "{{root}}" && bun run cdr-tail-slack:write
 
+# CDR corpus → MoonBit white-box fixture bridge check (scripts/cdr-moonbit-fixtures.ts --check).
+[group('quality')]
+cdr-moonbit-fixtures-check: toolchain-check
+    cd "{{root}}" && bun run cdr-moonbit-fixtures:check
+
+# Regenerate CDR corpus → MoonBit white-box fixture bridge (scripts/cdr-moonbit-fixtures.ts --write).
+[group('quality')]
+cdr-moonbit-fixtures-write: toolchain-check
+    cd "{{root}}" && bun run cdr-moonbit-fixtures:write
+
 # Qualification report v1 contract check (scripts/evidence-check.ts --check).
 [group('quality')]
 evidence-check: toolchain-check
