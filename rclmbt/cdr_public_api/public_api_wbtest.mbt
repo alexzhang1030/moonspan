@@ -298,7 +298,7 @@ test "public UTF-8 string codec across package boundary" {
 }
 
 ///|
-test "public ROS wstring codec and corpus completion across packages" {
+test "public ROS wstring codec and declared zero-tail completion across packages" {
   let limits = match @cdr.CdrLimits::new(128, 8, 128) {
     Ok(l) => l
     Err(e) => abort(e.code)

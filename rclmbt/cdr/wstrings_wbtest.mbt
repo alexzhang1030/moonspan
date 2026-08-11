@@ -442,7 +442,7 @@ test "declared zero tail completion exact end with 0 4 12" {
 }
 
 ///|
-test "declared zero tail four and twelve success and strict contrast" {
+test "declared zero tail and strict completion modes" {
   // Four zero bytes after header.
   let four = b"\x00\x01\x00\x00\x00\x00\x00\x00"
   let r4 = wr(four[:])

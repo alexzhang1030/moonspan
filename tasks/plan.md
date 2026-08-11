@@ -123,7 +123,7 @@ M0 exit requires accepted decisions, clean-checkout root commands, reproducible 
 | M1-01c1 | Complete | Semantic CDR1 primitive codecs (bool, signed ints, floats, Char8/Char16) | M1-01b |
 | M1-01c2 | Complete | Strings and ROS legacy wstring | M1-01c1 |
 | M1-01c2a | Complete | CDR1 UTF-8 Char8 string (`read_string` / `write_string`, optional payload `max_bytes`) | M1-01c1 |
-| M1-01c2b | Complete | ROS legacy wstring and corpus-tail completion | M1-01c2a |
+| M1-01c2b | Complete | ROS legacy wstring with exact member boundary and canonical encode | M1-01c2a |
 | M1-01c3 | Complete | Arrays, sequences, nested-depth guards, borrowed BytesView fields | M1-01c2 |
 | M1-01c3a | Complete | Container codec contract: fixed arrays, sequences, nesting tokens | M1-01c2 |
 | M1-01c3b | Complete | Implement arrays, sequences, nesting, borrowed byte sequences in `rclmbt/cdr` | M1-01c3a |
@@ -150,7 +150,7 @@ M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both 
 
 | ID | State | Scope |
 |---|---|---|
-| M1-01a | Complete | Documentation and plan freeze: CDR1 little and big endian target; body origin absolute offset 4; ROS 2 legacy wstring profile (count + count×4; four-byte zero tail slack policy); XCDR2 stream foundations as follow-on; semantic cross-row agreement; 4-byte encapsulation framing; deterministic zero-fill encoder padding; official sources |
+| M1-01a | Complete | Documentation and plan freeze: CDR1 little and big endian target; body origin absolute offset 4; ROS 2 legacy wstring profile (count + count×4); top-level declared zero-tail policy and evidence correction (0/4/12); XCDR2 stream foundations as follow-on; semantic cross-row agreement; 4-byte encapsulation framing; deterministic zero-fill encoder padding; official sources |
 | M1-01b | Complete | Bounded stream reader/writer split into b1 reader and b2 writer |
 | M1-01b1 | Complete | Bounded CDR1 reader in `rclmbt/cdr`: encapsulation, network-order options `UInt16`, origin-4 alignment, width-exact raw reads, borrowed `BytesView`, frozen limits, strict completion |
 | M1-01b2 | Complete | Bounded CDR1 writer: canonical header, capacity min(stream,temp), deterministic zero padding, options `0x0000`, owned `to_bytes` snapshots |
