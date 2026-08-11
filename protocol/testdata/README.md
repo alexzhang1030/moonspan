@@ -1,21 +1,23 @@
 # R2WP v0 test fixtures
 
-Valid and boundary golden fixtures for wire version 0. Generated and checked by
-[`scripts/protocol-fixtures.ts`](../../scripts/protocol-fixtures.ts).
+Versioned R2WP v0 fixture corpora for wire version 0. Aggregate write/check ownership
+lives in [`scripts/protocol-fixtures.ts`](../../scripts/protocol-fixtures.ts) and runs
+exactly once per corpus in order `valid_boundary → malformed → sequences → parity`.
+Standalone scripts remain available for each corpus.
 
 ## Layout
 
 | Path | Role |
 |---|---|
-| `manifest.json` | Versioned index of every fixture: id, kind, path, lengths, SHA-256, coverage, executable tagged semantic `source`, expected success and roundtrip mode |
-| `valid/*.bin` | Materialized exact wire bytes for small and medium fixtures |
+| `manifest.json` | Valid/boundary index: id, kind, path, lengths, SHA-256, coverage, executable tagged semantic `source`, expected success and roundtrip mode |
+| `valid/*.bin` | Materialized exact wire bytes for small and medium valid/boundary fixtures |
 | `malformed/` | Static malformed wire corpus (M0-03e1); own manifest + `*.bin` |
 | `sequences/` | Receiver state-sequence corpus (M0-03e2); scenarios + events |
 | `parity.json` | Dual-transport parity corpus (M0-03e3); shared artifact identities + transport rule matrix |
 
-## Representations
+## Representations (valid/boundary)
 
-**Entry `representation` controls committed full-wire storage:**
+**Entry `representation` controls committed full-wire storage for valid/boundary fixtures:**
 
 | `representation` | Committed wire | Typical use |
 |---|---|---|
@@ -46,9 +48,9 @@ is still exact. The 64 MiB fixture is manifest-only: nested recipe plus entry
 The checker materializes recipes in memory, encodes the full selected-version
 frame, and verifies `payload_length`, full-frame `byte_length`, and `sha256`.
 
-## Tagged semantic JSON
+## Tagged semantic JSON (valid/boundary)
 
-Executable closed tags for encode inputs:
+Executable closed tags for valid/boundary encode inputs:
 
 | Tag | Meaning |
 |---|---|
@@ -59,7 +61,7 @@ Executable closed tags for encode inputs:
 | `{ "$type": "bootstrap", ... }` | Bootstrap encode input (camelCase fields) |
 | `{ "$type": "frame", ... }` | Frame encode input |
 
-## Roundtrip modes
+## Roundtrip modes (valid/boundary)
 
 | Mode | Rule |
 |---|---|
@@ -80,16 +82,20 @@ Root `bun run check` and `just check` run aggregate `protocol-fixtures:check`
 after `protocol-check`. Aggregate ownership lives in `scripts/protocol-fixtures.ts`
 and covers valid_boundary, malformed, sequences, and parity in that fixed order.
 
-Standalone corpus commands:
+Standalone corpus commands (complete write/check surface):
 
 ```bash
 bun run protocol-malformed-fixtures:write
 bun run protocol-malformed-fixtures:check
 bun test scripts/protocol-malformed-fixtures.test.ts
+just protocol-malformed-fixtures-write
+just protocol-malformed-fixtures-check
 
 bun run protocol-sequence-fixtures:write
 bun run protocol-sequence-fixtures:check
 bun test scripts/protocol-sequence-fixtures.test.ts
+just protocol-sequence-fixtures-write
+just protocol-sequence-fixtures-check
 
 bun run protocol-parity-fixtures:write
 bun run protocol-parity-fixtures:check
@@ -101,11 +107,17 @@ just protocol-parity-fixtures-check
 `parity.json` indexes the exact union of 20 valid/boundary fixture identities and
 26 sequence event identities with WebTransport and binary_wss transport refs that
 must share semantic identity, length, and SHA-256. A separate `transport_rules`
-matrix covers dual-transport semantics (topic/service/action reliability paths,
-WSS one-frame/latest-wins/HOL evidence) and is cross-bound to
+matrix (20 rows) covers dual-transport semantics (topic/service/action reliability
+paths, WSS one-frame/latest-wins/HOL evidence) and is cross-bound to
 `protocol/registry/r2wp-v0.json`.
 
-## Coverage highlights
+**Counts (M0-03e review Accept):** malformed 55 fixtures; sequences 13 scenarios /
+26 events; parity 46 shared identities + 20 rules. Commits `3600ff4`, `63f21df`,
+`154afb1`. Aggregate two-write parity SHA-256
+`d75d07e46f878be00bb05fd395ccec768ad52950f749cad8b9fcd28a208f80c9`. Phase-one rows
+remain H-FT, H-CY, J-FT, and J-CY.
+
+## Coverage highlights (valid/boundary)
 
 - ClientHello at list/field maxima (16 wire versions, u32/u64 requested limits, 64 caps)
 - ServerHello effective limit ceilings

@@ -2,7 +2,7 @@
 
 R2WP is Moonspan's versioned browser transport for ROS 2 semantics and serialized data. It carries bootstrap negotiation, a fixed 32-byte selected-version frame header, deterministic CBOR control maps, and CDR or media payloads over WebTransport and binary WebSocket.
 
-**Status:** wire version **0** accepted normative freeze ([ADR 0009](../adr/0009-r2wp-v0-wire-encoding.md)); M0-03a–d complete (contract, validator, TypeScript codecs, valid/boundary fixtures); M0-03e–h continue malformed/state/transport fixtures and multi-language parsers against this contract.
+**Status:** wire version **0** accepted normative freeze ([ADR 0009](../adr/0009-r2wp-v0-wire-encoding.md)); M0-03a–e complete (contract, validator, TypeScript codecs, valid/boundary + malformed + sequence + parity fixtures); M0-03f–h continue multi-language parsers and cross-language agreement against this contract.
 
 | Surface | File |
 |---|---|
@@ -12,12 +12,16 @@ R2WP is Moonspan's versioned browser transport for ROS 2 semantics and serialize
 | Contract validator (implementation) | [scripts/protocol-check.ts](../../scripts/protocol-check.ts) (`bun run protocol-check`, `just protocol-check`) |
 | TypeScript CBOR codec (implementation) | [sdk/typescript/src/protocol/cbor.ts](../../sdk/typescript/src/protocol/cbor.ts) (`bun run --filter @moonspan/sdk test:cbor`) |
 | TypeScript bootstrap / extension / control / frame codecs | [bootstrap.ts](../../sdk/typescript/src/protocol/bootstrap.ts), [extension.ts](../../sdk/typescript/src/protocol/extension.ts), [control.ts](../../sdk/typescript/src/protocol/control.ts), [frame.ts](../../sdk/typescript/src/protocol/frame.ts) |
-| Valid/boundary fixtures | [protocol/testdata/README.md](../../protocol/testdata/README.md), [manifest.json](../../protocol/testdata/manifest.json), [valid/](../../protocol/testdata/valid/) |
-| Fixture generator and checker | [scripts/protocol-fixtures.ts](../../scripts/protocol-fixtures.ts) (`bun run protocol-fixtures:check` / `protocol-fixtures:write`, `just protocol-fixtures-check` / `protocol-fixtures-write`) |
+| Fixture layout (all corpora) | [protocol/testdata/README.md](../../protocol/testdata/README.md) |
+| Valid/boundary fixtures | [manifest.json](../../protocol/testdata/manifest.json), [valid/](../../protocol/testdata/valid/) (20 entries) |
+| Malformed wire corpus | [malformed/](../../protocol/testdata/malformed/) (55 fixtures; `scripts/protocol-malformed-fixtures.ts`) |
+| State-sequence corpus | [sequences/](../../protocol/testdata/sequences/) (13 scenarios / 26 events; `scripts/protocol-sequence-fixtures.ts`) |
+| Transport parity corpus | [parity.json](../../protocol/testdata/parity.json) (46 shared identities + 20 registry-bound rules; `scripts/protocol-parity-fixtures.ts`) |
+| Aggregate fixture write/check | [scripts/protocol-fixtures.ts](../../scripts/protocol-fixtures.ts) (`bun run protocol-fixtures:check` / `protocol-fixtures:write`, `just protocol-fixtures-check` / `protocol-fixtures-write`; order `valid_boundary → malformed → sequences → parity`) |
 | Encoding ADR | [ADR 0009](../adr/0009-r2wp-v0-wire-encoding.md) |
 | Versioning model | [ADR 0005](../adr/0005-r2wp-wire-versioning.md) |
 
-This page is the design overview and documentation entry. Byte-level rules, registries, absolute limits, dispositions, and transport length rules are normative in the protocol package above. The contract validator checks normative package consistency. TypeScript codecs implement deterministic CBOR, bootstrap records, extension TLVs, all 15 CONTROL kinds, and selected-frame static steps 1–16. Valid/boundary goldens and the Bun fixture checker live under `protocol/testdata/` and `scripts/protocol-fixtures.ts`. Normative authority remains the three-file protocol package.
+This page is the design overview and documentation entry. Byte-level rules, registries, absolute limits, dispositions, and transport length rules are normative in the protocol package above. The contract validator checks normative package consistency. TypeScript codecs implement deterministic CBOR, bootstrap records, extension TLVs, all 15 CONTROL kinds, and selected-frame static steps 1–16. Bun fixture tooling under `protocol/testdata/` and `scripts/protocol-*-fixtures.ts` covers valid/boundary goldens, static malformed wire, receiver state sequences, and dual-transport parity through one aggregate check path. Normative authority remains the three-file protocol package.
 
 The browser-internal CBOR codec implements the R2WP v0 deterministic subset: definite lengths, shortest integer/length arguments, unsigned map keys sorted by encoded-key order, nesting depth 16, map entry ceiling 4096, and rejection of tags, floats, indefinite forms, and malformed UTF-8. Decode failures use `CborDecodeError` with `code: "invalid_control"`, a typed reason, and a byte offset. Decode yields an atomic whole value. Input-driven and native decoder failures normalize to `CborDecodeError`.
 
@@ -149,11 +153,11 @@ Wire versioning follows [ADR 0005](../adr/0005-r2wp-wire-versioning.md). Wire ve
 
 ## Required fixtures
 
-### Delivered (M0-03d valid/boundary)
+### Delivered (M0-03d–e)
 
-M0-03d commits 20 valid/boundary entries: 19 exact binaries under [protocol/testdata/valid/](../../protocol/testdata/valid/) and one manifest-only exact 64 MiB application frame. The versioned [manifest](../../protocol/testdata/manifest.json) records lengths, SHA-256, language-neutral executable tagged source, expected success, and decode-reencode or source-reencode mode. Representation and checker rules live in [protocol/testdata/README.md](../../protocol/testdata/README.md).
+M0-03d commits 20 valid/boundary entries: 19 exact binaries under [protocol/testdata/valid/](../../protocol/testdata/valid/) and one manifest-only exact 64 MiB application frame. The versioned [manifest](../../protocol/testdata/manifest.json) records lengths, SHA-256, language-neutral executable tagged source, expected success, and decode-reencode or source-reencode mode.
 
-Delivered coverage includes:
+Valid/boundary coverage includes:
 
 - 12-byte bootstrap prefix and 32-byte selected frame header;
 - extension area ceiling 4096 (unknown noncritical TLV) and CONTROL payload ceiling 1048576;
@@ -164,21 +168,27 @@ Delivered coverage includes:
 - four exact Phase 1 SessionReady rows H-FT, H-CY, J-FT, and J-CY;
 - representative media keyframe, service request with TRACE/operation id, and control/schema frames at boundary sizes.
 
-Root verification: `bun run protocol-fixtures:check` / `just protocol-fixtures-check`; included in `bun run check` after `docs:check` and `protocol-check`.
+M0-03e (review Accept; commits `3600ff4`, `63f21df`, `154afb1`) adds three corpora:
 
-### Planned (M0-03e–h)
+| Corpus | Count | Path / tooling |
+|---|---:|---|
+| Malformed wire | 55 fixtures | [malformed/](../../protocol/testdata/malformed/), `scripts/protocol-malformed-fixtures.ts` |
+| State sequences | 13 scenarios / 26 events | [sequences/](../../protocol/testdata/sequences/), `scripts/protocol-sequence-fixtures.ts` |
+| Transport parity | 46 shared identities + 20 registry-bound rules | [parity.json](../../protocol/testdata/parity.json), `scripts/protocol-parity-fixtures.ts` |
 
-Later sub-batches extend the corpus and prove multi-language agreement:
+Sequence coverage includes `no_common_version`, fresh open and resume success, gateway/support-row mismatch, multi-domain same-row, cross-row independent sessions (one process per H-FT/H-CY/J-FT/J-CY row), best-effort `sequence_gap` / `stale_sequence`, and reliable sequence mismatch as `protocol_violation`. Parity cross-binds the exact union of 20 valid/boundary identities and 26 sequence event identities for WebTransport and binary WSS, with a closed 20-row transport rule matrix against [protocol/registry/r2wp-v0.json](../../protocol/registry/r2wp-v0.json).
 
-- malformed frames (truncation, overflow, bad extensions, duplicate CBOR keys, zero common version);
-- session sequences (open/resume success, gateway/support-row mismatch, multi-domain same-row, cross-row independent sessions, `sequence_gap`, `stale_sequence`);
-- transport parity (one semantic fixture set for WebTransport and binary WSS);
-- sample, graph, schema, request/response, goal/feedback/result/cancel, clock, media, and asset frames beyond the M0-03d boundary set;
-- Jazzy provenance mapping, identity mismatch, missing required Humble bundle (`schema_unavailable`), and broader QoS/transport classes;
-- Rust (`rclwebd`) and MoonBit (`rclmbt`) reference parsers consuming the same bytes with matching semantic records or stable error codes;
-- cross-language agreement report that closes M0-03.
+Aggregate write/check runs exactly once per corpus in order `valid_boundary → malformed → sequences → parity` via [scripts/protocol-fixtures.ts](../../scripts/protocol-fixtures.ts). Layout and commands: [protocol/testdata/README.md](../../protocol/testdata/README.md). Root verification: `bun run protocol-fixtures:check` / `just protocol-fixtures-check`; included in `bun run check` after `docs:check` and `protocol-check`. Focused suite: `bun run test:protocol-fixtures` (four files once each).
 
-WebTransport and WSS share the semantic fixture set once parity fixtures land.
+### Planned (M0-03f–h)
+
+M0-03f–h scope is multi-language consumption of the committed TypeScript corpora:
+
+- M0-03f — Rust (`rclwebd`) reference parser consuming the same bytes with matching semantic records or stable error codes;
+- M0-03g — MoonBit (`rclmbt`) reference parser with the same agreement surface;
+- M0-03h — cross-language agreement report that closes M0-03.
+
+[M0-04](../../tasks/plan.md) owns broader CDR sample coverage, Jazzy provenance mapping, and related corpus expansion. The committed parity corpus establishes the shared WebTransport/binary-WSS semantic set.
 
 ## Related documents
 

@@ -23,7 +23,7 @@ The scope ordering and Bun choice record human direction from 2026-08-10. Other 
 | Technical reference set | [References](./references.md) |
 | R2WP overview and design entry | [R2WP](./protocol/r2wp.md) |
 | R2WP wire version 0 normative contract | [protocol/r2wp-v0.md](../protocol/r2wp-v0.md), [registry](../protocol/registry/r2wp-v0.json), [control CDDL](../protocol/schema/control-v0.cddl), [ADR 0009](./adr/0009-r2wp-v0-wire-encoding.md), [contract validator](../scripts/protocol-check.ts) |
-| R2WP TypeScript codecs and valid/boundary fixtures | [R2WP overview](./protocol/r2wp.md), [sdk/typescript/src/protocol/](../sdk/typescript/src/protocol/), [fixtures README](../protocol/testdata/README.md), [fixture manifest](../protocol/testdata/manifest.json), [fixture checker](../scripts/protocol-fixtures.ts) |
+| R2WP TypeScript codecs and fixture corpora | [R2WP overview](./protocol/r2wp.md), [sdk/typescript/src/protocol/](../sdk/typescript/src/protocol/), [fixtures README](../protocol/testdata/README.md), valid [manifest](../protocol/testdata/manifest.json) / [malformed](../protocol/testdata/malformed/) / [sequences](../protocol/testdata/sequences/) / [parity.json](../protocol/testdata/parity.json), aggregate [fixture checker](../scripts/protocol-fixtures.ts) |
 | MoonBit/Wasm runtime, schemas, host ABI | [`rclmbt`](./runtime/rclmbt.md) |
 | Gateway, ROS adapter, scheduling, operations | [`rclwebd`](./gateway/rclwebd.md) |
 | Identity, policy, audit, resource controls | [Security](./security.md) |
@@ -54,8 +54,8 @@ The scope ordering and Bun choice record human direction from 2026-08-10. Other 
 - Measured claims link to reproducible evidence carrying environment, commands, raw data, and revision identity.
 - Accepted human decisions live in the [ADR register](./adr/README.md); the [kickoff decision register](../tasks/plan.md#13-kickoff-decision-register) owns accountable role, required evidence, and decision deadline for remaining kickoff choices.
 - The PCR map under [`.agents/docs/`](../.agents/docs/README.md) records durable rationale and routes contributors to these specifications.
-- Run `bun run check` to run `docs:check`, then `protocol-check`, then `protocol-fixtures:check` (local Markdown links/images/anchors/PCR enrollment, R2WP v0 registry/CDDL contract validation, then valid/boundary fixture reconstruction).
+- Run `bun run check` to run `docs:check`, then `protocol-check`, then aggregate `protocol-fixtures:check` (local Markdown links/images/anchors/PCR enrollment, R2WP v0 registry/CDDL contract validation, then valid_boundary → malformed → sequences → parity once each).
 - Run `bun run protocol-check` or `just protocol-check` for the contract validator alone; `bun run test:protocol` for focused validator tests.
-- Run `bun run protocol-fixtures:check` or `just protocol-fixtures-check` for golden fixtures alone; `bun run protocol-fixtures:write` or `just protocol-fixtures-write` to regenerate; `bun run test:protocol-fixtures` for focused fixture-tool tests.
+- Run `bun run protocol-fixtures:check` or `just protocol-fixtures-check` for the aggregate fixture path; `bun run protocol-fixtures:write` or `just protocol-fixtures-write` to regenerate all four corpora; `bun run test:protocol-fixtures` for the four fixture test files once each. Standalone malformed/sequence/parity write, check, and test scripts remain available.
 - Run `bun run toolchain-check` to probe installed tool identities against project pins.
 - Run `just check`, `just test`, and `just build` for the full polyglot root command surface once pinned Bun, Rust, MoonBit, and just are on `PATH` (see repository [README](../README.md)).
