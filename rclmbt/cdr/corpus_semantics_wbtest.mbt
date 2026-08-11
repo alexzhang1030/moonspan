@@ -1476,3 +1476,26 @@ test "big-endian primitive singletons decode and re-encode" {
     assert_eq(prefix_eq_bytes(out, arr, f.logical_byte_length), true)
   }
 }
+
+///|
+test "comparison groups re-encode to one logical prefix per group" {
+  // Cross-row fixtures share logical values; exact re-encode is identical per
+  // case_id and endianness, and equals each member's canonical logical prefix.
+  let mut groups = 0
+  for c in cdr_corpus_comparisons {
+    let first = cdr_fx_find(c.fixture_ids[0])
+    let endian = cs_endian_of(first.serialized_endianness)
+    let out = reencode_case(first.case_id, endian, ())
+    let mut i = 0
+    while i < c.fixture_ids.length() {
+      let f = cdr_fx_find(c.fixture_ids[i])
+      let (arr, bytes) = materialize_fixture(f)
+      ignore(bytes)
+      assert_eq(out.length(), f.logical_byte_length)
+      assert_eq(prefix_eq_bytes(out, arr, f.logical_byte_length), true)
+      i = i + 1
+    }
+    groups = groups + 1
+  }
+  assert_eq(groups, CDR_FX_COMPARISON_TOTAL)
+}
