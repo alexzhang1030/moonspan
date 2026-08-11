@@ -50,6 +50,16 @@ protocol-parity-fixtures-write: toolchain-check
 protocol-parity-fixtures-check: toolchain-check
     cd "{{root}}" && bun run protocol-parity-fixtures:check
 
+# Three-language R2WP agreement gate (scripts/protocol-agree-run.ts --check).
+[group('quality')]
+protocol-agree: toolchain-check
+    cd "{{root}}" && bun run protocol-agree
+
+# Three-language R2WP agreement report write (scripts/protocol-agree-run.ts --write).
+[group('quality')]
+protocol-agree-write: toolchain-check
+    cd "{{root}}" && bun run protocol-agree:write
+
 # Toolchain identity, Bun docs + protocol validation, Rust fmt/clippy, MoonBit format/check, TypeScript check.
 [group('quality')]
 check: toolchain-check
