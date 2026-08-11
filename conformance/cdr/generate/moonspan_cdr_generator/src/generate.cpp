@@ -45,6 +45,21 @@ namespace
 
 constexpr std::size_t kSerializedCapacity = 1024U * 1024U;
 
+#if FASTCDR_VERSION_MAJOR >= 2
+constexpr auto kFastCdrDdsCdr = eprosima::fastcdr::DDS_CDR;
+#else
+constexpr auto kFastCdrDdsCdr = eprosima::fastcdr::Cdr::DDS_CDR;
+#endif
+
+std::size_t serialized_data_length(eprosima::fastcdr::Cdr & cdr)
+{
+#if FASTCDR_VERSION_MAJOR >= 2
+  return cdr.get_serialized_data_length();
+#else
+  return cdr.getSerializedDataLength();
+#endif
+}
+
 struct SummaryRow
 {
   std::string fixture_id;
@@ -231,31 +246,17 @@ std::vector<std::uint8_t> serialize_primitive_big_endian(
 {
   std::vector<char> storage(kSerializedCapacity, 0);
   eprosima::fastcdr::FastBuffer buffer(storage.data(), storage.size());
-#if FASTCDR_VERSION_MAJOR >= 2
   eprosima::fastcdr::Cdr encoder(
-    buffer, eprosima::fastcdr::Cdr::BIG_ENDIANNESS, eprosima::fastcdr::DDS_CDR);
-#else
-  eprosima::fastcdr::Cdr encoder(
-    buffer, eprosima::fastcdr::Cdr::BIG_ENDIANNESS, eprosima::fastcdr::Cdr::DDS_CDR);
-#endif
+    buffer, eprosima::fastcdr::Cdr::BIG_ENDIANNESS, kFastCdrDdsCdr);
   encoder.serialize_encapsulation();
   if (!moonspan_cdr_interfaces::msg::typesupport_fastrtps_cpp::cdr_serialize(message, encoder)) {
     throw std::runtime_error("Fast-CDR big-endian serialization failed");
   }
-#if FASTCDR_VERSION_MAJOR >= 2
-  const std::size_t length = encoder.get_serialized_data_length();
-#else
-  const std::size_t length = encoder.getSerializedDataLength();
-#endif
+  const std::size_t length = serialized_data_length(encoder);
 
   eprosima::fastcdr::FastBuffer decode_buffer(storage.data(), length);
-#if FASTCDR_VERSION_MAJOR >= 2
   eprosima::fastcdr::Cdr decoder(
-    decode_buffer, eprosima::fastcdr::Cdr::BIG_ENDIANNESS, eprosima::fastcdr::DDS_CDR);
-#else
-  eprosima::fastcdr::Cdr decoder(
-    decode_buffer, eprosima::fastcdr::Cdr::BIG_ENDIANNESS, eprosima::fastcdr::Cdr::DDS_CDR);
-#endif
+    decode_buffer, eprosima::fastcdr::Cdr::BIG_ENDIANNESS, kFastCdrDdsCdr);
   decoder.read_encapsulation();
   moonspan_cdr_interfaces::msg::PrimitiveScalars decoded;
   if (!moonspan_cdr_interfaces::msg::typesupport_fastrtps_cpp::cdr_deserialize(decoder, decoded)) {
