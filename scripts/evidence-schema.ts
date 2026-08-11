@@ -1,6 +1,7 @@
 /**
  * Public JSON Schema 2020-12 generation for qualification report v1.
- * Constants and runtime validation live in evidence-contract.ts.
+ * Shared model (constants/helpers) lives in evidence-model.ts;
+ * runtime validation in evidence-contract.ts.
  */
 import {
   ARRAY_MAX_64,
@@ -42,7 +43,7 @@ import {
   TEXT_4096,
   WARMUP_COUNT_MAX,
   stableJsonPretty,
-} from "./evidence-contract.ts";
+} from "./evidence-model.ts";
 
 function stringBounds(min: number, max: number) {
   return { type: "string", minLength: min, maxLength: max };

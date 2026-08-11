@@ -33,6 +33,9 @@ import {
   validateReportFile,
   writeSchema,
 } from "./evidence-check.ts";
+import * as evidenceContract from "./evidence-contract.ts";
+import * as evidenceModel from "./evidence-model.ts";
+import * as evidenceSchema from "./evidence-schema.ts";
 
 const root = path.resolve(import.meta.dir, "..");
 
@@ -151,6 +154,44 @@ describe("evidence contract enums and helpers", () => {
     expect(parseCliMode(["--check"])).toEqual({ mode: "check" });
     expect(parseCliMode(["--write"])).toEqual({ mode: "write" });
     expect(parseCliMode(["--other"])).toHaveProperty("error");
+  });
+});
+
+describe("evidence module wiring", () => {
+  test("model owns constants and helpers; contract validates; schema builds", () => {
+    // Model is the source of truth for enums/bounds/helpers.
+    expect(evidenceModel.SCHEMA_VERSION).toBe(SCHEMA_VERSION);
+    expect(evidenceModel.REPORT_ID).toBe(REPORT_ID);
+    expect([...evidenceModel.GATES]).toEqual([...GATES]);
+    expect(evidenceModel.ARTIFACT_MAX_BYTES).toBe(ARTIFACT_MAX_BYTES);
+    expect(evidenceModel.asciiCompare("a", "b")).toBe(-1);
+    expect(evidenceModel.isValidCalendarDate("2026-08-11")).toBe(true);
+    expect(evidenceModel.resolveUnderRoot("/r", "a/b").ok).toBe(true);
+    expect(evidenceModel.stableJsonPretty({ a: 1 })).toBe('{\n  "a": 1\n}\n');
+
+    // Contract focuses on runtime document validation.
+    expect(typeof evidenceContract.validateReportDocument).toBe("function");
+    expect(evidenceContract.validateReportDocument(baseReport())).toEqual([]);
+    expect(
+      Object.keys(evidenceContract).filter((k) => k === "GATES" || k === "SCHEMA_VERSION"),
+    ).toEqual([]);
+
+    // Schema depends on model constants (not the validator module) and produces schema.
+    expect(typeof evidenceSchema.buildQualificationReportSchema).toBe("function");
+    expect(typeof evidenceSchema.schemaCanonicalBytes).toBe("function");
+    const schema = evidenceSchema.buildQualificationReportSchema();
+    expect(schema.$schema).toBe("https://json-schema.org/draft/2020-12/schema");
+    expect(schema.properties).toBeDefined();
+    expect(
+      Object.keys(evidenceSchema).filter((k) => k === "GATES" || k === "validateReportDocument"),
+    ).toEqual([]);
+
+    // Check re-exports stay stable for tests and CLI consumers.
+    expect(validateReportDocument).toBe(evidenceContract.validateReportDocument);
+    expect(buildQualificationReportSchema).toBe(evidenceSchema.buildQualificationReportSchema);
+    expect(schemaCanonicalBytes).toBe(evidenceSchema.schemaCanonicalBytes);
+    expect(GATES).toBe(evidenceModel.GATES);
+    expect(stableJsonPretty).toBe(evidenceModel.stableJsonPretty);
   });
 });
 

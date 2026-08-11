@@ -2,11 +2,12 @@
 /**
  * Qualification report v1 filesystem checker and CLI (M0-05a).
  *
- * Contract: evidence-contract.ts. Schema generation: evidence-schema.ts.
+ * Model: evidence-model.ts. Runtime validation: evidence-contract.ts.
+ * Schema generation: evidence-schema.ts.
  * This module owns schema write/check, corpus closure, artifact integrity, CLI.
  */
 import { createHash } from "node:crypto";
-import { lstat, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { lstat, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
   ARTIFACT_MAX_BYTES,
@@ -17,8 +18,8 @@ import {
   asciiCompare,
   resolveUnderRoot,
   stableJsonPretty,
-  validateReportDocument,
-} from "./evidence-contract.ts";
+} from "./evidence-model.ts";
+import { validateReportDocument } from "./evidence-contract.ts";
 import {
   buildQualificationReportSchema,
   schemaCanonicalBytes,
@@ -33,7 +34,7 @@ export type EvidenceCheckResult = {
 
 export type Mode = "check" | "write";
 
-// Re-export the stable test-facing API.
+// Re-export the stable test-facing API (model + contract + schema).
 export {
   ARTIFACT_MAX_BYTES,
   ARTIFACT_ROLES,
@@ -59,8 +60,8 @@ export {
   isValidCalendarDate,
   resolveUnderRoot,
   stableJsonPretty,
-  validateReportDocument,
-} from "./evidence-contract.ts";
+} from "./evidence-model.ts";
+export { validateReportDocument } from "./evidence-contract.ts";
 export { buildQualificationReportSchema, schemaCanonicalBytes } from "./evidence-schema.ts";
 
 export function parseCliMode(args: string[]): { mode: Mode } | { error: string } {

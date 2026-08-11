@@ -10,7 +10,7 @@ Moonspan stores machine-readable qualification evidence under `evidence/`.
 | [`testdata/valid/`](./testdata/valid/) | Closed valid report fixtures |
 | [`testdata/payloads/`](./testdata/payloads/) | Payload files referenced by valid fixtures |
 
-**Module split:** `scripts/evidence-contract.ts` holds constants and runtime document validation; `scripts/evidence-schema.ts` builds the public schema; `scripts/evidence-check.ts` owns filesystem I/O and the CLI.
+**Module split:** `scripts/evidence-model.ts` holds pure enums, bounds, key arrays, regexes, and helpers; `scripts/evidence-contract.ts` runs document validation; `scripts/evidence-schema.ts` builds the public schema from the model; `scripts/evidence-check.ts` owns filesystem I/O and the CLI (re-exports the stable test-facing API).
 
 The public schema carries expressible structure and semantics (gate/level mapping, N1/N2 provenance, scalar anyOf bounds, path segment pattern, date format). The Bun checker adds canonical ordering, real calendar dates, path confinement, symlink rejection, closed corpus checks, and artifact integrity.
 
