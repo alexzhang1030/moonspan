@@ -87,19 +87,39 @@ test "public writer API and width-exact types across packages" {
       let snap = w.to_bytes()
       match @cdr.CdrReader::open_default(snap[:]) {
         Ok(r) => {
-          match r.read_u16() {
+          // Typed helpers force UInt16 / UInt / UInt64 return bindings.
+          match require_read_u16(r) {
             Ok(v) => assert_eq(v, (0xffff).to_uint16())
             Err(e) => abort(e.code)
           }
-          match r.read_u32() {
+          match require_read_u32(r) {
             Ok(v) => assert_eq(v, 0xffffffffU)
             Err(e) => abort(e.code)
           }
-          match r.read_u64() {
+          match require_read_u64(r) {
             Ok(v) => assert_eq(v, 0xffffffffffffffffUL)
             Err(e) => abort(e.code)
           }
         }
+        Err(e) => abort(e.code)
+      }
+    }
+    Err(e) => abort(e.code)
+  }
+}
+
+///|
+test "unsigned assembly preserves high-bit u32 patterns" {
+  // LE bytes for 0x80000000 and 0xffffffff through width-exact unsigned shifts.
+  let input = b"\x00\x01\x00\x00\x00\x00\x00\x80\xff\xff\xff\xff"
+  match @cdr.CdrReader::open_default(input[:]) {
+    Ok(r) => {
+      match require_read_u32(r) {
+        Ok(v) => assert_eq(v, 0x80000000U)
+        Err(e) => abort(e.code)
+      }
+      match require_read_u32(r) {
+        Ok(v) => assert_eq(v, 0xffffffffU)
         Err(e) => abort(e.code)
       }
     }

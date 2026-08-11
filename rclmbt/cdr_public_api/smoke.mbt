@@ -7,3 +7,25 @@ pub fn smoke_open_little_endian_header() -> Bool {
     Err(_) => false
   }
 }
+
+///|
+/// Compile-time binding: `CdrReader::read_u16` returns width-exact `UInt16`.
+pub fn require_read_u16(
+  reader : @cdr.CdrReader,
+) -> Result[UInt16, @cdr.CdrError] {
+  reader.read_u16()
+}
+
+///|
+/// Compile-time binding: `CdrReader::read_u32` returns width-exact `UInt`.
+pub fn require_read_u32(reader : @cdr.CdrReader) -> Result[UInt, @cdr.CdrError] {
+  reader.read_u32()
+}
+
+///|
+/// Compile-time binding: `CdrReader::read_u64` returns width-exact `UInt64`.
+pub fn require_read_u64(
+  reader : @cdr.CdrReader,
+) -> Result[UInt64, @cdr.CdrError] {
+  reader.read_u64()
+}

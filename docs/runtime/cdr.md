@@ -139,7 +139,7 @@ BytesView  ->  bounds-checked slice into parent storage the caller retains
 |---|---|---|
 | `CdrReader` | M1-01b1 | Encapsulation parse, origin-4 alignment, zero-copy `read_bytes`, strict completion |
 | `CdrWriter` | M1-01b2 | Canonical header on construct, deterministic zero padding, owned `to_bytes` snapshots |
-| Raw integers | b1/b2 | Width-exact `Byte` / `UInt16` / `UInt` / `UInt64` |
+| Raw integers | b1/b2 | Width-exact APIs: `read_u8`/`write_u8` → `Byte`; `read_u16`/`write_u16` → `UInt16`; `read_u32`/`write_u32` → `UInt`; `read_u64`/`write_u64` → `UInt64`. Reader assembly uses `Byte::to_uint16` / `Byte::to_uint` so shifts stay unsigned through `0x80000000..0xffffffff` |
 | Semantics | M1-01c | Primitives, strings, collections, ROS wstring |
 
 **Writer capacity:** `capacity = min(max_stream_bytes, max_temporary_allocation)`, counted over the **complete stream including the 4-byte header**. Construction emits the full canonical header immediately (`LE = 00 01 00 00`, `BE = 00 00 00 00`; options always `0x0000`). When temporary capacity is below 4, construction returns `bounds_exceeded` with `needed = 4` and `remaining =` temporary capacity. Each field preflights `pad + size` arithmetic and full capacity before mutating the buffer; faults leave position and bytes byte-identical. `to_bytes` returns an owned snapshot isolated from later writes.

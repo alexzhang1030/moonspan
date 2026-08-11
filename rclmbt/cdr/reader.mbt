@@ -181,40 +181,43 @@ pub fn CdrReader::read_u8(self : CdrReader) -> Result[Byte, CdrError] {
 
 ///|
 /// Read a 16-bit unsigned bit pattern in stream endianness (align 2).
+/// Bytes are widened with `Byte::to_uint16`; shifts stay on `UInt16`.
 pub fn CdrReader::read_u16(self : CdrReader) -> Result[UInt16, CdrError] {
   match self.align_to(2, 2) {
     Ok(_) => ()
     Err(e) => return Err(e)
   }
-  let b0 = self.bytes[self.offset]
-  let b1 = self.bytes[self.offset + 1]
+  let b0 = self.bytes[self.offset].to_uint16()
+  let b1 = self.bytes[self.offset + 1].to_uint16()
   self.offset = self.offset + 2
   let value = if is_little(self.header.endian) {
-    (b1.to_int() << 8) | b0.to_int()
+    (b1 << 8) | b0
   } else {
-    (b0.to_int() << 8) | b1.to_int()
+    (b0 << 8) | b1
   }
-  Ok(value.to_uint16())
+  Ok(value)
 }
 
 ///|
 /// Read a 32-bit unsigned bit pattern in stream endianness (align 4).
+/// Bytes are widened with `Byte::to_uint`; shifts stay on `UInt` through the
+/// full `0x80000000..0xffffffff` range without signed intermediates.
 pub fn CdrReader::read_u32(self : CdrReader) -> Result[UInt, CdrError] {
   match self.align_to(4, 4) {
     Ok(_) => ()
     Err(e) => return Err(e)
   }
-  let b0 = self.bytes[self.offset]
-  let b1 = self.bytes[self.offset + 1]
-  let b2 = self.bytes[self.offset + 2]
-  let b3 = self.bytes[self.offset + 3]
+  let b0 = self.bytes[self.offset].to_uint()
+  let b1 = self.bytes[self.offset + 1].to_uint()
+  let b2 = self.bytes[self.offset + 2].to_uint()
+  let b3 = self.bytes[self.offset + 3].to_uint()
   self.offset = self.offset + 4
   let value = if is_little(self.header.endian) {
-    (b3.to_int() << 24) | (b2.to_int() << 16) | (b1.to_int() << 8) | b0.to_int()
+    (b3 << 24) | (b2 << 16) | (b1 << 8) | b0
   } else {
-    (b0.to_int() << 24) | (b1.to_int() << 16) | (b2.to_int() << 8) | b3.to_int()
+    (b0 << 24) | (b1 << 16) | (b2 << 8) | b3
   }
-  Ok(value.reinterpret_as_uint())
+  Ok(value)
 }
 
 ///|
