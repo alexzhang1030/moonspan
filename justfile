@@ -75,6 +75,16 @@ cdr-corpus-write: toolchain-check
 cdr-corpus-reproduce: toolchain-check
     cd "{{root}}" && bun run cdr-corpus:reproduce
 
+# CDR top-level tail-slack evidence check (scripts/cdr-tail-slack.ts --check).
+[group('quality')]
+cdr-tail-slack-check: toolchain-check
+    cd "{{root}}" && bun run cdr-tail-slack:check
+
+# Regenerate CDR top-level tail-slack evidence (scripts/cdr-tail-slack.ts --write).
+[group('quality')]
+cdr-tail-slack-write: toolchain-check
+    cd "{{root}}" && bun run cdr-tail-slack:write
+
 # Qualification report v1 contract check (scripts/evidence-check.ts --check).
 [group('quality')]
 evidence-check: toolchain-check

@@ -1,0 +1,865 @@
+{
+  "comparisons": [
+    {
+      "canonical_prefix_sha256": "54d2c79072a6c64836475e6ce3ac53112fff8fec8f3fae66efaab4baf030b16d",
+      "case_id": "collections",
+      "logical_byte_length": 156,
+      "ros_distro": "humble",
+      "rows": [
+        "H-CY",
+        "H-FT",
+        "H-ZN"
+      ],
+      "zero_tail_bytes_by_row": {
+        "H-CY": 0,
+        "H-FT": 4,
+        "H-ZN": 4
+      }
+    },
+    {
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "echo_nested_request",
+      "logical_byte_length": 260,
+      "ros_distro": "humble",
+      "rows": [
+        "H-CY",
+        "H-FT",
+        "H-ZN"
+      ],
+      "zero_tail_bytes_by_row": {
+        "H-CY": 0,
+        "H-FT": 12,
+        "H-ZN": 12
+      }
+    },
+    {
+      "canonical_prefix_sha256": "87f9d8e73469c8edb8a022713c1a0ac5de17cfcd2a177b4dbca149988d366c1d",
+      "case_id": "echo_nested_response",
+      "logical_byte_length": 261,
+      "ros_distro": "humble",
+      "rows": [
+        "H-CY",
+        "H-FT",
+        "H-ZN"
+      ],
+      "zero_tail_bytes_by_row": {
+        "H-CY": 0,
+        "H-FT": 12,
+        "H-ZN": 12
+      }
+    },
+    {
+      "canonical_prefix_sha256": "0710967626475c750ee682435235fedcbf16746079a3b9a804df114d23992c04",
+      "case_id": "measure_sequence_feedback",
+      "logical_byte_length": 268,
+      "ros_distro": "humble",
+      "rows": [
+        "H-CY",
+        "H-FT",
+        "H-ZN"
+      ],
+      "zero_tail_bytes_by_row": {
+        "H-CY": 0,
+        "H-FT": 12,
+        "H-ZN": 12
+      }
+    },
+    {
+      "canonical_prefix_sha256": "54d2c79072a6c64836475e6ce3ac53112fff8fec8f3fae66efaab4baf030b16d",
+      "case_id": "measure_sequence_goal",
+      "logical_byte_length": 156,
+      "ros_distro": "humble",
+      "rows": [
+        "H-CY",
+        "H-FT",
+        "H-ZN"
+      ],
+      "zero_tail_bytes_by_row": {
+        "H-CY": 0,
+        "H-FT": 4,
+        "H-ZN": 4
+      }
+    },
+    {
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "measure_sequence_result",
+      "logical_byte_length": 260,
+      "ros_distro": "humble",
+      "rows": [
+        "H-CY",
+        "H-FT",
+        "H-ZN"
+      ],
+      "zero_tail_bytes_by_row": {
+        "H-CY": 0,
+        "H-FT": 12,
+        "H-ZN": 12
+      }
+    },
+    {
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "nested_sample",
+      "logical_byte_length": 260,
+      "ros_distro": "humble",
+      "rows": [
+        "H-CY",
+        "H-FT",
+        "H-ZN"
+      ],
+      "zero_tail_bytes_by_row": {
+        "H-CY": 0,
+        "H-FT": 12,
+        "H-ZN": 12
+      }
+    },
+    {
+      "canonical_prefix_sha256": "19e1eb3a49c2e76df4703004d70e5c5ffb3c44b454e18763c43e0ba745a64b1c",
+      "case_id": "point_cloud2",
+      "logical_byte_length": 257,
+      "ros_distro": "humble",
+      "rows": [
+        "H-CY",
+        "H-FT",
+        "H-ZN"
+      ],
+      "zero_tail_bytes_by_row": {
+        "H-CY": 0,
+        "H-FT": 0,
+        "H-ZN": 0
+      }
+    },
+    {
+      "canonical_prefix_sha256": "34684587bfa1c0487dc1cf0d73c14c32d585fd89af5ad61547bf683c511512e6",
+      "case_id": "primitive_scalars",
+      "logical_byte_length": 100,
+      "ros_distro": "humble",
+      "rows": [
+        "H-CY",
+        "H-FT",
+        "H-ZN"
+      ],
+      "zero_tail_bytes_by_row": {
+        "H-CY": 0,
+        "H-FT": 4,
+        "H-ZN": 4
+      }
+    },
+    {
+      "canonical_prefix_sha256": "54d2c79072a6c64836475e6ce3ac53112fff8fec8f3fae66efaab4baf030b16d",
+      "case_id": "collections",
+      "logical_byte_length": 156,
+      "ros_distro": "jazzy",
+      "rows": [
+        "J-CY",
+        "J-FT",
+        "J-ZN"
+      ],
+      "zero_tail_bytes_by_row": {
+        "J-CY": 0,
+        "J-FT": 4,
+        "J-ZN": 4
+      }
+    },
+    {
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "echo_nested_request",
+      "logical_byte_length": 260,
+      "ros_distro": "jazzy",
+      "rows": [
+        "J-CY",
+        "J-FT",
+        "J-ZN"
+      ],
+      "zero_tail_bytes_by_row": {
+        "J-CY": 0,
+        "J-FT": 12,
+        "J-ZN": 12
+      }
+    },
+    {
+      "canonical_prefix_sha256": "87f9d8e73469c8edb8a022713c1a0ac5de17cfcd2a177b4dbca149988d366c1d",
+      "case_id": "echo_nested_response",
+      "logical_byte_length": 261,
+      "ros_distro": "jazzy",
+      "rows": [
+        "J-CY",
+        "J-FT",
+        "J-ZN"
+      ],
+      "zero_tail_bytes_by_row": {
+        "J-CY": 0,
+        "J-FT": 12,
+        "J-ZN": 12
+      }
+    },
+    {
+      "canonical_prefix_sha256": "0710967626475c750ee682435235fedcbf16746079a3b9a804df114d23992c04",
+      "case_id": "measure_sequence_feedback",
+      "logical_byte_length": 268,
+      "ros_distro": "jazzy",
+      "rows": [
+        "J-CY",
+        "J-FT",
+        "J-ZN"
+      ],
+      "zero_tail_bytes_by_row": {
+        "J-CY": 0,
+        "J-FT": 12,
+        "J-ZN": 12
+      }
+    },
+    {
+      "canonical_prefix_sha256": "54d2c79072a6c64836475e6ce3ac53112fff8fec8f3fae66efaab4baf030b16d",
+      "case_id": "measure_sequence_goal",
+      "logical_byte_length": 156,
+      "ros_distro": "jazzy",
+      "rows": [
+        "J-CY",
+        "J-FT",
+        "J-ZN"
+      ],
+      "zero_tail_bytes_by_row": {
+        "J-CY": 0,
+        "J-FT": 4,
+        "J-ZN": 4
+      }
+    },
+    {
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "measure_sequence_result",
+      "logical_byte_length": 260,
+      "ros_distro": "jazzy",
+      "rows": [
+        "J-CY",
+        "J-FT",
+        "J-ZN"
+      ],
+      "zero_tail_bytes_by_row": {
+        "J-CY": 0,
+        "J-FT": 12,
+        "J-ZN": 12
+      }
+    },
+    {
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "nested_sample",
+      "logical_byte_length": 260,
+      "ros_distro": "jazzy",
+      "rows": [
+        "J-CY",
+        "J-FT",
+        "J-ZN"
+      ],
+      "zero_tail_bytes_by_row": {
+        "J-CY": 0,
+        "J-FT": 12,
+        "J-ZN": 12
+      }
+    },
+    {
+      "canonical_prefix_sha256": "19e1eb3a49c2e76df4703004d70e5c5ffb3c44b454e18763c43e0ba745a64b1c",
+      "case_id": "point_cloud2",
+      "logical_byte_length": 257,
+      "ros_distro": "jazzy",
+      "rows": [
+        "J-CY",
+        "J-FT",
+        "J-ZN"
+      ],
+      "zero_tail_bytes_by_row": {
+        "J-CY": 0,
+        "J-FT": 0,
+        "J-ZN": 0
+      }
+    },
+    {
+      "canonical_prefix_sha256": "34684587bfa1c0487dc1cf0d73c14c32d585fd89af5ad61547bf683c511512e6",
+      "case_id": "primitive_scalars",
+      "logical_byte_length": 100,
+      "ros_distro": "jazzy",
+      "rows": [
+        "J-CY",
+        "J-FT",
+        "J-ZN"
+      ],
+      "zero_tail_bytes_by_row": {
+        "J-CY": 0,
+        "J-FT": 4,
+        "J-ZN": 4
+      }
+    }
+  ],
+  "corpus": "moonspan-ros-cdr-v1",
+  "fixtures": [
+    {
+      "canonical_fixture_id": "H-CY-collections",
+      "canonical_prefix_sha256": "54d2c79072a6c64836475e6ce3ac53112fff8fec8f3fae66efaab4baf030b16d",
+      "case_id": "collections",
+      "id": "H-CY-collections",
+      "logical_byte_length": 156,
+      "ros_distro": "humble",
+      "support_row_id": "H-CY",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "H-CY-echo_nested_request",
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "echo_nested_request",
+      "id": "H-CY-echo_nested_request",
+      "logical_byte_length": 260,
+      "ros_distro": "humble",
+      "support_row_id": "H-CY",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "H-CY-echo_nested_response",
+      "canonical_prefix_sha256": "87f9d8e73469c8edb8a022713c1a0ac5de17cfcd2a177b4dbca149988d366c1d",
+      "case_id": "echo_nested_response",
+      "id": "H-CY-echo_nested_response",
+      "logical_byte_length": 261,
+      "ros_distro": "humble",
+      "support_row_id": "H-CY",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "H-CY-measure_sequence_feedback",
+      "canonical_prefix_sha256": "0710967626475c750ee682435235fedcbf16746079a3b9a804df114d23992c04",
+      "case_id": "measure_sequence_feedback",
+      "id": "H-CY-measure_sequence_feedback",
+      "logical_byte_length": 268,
+      "ros_distro": "humble",
+      "support_row_id": "H-CY",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "H-CY-measure_sequence_goal",
+      "canonical_prefix_sha256": "54d2c79072a6c64836475e6ce3ac53112fff8fec8f3fae66efaab4baf030b16d",
+      "case_id": "measure_sequence_goal",
+      "id": "H-CY-measure_sequence_goal",
+      "logical_byte_length": 156,
+      "ros_distro": "humble",
+      "support_row_id": "H-CY",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "H-CY-measure_sequence_result",
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "measure_sequence_result",
+      "id": "H-CY-measure_sequence_result",
+      "logical_byte_length": 260,
+      "ros_distro": "humble",
+      "support_row_id": "H-CY",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "H-CY-nested_sample",
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "nested_sample",
+      "id": "H-CY-nested_sample",
+      "logical_byte_length": 260,
+      "ros_distro": "humble",
+      "support_row_id": "H-CY",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "H-CY-point_cloud2",
+      "canonical_prefix_sha256": "19e1eb3a49c2e76df4703004d70e5c5ffb3c44b454e18763c43e0ba745a64b1c",
+      "case_id": "point_cloud2",
+      "id": "H-CY-point_cloud2",
+      "logical_byte_length": 257,
+      "ros_distro": "humble",
+      "support_row_id": "H-CY",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "H-CY-primitive_scalars",
+      "canonical_prefix_sha256": "34684587bfa1c0487dc1cf0d73c14c32d585fd89af5ad61547bf683c511512e6",
+      "case_id": "primitive_scalars",
+      "id": "H-CY-primitive_scalars",
+      "logical_byte_length": 100,
+      "ros_distro": "humble",
+      "support_row_id": "H-CY",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "H-CY-collections",
+      "canonical_prefix_sha256": "54d2c79072a6c64836475e6ce3ac53112fff8fec8f3fae66efaab4baf030b16d",
+      "case_id": "collections",
+      "id": "H-FT-collections",
+      "logical_byte_length": 156,
+      "ros_distro": "humble",
+      "support_row_id": "H-FT",
+      "zero_tail_bytes": 4
+    },
+    {
+      "canonical_fixture_id": "H-CY-echo_nested_request",
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "echo_nested_request",
+      "id": "H-FT-echo_nested_request",
+      "logical_byte_length": 260,
+      "ros_distro": "humble",
+      "support_row_id": "H-FT",
+      "zero_tail_bytes": 12
+    },
+    {
+      "canonical_fixture_id": "H-CY-echo_nested_response",
+      "canonical_prefix_sha256": "87f9d8e73469c8edb8a022713c1a0ac5de17cfcd2a177b4dbca149988d366c1d",
+      "case_id": "echo_nested_response",
+      "id": "H-FT-echo_nested_response",
+      "logical_byte_length": 261,
+      "ros_distro": "humble",
+      "support_row_id": "H-FT",
+      "zero_tail_bytes": 12
+    },
+    {
+      "canonical_fixture_id": "H-CY-measure_sequence_feedback",
+      "canonical_prefix_sha256": "0710967626475c750ee682435235fedcbf16746079a3b9a804df114d23992c04",
+      "case_id": "measure_sequence_feedback",
+      "id": "H-FT-measure_sequence_feedback",
+      "logical_byte_length": 268,
+      "ros_distro": "humble",
+      "support_row_id": "H-FT",
+      "zero_tail_bytes": 12
+    },
+    {
+      "canonical_fixture_id": "H-CY-measure_sequence_goal",
+      "canonical_prefix_sha256": "54d2c79072a6c64836475e6ce3ac53112fff8fec8f3fae66efaab4baf030b16d",
+      "case_id": "measure_sequence_goal",
+      "id": "H-FT-measure_sequence_goal",
+      "logical_byte_length": 156,
+      "ros_distro": "humble",
+      "support_row_id": "H-FT",
+      "zero_tail_bytes": 4
+    },
+    {
+      "canonical_fixture_id": "H-CY-measure_sequence_result",
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "measure_sequence_result",
+      "id": "H-FT-measure_sequence_result",
+      "logical_byte_length": 260,
+      "ros_distro": "humble",
+      "support_row_id": "H-FT",
+      "zero_tail_bytes": 12
+    },
+    {
+      "canonical_fixture_id": "H-CY-nested_sample",
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "nested_sample",
+      "id": "H-FT-nested_sample",
+      "logical_byte_length": 260,
+      "ros_distro": "humble",
+      "support_row_id": "H-FT",
+      "zero_tail_bytes": 12
+    },
+    {
+      "canonical_fixture_id": "H-CY-point_cloud2",
+      "canonical_prefix_sha256": "19e1eb3a49c2e76df4703004d70e5c5ffb3c44b454e18763c43e0ba745a64b1c",
+      "case_id": "point_cloud2",
+      "id": "H-FT-point_cloud2",
+      "logical_byte_length": 257,
+      "ros_distro": "humble",
+      "support_row_id": "H-FT",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "H-CY-primitive_scalars",
+      "canonical_prefix_sha256": "34684587bfa1c0487dc1cf0d73c14c32d585fd89af5ad61547bf683c511512e6",
+      "case_id": "primitive_scalars",
+      "id": "H-FT-primitive_scalars",
+      "logical_byte_length": 100,
+      "ros_distro": "humble",
+      "support_row_id": "H-FT",
+      "zero_tail_bytes": 4
+    },
+    {
+      "canonical_fixture_id": "H-FT-primitive_scalars_big_endian",
+      "canonical_prefix_sha256": "11995f9b8404b3af44b9a8a1075925a99f84900a143a6faf8411b080ae79586b",
+      "case_id": "primitive_scalars_big_endian",
+      "id": "H-FT-primitive_scalars_big_endian",
+      "logical_byte_length": 100,
+      "ros_distro": "humble",
+      "support_row_id": "H-FT",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "H-CY-collections",
+      "canonical_prefix_sha256": "54d2c79072a6c64836475e6ce3ac53112fff8fec8f3fae66efaab4baf030b16d",
+      "case_id": "collections",
+      "id": "H-ZN-collections",
+      "logical_byte_length": 156,
+      "ros_distro": "humble",
+      "support_row_id": "H-ZN",
+      "zero_tail_bytes": 4
+    },
+    {
+      "canonical_fixture_id": "H-CY-echo_nested_request",
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "echo_nested_request",
+      "id": "H-ZN-echo_nested_request",
+      "logical_byte_length": 260,
+      "ros_distro": "humble",
+      "support_row_id": "H-ZN",
+      "zero_tail_bytes": 12
+    },
+    {
+      "canonical_fixture_id": "H-CY-echo_nested_response",
+      "canonical_prefix_sha256": "87f9d8e73469c8edb8a022713c1a0ac5de17cfcd2a177b4dbca149988d366c1d",
+      "case_id": "echo_nested_response",
+      "id": "H-ZN-echo_nested_response",
+      "logical_byte_length": 261,
+      "ros_distro": "humble",
+      "support_row_id": "H-ZN",
+      "zero_tail_bytes": 12
+    },
+    {
+      "canonical_fixture_id": "H-CY-measure_sequence_feedback",
+      "canonical_prefix_sha256": "0710967626475c750ee682435235fedcbf16746079a3b9a804df114d23992c04",
+      "case_id": "measure_sequence_feedback",
+      "id": "H-ZN-measure_sequence_feedback",
+      "logical_byte_length": 268,
+      "ros_distro": "humble",
+      "support_row_id": "H-ZN",
+      "zero_tail_bytes": 12
+    },
+    {
+      "canonical_fixture_id": "H-CY-measure_sequence_goal",
+      "canonical_prefix_sha256": "54d2c79072a6c64836475e6ce3ac53112fff8fec8f3fae66efaab4baf030b16d",
+      "case_id": "measure_sequence_goal",
+      "id": "H-ZN-measure_sequence_goal",
+      "logical_byte_length": 156,
+      "ros_distro": "humble",
+      "support_row_id": "H-ZN",
+      "zero_tail_bytes": 4
+    },
+    {
+      "canonical_fixture_id": "H-CY-measure_sequence_result",
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "measure_sequence_result",
+      "id": "H-ZN-measure_sequence_result",
+      "logical_byte_length": 260,
+      "ros_distro": "humble",
+      "support_row_id": "H-ZN",
+      "zero_tail_bytes": 12
+    },
+    {
+      "canonical_fixture_id": "H-CY-nested_sample",
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "nested_sample",
+      "id": "H-ZN-nested_sample",
+      "logical_byte_length": 260,
+      "ros_distro": "humble",
+      "support_row_id": "H-ZN",
+      "zero_tail_bytes": 12
+    },
+    {
+      "canonical_fixture_id": "H-CY-point_cloud2",
+      "canonical_prefix_sha256": "19e1eb3a49c2e76df4703004d70e5c5ffb3c44b454e18763c43e0ba745a64b1c",
+      "case_id": "point_cloud2",
+      "id": "H-ZN-point_cloud2",
+      "logical_byte_length": 257,
+      "ros_distro": "humble",
+      "support_row_id": "H-ZN",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "H-CY-primitive_scalars",
+      "canonical_prefix_sha256": "34684587bfa1c0487dc1cf0d73c14c32d585fd89af5ad61547bf683c511512e6",
+      "case_id": "primitive_scalars",
+      "id": "H-ZN-primitive_scalars",
+      "logical_byte_length": 100,
+      "ros_distro": "humble",
+      "support_row_id": "H-ZN",
+      "zero_tail_bytes": 4
+    },
+    {
+      "canonical_fixture_id": "J-CY-collections",
+      "canonical_prefix_sha256": "54d2c79072a6c64836475e6ce3ac53112fff8fec8f3fae66efaab4baf030b16d",
+      "case_id": "collections",
+      "id": "J-CY-collections",
+      "logical_byte_length": 156,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-CY",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "J-CY-echo_nested_request",
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "echo_nested_request",
+      "id": "J-CY-echo_nested_request",
+      "logical_byte_length": 260,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-CY",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "J-CY-echo_nested_response",
+      "canonical_prefix_sha256": "87f9d8e73469c8edb8a022713c1a0ac5de17cfcd2a177b4dbca149988d366c1d",
+      "case_id": "echo_nested_response",
+      "id": "J-CY-echo_nested_response",
+      "logical_byte_length": 261,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-CY",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "J-CY-measure_sequence_feedback",
+      "canonical_prefix_sha256": "0710967626475c750ee682435235fedcbf16746079a3b9a804df114d23992c04",
+      "case_id": "measure_sequence_feedback",
+      "id": "J-CY-measure_sequence_feedback",
+      "logical_byte_length": 268,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-CY",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "J-CY-measure_sequence_goal",
+      "canonical_prefix_sha256": "54d2c79072a6c64836475e6ce3ac53112fff8fec8f3fae66efaab4baf030b16d",
+      "case_id": "measure_sequence_goal",
+      "id": "J-CY-measure_sequence_goal",
+      "logical_byte_length": 156,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-CY",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "J-CY-measure_sequence_result",
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "measure_sequence_result",
+      "id": "J-CY-measure_sequence_result",
+      "logical_byte_length": 260,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-CY",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "J-CY-nested_sample",
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "nested_sample",
+      "id": "J-CY-nested_sample",
+      "logical_byte_length": 260,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-CY",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "J-CY-point_cloud2",
+      "canonical_prefix_sha256": "19e1eb3a49c2e76df4703004d70e5c5ffb3c44b454e18763c43e0ba745a64b1c",
+      "case_id": "point_cloud2",
+      "id": "J-CY-point_cloud2",
+      "logical_byte_length": 257,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-CY",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "J-CY-primitive_scalars",
+      "canonical_prefix_sha256": "34684587bfa1c0487dc1cf0d73c14c32d585fd89af5ad61547bf683c511512e6",
+      "case_id": "primitive_scalars",
+      "id": "J-CY-primitive_scalars",
+      "logical_byte_length": 100,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-CY",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "J-CY-collections",
+      "canonical_prefix_sha256": "54d2c79072a6c64836475e6ce3ac53112fff8fec8f3fae66efaab4baf030b16d",
+      "case_id": "collections",
+      "id": "J-FT-collections",
+      "logical_byte_length": 156,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-FT",
+      "zero_tail_bytes": 4
+    },
+    {
+      "canonical_fixture_id": "J-CY-echo_nested_request",
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "echo_nested_request",
+      "id": "J-FT-echo_nested_request",
+      "logical_byte_length": 260,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-FT",
+      "zero_tail_bytes": 12
+    },
+    {
+      "canonical_fixture_id": "J-CY-echo_nested_response",
+      "canonical_prefix_sha256": "87f9d8e73469c8edb8a022713c1a0ac5de17cfcd2a177b4dbca149988d366c1d",
+      "case_id": "echo_nested_response",
+      "id": "J-FT-echo_nested_response",
+      "logical_byte_length": 261,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-FT",
+      "zero_tail_bytes": 12
+    },
+    {
+      "canonical_fixture_id": "J-CY-measure_sequence_feedback",
+      "canonical_prefix_sha256": "0710967626475c750ee682435235fedcbf16746079a3b9a804df114d23992c04",
+      "case_id": "measure_sequence_feedback",
+      "id": "J-FT-measure_sequence_feedback",
+      "logical_byte_length": 268,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-FT",
+      "zero_tail_bytes": 12
+    },
+    {
+      "canonical_fixture_id": "J-CY-measure_sequence_goal",
+      "canonical_prefix_sha256": "54d2c79072a6c64836475e6ce3ac53112fff8fec8f3fae66efaab4baf030b16d",
+      "case_id": "measure_sequence_goal",
+      "id": "J-FT-measure_sequence_goal",
+      "logical_byte_length": 156,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-FT",
+      "zero_tail_bytes": 4
+    },
+    {
+      "canonical_fixture_id": "J-CY-measure_sequence_result",
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "measure_sequence_result",
+      "id": "J-FT-measure_sequence_result",
+      "logical_byte_length": 260,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-FT",
+      "zero_tail_bytes": 12
+    },
+    {
+      "canonical_fixture_id": "J-CY-nested_sample",
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "nested_sample",
+      "id": "J-FT-nested_sample",
+      "logical_byte_length": 260,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-FT",
+      "zero_tail_bytes": 12
+    },
+    {
+      "canonical_fixture_id": "J-CY-point_cloud2",
+      "canonical_prefix_sha256": "19e1eb3a49c2e76df4703004d70e5c5ffb3c44b454e18763c43e0ba745a64b1c",
+      "case_id": "point_cloud2",
+      "id": "J-FT-point_cloud2",
+      "logical_byte_length": 257,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-FT",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "J-CY-primitive_scalars",
+      "canonical_prefix_sha256": "34684587bfa1c0487dc1cf0d73c14c32d585fd89af5ad61547bf683c511512e6",
+      "case_id": "primitive_scalars",
+      "id": "J-FT-primitive_scalars",
+      "logical_byte_length": 100,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-FT",
+      "zero_tail_bytes": 4
+    },
+    {
+      "canonical_fixture_id": "J-FT-primitive_scalars_big_endian",
+      "canonical_prefix_sha256": "11995f9b8404b3af44b9a8a1075925a99f84900a143a6faf8411b080ae79586b",
+      "case_id": "primitive_scalars_big_endian",
+      "id": "J-FT-primitive_scalars_big_endian",
+      "logical_byte_length": 100,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-FT",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "J-CY-collections",
+      "canonical_prefix_sha256": "54d2c79072a6c64836475e6ce3ac53112fff8fec8f3fae66efaab4baf030b16d",
+      "case_id": "collections",
+      "id": "J-ZN-collections",
+      "logical_byte_length": 156,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-ZN",
+      "zero_tail_bytes": 4
+    },
+    {
+      "canonical_fixture_id": "J-CY-echo_nested_request",
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "echo_nested_request",
+      "id": "J-ZN-echo_nested_request",
+      "logical_byte_length": 260,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-ZN",
+      "zero_tail_bytes": 12
+    },
+    {
+      "canonical_fixture_id": "J-CY-echo_nested_response",
+      "canonical_prefix_sha256": "87f9d8e73469c8edb8a022713c1a0ac5de17cfcd2a177b4dbca149988d366c1d",
+      "case_id": "echo_nested_response",
+      "id": "J-ZN-echo_nested_response",
+      "logical_byte_length": 261,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-ZN",
+      "zero_tail_bytes": 12
+    },
+    {
+      "canonical_fixture_id": "J-CY-measure_sequence_feedback",
+      "canonical_prefix_sha256": "0710967626475c750ee682435235fedcbf16746079a3b9a804df114d23992c04",
+      "case_id": "measure_sequence_feedback",
+      "id": "J-ZN-measure_sequence_feedback",
+      "logical_byte_length": 268,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-ZN",
+      "zero_tail_bytes": 12
+    },
+    {
+      "canonical_fixture_id": "J-CY-measure_sequence_goal",
+      "canonical_prefix_sha256": "54d2c79072a6c64836475e6ce3ac53112fff8fec8f3fae66efaab4baf030b16d",
+      "case_id": "measure_sequence_goal",
+      "id": "J-ZN-measure_sequence_goal",
+      "logical_byte_length": 156,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-ZN",
+      "zero_tail_bytes": 4
+    },
+    {
+      "canonical_fixture_id": "J-CY-measure_sequence_result",
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "measure_sequence_result",
+      "id": "J-ZN-measure_sequence_result",
+      "logical_byte_length": 260,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-ZN",
+      "zero_tail_bytes": 12
+    },
+    {
+      "canonical_fixture_id": "J-CY-nested_sample",
+      "canonical_prefix_sha256": "ec13f5bb599c2de7299906984e082341bd2c024eb3a2a1517aefd2b396d5bc32",
+      "case_id": "nested_sample",
+      "id": "J-ZN-nested_sample",
+      "logical_byte_length": 260,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-ZN",
+      "zero_tail_bytes": 12
+    },
+    {
+      "canonical_fixture_id": "J-CY-point_cloud2",
+      "canonical_prefix_sha256": "19e1eb3a49c2e76df4703004d70e5c5ffb3c44b454e18763c43e0ba745a64b1c",
+      "case_id": "point_cloud2",
+      "id": "J-ZN-point_cloud2",
+      "logical_byte_length": 257,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-ZN",
+      "zero_tail_bytes": 0
+    },
+    {
+      "canonical_fixture_id": "J-CY-primitive_scalars",
+      "canonical_prefix_sha256": "34684587bfa1c0487dc1cf0d73c14c32d585fd89af5ad61547bf683c511512e6",
+      "case_id": "primitive_scalars",
+      "id": "J-ZN-primitive_scalars",
+      "logical_byte_length": 100,
+      "ros_distro": "jazzy",
+      "support_row_id": "J-ZN",
+      "zero_tail_bytes": 4
+    }
+  ],
+  "policy": "canonical-prefix-plus-zero-tail-v1",
+  "schema_version": 1,
+  "source_manifest_sha256": "319cb1c55da8a236054ba625f3fdbd43e239bd13c74c523d7912618c02b9fa7f",
+  "summary": {
+    "comparisons": 18,
+    "exact_fixtures": 24,
+    "fixtures": 56,
+    "four_byte_tail_fixtures": 12,
+    "twelve_byte_tail_fixtures": 20
+  }
+}
