@@ -60,7 +60,7 @@ function baseReport(): Record<string, unknown> {
     artifacts: [
       {
         role: "raw",
-        path: "evidence/testdata/artifacts/smoke-raw.json",
+        path: "evidence/testdata/payloads/smoke-raw.json",
         sha256: "1e421fda91e63790c6a56cb6167f1abcf3f4fa4a2f8d111e63c1c79fac72c4f4",
         byte_length: 63,
         media_type: "application/json",
