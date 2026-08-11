@@ -299,20 +299,50 @@ export async function lstatRegularFile(
   return { size: st.size };
 }
 
+/**
+ * Read a text file under a validated maxBytes ceiling.
+ * Opens with O_RDONLY|O_NOFOLLOW, fstats the handle, and reads through a
+ * bounded allocation so concurrent growth cannot exceed the accepted bound.
+ */
 export async function readBoundedText(absPath: string, maxBytes: number): Promise<string> {
+  if (
+    typeof maxBytes !== "number" ||
+    !Number.isSafeInteger(maxBytes) ||
+    maxBytes < 0
+  ) {
+    throw new Error(`invalid maxBytes ${String(maxBytes)}`);
+  }
+  // Preflight path type/size without following symlinks.
   await lstatRegularFile(absPath, maxBytes);
   const flags = fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0);
   const fh = await open(absPath, flags);
   try {
-    const st2 = await fh.stat();
-    if (!st2.isFile() || st2.size > maxBytes) {
-      throw new Error(`opened handle invalid: ${absPath}`);
+    const st = await fh.stat();
+    if (!st.isFile()) {
+      throw new Error(`opened handle is not a regular file: ${absPath}`);
     }
-    const buf = await fh.readFile();
-    if (buf.byteLength > maxBytes) {
-      throw new Error(`read size exceeds max ${maxBytes}: ${absPath}`);
+    if (st.size > maxBytes) {
+      throw new Error(`file size ${st.size} exceeds max ${maxBytes}: ${absPath}`);
     }
-    return buf.toString("utf8");
+    // Bounded allocation: never reserve more than maxBytes.
+    const out = new Uint8Array(maxBytes);
+    let offset = 0;
+    while (offset < maxBytes) {
+      const { bytesRead } = await fh.read(out, offset, maxBytes - offset, null);
+      if (bytesRead === 0) break;
+      offset += bytesRead;
+    }
+    if (offset === maxBytes) {
+      const probe = new Uint8Array(1);
+      const { bytesRead: extra } = await fh.read(probe, 0, 1, null);
+      if (extra > 0) {
+        throw new Error(`file size exceeds max ${maxBytes}: ${absPath}`);
+      }
+    }
+    if (offset > maxBytes) {
+      throw new Error(`read size ${offset} exceeds max ${maxBytes}: ${absPath}`);
+    }
+    return Buffer.from(out.subarray(0, offset)).toString("utf8");
   } finally {
     await fh.close();
   }
@@ -337,6 +367,8 @@ export function assertGeneratedSourceSize(
 /**
  * Pure identity-join validator between manifest fixture ids and tail evidence ids.
  * Requires unique ids on both sides and exact set equality.
+ * Missing-only and extra-only inputs produce distinct diagnostics (no size-only
+ * early exit). When both sets diverge, missing evidence is reported first.
  */
 export function validateIdentityJoin(
   fixtureIds: readonly string[],
@@ -356,24 +388,29 @@ export function validateIdentityJoin(
     }
     evidenceSet.add(id);
   }
-  if (fixtureSet.size !== evidenceSet.size) {
+
+  const missing: string[] = [];
+  for (const id of fixtureSet) {
+    if (!evidenceSet.has(id)) missing.push(id);
+  }
+  const extra: string[] = [];
+  for (const id of evidenceSet) {
+    if (!fixtureSet.has(id)) extra.push(id);
+  }
+  missing.sort(asciiCompare);
+  extra.sort(asciiCompare);
+
+  if (missing.length > 0) {
     return {
       ok: false,
-      error: `identity join size mismatch: evidence ${evidenceSet.size} != fixtures ${fixtureSet.size}`,
+      error: `identity join: missing tail evidence for ${missing[0]}`,
     };
   }
-  for (const id of fixtureSet) {
-    if (!evidenceSet.has(id)) {
-      return { ok: false, error: `identity join: missing tail evidence for ${id}` };
-    }
-  }
-  for (const id of evidenceSet) {
-    if (!fixtureSet.has(id)) {
-      return {
-        ok: false,
-        error: `identity join: tail evidence ${id} has no manifest fixture`,
-      };
-    }
+  if (extra.length > 0) {
+    return {
+      ok: false,
+      error: `identity join: tail evidence ${extra[0]} has no manifest fixture`,
+    };
   }
   return { ok: true };
 }

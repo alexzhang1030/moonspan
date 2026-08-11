@@ -612,25 +612,28 @@ describe("cdr-tail-slack I/O adversarial", () => {
     }
   });
 
-  test("sparse oversized binary is rejected before content load", async () => {
+  test("sparse on-disk file longer than declared length fails opened-handle size guard", async () => {
     const root = await tempRoot();
     const corpus = path.join(root, CORPUS_REL);
     const fixDir = path.join(corpus, "fixtures");
     await mkdir(fixDir, { recursive: true });
-    const oversizePath = path.join(fixDir, "huge.bin");
+    const oversizePath = path.join(fixDir, "long.bin");
+    // Declared length stays small and within the absolute ceiling; disk is larger.
+    const declared = 8;
+    const onDisk = 4096;
     await writeFile(oversizePath, new Uint8Array(0));
-    await truncate(oversizePath, BINARY_MAX_BYTES + 1);
+    await truncate(oversizePath, onDisk);
     const manifest = {
       corpus: CORPUS_ID,
       fixtures: [
         {
-          id: "huge",
+          id: "long-disk",
           case_id: "c",
           ros_distro: "humble",
           support_row_id: "H-CY",
           serialized: {
-            path: "fixtures/huge.bin",
-            byte_length: BINARY_MAX_BYTES + 1,
+            path: "fixtures/long.bin",
+            byte_length: declared,
             sha256: "00".repeat(32),
           },
         },
@@ -644,8 +647,8 @@ describe("cdr-tail-slack I/O adversarial", () => {
       expect(
         loaded.diagnostics.some(
           (d) =>
-            d.includes(`exceeds max ${BINARY_MAX_BYTES}`) ||
-            d.includes("byte_length"),
+            d.includes(`file size ${onDisk} exceeds max ${declared}`) &&
+            d.includes("long-disk"),
         ),
       ).toBe(true);
     }

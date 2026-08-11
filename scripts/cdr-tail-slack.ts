@@ -13,7 +13,7 @@
  */
 import { createHash, randomBytes } from "node:crypto";
 import { constants as fsConstants } from "node:fs";
-import { lstat, open, readFile, rename, unlink } from "node:fs/promises";
+import { lstat, open, rename, unlink, type FileHandle } from "node:fs/promises";
 import path from "node:path";
 
 export const CORPUS_REL = "conformance/cdr";
@@ -568,14 +568,77 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 }
 
 /**
+ * Read an already-opened file handle under an optional byte ceiling.
+ * fstat is checked first; content is read through a bounded buffer so
+ * concurrent growth cannot allocate past `maxBytes`. A one-byte probe after
+ * the bounded read rejects files that still have more data.
+ */
+export async function readOpenedFileBounded(
+  fh: FileHandle,
+  maxBytes: number | undefined,
+  label: string,
+): Promise<{ ok: true; bytes: Uint8Array } | { ok: false; error: string }> {
+  let st;
+  try {
+    st = await fh.stat();
+  } catch (e) {
+    return {
+      ok: false,
+      error: `stat failed: ${label}: ${e instanceof Error ? e.message : String(e)}`,
+    };
+  }
+  if (!st.isFile()) {
+    return { ok: false, error: `regular file required: ${label}` };
+  }
+  if (maxBytes !== undefined && st.size > maxBytes) {
+    return {
+      ok: false,
+      error: `file size ${st.size} exceeds max ${maxBytes}: ${label}`,
+    };
+  }
+
+  if (maxBytes === undefined) {
+    const buf = await fh.readFile();
+    return { ok: true, bytes: new Uint8Array(buf) };
+  }
+
+  // Allocate at most maxBytes; read in place so growth cannot expand allocation.
+  const out = new Uint8Array(maxBytes);
+  let offset = 0;
+  while (offset < maxBytes) {
+    const { bytesRead } = await fh.read(out, offset, maxBytes - offset, null);
+    if (bytesRead === 0) break;
+    offset += bytesRead;
+  }
+  // Probe for residual bytes (declared size lied, or concurrent growth).
+  if (offset === maxBytes) {
+    const probe = new Uint8Array(1);
+    const { bytesRead: extra } = await fh.read(probe, 0, 1, null);
+    if (extra > 0) {
+      return {
+        ok: false,
+        error: `file size exceeds max ${maxBytes}: ${label}`,
+      };
+    }
+  }
+  if (offset > maxBytes) {
+    return {
+      ok: false,
+      error: `read size ${offset} exceeds max ${maxBytes}: ${label}`,
+    };
+  }
+  return { ok: true, bytes: out.subarray(0, offset) };
+}
+
+/**
  * Resolve a trusted relative file by lstat-checking every path component from
  * the root. Intermediate components are regular directories; the final target
- * is a regular file. Symlinks at any component are rejected so the resolved
- * file stays inside the intended subtree.
+ * is opened with O_RDONLY|O_NOFOLLOW, fstat'd, and read under an optional
+ * maxBytes ceiling. Symlinks at any component are rejected.
  *
  * When `maxBytes` is provided it must be a safe non-negative integer. The
- * final file's lstat size is checked before `readFile`, and the read buffer
- * length is checked again after the read.
+ * opened handle's size is checked before content is read, allocation stays
+ * within the bound, and the post-read length is checked again.
  */
 export async function resolveTrustedRelativeFile(
   root: string,
@@ -623,7 +686,6 @@ export async function resolveTrustedRelativeFile(
 
   const parts = rel.split("/");
   let cur = rootAbs;
-  let finalSt: Awaited<ReturnType<typeof lstat>> | null = null;
   for (let i = 0; i < parts.length; i++) {
     const part = parts[i]!;
     cur = path.join(cur, part);
@@ -650,7 +712,6 @@ export async function resolveTrustedRelativeFile(
       if (!st.isFile()) {
         return { ok: false, error: `regular file required: ${rel}` };
       }
-      finalSt = st;
     } else if (!st.isDirectory()) {
       return {
         ok: false,
@@ -658,20 +719,30 @@ export async function resolveTrustedRelativeFile(
       };
     }
   }
-  if (finalSt && opts?.maxBytes !== undefined && finalSt.size > opts.maxBytes) {
+
+  const flags = fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0);
+  let fh: FileHandle;
+  try {
+    fh = await open(cur, flags);
+  } catch (e) {
     return {
       ok: false,
-      error: `file size ${finalSt.size} exceeds max ${opts.maxBytes}: ${rel}`,
+      error: `open failed: ${rel}: ${e instanceof Error ? e.message : String(e)}`,
     };
   }
-  const buf = await readFile(cur);
-  if (opts?.maxBytes !== undefined && buf.byteLength > opts.maxBytes) {
-    return {
-      ok: false,
-      error: `read size ${buf.byteLength} exceeds max ${opts.maxBytes}: ${rel}`,
-    };
+  try {
+    const read = await readOpenedFileBounded(fh, opts?.maxBytes, rel);
+    if (!read.ok) return read;
+    if (opts?.maxBytes !== undefined && read.bytes.byteLength > opts.maxBytes) {
+      return {
+        ok: false,
+        error: `read size ${read.bytes.byteLength} exceeds max ${opts.maxBytes}: ${rel}`,
+      };
+    }
+    return { ok: true, abs: cur, bytes: read.bytes };
+  } finally {
+    await fh.close();
   }
-  return { ok: true, abs: cur, bytes: new Uint8Array(buf) };
 }
 
 /**
@@ -861,9 +932,11 @@ export async function loadCorpus(
       continue;
     }
     const binRel = path.posix.join(CORPUS_REL, serialized.path);
+    // Per-file ceiling is the declared length (already within BINARY_MAX_BYTES).
+    // A longer on-disk file fails at the opened-handle size guard before hashing.
     const bin = await resolveTrustedRelativeFile(root, binRel, {
       requireFixtureBinary: true,
-      maxBytes: BINARY_MAX_BYTES,
+      maxBytes: serialized.byte_length,
     });
     if (!bin.ok) {
       diagnostics.push(`${entry.id}: ${bin.error}`);

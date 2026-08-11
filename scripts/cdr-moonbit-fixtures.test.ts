@@ -358,18 +358,20 @@ describe("cdr-moonbit-fixtures write and check", () => {
     expect(await readFile(sentinel, "utf8")).toBe("keep-me\n");
   });
 
-  test("sparse oversized corpus binary is rejected early", async () => {
+  test("sparse on-disk binary longer than declared length fails size guard", async () => {
     const root = await makeTempRoot();
     const victim = path.join(root, CORPUS_REL, "fixtures/H-CY/collections.bin");
-    await writeFile(victim, new Uint8Array(0));
-    await truncate(victim, CORPUS_BINARY_MAX_BYTES + 1);
-    const manPath = path.join(root, MANIFEST_REL);
-    const man = JSON.parse(await readFile(manPath, "utf8"));
+    // Keep committed manifest declaration; enlarge only the on-disk file so the
+    // opened-handle maxBytes=declared guard fires (frozen manifest SHA stays valid).
+    const man = JSON.parse(await readFile(path.join(root, MANIFEST_REL), "utf8"));
     const entry = man.fixtures.find((f: { id: string }) => f.id === "H-CY-collections");
-    entry.serialized.byte_length = CORPUS_BINARY_MAX_BYTES + 1;
-    entry.serialized.sha256 = "00".repeat(32);
-    await writeFile(manPath, JSON.stringify(man));
-    await expect(buildBridge(root)).rejects.toThrow(/exceeds max|byte_length|SHA-256/i);
+    const declared = entry.serialized.byte_length as number;
+    const onDisk = declared + 1024;
+    await writeFile(victim, new Uint8Array(0));
+    await truncate(victim, onDisk);
+    await expect(buildBridge(root)).rejects.toThrow(
+      new RegExp(`file size ${onDisk} exceeds max ${declared}`),
+    );
   });
 });
 
@@ -378,23 +380,33 @@ describe("cdr-moonbit-fixtures pure guards", () => {
     expect(validateIdentityJoin(["a", "b"], ["b", "a"])).toEqual({ ok: true });
   });
 
+  test("validateIdentityJoin rejects duplicate fixture identities", () => {
+    const r = validateIdentityJoin(["a", "a"], ["a"]);
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toBe("identity join: duplicate fixture id a");
+  });
+
   test("validateIdentityJoin rejects duplicate evidence identities", () => {
     const r = validateIdentityJoin(["a", "b"], ["a", "a"]);
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error).toMatch(/duplicate evidence id a/);
+    if (!r.ok) expect(r.error).toBe("identity join: duplicate evidence id a");
   });
 
-  test("validateIdentityJoin rejects missing evidence", () => {
+  test("validateIdentityJoin rejects missing evidence with exact diagnostic", () => {
     const r = validateIdentityJoin(["a", "b"], ["a"]);
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error).toMatch(/missing tail evidence for b|size mismatch/);
+    if (!r.ok) {
+      expect(r.error).toBe("identity join: missing tail evidence for b");
+    }
   });
 
-  test("validateIdentityJoin rejects extra evidence", () => {
+  test("validateIdentityJoin rejects extra evidence with exact diagnostic", () => {
     const r = validateIdentityJoin(["a"], ["a", "b"]);
     expect(r.ok).toBe(false);
     if (!r.ok) {
-      expect(r.error).toMatch(/size mismatch|no manifest fixture/);
+      expect(r.error).toBe(
+        "identity join: tail evidence b has no manifest fixture",
+      );
     }
   });
 
@@ -417,7 +429,7 @@ describe("cdr-moonbit-fixtures pure guards", () => {
 });
 
 describe("cdr-moonbit-fixtures corrupt inputs", () => {
-  test("parseFullManifestFixtures requires unique ids and frozen count", () => {
+  test("parseFullManifestFixtures rejects non-object root and wrong corpus", () => {
     expect(() => parseFullManifestFixtures(null)).toThrow(/plain object/);
     expect(() =>
       parseFullManifestFixtures({ corpus: "x", fixtures: [] }),
