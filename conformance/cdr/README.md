@@ -45,7 +45,19 @@ just cdr-moonbit-fixtures-check
 just cdr-moonbit-fixtures-write
 ```
 
-Generated MoonBit bridge output: [`rclmbt/cdr/fixture_data_wbtest.mbt`](../../rclmbt/cdr/fixture_data_wbtest.mbt) (package-internal white-box fixtures and tests).
+### MoonBit white-box bridge (M1-01d1)
+
+Package-internal fixtures and CDR open/tail proofs generated from this corpus:
+
+| Field | Value |
+|---|---|
+| Output | [`rclmbt/cdr/fixture_data_wbtest.mbt`](../../rclmbt/cdr/fixture_data_wbtest.mbt) |
+| Size | 85 351 bytes |
+| SHA-256 | `b1bff5ea561802909ce26dcdd304f978361f4dc7780f6aa779f6294a42e2c15d` |
+| Fixtures / comparisons | 56 / 18 |
+| Source manifest SHA-256 | `319cb1c55da8a236054ba625f3fdbd43e239bd13c74c523d7912618c02b9fa7f` |
+| Source tail-slack SHA-256 | `1531d011f0715e5b82fa675be266d97387db7dd55ed8ff06784b213ae6256984` |
+| Check | `bun run cdr-moonbit-fixtures:check` / `just cdr-moonbit-fixtures-check` |
 
 Root `bun run check` runs `cdr-corpus:check`, then `cdr-tail-slack:check`, then `cdr-moonbit-fixtures:check` after the R2WP agreement gate.
 

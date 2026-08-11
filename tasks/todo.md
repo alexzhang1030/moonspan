@@ -37,7 +37,7 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
       - [x] M1-01c3b Implement containers and nesting in `rclmbt/cdr`.
   - [~] M1-01d Prove the authoritative corpus, semantic agreement, round trips, malformed input, and resource bounds.
     - [x] M1-01d0 Top-level zero-tail evidence, contract correction, `ensure_complete_with_zero_tail`.
-    - [x] M1-01d1 Fixture bridge from committed corpus into MoonBit tests (`rclmbt/cdr/fixture_data_wbtest.mbt`; 85 306 bytes; SHA-256 `515a532a56f7b040591565665e98a0479e7798c4662b26dc730cb42031119499`; `bun run cdr-moonbit-fixtures:check`).
+    - [x] M1-01d1 Fixture bridge from committed corpus into MoonBit tests.
     - [~] M1-01d2 Semantic decode and exact re-encode proof.
     - [ ] M1-01d3 Malformed/resource cases and final M1-01 gate.
 - [ ] M1-02 Implement generated types and the type registry.

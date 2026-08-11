@@ -164,7 +164,7 @@ M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both 
 | M1-01c3b | Complete | Sequences, fixed-array composition, nesting, borrowed byte sequences in `rclmbt/cdr` |
 | M1-01d | Active | Corpus-driven proof: semantic agreement, round trips, malformed input, resource bounds |
 | M1-01d0 | Complete | Top-level zero-tail evidence (`tail-slack.json`), contract correction, `ensure_complete_with_zero_tail` |
-| M1-01d1 | Complete | Fixture bridge from committed corpus into MoonBit tests (`rclmbt/cdr/fixture_data_wbtest.mbt`, 85 306 bytes, SHA-256 `515a532a56f7b040591565665e98a0479e7798c4662b26dc730cb42031119499`) |
+| M1-01d1 | Complete | Fixture bridge from committed corpus into MoonBit tests |
 | M1-01d2 | Active | Semantic decode and exact re-encode proof |
 | M1-01d3 | Queued | Malformed/resource cases and final M1-01 gate |
 
