@@ -64,7 +64,7 @@ The runtime receives normalized schema records from the gateway and remains inde
 
 ## CDR and buffers
 
-`cdr_mbt` implements the [CDR core contract](./cdr.md). M1 targets CDR1 for the authoritative ROS corpus in little and big endian. ROS `wstring` follows the corpus-backed interoperability profile (32-bit character slots; decode accepts optional trailing zero; encode uses `ros_wstring_terminal_zero_v1`). XCDR2 stream foundations remain a follow-on surface for later schema work. The codec returns typed faults for encapsulation, truncation, bounds, length overflow, alignment overflow, and string encoding.
+`cdr_mbt` implements the [CDR core contract](./cdr.md). M1 targets CDR1 for the authoritative ROS corpus in little and big endian. ROS `wstring` follows the legacy wire profile (`UInt32` count then `count * 4` payload; core decode exact; canonical encode with zero tail slack; corpus completion may accept one trailing top-level zero after a terminal wstring). XCDR2 stream foundations remain a follow-on surface for later schema work. The codec returns typed faults for encapsulation, truncation, bounds, length overflow, alignment overflow, and string encoding.
 
 Large fields return bounds-checked views into parent storage that the caller retains. Host buffer leases, release, and transferred-buffer lifecycle belong to the Wasm host poll ABI (M1-03). Applications that keep payload data past host release copy or extend the host lease through the host API. Shared rings and transferable buffers implement the same host event lifecycle and expose their costs through telemetry.
 
