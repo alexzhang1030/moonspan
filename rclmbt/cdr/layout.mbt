@@ -45,12 +45,16 @@ fn writer_capacity(limits : CdrLimits) -> Int {
 }
 
 ///|
+/// Host `Int` maximum used for checked arithmetic (MoonBit 32-bit Int).
+const HOST_INT_MAX : Int = 2147483647
+
+///|
 /// Checked `a + b` into host `Int`. Overflow yields `None`.
 fn checked_add_int(a : Int, b : Int) -> Int? {
   if b < 0 {
     return None
   }
-  if a > 2147483647 - b {
+  if a > HOST_INT_MAX - b {
     return None
   }
   Some(a + b)

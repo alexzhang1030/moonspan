@@ -74,7 +74,7 @@ test "position tracks buf length as single state source" {
 
 ///|
 test "width-exact max bit patterns both endians" {
-  // LE
+  // LE: 0xffff / 0xffffffff / 0xffffffffffffffff
   let le = writer_ok(CdrEndian::Little, wlimits_ok(64, 8, 64))
   match le.write_u16((0xffff).to_uint16()) {
     Ok(_) => ()
@@ -84,13 +84,11 @@ test "width-exact max bit patterns both endians" {
     Ok(_) => ()
     Err(e) => abort(e.code)
   }
-  // pad to 8-body for u64 after 2+4 at body 0..6
   match le.write_u64(0xffffffffffffffffUL) {
     Ok(_) => ()
     Err(e) => abort(e.code)
   }
-  let le_bytes = le.to_bytes()
-  let r = match CdrReader::open_default(le_bytes[:]) {
+  let r = match CdrReader::open_default(le.to_bytes()[:]) {
     Ok(r) => r
     Err(e) => abort(e.code)
   }
@@ -106,17 +104,17 @@ test "width-exact max bit patterns both endians" {
     Ok(v) => assert_eq(v, 0xffffffffffffffffUL)
     Err(e) => abort(e.code)
   }
-  // BE
+  // BE: same max patterns
   let be = writer_ok(CdrEndian::Big, wlimits_ok(64, 8, 64))
-  match be.write_u16((0xabcd).to_uint16()) {
+  match be.write_u16((0xffff).to_uint16()) {
     Ok(_) => ()
     Err(e) => abort(e.code)
   }
-  match be.write_u32(0x89abcdefU) {
+  match be.write_u32(0xffffffffU) {
     Ok(_) => ()
     Err(e) => abort(e.code)
   }
-  match be.write_u64(0x0123456789abcdefUL) {
+  match be.write_u64(0xffffffffffffffffUL) {
     Ok(_) => ()
     Err(e) => abort(e.code)
   }
@@ -125,15 +123,15 @@ test "width-exact max bit patterns both endians" {
     Err(e) => abort(e.code)
   }
   match rb.read_u16() {
-    Ok(v) => assert_eq(v, (0xabcd).to_uint16())
+    Ok(v) => assert_eq(v, (0xffff).to_uint16())
     Err(e) => abort(e.code)
   }
   match rb.read_u32() {
-    Ok(v) => assert_eq(v, 0x89abcdefU)
+    Ok(v) => assert_eq(v, 0xffffffffU)
     Err(e) => abort(e.code)
   }
   match rb.read_u64() {
-    Ok(v) => assert_eq(v, 0x0123456789abcdefUL)
+    Ok(v) => assert_eq(v, 0xffffffffffffffffUL)
     Err(e) => abort(e.code)
   }
 }
@@ -274,8 +272,11 @@ test "write_bytes copies source view" {
   let out = w.to_bytes()
   assert_eq(out[4], b'\xde')
   assert_eq(out[7], b'\xef')
-  // Mutating source after write does not apply; Bytes is immutable, so
-  // re-encode isolation is shown by a second independent write.
+  // Owned snapshot storage is distinct from the source Bytes backing.
+  assert_eq(physical_equal(out, src), false)
+  // Payload bytes still match by value.
+  assert_eq(out[4:8][0], src[0])
+  assert_eq(out[4:8][3], src[3])
   let w2 = writer_ok(CdrEndian::Little, wlimits_ok(32, 8, 32))
   match w2.write_bytes(b"\x00\x00\x00\x00"[:]) {
     Ok(_) => ()
@@ -352,38 +353,42 @@ test "raw invalid CdrLimits literals reject at writer trust boundary" {
 
 ///|
 test "checked pad plus size overflow is typed and atomic" {
-  // Force huge remaining field size request via write_bytes with large view
-  // is impractical; exercise length_overflow sentinel path through
-  // align_and_reserve with size that would overflow when added to position.
-  // Capacity is large enough that only arithmetic overflow can fail.
+  // White-box: align_and_reserve with HOST_INT_MAX size overflows pad+size.
   let w = writer_ok(CdrEndian::Little, wlimits_ok(64, 8, 64))
-  let before = w.position()
+  let before_pos = w.position()
   let before_bytes = w.to_bytes()
-  // Negative size is rejected as length_overflow with needed=0.
-  // write_bytes length is non-negative; call align_and_reserve indirectly
-  // is private — use a path that cannot overflow pad+size with public API:
-  // fill almost to capacity then request more.
-  match
-    w.write_bytes(
-      b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"[:],
-    ) {
-    Ok(_) => ()
-    Err(e) => abort(e.code)
-  }
-  // 4 header + 60 body = 64 full
-  assert_eq(w.position(), 64)
-  match w.write_u8(b'\x01') {
-    Ok(_) => abort("expected bounds")
+  match w.align_and_reserve(1, HOST_INT_MAX) {
+    Ok(_) => abort("expected length_overflow")
     Err(e) => {
-      assert_eq(e.code, CODE_BOUNDS_EXCEEDED)
-      assert_eq(e.offset, 64)
+      assert_eq(e.code, CODE_LENGTH_OVERFLOW)
+      assert_eq(e.needed, 0)
+      assert_eq(e.offset, before_pos)
     }
   }
-  assert_eq(w.position(), 64)
-  let after = w.to_bytes()
-  assert_eq(after.length(), 64)
-  let _ = before
-  let _ = before_bytes
+  assert_eq(w.position(), before_pos)
+  let after_bytes = w.to_bytes()
+  assert_eq(after_bytes.length(), before_bytes.length())
+  let mut i = 0
+  while i < after_bytes.length() {
+    assert_eq(after_bytes[i], before_bytes[i])
+    i = i + 1
+  }
+  // Also overflow when field_start + needed exceeds Int.
+  match w.align_and_reserve(1, HOST_INT_MAX - 2) {
+    Ok(_) => abort("expected length_overflow end")
+    Err(e) => {
+      assert_eq(e.code, CODE_LENGTH_OVERFLOW)
+      assert_eq(e.needed, 0)
+    }
+  }
+  assert_eq(w.position(), before_pos)
+  let after2 = w.to_bytes()
+  assert_eq(after2.length(), before_bytes.length())
+  i = 0
+  while i < after2.length() {
+    assert_eq(after2[i], before_bytes[i])
+    i = i + 1
+  }
 }
 
 ///|

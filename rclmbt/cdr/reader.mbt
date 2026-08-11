@@ -137,11 +137,21 @@ fn CdrReader::preflight(
   size : Int,
 ) -> Result[Int, CdrError] {
   let pad = padding_for(field_start, align)
-  let needed = pad + size
   let rem = self.bytes.length() - field_start
+  if size < 0 {
+    self.offset = field_start
+    return Err(CdrError::length_overflow(field_start, 0, rem))
+  }
   if pad > 0 && rem < pad {
     self.offset = field_start
     return Err(CdrError::alignment_overflow(field_start, pad, rem))
+  }
+  let needed = match checked_add_int(pad, size) {
+    None => {
+      self.offset = field_start
+      return Err(CdrError::length_overflow(field_start, 0, rem))
+    }
+    Some(n) => n
   }
   if rem < needed {
     self.offset = field_start
@@ -347,7 +357,7 @@ fn multiply_length(
   }
   let bytes_u = count * elem_u
   // Int-domain ceiling for MoonBit host sizes; needed=0 sentinel.
-  if bytes_u > 2147483647UL {
+  if bytes_u > HOST_INT_MAX.to_uint64() {
     return Err(CdrError::length_overflow(field_start, 0, rem))
   }
   Ok(bytes_u.to_int())
