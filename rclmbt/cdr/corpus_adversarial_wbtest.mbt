@@ -29,11 +29,11 @@ const CA_NONZERO_TAIL_MUTATIONS = 288
 const CA_FIXTURE_TOTAL = 56
 
 ///|
-/// Exact fixtures accept declaration 4 at rem=0 (exact-end contract).
-const CA_EXACT_END_ANY_DECLARATION = 24
+/// Exact fixtures: original unpadded buffer, rem=0, declaration 4 succeeds.
+const CA_EXACT_END_DECLARED_SUCCESSES = 24
 
 ///|
-/// Tail-bearing fixtures reject a different declaration with trailing_data.
+/// Tail-bearing fixtures: mismatched declaration yields trailing_data.
 const CA_WRONG_DECLARATION_REJECTIONS = 32
 
 // ---------------------------------------------------------------------------
@@ -205,12 +205,14 @@ test "nonzero mutation of every declared tail byte yields trailing_data" {
 }
 
 ///|
-test "declaration lanes and appended bytes across all 56 fixtures" {
+test "exact-end declaration success wrong-declaration rejection and appended bytes" {
   // Contract: ensure_complete_with_zero_tail accepts exact end (rem=0) for any
-  // valid declared amount. Exact fixtures therefore succeed under declaration 4.
-  // Tail-bearing fixtures reject a different declaration with trailing_data.
-  let mut exact_end_ok = 0
-  let mut wrong_decl_reject = 0
+  // valid declared amount. Decode the original unpadded buffer for every fixture.
+  // Exact fixtures: ensure_complete_with_zero_tail(4) succeeds.
+  // Tail-bearing fixtures: mismatched declaration yields trailing_data.
+  // All 56 fixtures: one appended byte yields trailing_data under the original declaration.
+  let mut exact_end_declared_successes = 0
+  let mut wrong_declaration_rejections = 0
   let mut appended = 0
   for f in cdr_corpus_fixtures {
     let base = ca_materialize(f)
@@ -218,18 +220,17 @@ test "declaration lanes and appended bytes across all 56 fixtures" {
     ignore(decode_case(r_decl, f.case_id))
     assert_eq(r_decl.position(), f.logical_byte_length)
     if f.zero_tail_bytes == 0 {
-      // Exact end: declaration 4 succeeds and leaves the cursor at logical end.
       match r_decl.ensure_complete_with_zero_tail(4) {
         Ok(_) => ()
         Err(e) => ca_abort(f.id + " exact-end declaration 4", e)
       }
       assert_eq(r_decl.remaining(), 0)
       assert_eq(r_decl.position(), f.logical_byte_length)
-      exact_end_ok = exact_end_ok + 1
+      exact_end_declared_successes = exact_end_declared_successes + 1
     } else {
       let wrong_decl = ca_wrong_tail(f.zero_tail_bytes)
       match r_decl.ensure_complete_with_zero_tail(wrong_decl) {
-        Ok(_) => abort(f.id + " accepted wrong declaration")
+        Ok(_) => abort(f.id + " accepted mismatched declaration")
         Err(e) => {
           assert_eq(e.code, CODE_TRAILING_DATA)
           assert_eq(e.offset, f.logical_byte_length)
@@ -237,9 +238,8 @@ test "declaration lanes and appended bytes across all 56 fixtures" {
         }
       }
       assert_eq(r_decl.position(), f.logical_byte_length)
-      wrong_decl_reject = wrong_decl_reject + 1
+      wrong_declaration_rejections = wrong_declaration_rejections + 1
     }
-    // Append one byte; original declaration rejects residual data.
     let with_extra = ca_clone_with_append(base, b'\xaa')
     let r_app = ca_open_default(with_extra)
     ignore(decode_case(r_app, f.case_id))
@@ -253,9 +253,12 @@ test "declaration lanes and appended bytes across all 56 fixtures" {
     assert_eq(r_app.position(), f.logical_byte_length)
     appended = appended + 1
   }
-  assert_eq(exact_end_ok, CA_EXACT_END_ANY_DECLARATION)
-  assert_eq(wrong_decl_reject, CA_WRONG_DECLARATION_REJECTIONS)
-  assert_eq(exact_end_ok + wrong_decl_reject, CA_FIXTURE_TOTAL)
+  assert_eq(exact_end_declared_successes, CA_EXACT_END_DECLARED_SUCCESSES)
+  assert_eq(wrong_declaration_rejections, CA_WRONG_DECLARATION_REJECTIONS)
+  assert_eq(
+    exact_end_declared_successes + wrong_declaration_rejections,
+    CA_FIXTURE_TOTAL,
+  )
   assert_eq(appended, CA_FIXTURE_TOTAL)
 }
 
