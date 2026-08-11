@@ -164,8 +164,8 @@ M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both 
 | M1-01c3b | Complete | Sequences, fixed-array composition, nesting, borrowed byte sequences in `rclmbt/cdr` |
 | M1-01d | Active | Corpus-driven proof: semantic agreement, round trips, malformed input, resource bounds |
 | M1-01d0 | Complete | Top-level zero-tail evidence (`tail-slack.json`), contract correction, `ensure_complete_with_zero_tail` |
-| M1-01d1 | Active | Fixture bridge from committed corpus into MoonBit tests |
-| M1-01d2 | Queued | Semantic decode and exact re-encode proof |
+| M1-01d1 | Complete | Fixture bridge from committed corpus into MoonBit tests (`rclmbt/cdr/fixture_data_wbtest.mbt`, 85 306 bytes, SHA-256 `515a532a56f7b040591565665e98a0479e7798c4662b26dc730cb42031119499`) |
+| M1-01d2 | Active | Semantic decode and exact re-encode proof |
 | M1-01d3 | Queued | Malformed/resource cases and final M1-01 gate |
 
 **Acceptance criteria (M1-01 overall):**
@@ -179,7 +179,8 @@ M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both 
 - [x] Container codec surface defined: fixed arrays, sequences, nesting tokens, borrowed byte sequences (M1-01c3a).
 - [x] Arrays, sequences, nested-depth guards, borrowed `BytesView` fields implemented in `rclmbt/cdr` (M1-01c3b).
 - [x] Top-level declared zero-tail completion API and frozen tail-slack evidence (M1-01d0).
-- [ ] Corpus fixture bridge, semantic agreement, exact re-encode, and adversarial resource cases (M1-01d1–d3).
+- [x] Corpus fixture bridge into MoonBit white-box tests with frozen counts and CDR open proofs (M1-01d1).
+- [ ] Semantic agreement, exact re-encode, and adversarial resource cases (M1-01d2–d3).
 
 **Verification:** focused MoonBit/Wasm tests for `cdr_mbt`; corpus-driven checks against `conformance/cdr/manifest.json`; root `just check`, `just test`, and `just build` when implementation lands.
 

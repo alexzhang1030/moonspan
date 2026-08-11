@@ -33,14 +33,21 @@ bun run test:cdr-corpus        # focused helper suite
 bun run cdr-tail-slack:check   # verify top-level tail-slack evidence artifact
 bun run cdr-tail-slack:write   # regenerate tail-slack.json from committed binaries
 bun run test:cdr-tail-slack    # focused tail-slack helper suite
+bun run cdr-moonbit-fixtures:check  # verify MoonBit white-box corpus bridge
+bun run cdr-moonbit-fixtures:write  # regenerate rclmbt/cdr/fixture_data_wbtest.mbt
+bun run test:cdr-moonbit-fixtures   # focused bridge helper suite
 just cdr-corpus-check
 just cdr-corpus-write
 just cdr-corpus-reproduce
 just cdr-tail-slack-check
 just cdr-tail-slack-write
+just cdr-moonbit-fixtures-check
+just cdr-moonbit-fixtures-write
 ```
 
-Root `bun run check` runs `cdr-corpus:check` then `cdr-tail-slack:check` after the R2WP agreement gate.
+Generated MoonBit bridge output: [`rclmbt/cdr/fixture_data_wbtest.mbt`](../../rclmbt/cdr/fixture_data_wbtest.mbt) (package-internal white-box fixtures and tests).
+
+Root `bun run check` runs `cdr-corpus:check`, then `cdr-tail-slack:check`, then `cdr-moonbit-fixtures:check` after the R2WP agreement gate.
 
 ## Top-level tail slack
 

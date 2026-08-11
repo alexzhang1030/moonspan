@@ -180,6 +180,7 @@ BytesView  ->  bounds-checked slice into parent storage the caller retains
 | Char8 string | M1-01c2a | `read_string` / `write_string` with optional `max_bytes` (UTF-8 payload bytes excluding NUL); owned `String` decode; direct writer emit after full-field preflight |
 | ROS legacy wstring | M1-01c2b | `read_wstring` / `write_wstring` with optional `max_scalars`; accepted Unicode scalar slots; `invalid_wstring_scalar`; canonical encode exact (count + `N * 4`) |
 | Declared zero tail | M1-01d0 | `ensure_complete_with_zero_tail(expected_tail_bytes)`; top-level completion independent of final member; Phase 1 declarations `0`/`4`/`12` |
+| Corpus fixture bridge | M1-01d1 | Deterministic Bun bridge from committed corpus + tail-slack into package-internal `rclmbt/cdr/fixture_data_wbtest.mbt` (56 fixtures, CDR open + tail prefix proofs) |
 | Fixed arrays | M1-01c3b | Schema-declared element count composed from existing element codecs; first-element body-origin alignment; optional fixed-width preflight via `checked_span_length` |
 | Sequences | M1-01c3b | `read_sequence_length` / `write_sequence_length`; `read_byte_sequence` / `write_byte_sequence` with optional `max_elements`; stream work ceiling; borrowed byte views |
 | Nesting | M1-01c3b | Immutable `CdrNesting` token; `root_nesting` / `enter_nested`; depth against `max_nesting_depth` |
@@ -281,7 +282,8 @@ Legal ROS encoders may emit distinct bytes for one logical value, including exac
 
 M1-01d proves:
 
-- decode of every committed fixture yields the expected semantic value;
+- **M1-01d1 complete:** the committed corpus bridges into MoonBit white-box tests at [`rclmbt/cdr/fixture_data_wbtest.mbt`](../../rclmbt/cdr/fixture_data_wbtest.mbt) (85 306 bytes, SHA-256 `515a532a56f7b040591565665e98a0479e7798c4662b26dc730cb42031119499`). The generator joins `manifest.json` (SHA-256 `319cb1c55da8a236054ba625f3fdbd43e239bd13c74c523d7912618c02b9fa7f`) with independent `tail-slack.json` (SHA-256 `1531d011f0715e5b82fa675be266d97387db7dd55ed8ff06784b213ae6256984`), materializes all 56 binaries, opens each with `CdrReader::open_default`, checks endianness and zero tails, and asserts 18 multi-row comparison identities plus 2 big-endian singletons. Commands: `bun run cdr-moonbit-fixtures:check` / `just cdr-moonbit-fixtures-check`.
+- decode of every committed fixture yields the expected semantic value (M1-01d2);
 - exact and zero-tail fixtures for the same logical sample normalize to one semantic value;
 - encode under Moonspan CDR1 uses exact form (zero top-level tail) and round-trips with semantic equality;
 - malformed truncation, illegal lengths, and alignment overflow return the typed error taxonomy above;
@@ -307,7 +309,7 @@ These cases produce typed codec faults and appear in conformance and evidence re
 | M1-01a | This contract, plan split, PCR and doc routes (documentation freeze) |
 | M1-01b | Bounded stream reader/writer, encapsulation, endian, alignment, limits (including nesting and temporary-allocation defaults), typed errors |
 | M1-01c | Primitives, strings/wstrings (legacy ROS profile, scalar-boundary tests), arrays, sequences, nested values, borrowed `BytesView` fields |
-| M1-01d | Authoritative corpus proof: top-level zero-tail completion (d0), fixture bridge, semantic agreement, round trips, malformed input, resource bounds |
+| M1-01d | Authoritative corpus proof: top-level zero-tail completion (d0 complete), fixture bridge (d1 complete), semantic agreement, round trips, malformed input, resource bounds |
 
 M1-01 closes when batches b–d pass their focused tests and the corpus-driven checks. M1-02 and M1-03 consume this surface: M1-02 adds schema keys and per-type bounds; M1-03 adds host buffer leases and keeps CDR layout rules as defined here.
 
