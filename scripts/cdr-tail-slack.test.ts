@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
+  ARTIFACT_REL,
   CORPUS_ID,
   CORPUS_REL,
+  FROZEN_SUMMARY,
   MANIFEST_REL,
   asciiCompare,
   buildFromRoot,
@@ -12,8 +14,11 @@ import {
   bytesEqual,
   deriveMemberEvidence,
   isAllZero,
+  isAllowedZeroTail,
+  isFixtureBinaryPath,
   isSafeRelativePath,
   parseCliMode,
+  runCli,
   selectCanonical,
   sha256Hex,
   stableJsonPretty,
@@ -55,12 +60,18 @@ describe("cdr-tail-slack pure helpers", () => {
     expect(parseCliMode(["--other"])).toHaveProperty("error");
   });
 
-  test("safe relative paths", () => {
+  test("safe relative paths and fixture path containment", () => {
     expect(isSafeRelativePath("fixtures/H-CY/collections.bin")).toBe(true);
     expect(isSafeRelativePath("../etc/passwd")).toBe(false);
     expect(isSafeRelativePath("/abs")).toBe(false);
     expect(isSafeRelativePath("a\\b")).toBe(false);
     expect(isSafeRelativePath("")).toBe(false);
+    expect(isSafeRelativePath(".")).toBe(false);
+    expect(isSafeRelativePath("fixtures/./x.bin")).toBe(false);
+    expect(isSafeRelativePath("fixtures/foo/../bar.bin")).toBe(false);
+    expect(isFixtureBinaryPath("fixtures/H-CY/collections.bin")).toBe(true);
+    expect(isFixtureBinaryPath("other/H-CY/collections.bin")).toBe(false);
+    expect(isFixtureBinaryPath("fixtures")).toBe(false);
   });
 
   test("selectCanonical prefers shortest then ASCII id", () => {
@@ -72,7 +83,11 @@ describe("cdr-tail-slack pure helpers", () => {
     expect(selectCanonical(members).id).toBe("A-short");
   });
 
-  test("synthetic 0/4/12 zero-byte suffixes", () => {
+  test("allowed 0/4/12 zero-tail buckets", () => {
+    expect(isAllowedZeroTail(0)).toBe(true);
+    expect(isAllowedZeroTail(4)).toBe(true);
+    expect(isAllowedZeroTail(12)).toBe(true);
+    expect(isAllowedZeroTail(8)).toBe(false);
     const prefix = new Uint8Array([0xaa, 0xbb, 0xcc]);
     const exact: GroupMember = {
       id: "CY",
@@ -98,6 +113,25 @@ describe("cdr-tail-slack pure helpers", () => {
     expect(d12.ok && d12.zero_tail_bytes).toBe(12);
   });
 
+  test("8-byte zero suffix is rejected", () => {
+    const prefix = new Uint8Array([1, 2, 3]);
+    const canon: GroupMember = {
+      id: "canon",
+      support_row_id: "CY",
+      bytes: prefix,
+    };
+    const eight: GroupMember = {
+      id: "eight",
+      support_row_id: "FT",
+      bytes: new Uint8Array([...prefix, 0, 0, 0, 0, 0, 0, 0, 0]),
+    };
+    const r = deriveMemberEvidence(eight, canon);
+    expect(r.ok).toBe(false);
+    if (!r.ok) {
+      expect(r.error).toContain("outside allowed set {0, 4, 12}");
+    }
+  });
+
   test("prefix divergence fails", () => {
     const a: GroupMember = {
       id: "a",
@@ -114,7 +148,7 @@ describe("cdr-tail-slack pure helpers", () => {
     if (!r.ok) expect(r.error).toContain("prefix diverges");
   });
 
-  test("non-zero suffix byte fails", () => {
+  test("suffix byte must equal zero", () => {
     const a: GroupMember = {
       id: "a",
       support_row_id: "A",
@@ -127,7 +161,7 @@ describe("cdr-tail-slack pure helpers", () => {
     };
     const r = deriveMemberEvidence(b, a);
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.error).toContain("non-zero");
+    if (!r.ok) expect(r.error).toContain("suffix byte must equal zero");
   });
 
   test("bytesEqual and isAllZero", () => {
@@ -164,15 +198,70 @@ describe("cdr-tail-slack model assembly", () => {
     }
   });
 
-  test("duplicate fixture id fails", () => {
+  test("duplicate comparison identity fails", () => {
     const fixtures = [
-      fixture("dup", "x", "humble", "H-CY", new Uint8Array([1])),
-      fixture("dup", "x", "humble", "H-FT", new Uint8Array([1, 0])),
+      fixture("H-CY-x", "x", "humble", "H-CY", new Uint8Array([1])),
+      fixture("H-FT-x", "x", "humble", "H-FT", new Uint8Array([1, 0, 0, 0, 0])),
+    ];
+    const comparisons: ManifestComparison[] = [
+      { case_id: "x", ros_distro: "humble", rows: ["H-CY", "H-FT"] },
+      { case_id: "x", ros_distro: "humble", rows: ["H-CY", "H-FT"] },
+    ];
+    const built = buildTailSlackModel(fixtures, comparisons, "ab".repeat(32));
+    expect(built.ok).toBe(false);
+    if (!built.ok) {
+      expect(
+        built.diagnostics.some((d) => d.includes("duplicate comparison identity")),
+      ).toBe(true);
+    }
+  });
+
+  test("duplicate support row in comparison fails", () => {
+    const fixtures = [
+      fixture("H-CY-x", "x", "humble", "H-CY", new Uint8Array([1])),
+      fixture("H-FT-x", "x", "humble", "H-FT", new Uint8Array([1, 0, 0, 0, 0])),
+    ];
+    const comparisons: ManifestComparison[] = [
+      { case_id: "x", ros_distro: "humble", rows: ["H-CY", "H-CY", "H-FT"] },
+    ];
+    const built = buildTailSlackModel(fixtures, comparisons, "ab".repeat(32));
+    expect(built.ok).toBe(false);
+    if (!built.ok) {
+      expect(
+        built.diagnostics.some((d) =>
+          d.includes("duplicate support_row_id H-CY in comparison"),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  test("duplicate support row in fixture group fails", () => {
+    const fixtures = [
+      fixture("H-CY-a", "x", "humble", "H-CY", new Uint8Array([1])),
+      fixture("H-CY-b", "x", "humble", "H-CY", new Uint8Array([1, 0, 0, 0, 0])),
     ];
     const built = buildTailSlackModel(fixtures, [], "cd".repeat(32));
     expect(built.ok).toBe(false);
     if (!built.ok) {
-      expect(built.diagnostics.some((d) => d.includes("duplicate"))).toBe(true);
+      expect(
+        built.diagnostics.some((d) =>
+          d.includes("duplicate support_row_id H-CY in group"),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  test("duplicate fixture id fails", () => {
+    const fixtures = [
+      fixture("dup", "x", "humble", "H-CY", new Uint8Array([1])),
+      fixture("dup", "x", "humble", "H-FT", new Uint8Array([1, 0, 0, 0, 0])),
+    ];
+    const built = buildTailSlackModel(fixtures, [], "cd".repeat(32));
+    expect(built.ok).toBe(false);
+    if (!built.ok) {
+      expect(built.diagnostics.some((d) => d.includes("duplicate fixture id"))).toBe(
+        true,
+      );
     }
   });
 
@@ -200,35 +289,45 @@ describe("cdr-tail-slack model assembly", () => {
 });
 
 describe("cdr-tail-slack real corpus", () => {
-  test("committed corpus yields 56/18 and exact 24/12/20", async () => {
+  test("committed corpus yields frozen 56/18 and exact 24/12/20", async () => {
     const root = process.cwd();
     const built = await buildFromRoot(root);
     expect(built.ok).toBe(true);
     if (!built.ok) return;
     expect(built.artifact.corpus).toBe(CORPUS_ID);
-    expect(built.artifact.summary.fixtures).toBe(56);
-    expect(built.artifact.summary.comparisons).toBe(18);
-    expect(built.artifact.summary.exact_fixtures).toBe(24);
-    expect(built.artifact.summary.four_byte_tail_fixtures).toBe(12);
-    expect(built.artifact.summary.twelve_byte_tail_fixtures).toBe(20);
+    expect(built.artifact.summary.fixtures).toBe(FROZEN_SUMMARY.fixtures);
+    expect(built.artifact.summary.comparisons).toBe(FROZEN_SUMMARY.comparisons);
+    expect(built.artifact.summary.exact_fixtures).toBe(
+      FROZEN_SUMMARY.exact_fixtures,
+    );
+    expect(built.artifact.summary.four_byte_tail_fixtures).toBe(
+      FROZEN_SUMMARY.four_byte_tail_fixtures,
+    );
+    expect(built.artifact.summary.twelve_byte_tail_fixtures).toBe(
+      FROZEN_SUMMARY.twelve_byte_tail_fixtures,
+    );
+    const s = built.artifact.summary;
+    expect(
+      s.exact_fixtures + s.four_byte_tail_fixtures + s.twelve_byte_tail_fixtures,
+    ).toBe(s.fixtures);
     expect(built.artifact.source_manifest_sha256).toHaveLength(64);
   });
 });
 
 describe("cdr-tail-slack I/O adversarial", () => {
-  test("unsafe path and length/sha mismatch fail load", async () => {
+  test("escaped fixture path and malformed length/SHA fail load", async () => {
     const root = await tempRoot();
     const corpus = path.join(root, CORPUS_REL);
     await mkdir(path.join(corpus, "fixtures"), { recursive: true });
     const payload = new Uint8Array([1, 2, 3]);
     const digest = sha256Hex(payload);
     await writeFile(path.join(corpus, "fixtures", "a.bin"), payload);
-    // unsafe path
-    const badPathManifest = {
+
+    const escapedManifest = {
       corpus: CORPUS_ID,
       fixtures: [
         {
-          id: "bad",
+          id: "escaped",
           case_id: "c",
           ros_distro: "humble",
           support_row_id: "H-CY",
@@ -243,12 +342,18 @@ describe("cdr-tail-slack I/O adversarial", () => {
     };
     await writeFile(
       path.join(root, MANIFEST_REL),
-      JSON.stringify(badPathManifest),
+      JSON.stringify(escapedManifest),
     );
-    const unsafe = await buildFromRoot(root);
-    expect(unsafe.ok).toBe(false);
+    const escaped = await buildFromRoot(root);
+    expect(escaped.ok).toBe(false);
+    if (!escaped.ok) {
+      expect(
+        escaped.diagnostics.some(
+          (d) => d.includes("safe relative path under fixtures") || d.includes("unsafe path"),
+        ),
+      ).toBe(true);
+    }
 
-    // length mismatch
     const lenManifest = {
       corpus: CORPUS_ID,
       fixtures: [
@@ -259,7 +364,7 @@ describe("cdr-tail-slack I/O adversarial", () => {
           support_row_id: "H-CY",
           serialized: {
             path: "fixtures/a.bin",
-            byte_length: 99,
+            byte_length: 1.5,
             sha256: digest,
           },
         },
@@ -270,17 +375,46 @@ describe("cdr-tail-slack I/O adversarial", () => {
     const lenFail = await buildFromRoot(root);
     expect(lenFail.ok).toBe(false);
     if (!lenFail.ok) {
-      expect(lenFail.diagnostics.some((d) => d.includes("byte_length"))).toBe(
-        true,
-      );
+      expect(
+        lenFail.diagnostics.some((d) =>
+          d.includes("byte_length must be a safe nonnegative integer"),
+        ),
+      ).toBe(true);
     }
 
-    // sha mismatch
     const shaManifest = {
       corpus: CORPUS_ID,
       fixtures: [
         {
           id: "sha",
+          case_id: "c",
+          ros_distro: "humble",
+          support_row_id: "H-CY",
+          serialized: {
+            path: "fixtures/a.bin",
+            byte_length: 3,
+            sha256: "ABCDEF" + "0".repeat(58),
+          },
+        },
+      ],
+      comparisons: [],
+    };
+    await writeFile(path.join(root, MANIFEST_REL), JSON.stringify(shaManifest));
+    const shaFail = await buildFromRoot(root);
+    expect(shaFail.ok).toBe(false);
+    if (!shaFail.ok) {
+      expect(
+        shaFail.diagnostics.some((d) =>
+          d.includes("sha256 must be lowercase 64-hex"),
+        ),
+      ).toBe(true);
+    }
+
+    const mismatchManifest = {
+      corpus: CORPUS_ID,
+      fixtures: [
+        {
+          id: "sha-disk",
           case_id: "c",
           ros_distro: "humble",
           support_row_id: "H-CY",
@@ -293,25 +427,49 @@ describe("cdr-tail-slack I/O adversarial", () => {
       ],
       comparisons: [],
     };
-    await writeFile(path.join(root, MANIFEST_REL), JSON.stringify(shaManifest));
-    const shaFail = await buildFromRoot(root);
-    expect(shaFail.ok).toBe(false);
-    if (!shaFail.ok) {
-      expect(shaFail.diagnostics.some((d) => d.includes("sha256"))).toBe(true);
+    await writeFile(
+      path.join(root, MANIFEST_REL),
+      JSON.stringify(mismatchManifest),
+    );
+    const diskSha = await buildFromRoot(root);
+    expect(diskSha.ok).toBe(false);
+    if (!diskSha.ok) {
+      expect(diskSha.diagnostics.some((d) => d.includes("sha256 mismatch"))).toBe(
+        true,
+      );
     }
   });
 
-  test("check drift fails when committed artifact differs", async () => {
+  test("CLI check accepts then rejects drifted artifact with production invariants", async () => {
     const root = await tempRoot();
-    // Use real corpus by copying is heavy; instead build model from real root
-    // and write a drifted artifact next to a temp clone of minimal corpus.
-    const real = await buildFromRoot(process.cwd());
-    expect(real.ok).toBe(true);
-    if (!real.ok) return;
-    // Drift: rewrite one summary field in committed text
-    const drifted = real.bytes.replace('"exact_fixtures": 24', '"exact_fixtures": 0');
-    expect(drifted === real.bytes).toBe(false);
-    // In-memory compare models the check path
-    expect(drifted).not.toBe(real.bytes);
+    const srcCorpus = path.join(process.cwd(), CORPUS_REL);
+    const dstCorpus = path.join(root, CORPUS_REL);
+    await mkdir(dstCorpus, { recursive: true });
+    await cp(
+      path.join(srcCorpus, "manifest.json"),
+      path.join(dstCorpus, "manifest.json"),
+    );
+    await cp(path.join(srcCorpus, "fixtures"), path.join(dstCorpus, "fixtures"), {
+      recursive: true,
+    });
+    await cp(
+      path.join(srcCorpus, "tail-slack.json"),
+      path.join(dstCorpus, "tail-slack.json"),
+    );
+
+    const okCode = await runCli(["--check"], root);
+    expect(okCode).toBe(0);
+
+    const artifactPath = path.join(root, ARTIFACT_REL);
+    const original = await Bun.file(artifactPath).text();
+    const drifted = original.replace(
+      `"exact_fixtures": ${FROZEN_SUMMARY.exact_fixtures}`,
+      `"exact_fixtures": 0`,
+    );
+    expect(drifted === original).toBe(false);
+    await writeFile(artifactPath, drifted, "utf8");
+
+    const failCode = await runCli(["--check"], root);
+    expect(failCode).toBe(1);
   });
 });

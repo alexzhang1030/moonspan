@@ -1,7 +1,7 @@
 ///|
 /// CDR1 sequences, borrowed byte sequences, and nesting tokens (M1-01c3b).
-/// Fixed arrays are composition of existing element codecs with a
-/// schema-declared count (no separate public array abstraction).
+/// Fixed arrays are expressed by composing existing element codecs with a
+/// schema-declared count.
 
 ///|
 /// Immutable nesting-depth token. Carries depth by value so sibling branches

@@ -52,7 +52,7 @@ Every committed fixture is a canonical logical prefix plus a zero-filled top-lev
 | 4 | 12 |
 | 12 | 20 |
 
-The 4- and 12-byte tails appear on Fast DDS and Zenoh little-endian rows. Cyclone rows, big-endian primitives, and PointCloud2 use exact logical length. `echo_nested_response` ends on a `bool`, so the slack is top-level serializer capacity rather than a terminal-wstring value boundary.
+The 4- and 12-byte tails appear on Fast DDS and Zenoh little-endian rows. Cyclone rows, big-endian primitives, and PointCloud2 use exact logical length. The slack belongs to top-level serializer capacity; core wstring boundaries remain count plus N times 4. `echo_nested_response` ends on a `bool`, which confirms the tail sits outside the last member value boundary.
 
 ## Coverage
 

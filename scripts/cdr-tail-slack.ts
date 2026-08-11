@@ -2,9 +2,11 @@
 /**
  * CDR top-level tail-slack evidence overlay (generator/checker).
  *
- * Derives a stable evidence artifact from committed corpus binaries:
- * every support-row fixture is a canonical logical prefix plus a zero-filled
- * top-level suffix. Does not rewrite manifest, row, binary, or bundle artifacts.
+ * Derives a stable evidence artifact from committed corpus binaries: every
+ * support-row fixture is a canonical logical prefix plus a zero-filled
+ * top-level suffix. The CLI writes only `conformance/cdr/tail-slack.json`;
+ * source corpus artifacts (manifest, row metadata, binaries, bundles) stay
+ * byte-identical.
  *
  *   bun run scripts/cdr-tail-slack.ts --write
  *   bun run scripts/cdr-tail-slack.ts --check
@@ -16,9 +18,22 @@ import path from "node:path";
 export const CORPUS_REL = "conformance/cdr";
 export const MANIFEST_REL = `${CORPUS_REL}/manifest.json`;
 export const ARTIFACT_REL = `${CORPUS_REL}/tail-slack.json`;
+export const FIXTURES_PREFIX = "fixtures/";
 export const CORPUS_ID = "moonspan-ros-cdr-v1";
 export const SCHEMA_VERSION = 1;
 export const POLICY = "canonical-prefix-plus-zero-tail-v1";
+
+/** Allowed top-level zero-tail lengths for Phase 1 corpus evidence. */
+export const ALLOWED_ZERO_TAIL_BYTES = [0, 4, 12] as const;
+
+/** Frozen production summary bound to the committed 56-fixture corpus. */
+export const FROZEN_SUMMARY = {
+  fixtures: 56,
+  comparisons: 18,
+  exact_fixtures: 24,
+  four_byte_tail_fixtures: 12,
+  twelve_byte_tail_fixtures: 20,
+} as const;
 
 export type Mode = "write" | "check";
 
@@ -133,15 +148,50 @@ export function parseCliMode(args: string[]): { mode: Mode } | { error: string }
   return { error: `unknown mode ${args[0]}` };
 }
 
-/** Reject absolute paths, parent segments, backslashes, and empty paths. */
+/**
+ * Safe relative path: nonempty, relative, no backslashes, no empty/dot/parent
+ * path segments.
+ */
 export function isSafeRelativePath(rel: string): boolean {
   if (typeof rel !== "string" || rel.length === 0) return false;
   if (path.isAbsolute(rel)) return false;
   if (rel.includes("\\") || rel.includes("\0")) return false;
+  const parts = rel.split("/");
+  for (const part of parts) {
+    if (part === "" || part === "." || part === "..") return false;
+  }
   const norm = path.posix.normalize(rel);
-  if (norm.startsWith("..") || norm.includes("/../") || norm === "..") return false;
-  if (norm.startsWith("/")) return false;
+  if (norm !== rel) return false;
   return true;
+}
+
+/** Serialized binary paths must live under `fixtures/` within the corpus root. */
+export function isFixtureBinaryPath(rel: string): boolean {
+  if (!isSafeRelativePath(rel)) return false;
+  if (!rel.startsWith(FIXTURES_PREFIX)) return false;
+  if (rel === "fixtures" || rel === FIXTURES_PREFIX.slice(0, -1)) return false;
+  return true;
+}
+
+export function isNonemptyString(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
+
+export function isSafeNonnegInt(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    value >= 0 &&
+    value <= Number.MAX_SAFE_INTEGER
+  );
+}
+
+export function isLowerHexSha256(value: unknown): value is string {
+  return typeof value === "string" && /^[0-9a-f]{64}$/.test(value);
+}
+
+export function isAllowedZeroTail(n: number): boolean {
+  return n === 0 || n === 4 || n === 12;
 }
 
 export function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
@@ -167,7 +217,6 @@ export type GroupMember = {
 
 /**
  * Select the canonical member: shortest payload, then ASCII fixture id.
- * Pure: returns the chosen member and its logical length.
  */
 export function selectCanonical(members: readonly GroupMember[]): GroupMember {
   if (members.length === 0) {
@@ -182,8 +231,7 @@ export function selectCanonical(members: readonly GroupMember[]): GroupMember {
 
 /**
  * Derive per-member tail evidence against a canonical prefix.
- * Fails when a member is shorter than the prefix, diverges in the prefix, or
- * carries a non-zero suffix byte.
+ * Accepts only zero-tail lengths in {0, 4, 12}.
  */
 export function deriveMemberEvidence(
   member: GroupMember,
@@ -215,7 +263,13 @@ export function deriveMemberEvidence(
   if (!isAllZero(tail)) {
     return {
       ok: false,
-      error: `${member.id}: non-zero byte in top-level tail suffix`,
+      error: `${member.id}: suffix byte must equal zero`,
+    };
+  }
+  if (!isAllowedZeroTail(tail.length)) {
+    return {
+      ok: false,
+      error: `${member.id}: zero_tail_bytes ${tail.length} outside allowed set {0, 4, 12}`,
     };
   }
   return {
@@ -228,8 +282,53 @@ export function deriveMemberEvidence(
 }
 
 /**
+ * Enforce frozen production summary counts and bucket sum integrity.
+ */
+export function enforceFrozenSummary(
+  artifact: TailSlackArtifact,
+): { ok: true } | { ok: false; diagnostics: string[] } {
+  const diagnostics: string[] = [];
+  const s = artifact.summary;
+  const bucketSum =
+    s.exact_fixtures + s.four_byte_tail_fixtures + s.twelve_byte_tail_fixtures;
+  if (bucketSum !== s.fixtures) {
+    diagnostics.push(
+      `bucket sum ${bucketSum} differs from fixture count ${s.fixtures}`,
+    );
+  }
+  if (s.fixtures !== FROZEN_SUMMARY.fixtures) {
+    diagnostics.push(
+      `fixtures ${s.fixtures} differs from frozen ${FROZEN_SUMMARY.fixtures}`,
+    );
+  }
+  if (s.comparisons !== FROZEN_SUMMARY.comparisons) {
+    diagnostics.push(
+      `comparisons ${s.comparisons} differs from frozen ${FROZEN_SUMMARY.comparisons}`,
+    );
+  }
+  if (s.exact_fixtures !== FROZEN_SUMMARY.exact_fixtures) {
+    diagnostics.push(
+      `exact_fixtures ${s.exact_fixtures} differs from frozen ${FROZEN_SUMMARY.exact_fixtures}`,
+    );
+  }
+  if (s.four_byte_tail_fixtures !== FROZEN_SUMMARY.four_byte_tail_fixtures) {
+    diagnostics.push(
+      `four_byte_tail_fixtures ${s.four_byte_tail_fixtures} differs from frozen ${FROZEN_SUMMARY.four_byte_tail_fixtures}`,
+    );
+  }
+  if (s.twelve_byte_tail_fixtures !== FROZEN_SUMMARY.twelve_byte_tail_fixtures) {
+    diagnostics.push(
+      `twelve_byte_tail_fixtures ${s.twelve_byte_tail_fixtures} differs from frozen ${FROZEN_SUMMARY.twelve_byte_tail_fixtures}`,
+    );
+  }
+  if (diagnostics.length > 0) return { ok: false, diagnostics };
+  return { ok: true };
+}
+
+/**
  * Build the full evidence model from loaded fixtures and manifest comparisons.
- * Pure over already-validated in-memory bytes.
+ * Pure over already-validated in-memory bytes. Does not apply frozen production
+ * counts; call `enforceFrozenSummary` from the production CLI path.
  */
 export function buildTailSlackModel(
   fixtures: readonly LoadedFixture[],
@@ -246,7 +345,6 @@ export function buildTailSlackModel(
   }
   if (diagnostics.length > 0) return { ok: false, diagnostics };
 
-  // Group by ros_distro + case_id.
   const groups = new Map<string, GroupMember[]>();
   const groupKey = (distro: string, caseId: string) => `${distro}\0${caseId}`;
   for (const f of fixtures) {
@@ -275,6 +373,20 @@ export function buildTailSlackModel(
   for (const [key, members] of [...groups.entries()].sort((a, b) =>
     asciiCompare(a[0], b[0]),
   )) {
+    // Reject duplicate support-row IDs inside a group before map construction.
+    const seenRows = new Set<string>();
+    let groupHasDupRow = false;
+    for (const member of members) {
+      if (seenRows.has(member.support_row_id)) {
+        diagnostics.push(
+          `duplicate support_row_id ${member.support_row_id} in group ${key.replace("\0", "/")}`,
+        );
+        groupHasDupRow = true;
+      }
+      seenRows.add(member.support_row_id);
+    }
+    if (groupHasDupRow) continue;
+
     const canonical = selectCanonical(members);
     const by_row = new Map<string, number>();
     let logical = 0;
@@ -313,10 +425,32 @@ export function buildTailSlackModel(
 
   fixtureEvidence.sort((a, b) => asciiCompare(a.id, b.id));
 
-  // Bind the 18 manifest comparison groups.
   const comparisonEvidence: ComparisonEvidence[] = [];
+  const seenComparisonKeys = new Set<string>();
   for (const comp of comparisons) {
     const key = groupKey(comp.ros_distro, comp.case_id);
+    if (seenComparisonKeys.has(key)) {
+      diagnostics.push(
+        `duplicate comparison identity ${comp.ros_distro}/${comp.case_id}`,
+      );
+      continue;
+    }
+    seenComparisonKeys.add(key);
+
+    // Reject duplicate support-row IDs in the comparison row list before map use.
+    const rowSeen = new Set<string>();
+    let rowDup = false;
+    for (const row of comp.rows) {
+      if (rowSeen.has(row)) {
+        diagnostics.push(
+          `duplicate support_row_id ${row} in comparison ${comp.ros_distro}/${comp.case_id}`,
+        );
+        rowDup = true;
+      }
+      rowSeen.add(row);
+    }
+    if (rowDup) continue;
+
     const meta = groupMeta.get(key);
     if (!meta) {
       diagnostics.push(
@@ -363,7 +497,18 @@ export function buildTailSlackModel(
     if (f.zero_tail_bytes === 0) exact += 1;
     else if (f.zero_tail_bytes === 4) four += 1;
     else if (f.zero_tail_bytes === 12) twelve += 1;
+    else {
+      diagnostics.push(
+        `${f.id}: zero_tail_bytes ${f.zero_tail_bytes} outside allowed set {0, 4, 12}`,
+      );
+    }
   }
+  if (exact + four + twelve !== fixtureEvidence.length) {
+    diagnostics.push(
+      `bucket sum ${exact + four + twelve} differs from fixture count ${fixtureEvidence.length}`,
+    );
+  }
+  if (diagnostics.length > 0) return { ok: false, diagnostics };
 
   const artifact: TailSlackArtifact = {
     schema_version: SCHEMA_VERSION,
@@ -404,11 +549,8 @@ async function readRegularFile(
   } catch {
     return { ok: false, error: `missing file ${rel}` };
   }
-  if (st.isSymbolicLink()) {
-    return { ok: false, error: `symlink rejected ${rel}` };
-  }
-  if (!st.isFile()) {
-    return { ok: false, error: `not a regular file ${rel}` };
+  if (st.isSymbolicLink() || !st.isFile()) {
+    return { ok: false, error: `regular file required: ${rel}` };
   }
   const buf = await readFile(abs);
   return { ok: true, abs, bytes: new Uint8Array(buf) };
@@ -446,18 +588,30 @@ export async function loadCorpus(
   const fixtures: LoadedFixture[] = [];
   for (const f of doc.fixtures) {
     if (
-      typeof f?.id !== "string" ||
-      typeof f?.case_id !== "string" ||
-      typeof f?.ros_distro !== "string" ||
-      typeof f?.support_row_id !== "string" ||
-      typeof f?.serialized?.path !== "string" ||
-      typeof f?.serialized?.byte_length !== "number" ||
-      typeof f?.serialized?.sha256 !== "string"
+      !isNonemptyString(f?.id) ||
+      !isNonemptyString(f?.case_id) ||
+      !isNonemptyString(f?.ros_distro) ||
+      !isNonemptyString(f?.support_row_id)
     ) {
-      diagnostics.push(`fixture entry malformed: ${JSON.stringify(f?.id)}`);
+      diagnostics.push(
+        `fixture entry requires nonempty string identities: ${JSON.stringify(f?.id)}`,
+      );
       continue;
     }
-    // Paths in the manifest are relative to the corpus root (conformance/cdr).
+    if (!isSafeNonnegInt(f?.serialized?.byte_length)) {
+      diagnostics.push(`${f.id}: byte_length must be a safe nonnegative integer`);
+      continue;
+    }
+    if (!isLowerHexSha256(f?.serialized?.sha256)) {
+      diagnostics.push(`${f.id}: sha256 must be lowercase 64-hex`);
+      continue;
+    }
+    if (!isNonemptyString(f?.serialized?.path) || !isFixtureBinaryPath(f.serialized.path)) {
+      diagnostics.push(
+        `${f.id}: serialized path must be a safe relative path under fixtures/`,
+      );
+      continue;
+    }
     const binRel = path.posix.join(CORPUS_REL, f.serialized.path);
     const bin = await readRegularFile(root, binRel);
     if (!bin.ok) {
@@ -488,17 +642,36 @@ export async function loadCorpus(
   const comparisons: ManifestComparison[] = [];
   for (const c of doc.comparisons) {
     if (
-      typeof c?.case_id !== "string" ||
-      typeof c?.ros_distro !== "string" ||
+      !isNonemptyString(c?.case_id) ||
+      !isNonemptyString(c?.ros_distro) ||
       !Array.isArray(c?.rows)
     ) {
       diagnostics.push(`comparison entry malformed: ${JSON.stringify(c)}`);
       continue;
     }
+    if (c.rows.length === 0) {
+      diagnostics.push(
+        `comparison ${c.ros_distro}/${c.case_id}: support rows must be nonempty`,
+      );
+      continue;
+    }
+    const rows: string[] = [];
+    let rowsOk = true;
+    for (const row of c.rows) {
+      if (!isNonemptyString(row)) {
+        diagnostics.push(
+          `comparison ${c.ros_distro}/${c.case_id}: support row must be a nonempty string`,
+        );
+        rowsOk = false;
+        break;
+      }
+      rows.push(row);
+    }
+    if (!rowsOk) continue;
     comparisons.push({
       case_id: c.case_id,
       ros_distro: c.ros_distro,
-      rows: c.rows.map(String),
+      rows,
     });
   }
 
@@ -509,11 +682,15 @@ export async function loadCorpus(
 export async function buildFromRoot(root: string): Promise<BuildResult> {
   const loaded = await loadCorpus(root);
   if (!loaded.ok) return loaded;
-  return buildTailSlackModel(
+  const built = buildTailSlackModel(
     loaded.fixtures,
     loaded.comparisons,
     loaded.sourceManifestSha256,
   );
+  if (!built.ok) return built;
+  const frozen = enforceFrozenSummary(built.artifact);
+  if (!frozen.ok) return frozen;
+  return built;
 }
 
 export function formatStatusLine(artifact: TailSlackArtifact): string {
@@ -542,7 +719,6 @@ export async function runCli(
     console.log(formatStatusLine(built.artifact));
     return 0;
   }
-  // --check
   const existing = await readRegularFile(root, ARTIFACT_REL);
   if (!existing.ok) {
     console.error(existing.error);
@@ -551,7 +727,9 @@ export async function runCli(
   }
   const committed = new TextDecoder().decode(existing.bytes);
   if (committed !== built.bytes) {
-    console.error("cdr-tail-slack: committed artifact differs from regenerated model");
+    console.error(
+      "cdr-tail-slack: committed artifact differs from regenerated model",
+    );
     console.error("cdr-tail-slack: status=fail");
     return 1;
   }
