@@ -3,13 +3,6 @@
   "protocol": "r2wp-v0",
   "byte_order": "network",
   "generated_by": "scripts/protocol-malformed-fixtures.ts",
-  "bootstrap_step6_defensive_equivalence": {
-    "plane": "bootstrap",
-    "step": 6,
-    "u16_maximum": 65535,
-    "absolute_ceiling_bytes": 65535,
-    "claim": "step 6 is represented by defensive-equivalence metadata because u16 maximum equals the absolute 65535-byte ceiling"
-  },
   "fixtures": [
     {
       "id": "bootstrap-multi-2-before-3",
@@ -178,15 +171,15 @@
       ]
     },
     {
-      "id": "bootstrap-step6-u16-ceiling-equivalence",
+      "id": "bootstrap-step6-payload-overflow",
       "kind": "bootstrap",
-      "path": null,
-      "representation": "defensive_equivalence",
-      "byte_length": 0,
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "path": "malformed/bootstrap-step6-payload-overflow.bin",
+      "representation": "binary",
+      "byte_length": 12,
+      "sha256": "1e4ad95ecc55f96d203123e4f5e1c4bc1441c5eaee90ba58bacd97c7fd49fcdd",
       "source": {
-        "$type": "defensive_equivalence",
-        "claim": "step 6 is represented by defensive-equivalence metadata because u16 maximum equals the absolute 65535-byte ceiling"
+        "$type": "hex",
+        "hex": "523257500001000000010000"
       },
       "decoder_context": {},
       "expected": {
@@ -199,7 +192,8 @@
       },
       "coverage": [
         "bootstrap_step_6",
-        "defensive_equivalence"
+        "payload_overflow",
+        "precedence_6_before_7"
       ]
     },
     {

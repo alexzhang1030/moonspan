@@ -15,7 +15,6 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import {
   BOOTSTRAP_PAYLOAD_MAX_BYTES,
-  U16_MAX,
   REQUIRED_COVERAGE,
   asciiCompare,
   buildManifest,
@@ -70,9 +69,8 @@ describe("protocol-malformed-fixtures helpers", () => {
     expect(asciiCompare("a", "A")).toBeGreaterThan(0);
   });
 
-  test("u16 max equals bootstrap payload ceiling", () => {
-    expect(U16_MAX).toBe(65_535);
-    expect(BOOTSTRAP_PAYLOAD_MAX_BYTES).toBe(U16_MAX);
+  test("bootstrap payload absolute ceiling is 65535", () => {
+    expect(BOOTSTRAP_PAYLOAD_MAX_BYTES).toBe(65_535);
   });
 
   test("parseCliMode accepts exactly one mode argv item", () => {
@@ -102,30 +100,47 @@ describe("protocol-malformed-fixtures build", () => {
     const m = buildManifest();
     expect(m.schema_version).toBe(1);
     expect(m.protocol).toBe("r2wp-v0");
+    expect(m.fixtures).toHaveLength(55);
     const ids = m.fixtures.map((f) => f.id);
     expect(ids).toEqual([...ids].sort(asciiCompare));
     expect(new Set(ids).size).toBe(ids.length);
     const cov = new Set<string>();
     for (const f of m.fixtures) {
+      expect(f.representation).toBe("binary");
       expect(f.coverage).toEqual([...f.coverage].sort(asciiCompare));
       for (const c of f.coverage) cov.add(c);
-      if (f.representation === "binary") {
-        expect(f.path).toBe(`malformed/${f.id}.bin`);
-        expect(isCanonicalMalformedEntryPath(f.id, f.path!)).toBe(true);
-        expect(f.byte_length).toBeLessThanOrEqual(PER_FIXTURE_ALLOC_MAX);
-        // sources are hex or mutate over hex only
-        const s = f.source as { $type: string; base?: { $type: string } };
-        expect(s.$type === "hex" || s.$type === "mutate").toBe(true);
-        if (s.$type === "mutate") expect(s.base?.$type).toBe("hex");
-      }
+      expect(f.path).toBe(`malformed/${f.id}.bin`);
+      expect(isCanonicalMalformedEntryPath(f.id, f.path)).toBe(true);
+      expect(f.byte_length).toBeLessThanOrEqual(PER_FIXTURE_ALLOC_MAX);
+      // sources are hex or mutate over hex only
+      const s = f.source as { $type: string; base?: { $type: string } };
+      expect(s.$type === "hex" || s.$type === "mutate").toBe(true);
+      if (s.$type === "mutate") expect(s.base?.$type).toBe("hex");
     }
     for (const req of REQUIRED_COVERAGE) {
       expect(cov.has(req)).toBe(true);
     }
     expect(m.fixtures.some((f) => f.id === "frame-step13-tlv-bounds")).toBe(true);
-    expect(m.fixtures.some((f) => f.representation === "defensive_equivalence")).toBe(
-      true,
-    );
+    const step6 = m.fixtures.find((f) => f.id === "bootstrap-step6-payload-overflow");
+    expect(step6).toBeDefined();
+    expect(step6!.byte_length).toBe(12);
+    expect(step6!.source).toEqual({
+      $type: "hex",
+      hex: "523257500001000000010000",
+    });
+    expect(step6!.expected).toEqual({
+      registry_code: 24,
+      registry_name: "message_too_large",
+      reason: "payload_too_large",
+      offset: 8,
+      plane: "bootstrap",
+      step: 6,
+    });
+    expect(step6!.coverage).toEqual([
+      "bootstrap_step_6",
+      "payload_overflow",
+      "precedence_6_before_7",
+    ]);
   });
 
   test("stableManifestJson deterministic and two-write identity shape", () => {
@@ -151,16 +166,19 @@ describe("protocol-malformed-fixtures diagnose closed schema", () => {
     expect(diagnoseManifest(m, reg).some((x) => x.includes("unknown key"))).toBe(true);
   });
 
-  test("extra step6 key rejected", () => {
+  test("extra top-level legacy_step6_metadata key rejected", () => {
     const m = structuredClone(buildManifest()) as unknown as Record<string, unknown>;
-    const s6 = m.bootstrap_step6_defensive_equivalence as Record<string, unknown>;
-    s6.extra = true;
+    m.legacy_step6_metadata = {
+      plane: "bootstrap",
+      step: 6,
+      claim: "stale",
+    };
     expect(diagnoseManifest(m, reg).some((x) => x.includes("unknown key"))).toBe(true);
   });
 
   test("decoder_context selectedVersion string rejected", () => {
     const m = structuredClone(buildManifest());
-    const f = m.fixtures.find((x) => x.representation === "binary")!;
+    const f = m.fixtures[0]!;
     (f.decoder_context as Record<string, unknown>).selectedVersion = "0";
     expect(diagnoseManifest(m, reg).some((x) => x.includes("selectedVersion"))).toBe(
       true,
@@ -169,14 +187,14 @@ describe("protocol-malformed-fixtures diagnose closed schema", () => {
 
   test("expected.reason number rejected", () => {
     const m = structuredClone(buildManifest());
-    const f = m.fixtures.find((x) => x.representation === "binary")!;
+    const f = m.fixtures[0]!;
     (f.expected as unknown as Record<string, unknown>).reason = 5;
     expect(diagnoseManifest(m, reg).some((x) => x.includes("reason"))).toBe(true);
   });
 
   test("id/path mismatch rejected", () => {
     const m = structuredClone(buildManifest());
-    const f = m.fixtures.find((x) => x.representation === "binary")!;
+    const f = m.fixtures[0]!;
     f.path = "malformed/not-the-id.bin";
     expect(diagnoseManifest(m, reg).some((x) => x.includes("path"))).toBe(true);
   });
@@ -184,9 +202,7 @@ describe("protocol-malformed-fixtures diagnose closed schema", () => {
   test("mutation offset negative rejected", () => {
     const m = structuredClone(buildManifest());
     const f = m.fixtures.find(
-      (x) =>
-        x.representation === "binary" &&
-        (x.source as { $type: string }).$type === "mutate",
+      (x) => (x.source as { $type: string }).$type === "mutate",
     )!;
     const src = f.source as {
       $type: "mutate";
@@ -779,7 +795,6 @@ describe("protocol-malformed-fixtures write/check temp", () => {
         protocol: parsed.protocol,
         byte_order: parsed.byte_order,
         generated_by: parsed.generated_by,
-        bootstrap_step6_defensive_equivalence: parsed.bootstrap_step6_defensive_equivalence,
       };
       await writeFile(manPath, JSON.stringify(reordered, null, 2) + "\n");
       const d2 = (await checkMalformedFixtures(dir)).diags;

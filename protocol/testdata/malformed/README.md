@@ -12,7 +12,10 @@ checked by [`scripts/protocol-malformed-fixtures.ts`](../../../scripts/protocol-
 
 ## Bootstrap step 6
 
-Step 6 is represented by defensive-equivalence metadata because u16 maximum equals the absolute 65,535-byte ceiling.
+`payload_len` is u32. `bootstrap-step6-payload-overflow` is a 12-byte legal prefix that
+declares `payload_len` 65536 (absolute ceiling 65535). The missing body also violates
+step 7 exact-total. Observing the step 6 result (`message_too_large` /
+`payload_too_large` at offset 8) establishes `precedence_6_before_7`.
 
 ## Construction DSL
 

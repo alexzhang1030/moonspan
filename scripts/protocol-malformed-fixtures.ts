@@ -77,7 +77,6 @@ export const PER_FIXTURE_ALLOC_MAX = 256 * 1024;
 export const CORPUS_ALLOC_MAX = 2 * 1024 * 1024;
 export const HEX_LITERAL_MAX_BYTES = 64 * 1024;
 export const MUTATION_APPEND_MAX_BYTES = 4096;
-export const U16_MAX = 65_535;
 export const MANIFEST_MAX_BYTES = 512 * 1024;
 export const REGISTRY_MAX_BYTES = 2 * 1024 * 1024;
 export const FIXTURE_COUNT_MAX = 256;
@@ -86,7 +85,6 @@ export const ID_PATTERN = /^[a-z][a-z0-9_-]{0,127}$/;
 export const STRING_FIELD_MAX = 256;
 export const COVERAGE_PER_FIXTURE_MAX = 64;
 export const MUTATION_OPS_MAX = 32;
-export const CLAIM_MAX = 512;
 export const ASSIGNED_CLOCK_IDS = [0, 1, 2, 3, 4] as const;
 
 const MANIFEST_KEYS = [
@@ -94,7 +92,6 @@ const MANIFEST_KEYS = [
   "protocol",
   "byte_order",
   "generated_by",
-  "bootstrap_step6_defensive_equivalence",
   "fixtures",
 ] as const;
 
@@ -126,14 +123,6 @@ const DECODER_CONTEXT_KEYS = [
   "availableClockIds",
 ] as const;
 
-const STEP6_KEYS = [
-  "plane",
-  "step",
-  "u16_maximum",
-  "absolute_ceiling_bytes",
-  "claim",
-] as const;
-
 const OP_KEYS: Record<string, readonly string[]> = {
   truncate: ["op", "length"],
   set_u8: ["op", "offset", "value"],
@@ -157,7 +146,7 @@ const MUTATE_OPS = [
 // ---------------------------------------------------------------------------
 
 export type FixtureKind = "bootstrap" | "frame";
-export type Representation = "binary" | "defensive_equivalence";
+export type Representation = "binary";
 export type ValidationPlane = "bootstrap" | "selected_frame";
 
 export type DecoderContext = {
@@ -200,11 +189,11 @@ export type ConstructionSource = HexSource | MutateSource;
 export type MalformedFixtureEntry = {
   id: string;
   kind: FixtureKind;
-  path: string | null;
+  path: string;
   representation: Representation;
   byte_length: number;
   sha256: string;
-  source: ConstructionSource | { $type: "defensive_equivalence"; claim: string };
+  source: ConstructionSource;
   decoder_context: DecoderContext;
   expected: ExpectedOutcome;
   coverage: string[];
@@ -215,21 +204,13 @@ export type Manifest = {
   protocol: string;
   byte_order: "network";
   generated_by: string;
-  bootstrap_step6_defensive_equivalence: {
-    plane: "bootstrap";
-    step: 6;
-    u16_maximum: number;
-    absolute_ceiling_bytes: number;
-    claim: string;
-  };
   fixtures: MalformedFixtureEntry[];
 };
 
 type FixtureDef = {
   id: string;
   kind: FixtureKind;
-  representation?: Representation;
-  source: ConstructionSource | { $type: "defensive_equivalence"; claim: string };
+  source: ConstructionSource;
   decoder_context?: DecoderContext;
   expected: ExpectedOutcome;
   coverage: string[];
@@ -877,14 +858,25 @@ export function buildFixtureDefs(): FixtureDef[] {
       coverage: ["bootstrap_step_5"],
     },
     {
-      id: "bootstrap-step6-u16-ceiling-equivalence",
+      // payload_len is u32; this 12-byte legal prefix declares payload_len 65536
+      // (above the absolute 65535 ceiling). The missing body also violates step 7
+      // exact-total; observing the step 6 result establishes precedence_6_before_7.
+      id: "bootstrap-step6-payload-overflow",
       kind: "bootstrap",
-      representation: "defensive_equivalence",
-      source: {
-        $type: "defensive_equivalence",
-        claim:
-          "step 6 is represented by defensive-equivalence metadata because u16 maximum equals the absolute 65535-byte ceiling",
-      },
+      source: hexSrc(
+        (() => {
+          const prefix = new Uint8Array(BOOTSTRAP_PREFIX_LENGTH);
+          prefix[0] = 0x52;
+          prefix[1] = 0x32;
+          prefix[2] = 0x57;
+          prefix[3] = 0x50;
+          prefix[4] = 0;
+          prefix[5] = 1; // ClientHello
+          setU16BE(prefix, 6, 0);
+          setU32BE(prefix, 8, BOOTSTRAP_PAYLOAD_MAX_BYTES + 1); // 65536
+          return prefix;
+        })(),
+      ),
       expected: {
         registry_code: 24,
         registry_name: "message_too_large",
@@ -893,7 +885,7 @@ export function buildFixtureDefs(): FixtureDef[] {
         plane: "bootstrap",
         step: 6,
       },
-      coverage: ["bootstrap_step_6", "defensive_equivalence"],
+      coverage: ["bootstrap_step_6", "payload_overflow", "precedence_6_before_7"],
     },
     {
       id: "bootstrap-step7-truncated-body",
@@ -1895,13 +1887,13 @@ export const REQUIRED_COVERAGE = [
   "control_duplicate_cbor_key",
   "control_non_shortest_cbor",
   "control_cddl_shape",
-  "defensive_equivalence",
   "duplicate_cbor_key",
   "non_shortest_cbor",
   "multi_invalid",
   "precedence_2_before_3",
   "precedence_3_before_4",
   "precedence_5_before_6",
+  "precedence_6_before_7",
   "precedence_6_before_8",
   "precedence_7_before_8",
   "precedence_9_before_16",
@@ -1923,22 +1915,7 @@ export function buildManifest(): Manifest {
 
   for (const def of defs) {
     const coverage = sortAscii([...new Set(def.coverage)]);
-    if (def.representation === "defensive_equivalence") {
-      fixtures.push({
-        id: def.id,
-        kind: def.kind,
-        path: null,
-        representation: "defensive_equivalence",
-        byte_length: 0,
-        sha256: sha256Hex(new Uint8Array(0)),
-        source: def.source as { $type: "defensive_equivalence"; claim: string },
-        decoder_context: def.decoder_context ?? {},
-        expected: def.expected,
-        coverage,
-      });
-      continue;
-    }
-    const bytes = materializeSource(def.source as ConstructionSource, alloc);
+    const bytes = materializeSource(def.source, alloc);
     const id = def.id;
     fixtures.push({
       id,
@@ -1947,7 +1924,7 @@ export function buildManifest(): Manifest {
       representation: "binary",
       byte_length: bytes.length,
       sha256: sha256Hex(bytes),
-      source: def.source as ConstructionSource,
+      source: def.source,
       decoder_context: def.decoder_context ?? {},
       expected: def.expected,
       coverage,
@@ -1961,14 +1938,6 @@ export function buildManifest(): Manifest {
     protocol: PROTOCOL_ID,
     byte_order: "network",
     generated_by: GENERATED_BY,
-    bootstrap_step6_defensive_equivalence: {
-      plane: "bootstrap",
-      step: 6,
-      u16_maximum: U16_MAX,
-      absolute_ceiling_bytes: BOOTSTRAP_PAYLOAD_MAX_BYTES,
-      claim:
-        "step 6 is represented by defensive-equivalence metadata because u16 maximum equals the absolute 65535-byte ceiling",
-    },
     fixtures,
   };
 }
@@ -1976,9 +1945,8 @@ export function buildManifest(): Manifest {
 export function materializeFixtureBytes(
   entry: MalformedFixtureEntry,
   alloc: { used: number } = { used: 0 },
-): Uint8Array | null {
-  if (entry.representation === "defensive_equivalence") return null;
-  return materializeSource(entry.source as ConstructionSource, alloc);
+): Uint8Array {
+  return materializeSource(entry.source, alloc);
 }
 
 // ---------------------------------------------------------------------------
@@ -2053,36 +2021,6 @@ export function diagnoseManifest(
     diags.push(`root: generated_by must be ${GENERATED_BY}`);
   }
 
-  const step6 = value.bootstrap_step6_defensive_equivalence;
-  if (!isPlainObject(step6)) {
-    diags.push("root: bootstrap_step6_defensive_equivalence must be object");
-  } else {
-    exactKeys(step6, STEP6_KEYS, "bootstrap_step6_defensive_equivalence", diags);
-    requireKeys(step6, STEP6_KEYS, "bootstrap_step6_defensive_equivalence", diags);
-    if (step6.plane !== "bootstrap") {
-      diags.push("bootstrap_step6_defensive_equivalence: plane must be bootstrap");
-    }
-    if (step6.step !== 6) {
-      diags.push("bootstrap_step6_defensive_equivalence: step must be 6");
-    }
-    if (step6.u16_maximum !== U16_MAX) {
-      diags.push("bootstrap_step6_defensive_equivalence: u16_maximum must be 65535");
-    }
-    if (step6.absolute_ceiling_bytes !== BOOTSTRAP_PAYLOAD_MAX_BYTES) {
-      diags.push(
-        "bootstrap_step6_defensive_equivalence: absolute_ceiling_bytes must equal BOOTSTRAP_PAYLOAD_MAX_BYTES",
-      );
-    }
-    if (BOOTSTRAP_PAYLOAD_MAX_BYTES !== U16_MAX) {
-      diags.push(
-        "bootstrap_step6_defensive_equivalence: u16 maximum must equal absolute ceiling",
-      );
-    }
-    if (typeof step6.claim !== "string" || step6.claim.length === 0 || step6.claim.length > CLAIM_MAX) {
-      diags.push("bootstrap_step6_defensive_equivalence: claim length out of bounds");
-    }
-  }
-
   if (!Array.isArray(value.fixtures)) {
     diags.push("root: fixtures must be array");
     return sortAscii(diags);
@@ -2118,8 +2056,8 @@ export function diagnoseManifest(
     if (raw.kind !== "bootstrap" && raw.kind !== "frame") {
       diags.push(`${fp}: kind must be bootstrap|frame`);
     }
-    if (raw.representation !== "binary" && raw.representation !== "defensive_equivalence") {
-      diags.push(`${fp}: invalid representation`);
+    if (raw.representation !== "binary") {
+      diags.push(`${fp}: representation must be binary`);
     }
 
     if (!isPlainObject(raw.expected)) {
@@ -2176,40 +2114,32 @@ export function diagnoseManifest(
       }
     }
 
-    if (raw.representation === "binary") {
-      if (typeof raw.path === "string") {
-        if (paths.has(raw.path)) {
-          diags.push(`${fp}: duplicate path ${raw.path}`);
-        } else {
-          paths.add(raw.path);
-        }
-        if (typeof raw.id === "string") {
-          if (!isCanonicalMalformedEntryPath(raw.id, raw.path)) {
-            diags.push(`${fp}: path must be exactly malformed/<id>.bin`);
-          }
-        } else if (!isCanonicalMalformedPath(raw.path)) {
-          diags.push(`${fp}: path must be canonical malformed/*.bin`);
-        }
+    if (typeof raw.path === "string") {
+      if (paths.has(raw.path)) {
+        diags.push(`${fp}: duplicate path ${raw.path}`);
       } else {
-        diags.push(`${fp}: path must be exactly malformed/<id>.bin`);
+        paths.add(raw.path);
       }
-      if (
-        typeof raw.byte_length !== "number" ||
-        !Number.isSafeInteger(raw.byte_length) ||
-        raw.byte_length < 0 ||
-        raw.byte_length > PER_FIXTURE_ALLOC_MAX
-      ) {
-        diags.push(`${fp}: byte_length out of range`);
-      }
-      if (typeof raw.sha256 !== "string" || !/^[0-9a-f]{64}$/.test(raw.sha256)) {
-        diags.push(`${fp}: sha256 must be 64 lowercase hex`);
+      if (typeof raw.id === "string") {
+        if (!isCanonicalMalformedEntryPath(raw.id, raw.path)) {
+          diags.push(`${fp}: path must be exactly malformed/<id>.bin`);
+        }
+      } else if (!isCanonicalMalformedPath(raw.path)) {
+        diags.push(`${fp}: path must be canonical malformed/*.bin`);
       }
     } else {
-      if (raw.path !== null) diags.push(`${fp}: defensive_equivalence path must be null`);
-      if (raw.byte_length !== 0) diags.push(`${fp}: defensive_equivalence byte_length must be 0`);
-      if (raw.sha256 !== sha256Hex(new Uint8Array(0))) {
-        diags.push(`${fp}: defensive_equivalence sha256 must be empty digest`);
-      }
+      diags.push(`${fp}: path must be exactly malformed/<id>.bin`);
+    }
+    if (
+      typeof raw.byte_length !== "number" ||
+      !Number.isSafeInteger(raw.byte_length) ||
+      raw.byte_length < 0 ||
+      raw.byte_length > PER_FIXTURE_ALLOC_MAX
+    ) {
+      diags.push(`${fp}: byte_length out of range`);
+    }
+    if (typeof raw.sha256 !== "string" || !/^[0-9a-f]{64}$/.test(raw.sha256)) {
+      diags.push(`${fp}: sha256 must be 64 lowercase hex`);
     }
 
     if (!isPlainObject(raw.decoder_context)) {
@@ -2277,7 +2207,7 @@ export function diagnoseManifest(
       }
     }
 
-    validateSource(raw.source, `${fp}/source`, diags, raw.representation as Representation);
+    validateSource(raw.source, `${fp}/source`, diags);
   });
 
   for (const req of REQUIRED_COVERAGE) {
@@ -2292,21 +2222,9 @@ function validateSource(
   source: unknown,
   sp: string,
   diags: string[],
-  representation: Representation,
 ): void {
   if (!isPlainObject(source)) {
     diags.push(`${sp}: must be object`);
-    return;
-  }
-  if (representation === "defensive_equivalence") {
-    exactKeys(source, ["$type", "claim"], sp, diags);
-    requireKeys(source, ["$type", "claim"], sp, diags);
-    if (source.$type !== "defensive_equivalence") {
-      diags.push(`${sp}: $type must be defensive_equivalence`);
-    }
-    if (typeof source.claim !== "string" || source.claim.length === 0 || source.claim.length > CLAIM_MAX) {
-      diags.push(`${sp}: claim length out of bounds`);
-    }
     return;
   }
   if (source.$type === "hex") {
@@ -2680,12 +2598,10 @@ export async function writeMalformedFixtures(root: string): Promise<Manifest> {
   const alloc = { used: 0 };
   const wantNames = new Set<string>();
   for (const entry of manifest.fixtures) {
-    if (entry.representation !== "binary" || entry.path === null) continue;
     if (!isCanonicalMalformedEntryPath(entry.id, entry.path)) {
       throw new Error(`non-canonical path ${entry.path} for ${entry.id}`);
     }
     const bytes = materializeFixtureBytes(entry, alloc);
-    if (!bytes) throw new Error(`missing bytes for ${entry.id}`);
     if (bytes.length !== entry.byte_length || sha256Hex(bytes) !== entry.sha256) {
       throw new Error(`internal hash drift for ${entry.id}`);
     }
@@ -2820,9 +2736,7 @@ export async function checkMalformedFixtures(root: string): Promise<CheckResult>
   }
   const onDisk = new Set(onDiskList.filter((n) => n.endsWith(".bin")));
   const expectedBins = new Set(
-    manifest.fixtures
-      .filter((f) => f.representation === "binary" && f.path)
-      .map((f) => path.posix.basename(f.path!)),
+    manifest.fixtures.map((f) => path.posix.basename(f.path)),
   );
   for (const n of onDisk) {
     if (!expectedBins.has(n)) diags.push(`disk: extra file ${n}`);
@@ -2836,19 +2750,6 @@ export async function checkMalformedFixtures(root: string): Promise<CheckResult>
     const bind = crossBindExpected(entry.expected, registry);
     for (const d of bind) diags.push(`${entry.id}: ${d}`);
 
-    if (entry.representation === "defensive_equivalence") {
-      if (BOOTSTRAP_PAYLOAD_MAX_BYTES !== U16_MAX) {
-        diags.push(`${entry.id}: u16 max != absolute ceiling`);
-      }
-      if (
-        manifest.bootstrap_step6_defensive_equivalence.absolute_ceiling_bytes !==
-        BOOTSTRAP_PAYLOAD_MAX_BYTES
-      ) {
-        diags.push(`${entry.id}: manifest ceiling mismatch`);
-      }
-      continue;
-    }
-
     if (!entry.path || !isCanonicalMalformedEntryPath(entry.id, entry.path)) {
       diags.push(`${entry.id}: bad path (canonical id/path gate)`);
       continue;
@@ -2856,7 +2757,7 @@ export async function checkMalformedFixtures(root: string): Promise<CheckResult>
 
     let reconstructed: Uint8Array;
     try {
-      reconstructed = materializeFixtureBytes(entry, alloc)!;
+      reconstructed = materializeFixtureBytes(entry, alloc);
     } catch (e) {
       diags.push(
         `${entry.id}: reconstruct failed: ${e instanceof Error ? e.message : String(e)}`,
