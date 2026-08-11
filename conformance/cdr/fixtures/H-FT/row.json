@@ -1,0 +1,812 @@
+{
+  "fixtures": [
+    {
+      "case_id": "collections",
+      "coverage": [
+        "arrays",
+        "bounds",
+        "endianness_little",
+        "strings",
+        "wide_strings"
+      ],
+      "encoding": "CDR1",
+      "expected": {
+        "roundtrip": "semantic-equality"
+      },
+      "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+      "id": "H-FT-collections",
+      "platform": "linux/arm64",
+      "rmw_identifier": "rmw_fastrtps_cpp",
+      "ros_distro": "humble",
+      "ros_image": "docker.io/library/ros:humble-ros-base-jammy@sha256:7bea3d9aa2483d3ca34c8e30d921b79273b0913bd7dc64bebf51d082b5d107e4",
+      "schema_generation": 1,
+      "schema_identity": {
+        "scheme": "moonspan-schema-v1",
+        "value": "1a24c1330a39a37d33370e667fd612246e57a883ddf00c0a1eca52174fbb31bd"
+      },
+      "semantic_value_sha256": "67399065e208e6ed4c129d79b62cae647530d2c35fea78707a5da454df90622c",
+      "serialized": {
+        "byte_length": 160,
+        "endianness": "little",
+        "padding": "zero-filled-v1",
+        "path": "fixtures/H-FT/collections.bin",
+        "serializer": "rmw_serialize_zero_padding_v1",
+        "sha256": "0b57c7bbb5f7742030f14c245e26beb646b706ba950e866df4b8233026754048"
+      },
+      "support_row_id": "H-FT",
+      "type_description": {
+        "canonical_bundle_path": "fixtures/bundles/1a24c1330a39a37d33370e667fd612246e57a883ddf00c0a1eca52174fbb31bd.json",
+        "canonical_bundle_sha256": "1a24c1330a39a37d33370e667fd612246e57a883ddf00c0a1eca52174fbb31bd"
+      },
+      "type_name": "moonspan_cdr_interfaces/msg/Collections",
+      "values": {
+        "bounded_f64": [
+          -1.25,
+          0,
+          3.5,
+          1024.125
+        ],
+        "bounded_string": "0123456789abcdef",
+        "bounded_wstring": "0123456789abcdef",
+        "bytes_value": [
+          0,
+          1,
+          127,
+          128,
+          255
+        ],
+        "fixed_i32": [
+          -2147483648,
+          0,
+          2147483647
+        ]
+      }
+    },
+    {
+      "case_id": "echo_nested_request",
+      "coverage": [
+        "endianness_little",
+        "nesting",
+        "service"
+      ],
+      "encoding": "CDR1",
+      "expected": {
+        "roundtrip": "semantic-equality"
+      },
+      "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+      "id": "H-FT-echo_nested_request",
+      "platform": "linux/arm64",
+      "rmw_identifier": "rmw_fastrtps_cpp",
+      "ros_distro": "humble",
+      "ros_image": "docker.io/library/ros:humble-ros-base-jammy@sha256:7bea3d9aa2483d3ca34c8e30d921b79273b0913bd7dc64bebf51d082b5d107e4",
+      "schema_generation": 1,
+      "schema_identity": {
+        "scheme": "moonspan-schema-v1",
+        "value": "7755eb73700c10c92b1c5a047f3a76480099eb0bd882f5a464f21f667affe2d2"
+      },
+      "semantic_value_sha256": "09516d45ec8d1ab908c22f6e15a0bf67a0762ae312859aa5db7869db3eb13ab7",
+      "serialized": {
+        "byte_length": 272,
+        "endianness": "little",
+        "padding": "zero-filled-v1",
+        "path": "fixtures/H-FT/echo_nested_request.bin",
+        "serializer": "rmw_serialize_zero_padding_v1",
+        "sha256": "8cc65a569041f5c7492ded9480af38594c2e9654933bff06eb617a4e2b08e382"
+      },
+      "support_row_id": "H-FT",
+      "type_description": {
+        "canonical_bundle_path": "fixtures/bundles/7755eb73700c10c92b1c5a047f3a76480099eb0bd882f5a464f21f667affe2d2.json",
+        "canonical_bundle_sha256": "7755eb73700c10c92b1c5a047f3a76480099eb0bd882f5a464f21f667affe2d2"
+      },
+      "type_name": "moonspan_cdr_interfaces/srv/EchoNested_Request",
+      "values": {
+        "input": {
+          "collections": {
+            "bounded_f64": [
+              -1.25,
+              0,
+              3.5,
+              1024.125
+            ],
+            "bounded_string": "0123456789abcdef",
+            "bounded_wstring": "0123456789abcdef",
+            "bytes_value": [
+              0,
+              1,
+              127,
+              128,
+              255
+            ],
+            "fixed_i32": [
+              -2147483648,
+              0,
+              2147483647
+            ]
+          },
+          "scalars": {
+            "bool_value": true,
+            "byte_value": 165,
+            "char_value": 90,
+            "float32_value": -12.5,
+            "float64_value": 12345.125,
+            "int16_value": -32000,
+            "int32_value": -2000000000,
+            "int64_value": "-9000000000000000000",
+            "int8_value": -120,
+            "string_value": "Moonspan CDR ✓",
+            "uint16_value": 65000,
+            "uint32_value": 4000000000,
+            "uint64_value": "18000000000000000000",
+            "uint8_value": 250,
+            "wstring_value": "月面CDR"
+          },
+          "stamp": {
+            "nanosec": 123456789,
+            "sec": 1700000000
+          }
+        }
+      }
+    },
+    {
+      "case_id": "echo_nested_response",
+      "coverage": [
+        "endianness_little",
+        "nesting",
+        "service"
+      ],
+      "encoding": "CDR1",
+      "expected": {
+        "roundtrip": "semantic-equality"
+      },
+      "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+      "id": "H-FT-echo_nested_response",
+      "platform": "linux/arm64",
+      "rmw_identifier": "rmw_fastrtps_cpp",
+      "ros_distro": "humble",
+      "ros_image": "docker.io/library/ros:humble-ros-base-jammy@sha256:7bea3d9aa2483d3ca34c8e30d921b79273b0913bd7dc64bebf51d082b5d107e4",
+      "schema_generation": 1,
+      "schema_identity": {
+        "scheme": "moonspan-schema-v1",
+        "value": "4fd8d7a0f44273d5fe87f1a01377543d62b73e8321e8f8e7dfaa138f436bc0d3"
+      },
+      "semantic_value_sha256": "26e02462e5b399a01938af52962926997e6738046d9570b8f9f758537bbda082",
+      "serialized": {
+        "byte_length": 273,
+        "endianness": "little",
+        "padding": "zero-filled-v1",
+        "path": "fixtures/H-FT/echo_nested_response.bin",
+        "serializer": "rmw_serialize_zero_padding_v1",
+        "sha256": "7e0227728b7120abfc7af11441223844453e2440ef2884552df042ee3490f5bd"
+      },
+      "support_row_id": "H-FT",
+      "type_description": {
+        "canonical_bundle_path": "fixtures/bundles/4fd8d7a0f44273d5fe87f1a01377543d62b73e8321e8f8e7dfaa138f436bc0d3.json",
+        "canonical_bundle_sha256": "4fd8d7a0f44273d5fe87f1a01377543d62b73e8321e8f8e7dfaa138f436bc0d3"
+      },
+      "type_name": "moonspan_cdr_interfaces/srv/EchoNested_Response",
+      "values": {
+        "accepted": true,
+        "output": {
+          "collections": {
+            "bounded_f64": [
+              -1.25,
+              0,
+              3.5,
+              1024.125
+            ],
+            "bounded_string": "0123456789abcdef",
+            "bounded_wstring": "0123456789abcdef",
+            "bytes_value": [
+              0,
+              1,
+              127,
+              128,
+              255
+            ],
+            "fixed_i32": [
+              -2147483648,
+              0,
+              2147483647
+            ]
+          },
+          "scalars": {
+            "bool_value": true,
+            "byte_value": 165,
+            "char_value": 90,
+            "float32_value": -12.5,
+            "float64_value": 12345.125,
+            "int16_value": -32000,
+            "int32_value": -2000000000,
+            "int64_value": "-9000000000000000000",
+            "int8_value": -120,
+            "string_value": "Moonspan CDR ✓",
+            "uint16_value": 65000,
+            "uint32_value": 4000000000,
+            "uint64_value": "18000000000000000000",
+            "uint8_value": 250,
+            "wstring_value": "月面CDR"
+          },
+          "stamp": {
+            "nanosec": 123456789,
+            "sec": 1700000000
+          }
+        }
+      }
+    },
+    {
+      "case_id": "measure_sequence_feedback",
+      "coverage": [
+        "action",
+        "endianness_little",
+        "nesting"
+      ],
+      "encoding": "CDR1",
+      "expected": {
+        "roundtrip": "semantic-equality"
+      },
+      "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+      "id": "H-FT-measure_sequence_feedback",
+      "platform": "linux/arm64",
+      "rmw_identifier": "rmw_fastrtps_cpp",
+      "ros_distro": "humble",
+      "ros_image": "docker.io/library/ros:humble-ros-base-jammy@sha256:7bea3d9aa2483d3ca34c8e30d921b79273b0913bd7dc64bebf51d082b5d107e4",
+      "schema_generation": 1,
+      "schema_identity": {
+        "scheme": "moonspan-schema-v1",
+        "value": "b43d497ec9946a41370f42a28466d7d9d5e5af7db05fd784a852d11977f52b66"
+      },
+      "semantic_value_sha256": "42ae6751c51bc6d45fd6cd3c64f1133a69047f8edd5c610e986c720363a1b939",
+      "serialized": {
+        "byte_length": 280,
+        "endianness": "little",
+        "padding": "zero-filled-v1",
+        "path": "fixtures/H-FT/measure_sequence_feedback.bin",
+        "serializer": "rmw_serialize_zero_padding_v1",
+        "sha256": "01b8305f74efa9c9b168839178ce9fb49fb3bb17e3f4e34ed3bbafd06b2cc395"
+      },
+      "support_row_id": "H-FT",
+      "type_description": {
+        "canonical_bundle_path": "fixtures/bundles/b43d497ec9946a41370f42a28466d7d9d5e5af7db05fd784a852d11977f52b66.json",
+        "canonical_bundle_sha256": "b43d497ec9946a41370f42a28466d7d9d5e5af7db05fd784a852d11977f52b66"
+      },
+      "type_name": "moonspan_cdr_interfaces/action/MeasureSequence_Feedback",
+      "values": {
+        "progress": 0.625,
+        "sample": {
+          "collections": {
+            "bounded_f64": [
+              -1.25,
+              0,
+              3.5,
+              1024.125
+            ],
+            "bounded_string": "0123456789abcdef",
+            "bounded_wstring": "0123456789abcdef",
+            "bytes_value": [
+              0,
+              1,
+              127,
+              128,
+              255
+            ],
+            "fixed_i32": [
+              -2147483648,
+              0,
+              2147483647
+            ]
+          },
+          "scalars": {
+            "bool_value": true,
+            "byte_value": 165,
+            "char_value": 90,
+            "float32_value": -12.5,
+            "float64_value": 12345.125,
+            "int16_value": -32000,
+            "int32_value": -2000000000,
+            "int64_value": "-9000000000000000000",
+            "int8_value": -120,
+            "string_value": "Moonspan CDR ✓",
+            "uint16_value": 65000,
+            "uint32_value": 4000000000,
+            "uint64_value": "18000000000000000000",
+            "uint8_value": 250,
+            "wstring_value": "月面CDR"
+          },
+          "stamp": {
+            "nanosec": 123456789,
+            "sec": 1700000000
+          }
+        }
+      }
+    },
+    {
+      "case_id": "measure_sequence_goal",
+      "coverage": [
+        "action",
+        "bounds",
+        "endianness_little"
+      ],
+      "encoding": "CDR1",
+      "expected": {
+        "roundtrip": "semantic-equality"
+      },
+      "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+      "id": "H-FT-measure_sequence_goal",
+      "platform": "linux/arm64",
+      "rmw_identifier": "rmw_fastrtps_cpp",
+      "ros_distro": "humble",
+      "ros_image": "docker.io/library/ros:humble-ros-base-jammy@sha256:7bea3d9aa2483d3ca34c8e30d921b79273b0913bd7dc64bebf51d082b5d107e4",
+      "schema_generation": 1,
+      "schema_identity": {
+        "scheme": "moonspan-schema-v1",
+        "value": "a007bcd906ea29cb9239b9748feb3b9800d0be5dbc9b52569d220f8eb8c8ee86"
+      },
+      "semantic_value_sha256": "b1694c2e9d97d30bbf4e0e786ce5b3ea4998e5b55d59865085fb962dd866ab96",
+      "serialized": {
+        "byte_length": 160,
+        "endianness": "little",
+        "padding": "zero-filled-v1",
+        "path": "fixtures/H-FT/measure_sequence_goal.bin",
+        "serializer": "rmw_serialize_zero_padding_v1",
+        "sha256": "0b57c7bbb5f7742030f14c245e26beb646b706ba950e866df4b8233026754048"
+      },
+      "support_row_id": "H-FT",
+      "type_description": {
+        "canonical_bundle_path": "fixtures/bundles/a007bcd906ea29cb9239b9748feb3b9800d0be5dbc9b52569d220f8eb8c8ee86.json",
+        "canonical_bundle_sha256": "a007bcd906ea29cb9239b9748feb3b9800d0be5dbc9b52569d220f8eb8c8ee86"
+      },
+      "type_name": "moonspan_cdr_interfaces/action/MeasureSequence_Goal",
+      "values": {
+        "target": {
+          "bounded_f64": [
+            -1.25,
+            0,
+            3.5,
+            1024.125
+          ],
+          "bounded_string": "0123456789abcdef",
+          "bounded_wstring": "0123456789abcdef",
+          "bytes_value": [
+            0,
+            1,
+            127,
+            128,
+            255
+          ],
+          "fixed_i32": [
+            -2147483648,
+            0,
+            2147483647
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "measure_sequence_result",
+      "coverage": [
+        "action",
+        "endianness_little",
+        "nesting"
+      ],
+      "encoding": "CDR1",
+      "expected": {
+        "roundtrip": "semantic-equality"
+      },
+      "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+      "id": "H-FT-measure_sequence_result",
+      "platform": "linux/arm64",
+      "rmw_identifier": "rmw_fastrtps_cpp",
+      "ros_distro": "humble",
+      "ros_image": "docker.io/library/ros:humble-ros-base-jammy@sha256:7bea3d9aa2483d3ca34c8e30d921b79273b0913bd7dc64bebf51d082b5d107e4",
+      "schema_generation": 1,
+      "schema_identity": {
+        "scheme": "moonspan-schema-v1",
+        "value": "f9c7d819c62122edac1c6b19e1323eb6399e5e81db737473ab396cce4775c7a5"
+      },
+      "semantic_value_sha256": "42ae55efecd19765cc8d3cf472afe730e47cb4adcdb21c592953ecfc6e8a0fdb",
+      "serialized": {
+        "byte_length": 272,
+        "endianness": "little",
+        "padding": "zero-filled-v1",
+        "path": "fixtures/H-FT/measure_sequence_result.bin",
+        "serializer": "rmw_serialize_zero_padding_v1",
+        "sha256": "8cc65a569041f5c7492ded9480af38594c2e9654933bff06eb617a4e2b08e382"
+      },
+      "support_row_id": "H-FT",
+      "type_description": {
+        "canonical_bundle_path": "fixtures/bundles/f9c7d819c62122edac1c6b19e1323eb6399e5e81db737473ab396cce4775c7a5.json",
+        "canonical_bundle_sha256": "f9c7d819c62122edac1c6b19e1323eb6399e5e81db737473ab396cce4775c7a5"
+      },
+      "type_name": "moonspan_cdr_interfaces/action/MeasureSequence_Result",
+      "values": {
+        "result": {
+          "collections": {
+            "bounded_f64": [
+              -1.25,
+              0,
+              3.5,
+              1024.125
+            ],
+            "bounded_string": "0123456789abcdef",
+            "bounded_wstring": "0123456789abcdef",
+            "bytes_value": [
+              0,
+              1,
+              127,
+              128,
+              255
+            ],
+            "fixed_i32": [
+              -2147483648,
+              0,
+              2147483647
+            ]
+          },
+          "scalars": {
+            "bool_value": true,
+            "byte_value": 165,
+            "char_value": 90,
+            "float32_value": -12.5,
+            "float64_value": 12345.125,
+            "int16_value": -32000,
+            "int32_value": -2000000000,
+            "int64_value": "-9000000000000000000",
+            "int8_value": -120,
+            "string_value": "Moonspan CDR ✓",
+            "uint16_value": 65000,
+            "uint32_value": 4000000000,
+            "uint64_value": "18000000000000000000",
+            "uint8_value": 250,
+            "wstring_value": "月面CDR"
+          },
+          "stamp": {
+            "nanosec": 123456789,
+            "sec": 1700000000
+          }
+        }
+      }
+    },
+    {
+      "case_id": "nested_sample",
+      "coverage": [
+        "endianness_little",
+        "nesting"
+      ],
+      "encoding": "CDR1",
+      "expected": {
+        "roundtrip": "semantic-equality"
+      },
+      "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+      "id": "H-FT-nested_sample",
+      "platform": "linux/arm64",
+      "rmw_identifier": "rmw_fastrtps_cpp",
+      "ros_distro": "humble",
+      "ros_image": "docker.io/library/ros:humble-ros-base-jammy@sha256:7bea3d9aa2483d3ca34c8e30d921b79273b0913bd7dc64bebf51d082b5d107e4",
+      "schema_generation": 1,
+      "schema_identity": {
+        "scheme": "moonspan-schema-v1",
+        "value": "1ca65d257706c7f6fabd55d6779260e5e9301458b5baa1897c8c37106514fffc"
+      },
+      "semantic_value_sha256": "2d5d696ee4aa920439f4091ad06577a7d465c12fa68e08c2be55968307d415e9",
+      "serialized": {
+        "byte_length": 272,
+        "endianness": "little",
+        "padding": "zero-filled-v1",
+        "path": "fixtures/H-FT/nested_sample.bin",
+        "serializer": "rmw_serialize_zero_padding_v1",
+        "sha256": "8cc65a569041f5c7492ded9480af38594c2e9654933bff06eb617a4e2b08e382"
+      },
+      "support_row_id": "H-FT",
+      "type_description": {
+        "canonical_bundle_path": "fixtures/bundles/1ca65d257706c7f6fabd55d6779260e5e9301458b5baa1897c8c37106514fffc.json",
+        "canonical_bundle_sha256": "1ca65d257706c7f6fabd55d6779260e5e9301458b5baa1897c8c37106514fffc"
+      },
+      "type_name": "moonspan_cdr_interfaces/msg/NestedSample",
+      "values": {
+        "collections": {
+          "bounded_f64": [
+            -1.25,
+            0,
+            3.5,
+            1024.125
+          ],
+          "bounded_string": "0123456789abcdef",
+          "bounded_wstring": "0123456789abcdef",
+          "bytes_value": [
+            0,
+            1,
+            127,
+            128,
+            255
+          ],
+          "fixed_i32": [
+            -2147483648,
+            0,
+            2147483647
+          ]
+        },
+        "scalars": {
+          "bool_value": true,
+          "byte_value": 165,
+          "char_value": 90,
+          "float32_value": -12.5,
+          "float64_value": 12345.125,
+          "int16_value": -32000,
+          "int32_value": -2000000000,
+          "int64_value": "-9000000000000000000",
+          "int8_value": -120,
+          "string_value": "Moonspan CDR ✓",
+          "uint16_value": 65000,
+          "uint32_value": 4000000000,
+          "uint64_value": "18000000000000000000",
+          "uint8_value": 250,
+          "wstring_value": "月面CDR"
+        },
+        "stamp": {
+          "nanosec": 123456789,
+          "sec": 1700000000
+        }
+      }
+    },
+    {
+      "case_id": "point_cloud2",
+      "coverage": [
+        "arrays",
+        "endianness_little",
+        "nesting",
+        "point_cloud2"
+      ],
+      "encoding": "CDR1",
+      "expected": {
+        "roundtrip": "semantic-equality"
+      },
+      "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+      "id": "H-FT-point_cloud2",
+      "platform": "linux/arm64",
+      "rmw_identifier": "rmw_fastrtps_cpp",
+      "ros_distro": "humble",
+      "ros_image": "docker.io/library/ros:humble-ros-base-jammy@sha256:7bea3d9aa2483d3ca34c8e30d921b79273b0913bd7dc64bebf51d082b5d107e4",
+      "schema_generation": 1,
+      "schema_identity": {
+        "scheme": "moonspan-schema-v1",
+        "value": "66e14dca3757eda5527148dcc22af4800d50b397175b43b342741059c00bc8d3"
+      },
+      "semantic_value_sha256": "c3b7e18189085ceddf3e44408bcf71ad7ea4c1d37ed6326e7989102783b83dcc",
+      "serialized": {
+        "byte_length": 257,
+        "endianness": "little",
+        "padding": "zero-filled-v1",
+        "path": "fixtures/H-FT/point_cloud2.bin",
+        "serializer": "rmw_serialize_zero_padding_v1",
+        "sha256": "19e1eb3a49c2e76df4703004d70e5c5ffb3c44b454e18763c43e0ba745a64b1c"
+      },
+      "support_row_id": "H-FT",
+      "type_description": {
+        "canonical_bundle_path": "fixtures/bundles/66e14dca3757eda5527148dcc22af4800d50b397175b43b342741059c00bc8d3.json",
+        "canonical_bundle_sha256": "66e14dca3757eda5527148dcc22af4800d50b397175b43b342741059c00bc8d3"
+      },
+      "type_name": "sensor_msgs/msg/PointCloud2",
+      "values": {
+        "fields": [
+          {
+            "count": 1,
+            "datatype": 7,
+            "name": "x",
+            "offset": 0
+          },
+          {
+            "count": 1,
+            "datatype": 7,
+            "name": "y",
+            "offset": 4
+          },
+          {
+            "count": 1,
+            "datatype": 7,
+            "name": "z",
+            "offset": 8
+          },
+          {
+            "count": 1,
+            "datatype": 4,
+            "name": "intensity",
+            "offset": 12
+          },
+          {
+            "count": 1,
+            "datatype": 4,
+            "name": "ring",
+            "offset": 14
+          }
+        ],
+        "header": {
+          "frame_id": "map",
+          "stamp": {
+            "nanosec": 987654321,
+            "sec": 1700000001
+          }
+        },
+        "height": 2,
+        "is_bigendian": false,
+        "is_dense": true,
+        "point_step": 16,
+        "points": [
+          {
+            "intensity": 10,
+            "ring": 0,
+            "x": 1,
+            "y": 2,
+            "z": 3
+          },
+          {
+            "intensity": 20,
+            "ring": 1,
+            "x": -1,
+            "y": -2,
+            "z": -3
+          },
+          {
+            "intensity": 30,
+            "ring": 2,
+            "x": 0.5,
+            "y": 0.25,
+            "z": 0.125
+          },
+          {
+            "intensity": 40,
+            "ring": 3,
+            "x": 10,
+            "y": 20,
+            "z": 30
+          },
+          {
+            "intensity": 50,
+            "ring": 4,
+            "x": -10,
+            "y": 4,
+            "z": 8
+          },
+          {
+            "intensity": 60,
+            "ring": 5,
+            "x": 1024,
+            "y": -1024,
+            "z": 64
+          }
+        ],
+        "row_step": 48,
+        "width": 3
+      }
+    },
+    {
+      "case_id": "primitive_scalars",
+      "coverage": [
+        "endianness_little",
+        "primitives",
+        "strings",
+        "wide_strings"
+      ],
+      "encoding": "CDR1",
+      "expected": {
+        "roundtrip": "semantic-equality"
+      },
+      "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+      "id": "H-FT-primitive_scalars",
+      "platform": "linux/arm64",
+      "rmw_identifier": "rmw_fastrtps_cpp",
+      "ros_distro": "humble",
+      "ros_image": "docker.io/library/ros:humble-ros-base-jammy@sha256:7bea3d9aa2483d3ca34c8e30d921b79273b0913bd7dc64bebf51d082b5d107e4",
+      "schema_generation": 1,
+      "schema_identity": {
+        "scheme": "moonspan-schema-v1",
+        "value": "bbf6a73de830f7d68c869a721e6ba83d317f3a99ce8085974c72a02bd46d26e8"
+      },
+      "semantic_value_sha256": "a9c402bc6a9c25a4c69352630a9804eab429d5b459cab1e241b3ba378fb3da0d",
+      "serialized": {
+        "byte_length": 104,
+        "endianness": "little",
+        "padding": "zero-filled-v1",
+        "path": "fixtures/H-FT/primitive_scalars.bin",
+        "serializer": "rmw_serialize_zero_padding_v1",
+        "sha256": "04388f9a5c9319f7396c7dd58492e307b97e0db9aa98a40157d54530889a61c4"
+      },
+      "support_row_id": "H-FT",
+      "type_description": {
+        "canonical_bundle_path": "fixtures/bundles/bbf6a73de830f7d68c869a721e6ba83d317f3a99ce8085974c72a02bd46d26e8.json",
+        "canonical_bundle_sha256": "bbf6a73de830f7d68c869a721e6ba83d317f3a99ce8085974c72a02bd46d26e8"
+      },
+      "type_name": "moonspan_cdr_interfaces/msg/PrimitiveScalars",
+      "values": {
+        "bool_value": true,
+        "byte_value": 165,
+        "char_value": 90,
+        "float32_value": -12.5,
+        "float64_value": 12345.125,
+        "int16_value": -32000,
+        "int32_value": -2000000000,
+        "int64_value": "-9000000000000000000",
+        "int8_value": -120,
+        "string_value": "Moonspan CDR ✓",
+        "uint16_value": 65000,
+        "uint32_value": 4000000000,
+        "uint64_value": "18000000000000000000",
+        "uint8_value": 250,
+        "wstring_value": "月面CDR"
+      }
+    },
+    {
+      "case_id": "primitive_scalars_big_endian",
+      "coverage": [
+        "endianness_big",
+        "primitives",
+        "strings",
+        "wide_strings"
+      ],
+      "encoding": "CDR1",
+      "expected": {
+        "roundtrip": "semantic-equality"
+      },
+      "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+      "id": "H-FT-primitive_scalars_big_endian",
+      "platform": "linux/arm64",
+      "rmw_identifier": "rmw_fastrtps_cpp",
+      "ros_distro": "humble",
+      "ros_image": "docker.io/library/ros:humble-ros-base-jammy@sha256:7bea3d9aa2483d3ca34c8e30d921b79273b0913bd7dc64bebf51d082b5d107e4",
+      "schema_generation": 1,
+      "schema_identity": {
+        "scheme": "moonspan-schema-v1",
+        "value": "bbf6a73de830f7d68c869a721e6ba83d317f3a99ce8085974c72a02bd46d26e8"
+      },
+      "semantic_value_sha256": "a9c402bc6a9c25a4c69352630a9804eab429d5b459cab1e241b3ba378fb3da0d",
+      "serialized": {
+        "byte_length": 100,
+        "endianness": "big",
+        "padding": "zero-filled-v1",
+        "path": "fixtures/H-FT/primitive_scalars_big_endian.bin",
+        "serializer": "rosidl_typesupport_fastrtps_cpp",
+        "sha256": "11995f9b8404b3af44b9a8a1075925a99f84900a143a6faf8411b080ae79586b"
+      },
+      "support_row_id": "H-FT",
+      "type_description": {
+        "canonical_bundle_path": "fixtures/bundles/bbf6a73de830f7d68c869a721e6ba83d317f3a99ce8085974c72a02bd46d26e8.json",
+        "canonical_bundle_sha256": "bbf6a73de830f7d68c869a721e6ba83d317f3a99ce8085974c72a02bd46d26e8"
+      },
+      "type_name": "moonspan_cdr_interfaces/msg/PrimitiveScalars",
+      "values": {
+        "bool_value": true,
+        "byte_value": 165,
+        "char_value": 90,
+        "float32_value": -12.5,
+        "float64_value": 12345.125,
+        "int16_value": -32000,
+        "int32_value": -2000000000,
+        "int64_value": "-9000000000000000000",
+        "int8_value": -120,
+        "string_value": "Moonspan CDR ✓",
+        "uint16_value": 65000,
+        "uint32_value": 4000000000,
+        "uint64_value": "18000000000000000000",
+        "uint8_value": 250,
+        "wstring_value": "月面CDR"
+      }
+    }
+  ],
+  "generator_revision": "sha256:cce5c78f059e2da1c59d7749f9fc7ac32253a65f51795247ad26a2dfacc3467b",
+  "schema_version": 1,
+  "support_row": {
+    "id": "H-FT",
+    "package_versions": {
+      "ros-humble-fastcdr": "1.0.29-1jammy.20260306.224949",
+      "ros-humble-rclcpp": "16.0.19-1jammy.20260605.142447",
+      "ros-humble-rmw-cyclonedds-cpp": "1.3.4-1jammy.20260717.012644",
+      "ros-humble-rmw-fastrtps-cpp": "6.2.10-1jammy.20260605.135747",
+      "ros-humble-rmw-zenoh-cpp": "0.1.9-1jammy.20260725.135946",
+      "ros-humble-rosidl-typesupport-cpp": "2.0.2-1jammy.20260605.105841",
+      "ros-humble-sensor-msgs": "4.9.1-1jammy.20260605.124600"
+    },
+    "platform": "linux/arm64",
+    "rmw_identifier": "rmw_fastrtps_cpp",
+    "ros_distro": "humble",
+    "ros_image": "docker.io/library/ros:humble-ros-base-jammy@sha256:7bea3d9aa2483d3ca34c8e30d921b79273b0913bd7dc64bebf51d082b5d107e4"
+  }
+}

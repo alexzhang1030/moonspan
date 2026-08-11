@@ -60,6 +60,21 @@ protocol-agree: toolchain-check
 protocol-agree-write: toolchain-check
     cd "{{root}}" && bun run protocol-agree:write
 
+# ROS CDR corpus check from committed artifacts (scripts/cdr-corpus.ts --check).
+[group('quality')]
+cdr-corpus-check: toolchain-check
+    cd "{{root}}" && bun run cdr-corpus:check
+
+# ROS CDR corpus regenerate against pinned ROS environments (scripts/cdr-corpus.ts --write).
+[group('quality')]
+cdr-corpus-write: toolchain-check
+    cd "{{root}}" && bun run cdr-corpus:write
+
+# Pinned ROS environment reproduce gate (scripts/cdr-corpus.ts --reproduce).
+[group('quality')]
+cdr-corpus-reproduce: toolchain-check
+    cd "{{root}}" && bun run cdr-corpus:reproduce
+
 # Toolchain identity, Bun docs + protocol validation, Rust fmt/clippy, MoonBit format/check, TypeScript check.
 [group('quality')]
 check: toolchain-check
