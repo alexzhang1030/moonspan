@@ -298,6 +298,84 @@ test "public UTF-8 string codec across package boundary" {
 }
 
 ///|
+test "public ROS wstring codec and corpus completion across packages" {
+  let limits = match @cdr.CdrLimits::new(128, 8, 128) {
+    Ok(l) => l
+    Err(e) => abort(e.code)
+  }
+  match @cdr.CdrWriter::new(@cdr.CdrEndian::little(), limits) {
+    Ok(w) => {
+      match require_write_wstring(w, "月面CDR"[:]) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      match require_write_wstring(w, ""[:], max_scalars=0U) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      match require_write_wstring(w, "AB"[:], max_scalars=2U) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      let core = w.to_bytes()
+      match @cdr.CdrReader::open_default(core[:]) {
+        Ok(r) => {
+          match require_read_wstring(r) {
+            Ok(s) => assert_eq(s, "月面CDR")
+            Err(e) => abort(e.code)
+          }
+          match require_read_wstring(r) {
+            Ok(s) => assert_eq(s, "")
+            Err(e) => abort(e.code)
+          }
+          match require_read_wstring(r, max_scalars=2U) {
+            Ok(s) => assert_eq(s, "AB")
+            Err(e) => abort(e.code)
+          }
+          match require_ensure_corpus_complete_terminal_wstring(r) {
+            Ok(_) => ()
+            Err(e) => abort(e.code)
+          }
+        }
+        Err(e) => abort(e.code)
+      }
+    }
+    Err(e) => abort(e.code)
+  }
+  // Invalid scalar public error fields.
+  let bad = b"\x00\x01\x00\x00\x01\x00\x00\x00\x00\xd8\x00\x00"
+  match @cdr.CdrReader::open_default(bad[:]) {
+    Ok(r) => {
+      match require_read_wstring(r) {
+        Ok(_) => abort("expected invalid_wstring_scalar")
+        Err(e) => {
+          assert_eq(e.code, @cdr.CODE_INVALID_WSTRING_SCALAR)
+          assert_eq(e.offset, 4)
+          assert_eq(e.needed, 4)
+        }
+      }
+      assert_eq(r.position(), 4)
+    }
+    Err(e) => abort(e.code)
+  }
+  // Corpus completion consumes exactly four zero tail bytes.
+  let slack = b"\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+  match @cdr.CdrReader::open_default(slack[:]) {
+    Ok(r) => {
+      match require_read_wstring(r) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      match require_ensure_corpus_complete_terminal_wstring(r) {
+        Ok(_) => assert_eq(r.position(), 12)
+        Err(e) => abort(e.code)
+      }
+    }
+    Err(e) => abort(e.code)
+  }
+}
+
+///|
 test "public string invalid_utf8 and missing terminator across packages" {
   let bad_utf8 = b"\x00\x01\x00\x00\x03\x00\x00\x00\xc3\x28\x00"
   match @cdr.CdrReader::open_default(bad_utf8[:]) {

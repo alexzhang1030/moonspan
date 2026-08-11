@@ -121,9 +121,9 @@ M0 exit requires accepted decisions, clean-checkout root commands, reproducible 
 | M1-01b2 | Complete | Bounded CDR1 writer (deterministic zero padding, options `0x0000`, matching limits) | M1-01b1 |
 | M1-01c | Active | Primitives, strings/wstrings, arrays, sequences, nested values, borrowed BytesView fields | M1-01b |
 | M1-01c1 | Complete | Semantic CDR1 primitive codecs (bool, signed ints, floats, Char8/Char16) | M1-01b |
-| M1-01c2 | Active | Strings and ROS legacy wstring | M1-01c1 |
+| M1-01c2 | Complete | Strings and ROS legacy wstring | M1-01c1 |
 | M1-01c2a | Complete | CDR1 UTF-8 Char8 string (`read_string` / `write_string`, optional payload `max_bytes`) | M1-01c1 |
-| M1-01c2b | Queued | ROS legacy wstring and corpus-tail completion | M1-01c2a |
+| M1-01c2b | Complete | ROS legacy wstring and corpus-tail completion | M1-01c2a |
 | M1-01c3 | Queued | Arrays, sequences, nested-depth guards, borrowed BytesView fields | M1-01c2 |
 | M1-01d | Queued | Authoritative corpus proof: semantic agreement, round trips, malformed input, resource bounds | M1-01c, M0-04 |
 | M1-02 | Queued | Generate types and build the schema-identity registry | M0-04, M1-01 |
@@ -150,9 +150,9 @@ M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both 
 | M1-01b2 | Complete | Bounded CDR1 writer: canonical header, capacity min(stream,temp), deterministic zero padding, options `0x0000`, owned `to_bytes` snapshots |
 | M1-01c | Active | Primitives, strings/wstrings, arrays, sequences, nested values, borrowed `BytesView` fields |
 | M1-01c1 | Complete | Semantic primitives: bool, signed ints, IEEE floats, Char8/Char16 on raw codecs |
-| M1-01c2 | Active | Strings and ROS legacy wstring |
+| M1-01c2 | Complete | Strings and ROS legacy wstring |
 | M1-01c2a | Complete | CDR1 UTF-8 Char8 string: endian-aware length including NUL, optional payload `max_bytes`, strict UTF-8, owned `String`, direct writer emit |
-| M1-01c2b | Queued | ROS legacy wstring (`invalid_wstring_scalar`, terminal tail slack) and corpus-tail completion |
+| M1-01c2b | Complete | ROS legacy wstring (`count * 4`, `invalid_wstring_scalar`) and `ensure_corpus_complete_terminal_wstring` |
 | M1-01c3 | Queued | Arrays, sequences, nested-depth guards, borrowed `BytesView` fields |
 | M1-01d | Queued | Corpus-driven proof: CY exact vs FT/ZN four-byte zero tail slack wstring semantic agreement, round trips, malformed input, resource bounds |
 
@@ -163,7 +163,7 @@ M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both 
 - [x] Bounded CDR1 writer with capacity min(stream,temp), deterministic zero padding, options `0x0000`, and owned snapshots (M1-01b2).
 - [x] Semantic primitive codecs (bool, signed ints, floats, Char8/Char16) with LE/BE fidelity and atomic boolean faults (M1-01c1).
 - [x] CDR1 UTF-8 Char8 string codecs with optional payload bound, strict UTF-8, and atomic faults (M1-01c2a).
-- [ ] ROS `wstring` core decode of exactly `count * 4`; scalar-boundary tests for `invalid_wstring_scalar`; corpus-tail completion (M1-01c2b).
+- [x] ROS `wstring` core decode of exactly `count * 4`; scalar-boundary tests for `invalid_wstring_scalar`; corpus-tail completion (M1-01c2b).
 - [ ] Arrays, sequences, nested-depth guards, borrowed `BytesView` fields (M1-01c3).
 - [ ] Corpus agreement: exact CY fixtures and FT/ZN four-byte zero tail slack fixtures normalize to one semantic value; strict completion reports `trailing_data` on four-byte zero tail slack samples; adversarial resource cases (M1-01d).
 

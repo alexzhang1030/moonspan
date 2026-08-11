@@ -187,3 +187,37 @@ pub fn require_write_string(
     None => writer.write_string(value)
   }
 }
+
+///|
+/// Compile-time binding: `CdrReader::read_wstring` returns owned `String`.
+/// Optional `max_scalars` is the Unicode scalar / slot count bound.
+pub fn require_read_wstring(
+  reader : @cdr.CdrReader,
+  max_scalars? : UInt,
+) -> Result[String, @cdr.CdrError] {
+  match max_scalars {
+    Some(n) => reader.read_wstring(max_scalars=n)
+    None => reader.read_wstring()
+  }
+}
+
+///|
+/// Compile-time binding: `CdrWriter::write_wstring` accepts `StringView`.
+pub fn require_write_wstring(
+  writer : @cdr.CdrWriter,
+  value : StringView,
+  max_scalars? : UInt,
+) -> Result[Unit, @cdr.CdrError] {
+  match max_scalars {
+    Some(n) => writer.write_wstring(value, max_scalars=n)
+    None => writer.write_wstring(value)
+  }
+}
+
+///|
+/// Compile-time binding: corpus completion after a terminal wstring.
+pub fn require_ensure_corpus_complete_terminal_wstring(
+  reader : @cdr.CdrReader,
+) -> Result[Unit, @cdr.CdrError] {
+  reader.ensure_corpus_complete_terminal_wstring()
+}

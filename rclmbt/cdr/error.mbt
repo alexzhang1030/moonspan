@@ -127,6 +127,17 @@ pub fn CdrError::missing_string_terminator(
 }
 
 ///|
+/// ROS legacy wstring 32-bit slot is outside accepted Unicode scalar values
+/// (`0x00000000..0x0000D7FF` and `0x0000E000..0x0010FFFF`). `needed` is the
+/// slot width (4). Numeric fields follow the shared convention.
+pub fn CdrError::invalid_wstring_scalar(
+  offset : Int,
+  remaining : Int,
+) -> CdrError {
+  CdrError::new(CODE_INVALID_WSTRING_SCALAR, offset, 4, remaining)
+}
+
+///|
 pub fn CdrError::bounds_exceeded(
   offset : Int,
   needed : Int,

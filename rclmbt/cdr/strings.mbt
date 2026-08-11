@@ -1,6 +1,6 @@
 ///|
 /// CDR1 UTF-8 Char8 string codecs (M1-01c2a).
-/// ROS legacy wstring and corpus-tail completion land in M1-01c2b.
+/// Shared host-size helpers are reused by ROS legacy wstring (M1-01c2b).
 ///
 /// Wire layout: endian-aware `UInt32` length (includes the final single NUL),
 /// then UTF-8 payload bytes, then required `0x00`. Empty string is length 1
