@@ -6,6 +6,9 @@ pub const CODE_INVALID_ENCAPSULATION : String = "invalid_encapsulation"
 pub const CODE_UNSUPPORTED_REPRESENTATION : String = "unsupported_representation"
 
 ///|
+pub const CODE_INVALID_LIMITS : String = "invalid_limits"
+
+///|
 pub const CODE_TRUNCATED : String = "truncated"
 
 ///|
@@ -33,15 +36,24 @@ pub const CODE_ALIGNMENT_OVERFLOW : String = "alignment_overflow"
 pub const CODE_TRAILING_DATA : String = "trailing_data"
 
 ///|
-/// Structured CDR fault. Callers match `code` and numeric fields only.
+/// Structured CDR fault. All fields are public and readable across packages.
+/// Callers match `code` and numeric fields only.
+///
+/// Field meaning:
+/// - `offset`: absolute byte offset of the fault site (field-start on failed field reads;
+///   `0` for open/config faults).
+/// - `needed`: bytes required for the attempted operation, or the rejected limit value
+///   for configuration faults (never computed as max+1).
+/// - `remaining`: bytes available at the fault site (input length at open; stream
+///   remaining on field faults).
 pub struct CdrError {
   /// Stable fault code from the CDR taxonomy.
   code : String
-  /// Absolute byte offset of the fault (field-start on failed field reads).
+  /// Absolute byte offset of the fault.
   offset : Int
-  /// Bytes required to complete the attempted operation.
+  /// Bytes required, or rejected limit value for `invalid_limits`.
   needed : Int
-  /// Bytes remaining at the fault site.
+  /// Bytes remaining / available at the fault site.
   remaining : Int
 }
 
@@ -70,6 +82,12 @@ pub fn CdrError::unsupported_representation(
   remaining : Int,
 ) -> CdrError {
   CdrError::new(CODE_UNSUPPORTED_REPRESENTATION, offset, 0, remaining)
+}
+
+///|
+/// `needed` is the rejected limit field value; `remaining` is the peer constraint.
+pub fn CdrError::invalid_limits(needed : Int, remaining : Int) -> CdrError {
+  CdrError::new(CODE_INVALID_LIMITS, 0, needed, remaining)
 }
 
 ///|

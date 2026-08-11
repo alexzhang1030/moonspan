@@ -143,28 +143,39 @@ Implementable codec faults with stable codes:
 |---|---|
 | `invalid_encapsulation` | The 4-byte header is truncated or structurally unavailable |
 | `unsupported_representation` | Representation identifier is outside `{0x0000, 0x0001}` |
+| `invalid_limits` | `CdrLimits` construction is outside absolute Phase 1 ranges |
 | `truncated` | Input ends before a required field completes |
 | `invalid_boolean` | Boolean byte is outside `{0, 1}` |
 | `invalid_utf8` | Char8 string payload fails UTF-8 well-formedness |
 | `invalid_wstring_scalar` | ROS legacy `wstring` 32-bit slot is outside accepted Unicode scalar values from `u16string_to_wstring` |
 | `missing_string_terminator` | Char8 declared span ends on a nonzero byte |
-| `bounds_exceeded` | Sequence or string length exceeds a configured codec or type bound available to the call |
-| `length_overflow` | Length or size arithmetic exceeds the stream ceiling or host size domain |
+| `bounds_exceeded` | Stream length, owned temporary allocation, or a configured type bound is exceeded |
+| `length_overflow` | Length or size arithmetic overflows the host size domain |
 | `alignment_overflow` | Required padding would advance past the end of the stream |
 | `trailing_data` | Strict completion mode requires a fully consumed stream and unread bytes remain (including four-byte zero tail slack) |
+
+`CdrError` fields are public across packages:
+
+| Field | Meaning |
+|---|---|
+| `offset` | Absolute fault site (field-start on failed field reads; `0` for open/config faults) |
+| `needed` | Bytes required for the operation, or the rejected limit value for `invalid_limits` / oversized-stream reporting (never `max+1`) |
+| `remaining` | Bytes available at the fault site (input length at open; stream remaining on field faults) |
 
 `schema_mismatch` and related identity faults belong to M1-02 generated types and M2-01 dynamic projection. Host buffer lease and transfer faults belong to M1-03.
 
 ## Overflow and allocation limits
 
-| Limit | Frozen default | Notes |
+| Limit | Absolute Phase 1 range | Default |
 |---|---|---|
-| Maximum stream bytes (one encode or decode) | **67 108 864** (64 MiB) | Matches the R2WP absolute frame payload ceiling (`frame_payload_max_bytes`) |
-| Field and type bounds (string max, sequence max, …) | Generated-schema inputs | Supplied by M1-02 type metadata for each interface |
-| Maximum nesting depth | **64** | Finite recursion bound with headroom for generated ROS schemas (M1-01b) |
-| Maximum temporary allocation per codec operation | **67 108 864** (64 MiB) | Matches the stream / R2WP payload ceiling (M1-01b) |
+| `max_stream_bytes` | `4..=67 108 864` | **67 108 864** (R2WP `frame_payload_max_bytes`) |
+| `max_nesting_depth` | `1..=64` | **64** |
+| `max_temporary_allocation` | `0..=max_stream_bytes` | **67 108 864** |
+| Field and type bounds | M1-02 generated-schema inputs | — |
 
-Rationale: stream and temporary ceilings share the R2WP payload ceiling so one sample cannot force larger codec buffers than the wire absolute max; depth 64 bounds nested decode under a fixed stack budget while covering typical ROS interface nesting.
+Rationale: defaults are the absolute Phase 1 ceilings. Stream and temporary defaults match the R2WP payload ceiling; depth 64 bounds nested decode under a fixed stack budget with headroom for generated ROS schemas. Construction outside these ranges yields `invalid_limits`.
+
+Borrowed `BytesView` spans (`read_bytes`, `checked_span_length`) are governed by remaining input and `max_stream_bytes`. `max_temporary_allocation` applies only to owned temporary allocations (`checked_alloc_length` and later owned buffers).
 
 Crossing a limit returns a typed fault from the taxonomy above. On failed encode, caller-owned output buffers remain unchanged. Where the API documents atomic field reads, a failed field leaves the reader cursor at the start of that field.
 

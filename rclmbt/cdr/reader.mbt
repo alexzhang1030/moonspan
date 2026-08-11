@@ -12,8 +12,8 @@ pub struct CdrHeader {
   /// Options field as network-order UInt16: `(byte2 << 8) | byte3`.
   /// Every two-byte value is accepted; field layout ignores options.
   options : Int
-  /// True when representation is little endian (`0x0001`).
-  little_endian : Bool
+  /// Stream endianness from the representation identifier.
+  endian : CdrEndian
 }
 
 ///|
@@ -36,14 +36,24 @@ fn network_u16(hi : Byte, lo : Byte) -> Int {
 }
 
 ///|
-/// Open a CDR1 reader over `bytes` with the given limits.
+fn is_little(endian : CdrEndian) -> Bool {
+  match endian {
+    CdrEndian::Little => true
+    CdrEndian::Big => false
+  }
+}
+
+///|
+/// Open a CDR1 reader over `bytes` with validated limits.
 pub fn CdrReader::open(
   bytes : BytesView,
   limits : CdrLimits,
 ) -> Result[CdrReader, CdrError] {
   let len = bytes.length()
   if len > limits.max_stream_bytes {
-    return Err(CdrError::bounds_exceeded(0, limits.max_stream_bytes + 1, len))
+    // Oversized input: needed = stream ceiling, remaining = actual length.
+    // Avoid max+1 arithmetic.
+    return Err(CdrError::bounds_exceeded(0, limits.max_stream_bytes, len))
   }
   if len < HEADER_LENGTH {
     return Err(CdrError::invalid_encapsulation(0, HEADER_LENGTH, len))
@@ -54,14 +64,14 @@ pub fn CdrReader::open(
   let b3 = bytes[3]
   let representation = network_u16(b0, b1)
   let options = network_u16(b2, b3)
-  let little_endian = if representation == REPRESENTATION_CDR_LE {
-    true
+  let endian = if representation == REPRESENTATION_CDR_LE {
+    CdrEndian::Little
   } else if representation == REPRESENTATION_CDR_BE {
-    false
+    CdrEndian::Big
   } else {
     return Err(CdrError::unsupported_representation(0, len))
   }
-  let header : CdrHeader = { representation, options, little_endian }
+  let header : CdrHeader = { representation, options, endian }
   Ok({ bytes, offset: BODY_ORIGIN, limits, header })
 }
 
@@ -92,9 +102,27 @@ pub fn CdrReader::header(self : CdrReader) -> CdrHeader {
 }
 
 ///|
-/// Stream endianness from the representation identifier.
+/// Representation identifier (network-order UInt16).
+pub fn CdrReader::representation(self : CdrReader) -> Int {
+  self.header.representation
+}
+
+///|
+/// Options field (network-order UInt16).
+pub fn CdrReader::options(self : CdrReader) -> Int {
+  self.header.options
+}
+
+///|
+/// Stream endianness.
+pub fn CdrReader::endian(self : CdrReader) -> CdrEndian {
+  self.header.endian
+}
+
+///|
+/// True when the stream is little endian.
 pub fn CdrReader::little_endian(self : CdrReader) -> Bool {
-  self.header.little_endian
+  is_little(self.header.endian)
 }
 
 ///|
@@ -142,57 +170,56 @@ fn CdrReader::preflight(
 
 ///|
 /// Advance past padding for `align`, then leave cursor at the field payload.
+/// On fault the cursor is restored to the field-start offset.
 fn CdrReader::align_to(
   self : CdrReader,
   align : Int,
   size : Int,
-) -> Result[Int, CdrError] {
+) -> Result[Unit, CdrError] {
   let field_start = self.offset
   let pad = match self.preflight(field_start, align, size) {
     Ok(p) => p
     Err(e) => return Err(e)
   }
   self.offset = field_start + pad
-  Ok(field_start)
+  Ok(())
 }
 
 ///|
 /// Read one unaligned byte (alignment width 1).
 pub fn CdrReader::read_u8(self : CdrReader) -> Result[Byte, CdrError] {
-  let field_start = match self.align_to(1, 1) {
-    Ok(s) => s
+  match self.align_to(1, 1) {
+    Ok(_) => ()
     Err(e) => return Err(e)
   }
   let b = self.bytes[self.offset]
   self.offset = self.offset + 1
-  let _ = field_start
   Ok(b)
 }
 
 ///|
 /// Read a 16-bit unsigned bit pattern in stream endianness (align 2).
 pub fn CdrReader::read_u16(self : CdrReader) -> Result[UInt64, CdrError] {
-  let field_start = match self.align_to(2, 2) {
-    Ok(s) => s
+  match self.align_to(2, 2) {
+    Ok(_) => ()
     Err(e) => return Err(e)
   }
   let b0 = self.bytes[self.offset]
   let b1 = self.bytes[self.offset + 1]
   self.offset = self.offset + 2
-  let value = if self.header.little_endian {
+  let value = if is_little(self.header.endian) {
     (byte_u64(b1) << 8) | byte_u64(b0)
   } else {
     (byte_u64(b0) << 8) | byte_u64(b1)
   }
-  let _ = field_start
   Ok(value)
 }
 
 ///|
 /// Read a 32-bit unsigned bit pattern in stream endianness (align 4).
 pub fn CdrReader::read_u32(self : CdrReader) -> Result[UInt64, CdrError] {
-  let field_start = match self.align_to(4, 4) {
-    Ok(s) => s
+  match self.align_to(4, 4) {
+    Ok(_) => ()
     Err(e) => return Err(e)
   }
   let b0 = self.bytes[self.offset]
@@ -200,7 +227,7 @@ pub fn CdrReader::read_u32(self : CdrReader) -> Result[UInt64, CdrError] {
   let b2 = self.bytes[self.offset + 2]
   let b3 = self.bytes[self.offset + 3]
   self.offset = self.offset + 4
-  let value = if self.header.little_endian {
+  let value = if is_little(self.header.endian) {
     (byte_u64(b3) << 24) |
     (byte_u64(b2) << 16) |
     (byte_u64(b1) << 8) |
@@ -211,19 +238,18 @@ pub fn CdrReader::read_u32(self : CdrReader) -> Result[UInt64, CdrError] {
     (byte_u64(b2) << 8) |
     byte_u64(b3)
   }
-  let _ = field_start
   Ok(value)
 }
 
 ///|
 /// Read a 64-bit unsigned bit pattern in stream endianness (align 8).
 pub fn CdrReader::read_u64(self : CdrReader) -> Result[UInt64, CdrError] {
-  let field_start = match self.align_to(8, 8) {
-    Ok(s) => s
+  match self.align_to(8, 8) {
+    Ok(_) => ()
     Err(e) => return Err(e)
   }
   let mut value : UInt64 = 0UL
-  if self.header.little_endian {
+  if is_little(self.header.endian) {
     let mut i = 0
     while i < 8 {
       let shift = i * 8
@@ -238,13 +264,13 @@ pub fn CdrReader::read_u64(self : CdrReader) -> Result[UInt64, CdrError] {
     }
   }
   self.offset = self.offset + 8
-  let _ = field_start
   Ok(value)
 }
 
 ///|
-/// Read `n` raw bytes as a borrowed subview (alignment width 1).
-/// The returned view shares physical storage with the input `BytesView`.
+/// Read `n` raw bytes as a borrowed zero-copy subview (alignment width 1).
+/// Length is governed by remaining input and max stream size only.
+/// `max_temporary_allocation` does not apply to borrowed spans.
 pub fn CdrReader::read_bytes(
   self : CdrReader,
   n : Int,
@@ -253,10 +279,6 @@ pub fn CdrReader::read_bytes(
   if n < 0 {
     self.offset = field_start
     return Err(CdrError::length_overflow(field_start, 0, self.remaining()))
-  }
-  if n > self.limits.max_temporary_allocation {
-    self.offset = field_start
-    return Err(CdrError::bounds_exceeded(field_start, n, self.remaining()))
   }
   match self.align_to(1, n) {
     Ok(_) => ()
@@ -272,15 +294,70 @@ pub fn CdrReader::read_bytes(
 }
 
 ///|
-/// Checked `count * element_size` against overflow and temporary-allocation ceiling.
-/// Used by later string/sequence codecs and available for callers of raw reads.
-pub fn CdrReader::checked_payload_length(
+/// Checked `count * element_size` for a borrowed span length.
+/// Detects arithmetic overflow and lengths that exceed remaining input or
+/// the stream ceiling. Does not consult `max_temporary_allocation`.
+pub fn CdrReader::checked_span_length(
   self : CdrReader,
   count : UInt64,
   element_size : Int,
 ) -> Result[Int, CdrError] {
   let field_start = self.offset
   let rem = self.remaining()
+  match multiply_length(count, element_size, field_start, rem) {
+    Ok(bytes) => {
+      if bytes > rem {
+        return Err(CdrError::truncated(field_start, bytes, rem))
+      }
+      if bytes > self.limits.max_stream_bytes {
+        return Err(
+          CdrError::bounds_exceeded(
+            field_start,
+            bytes,
+            self.limits.max_stream_bytes,
+          ),
+        )
+      }
+      Ok(bytes)
+    }
+    Err(e) => Err(e)
+  }
+}
+
+///|
+/// Checked `count * element_size` for an owned temporary allocation budget.
+/// Detects arithmetic overflow and lengths above `max_temporary_allocation`.
+pub fn CdrReader::checked_alloc_length(
+  self : CdrReader,
+  count : UInt64,
+  element_size : Int,
+) -> Result[Int, CdrError] {
+  let field_start = self.offset
+  let rem = self.remaining()
+  match multiply_length(count, element_size, field_start, rem) {
+    Ok(bytes) => {
+      if bytes > self.limits.max_temporary_allocation {
+        return Err(
+          CdrError::bounds_exceeded(
+            field_start,
+            bytes,
+            self.limits.max_temporary_allocation,
+          ),
+        )
+      }
+      Ok(bytes)
+    }
+    Err(e) => Err(e)
+  }
+}
+
+///|
+fn multiply_length(
+  count : UInt64,
+  element_size : Int,
+  field_start : Int,
+  rem : Int,
+) -> Result[Int, CdrError] {
   if element_size < 0 {
     return Err(CdrError::length_overflow(field_start, 0, rem))
   }
@@ -288,20 +365,16 @@ pub fn CdrReader::checked_payload_length(
     return Ok(0)
   }
   let elem_u = element_size.to_uint64()
-  // Overflow when count > max_u64 / elem
   let max_count = 0xffffffffffffffffUL / elem_u
   if count > max_count {
     return Err(CdrError::length_overflow(field_start, 0, rem))
   }
   let bytes_u = count * elem_u
+  // Int-domain ceiling for MoonBit host sizes.
   if bytes_u > 2147483647UL {
     return Err(CdrError::length_overflow(field_start, 0, rem))
   }
-  let bytes = bytes_u.to_int()
-  if bytes > self.limits.max_temporary_allocation {
-    return Err(CdrError::bounds_exceeded(field_start, bytes, rem))
-  }
-  Ok(bytes)
+  Ok(bytes_u.to_int())
 }
 
 ///|

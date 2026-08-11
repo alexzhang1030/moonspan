@@ -26,11 +26,18 @@ fn open_ok(bytes : BytesView) -> CdrReader {
 }
 
 ///|
-fn open_limits(
-  bytes : BytesView,
-  limits : CdrLimits,
-) -> Result[CdrReader, CdrError] {
-  CdrReader::open(bytes, limits)
+fn limits_ok(
+  max_stream_bytes : Int,
+  max_nesting_depth : Int,
+  max_temporary_allocation : Int,
+) -> CdrLimits {
+  match
+    CdrLimits::new(
+      max_stream_bytes, max_nesting_depth, max_temporary_allocation,
+    ) {
+    Ok(l) => l
+    Err(e) => abort("limits failed: " + e.code)
+  }
 }
 
 ///|
@@ -67,27 +74,34 @@ test "truncated headers lengths 0 through 3" {
 }
 
 ///|
-test "little and big endian representation identifiers" {
+test "little and big endian representation and accessors" {
   let le = open_ok(b"\x00\x01\x00\x00"[:])
-  assert_eq(le.header().representation, REPRESENTATION_CDR_LE)
+  assert_eq(le.representation(), REPRESENTATION_CDR_LE)
+  assert_eq(le.options(), 0)
   assert_eq(le.little_endian(), true)
+  match le.endian() {
+    CdrEndian::Little => ()
+    CdrEndian::Big => abort("expected little")
+  }
   assert_eq(le.position(), 4)
   let be = open_ok(b"\x00\x00\x00\x00"[:])
-  assert_eq(be.header().representation, REPRESENTATION_CDR_BE)
+  assert_eq(be.representation(), REPRESENTATION_CDR_BE)
   assert_eq(be.little_endian(), false)
-  assert_eq(be.position(), 4)
+  match be.endian() {
+    CdrEndian::Big => ()
+    CdrEndian::Little => abort("expected big")
+  }
 }
 
 ///|
-test "nonzero options metadata network byte order" {
-  // bytes 2-3 = 0x12 0x34 => options = (0x12 << 8) | 0x34
+test "options metadata including 0xffff network byte order" {
   let r = open_ok(b"\x00\x01\x12\x34"[:])
-  assert_eq(r.header().options, 0x1234)
-  assert_eq(r.header().representation, REPRESENTATION_CDR_LE)
-  // Full two-byte range accepted; layout still starts at body origin 4.
+  assert_eq(r.options(), 0x1234)
   assert_eq(r.position(), 4)
   let r2 = open_ok(b"\x00\x00\xff\xfe"[:])
-  assert_eq(r2.header().options, 0xfffe)
+  assert_eq(r2.options(), 0xfffe)
+  let r3 = open_ok(b"\x00\x01\xff\xff"[:])
+  assert_eq(r3.options(), 0xffff)
 }
 
 ///|
@@ -100,16 +114,10 @@ test "unsupported representation identifiers" {
 
 ///|
 test "origin four alignment for 1 2 4 8" {
-  // Header LE + body: u8, u16 needs pad1, u32 needs pad0 from after u16, u64 needs pad0/4
-  // Build: [00 01 00 00] [A5] [pad] [34 12] [78 56 34 12] [pad?] [u64]
-  // After header offset 4: byte at 4
-  // u16 align 2: body_rel 1 -> pad 1 -> u16 at 6
-  // u32 align 4: body_rel 4 after two bytes -> at 8
-  // u64 align 8: after u32 at 12, body_rel 8 -> ok at 12
   let input = bytes_of([
-    b'\x00', b'\x01', b'\x00', b'\x00', b'\xa5', b'\x00', // pad
-     b'\x34', b'\x12', b'\x78', b'\x56', b'\x34', b'\x12', b'\x01', b'\x00', b'\x00',
-    b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
+    b'\x00', b'\x01', b'\x00', b'\x00', b'\xa5', b'\x00', b'\x34', b'\x12', b'\x78',
+    b'\x56', b'\x34', b'\x12', b'\x01', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
+    b'\x00', b'\x00',
   ])
   let r = open_ok(input[:])
   match r.read_u8() {
@@ -135,13 +143,12 @@ test "origin four alignment for 1 2 4 8" {
 }
 
 ///|
-test "big and little raw bit equality for 16 32 64" {
-  // LE payload: u16=0xABCD, u32=0x89ABCDEF, u64=0x0123456789ABCDEF
-  // offset 4: u16; pad to offset 8; u32; u64 at offset 12 (body-rel 8)
+test "big and little raw bit equality including max u32 and u64" {
+  // LE: u16, pad, u32=0xffffffff, u64=0xffffffffffffffff
   let le2 = bytes_of([
-    b'\x00', b'\x01', b'\x00', b'\x00', b'\xcd', b'\xab', b'\x00', b'\x00', b'\xef',
-    b'\xcd', b'\xab', b'\x89', b'\xef', b'\xcd', b'\xab', b'\x89', b'\x67', b'\x45',
-    b'\x23', b'\x01',
+    b'\x00', b'\x01', b'\x00', b'\x00', b'\xcd', b'\xab', b'\x00', b'\x00', b'\xff',
+    b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff',
+    b'\xff', b'\xff',
   ])
   let r = open_ok(le2[:])
   match r.read_u16() {
@@ -149,18 +156,18 @@ test "big and little raw bit equality for 16 32 64" {
     Err(e) => abort(e.code)
   }
   match r.read_u32() {
-    Ok(v) => assert_eq(v, 0x89abcdefUL)
+    Ok(v) => assert_eq(v, 0xffffffffUL)
     Err(e) => abort(e.code)
   }
   match r.read_u64() {
-    Ok(v) => assert_eq(v, 0x0123456789abcdefUL)
+    Ok(v) => assert_eq(v, 0xffffffffffffffffUL)
     Err(e) => abort(e.code)
   }
-  // BE counterparts with the same body-relative alignment layout
+  // BE counterparts
   let be = bytes_of([
-    b'\x00', b'\x00', b'\x00', b'\x00', b'\xab', b'\xcd', b'\x00', b'\x00', b'\x89',
-    b'\xab', b'\xcd', b'\xef', b'\x01', b'\x23', b'\x45', b'\x67', b'\x89', b'\xab',
-    b'\xcd', b'\xef',
+    b'\x00', b'\x00', b'\x00', b'\x00', b'\xab', b'\xcd', b'\x00', b'\x00', b'\xff',
+    b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff', b'\xff',
+    b'\xff', b'\xff',
   ])
   let rb = open_ok(be[:])
   match rb.read_u16() {
@@ -168,11 +175,11 @@ test "big and little raw bit equality for 16 32 64" {
     Err(e) => abort(e.code)
   }
   match rb.read_u32() {
-    Ok(v) => assert_eq(v, 0x89abcdefUL)
+    Ok(v) => assert_eq(v, 0xffffffffUL)
     Err(e) => abort(e.code)
   }
   match rb.read_u64() {
-    Ok(v) => assert_eq(v, 0x0123456789abcdefUL)
+    Ok(v) => assert_eq(v, 0xffffffffffffffffUL)
     Err(e) => abort(e.code)
   }
 }
@@ -198,8 +205,27 @@ test "borrowed view physical identity" {
 }
 
 ///|
+test "borrowed view larger than temp allocation succeeds" {
+  // temp alloc ceiling 1; borrowed span of 4 still allowed.
+  let input = bytes_of([
+    b'\x00', b'\x01', b'\x00', b'\x00', b'\x01', b'\x02', b'\x03', b'\x04',
+  ])
+  let limits = limits_ok(8, 8, 1)
+  match CdrReader::open(input[:], limits) {
+    Ok(r) =>
+      match r.read_bytes(4) {
+        Ok(bv) => {
+          assert_eq(bv.length(), 4)
+          assert_eq(r.position(), 8)
+        }
+        Err(e) => abort(e.code)
+      }
+    Err(e) => abort(e.code)
+  }
+}
+
+///|
 test "field failure cursor atomicity" {
-  // Only header + one byte: u16 needs 2 + pad possibly
   let input = b"\x00\x01\x00\x00\xa5"
   let r = open_ok(input[:])
   assert_eq(r.position(), 4)
@@ -208,11 +234,9 @@ test "field failure cursor atomicity" {
     Err(e) => abort(e.code)
   }
   assert_eq(r.position(), 5)
-  // u32 needs align 4: body_rel 1 -> pad 3, total needed 7 from field_start 5
   match r.read_u32() {
     Ok(_) => abort("expected alignment_overflow")
     Err(e) => {
-      // field_start 5, body-relative 1, pad 3, remaining 0 => alignment_overflow
       assert_eq(e.code, CODE_ALIGNMENT_OVERFLOW)
       assert_eq(e.offset, 5)
     }
@@ -221,47 +245,148 @@ test "field failure cursor atomicity" {
 }
 
 ///|
-test "custom small stream limit bounds_exceeded" {
+test "exact cursor preservation after each failure kind" {
+  // Header + two body bytes.
+  let input = b"\x00\x01\x00\x00\x11\x22"
+  let r = open_ok(input[:])
+  // truncated read_bytes
+  match r.read_bytes(8) {
+    Ok(_) => abort("expected truncated")
+    Err(e) => {
+      assert_eq(e.code, CODE_TRUNCATED)
+      assert_eq(e.offset, 4)
+    }
+  }
+  assert_eq(r.position(), 4)
+  match r.read_u8() {
+    Ok(_) => ()
+    Err(e) => abort(e.code)
+  }
+  // alignment_overflow for u64 at offset 5
+  match r.read_u64() {
+    Ok(_) => abort("expected alignment_overflow")
+    Err(e) => {
+      assert_eq(e.code, CODE_ALIGNMENT_OVERFLOW)
+      assert_eq(e.offset, 5)
+    }
+  }
+  assert_eq(r.position(), 5)
+  // trailing_data leaves cursor unmoved (one body byte remains)
+  match r.ensure_complete() {
+    Ok(_) => abort("expected trailing")
+    Err(e) => {
+      assert_eq(e.code, CODE_TRAILING_DATA)
+      assert_eq(e.offset, 5)
+      assert_eq(e.remaining, 1)
+    }
+  }
+  assert_eq(r.position(), 5)
+}
+
+///|
+test "custom small stream limit bounds_exceeded without max plus one" {
   let input = b"\x00\x01\x00\x00\x01\x02\x03\x04"
-  let limits = CdrLimits::new(4, 64, 67108864)
-  match open_limits(input[:], limits) {
+  let limits = limits_ok(4, 64, 4)
+  match CdrReader::open(input[:], limits) {
     Ok(_) => abort("expected bounds")
     Err(e) => {
       assert_eq(e.code, CODE_BOUNDS_EXCEEDED)
       assert_eq(e.offset, 0)
+      assert_eq(e.needed, 4)
+      assert_eq(e.remaining, 8)
     }
   }
 }
 
 ///|
-test "checked payload length overflow and bounds" {
+test "invalid limits construction" {
+  match CdrLimits::new(3, 64, 3) {
+    Ok(_) => abort("stream too small")
+    Err(e) => {
+      assert_eq(e.code, CODE_INVALID_LIMITS)
+      assert_eq(e.offset, 0)
+      assert_eq(e.needed, 3)
+    }
+  }
+  match CdrLimits::new(67108865, 64, 64) {
+    Ok(_) => abort("stream too large")
+    Err(e) => assert_eq(e.code, CODE_INVALID_LIMITS)
+  }
+  match CdrLimits::new(64, 0, 64) {
+    Ok(_) => abort("depth too small")
+    Err(e) => assert_eq(e.code, CODE_INVALID_LIMITS)
+  }
+  match CdrLimits::new(64, 65, 64) {
+    Ok(_) => abort("depth too large")
+    Err(e) => assert_eq(e.code, CODE_INVALID_LIMITS)
+  }
+  match CdrLimits::new(64, 8, 65) {
+    Ok(_) => abort("temp above stream")
+    Err(e) => {
+      assert_eq(e.code, CODE_INVALID_LIMITS)
+      assert_eq(e.needed, 65)
+      assert_eq(e.remaining, 64)
+    }
+  }
+  match CdrLimits::new(64, 8, -1) {
+    Ok(_) => abort("negative temp")
+    Err(e) => assert_eq(e.code, CODE_INVALID_LIMITS)
+  }
+  // Boundary values accepted
+  match CdrLimits::new(4, 1, 0) {
+    Ok(l) => {
+      assert_eq(l.max_stream_bytes, 4)
+      assert_eq(l.max_nesting_depth, 1)
+      assert_eq(l.max_temporary_allocation, 0)
+    }
+    Err(e) => abort(e.code)
+  }
+}
+
+///|
+test "checked span versus alloc length" {
   let r = open_ok(b"\x00\x01\x00\x00"[:])
-  match r.checked_payload_length(0xffffffffffffffffUL, 2) {
+  match r.checked_span_length(0xffffffffffffffffUL, 2) {
     Ok(_) => abort("expected length_overflow")
     Err(e) => assert_eq(e.code, CODE_LENGTH_OVERFLOW)
   }
-  match r.checked_payload_length(100UL, 4) {
-    Ok(n) => assert_eq(n, 400)
-    Err(e) => abort(e.code)
+  match r.checked_span_length(100UL, 4) {
+    Ok(_) => abort("expected truncated vs remaining 0")
+    Err(e) => assert_eq(e.code, CODE_TRUNCATED)
   }
-  let small = CdrLimits::new(67108864, 64, 100)
-  match CdrReader::open(b"\x00\x01\x00\x00"[:], small) {
-    Ok(r2) =>
-      match r2.checked_payload_length(50UL, 4) {
-        Ok(_) => abort("expected bounds")
-        Err(e) => assert_eq(e.code, CODE_BOUNDS_EXCEEDED)
+  // 4-byte header + 20 body bytes; temp alloc ceiling 16.
+  let limits = limits_ok(64, 8, 16)
+  let body = bytes_of([
+    b'\x00', b'\x01', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
+    b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
+    b'\x00', b'\x00', b'\x00', b'\x00', b'\x00', b'\x00',
+  ])
+  match CdrReader::open(body[:], limits) {
+    Ok(r2) => {
+      match r2.checked_alloc_length(8UL, 4) {
+        Ok(_) => abort("expected alloc bounds 32 > 16")
+        Err(e) => {
+          assert_eq(e.code, CODE_BOUNDS_EXCEEDED)
+          assert_eq(e.needed, 32)
+          assert_eq(e.remaining, 16)
+        }
       }
+      // Borrowed span of 20 is allowed even though temp is 16.
+      match r2.checked_span_length(5UL, 4) {
+        Ok(n) => assert_eq(n, 20)
+        Err(e) => abort(e.code)
+      }
+      match r2.read_bytes(20) {
+        Ok(bv) => assert_eq(bv.length(), 20)
+        Err(e) => abort(e.code)
+      }
+    }
     Err(e) => abort(e.code)
   }
 }
 
 ///|
 test "alignment overflow when pad exceeds remaining" {
-  // Header + 1 body byte at offset 4. Request u64 from offset 4:
-  // body_rel 0, pad 0, size 8, remaining 1 -> truncated (not alignment).
-  // Better: offset 5 (after one byte), request align 8 with 0 payload... 
-  // field_start 5, body_rel 1, pad for align 8 = 7, remaining 0 after...
-  // input length 5: only header+1. field_start 5, rem 0, pad 7 -> alignment_overflow
   let input = b"\x00\x01\x00\x00\x11"
   let r = open_ok(input[:])
   match r.read_u8() {
@@ -271,7 +396,6 @@ test "alignment overflow when pad exceeds remaining" {
   match r.read_u64() {
     Ok(_) => abort("expected fault")
     Err(e) => {
-      // rem=0, pad=7 -> alignment_overflow
       assert_eq(e.code, CODE_ALIGNMENT_OVERFLOW)
       assert_eq(e.offset, 5)
       assert_eq(r.position(), 5)
@@ -303,15 +427,10 @@ test "strict completion trailing_data" {
 
 ///|
 test "corpus primitive_scalars prefix float64 at absolute offset 12" {
-  // H-FT primitive_scalars.bin first 20 bytes (header + bool/byte/char/pad/f32/f64 start)
-  // Verified: Float64 raw bits begin at absolute offset 12 (body-relative 8).
   let prefix = bytes_of([
-    b'\x00', b'\x01', b'\x00', b'\x00', b'\x01', // bool
-     b'\xa5', // byte
-     b'\x5a', // char
-     b'\x00', // pad to float32
-     b'\x00', b'\x00', b'\x48', b'\xc1', // float32 LE -12.5
-     b'\x00', b'\x00', b'\x00', b'\x00', b'\x90', b'\x1c', b'\xc8', b'\x40', // float64 LE 12345.125
+    b'\x00', b'\x01', b'\x00', b'\x00', b'\x01', b'\xa5', b'\x5a', b'\x00', b'\x00',
+    b'\x00', b'\x48', b'\xc1', b'\x00', b'\x00', b'\x00', b'\x00', b'\x90', b'\x1c',
+    b'\xc8', b'\x40',
   ])
   let r = open_ok(prefix[:])
   match r.read_u8() {
