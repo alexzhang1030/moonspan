@@ -6,24 +6,15 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
 
 - [~] M0-01 Complete architecture ADRs and the reference support profile.
 - [~] M0-02 Bootstrap the monorepo, polyglot workspaces, root commands, and CI (local workspace/commands/pins proven; foundation workflow implemented + local actionlint complete; hosted run pending).
-- [x] M0-03 Freeze R2WP v0 and cross-language golden frames (sub-batches below; top-level verified after M0-03h Codex h4 review Accept).
-  - [x] M0-03a Normative contract, ADR 0009, registry, and control CDDL (verified; ADR 0009 Accepted).
-  - [x] M0-03b Contract validator and root command (verified; `scripts/protocol-check.ts` + root wiring).
-  - [x] M0-03c TypeScript deterministic CBOR subset (`sdk/typescript/src/protocol`; verified).
-  - [x] M0-03d TypeScript bootstrap/frame codec and valid/boundary fixtures (verified; codecs `bootstrap`/`extension`/`control`/`frame`; 20 fixtures via `scripts/protocol-fixtures.ts` + `protocol/testdata/`; commits `5c21f74`…`fc18b3d`; fixture tests 25/25, full `bun test` 332/332).
-  - [x] M0-03e Malformed, state-sequence, and transport parity fixtures (verified; e1–e4 review Accept).
-    - [x] M0-03e1 Static malformed wire corpus (55 fixtures; `protocol/testdata/malformed/`, `scripts/protocol-malformed-fixtures.ts`; commit `3600ff4`).
-    - [x] M0-03e2 State-sequence corpus (13 scenarios / 26 events; `protocol/testdata/sequences/`, `scripts/protocol-sequence-fixtures.ts`; commit `63f21df`).
-    - [x] M0-03e3 Transport parity and aggregate checking (46 shared identities + 20 registry-bound rules; aggregate order `valid_boundary → malformed → sequences → parity` once each; commit `154afb1`; parity SHA-256 `d75d07e46f878be00bb05fd395ccec768ad52950f749cad8b9fcd28a208f80c9` after two aggregate writes).
-    - [x] M0-03e4 Documentation/status closeout after e1–e3 evidence (commit subject `docs(plan): record r2wp scenario fixture completion`).
-  - [x] M0-03f Rust reference parser in `rclwebd` (verified; review Accept; commits `9c07b4a` bootstrap, `cca270c` frame).
-  - [x] M0-03g MoonBit reference parser in `rclmbt/protocol` (verified; review Accept; commits `2f7352f` fixture bridge, `1157138` bootstrap+CBOR, `0c5e4d2` extension+CONTROL, `133fd9f` frame; `moon test --frozen --target wasm rclmbt/protocol` 69 of 69).
-  - [x] M0-03h Cross-language agreement and M0-03 gate (verified; Codex h4 review Accept + h5 docs closeout).
-    - [x] M0-03h1 TypeScript expected corpus (`72ccd28b53820af9c3dd015b9be77a35aa6371b6`).
-    - [x] M0-03h2 Rust agreement emitter (`33c947414110fee47fa96429a70e795a645cc5cb`).
-    - [x] M0-03h3 MoonBit agreement emitter (`9fa91a4f9f956670368b0d36783991312f0e6900`).
-    - [x] M0-03h4 Triple-language gate and `report.json` (`da5f28c3e6b9db8b939c2bceee5ba415442358d5`; 234265 bytes; SHA-256 `e1295ab1ee56c83a3c3e8e5ada6699fdc7b693b86bd9dc399f07a00ccc8753d4`; 101/46/55; focused agreement 22/22 with 94 assertions and exactly two real emitter subprocesses; full `bun test` 675/675 with 5228 assertions; `cargo test --locked -p rclwebd` 56 across 3 suites; MoonBit 69/69; pinned `just check` green).
-    - [x] M0-03h5 Documentation/status closeout (commit subject `docs(plan): record r2wp agreement completion`).
+- [x] M0-03 Freeze R2WP v0 and establish cross-language agreement ([completion record](../docs/milestones/m0-03-r2wp-foundation.md)).
+  - [x] M0-03a Normative contract, registry, CONTROL CDDL, and ADR 0009.
+  - [x] M0-03b Contract validator and root commands.
+  - [x] M0-03c TypeScript deterministic CBOR subset.
+  - [x] M0-03d TypeScript protocol codecs and valid/boundary fixtures.
+  - [x] M0-03e Malformed, receiver-sequence, and transport-parity corpora.
+  - [x] M0-03f Rust reference parser.
+  - [x] M0-03g MoonBit reference parser.
+  - [x] M0-03h Three-language agreement gate.
 - [ ] M0-04 Generate the authoritative ROS CDR corpus.
 - [ ] M0-05 Establish the evidence harness and report schema.
 

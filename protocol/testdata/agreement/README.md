@@ -100,7 +100,7 @@ registry inputs. `phase_one_triples` records the decoded SessionReady
 | h3 MoonBit emitter | `9fa91a4f9f956670368b0d36783991312f0e6900` | `test(rclmbt): emit r2wp agreement outcomes` |
 | h4 triple-language gate | `da5f28c3e6b9db8b939c2bceee5ba415442358d5` | `test(protocol): gate r2wp cross-language agreement` |
 
-## Accepted verification (Codex h4 review Accept)
+## M0-03h4 verification snapshot
 
 - Focused agreement suite `bun run test:protocol-agree`: 22/22 tests, 94 assertions, exactly two real emitter subprocesses (Rust + MoonBit)
 - Full `bun test`: 675/675 with 5228 assertions

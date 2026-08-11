@@ -138,53 +138,33 @@ matrix (20 rows) covers dual-transport semantics (topic/service/action reliabili
 paths, WSS one-frame/latest-wins/HOL evidence) and is cross-bound to
 `protocol/registry/r2wp-v0.json`.
 
-**Counts (M0-03e review Accept):** malformed 55 fixtures (14 bootstrap / 41 frame);
-sequences 13 scenarios / 26 events; parity 46 shared identities + 20 rules.
-Commits `3600ff4`, `63f21df`, `154afb1`. Aggregate two-write parity SHA-256
-`d75d07e46f878be00bb05fd395ccec768ad52950f749cad8b9fcd28a208f80c9`. Phase 1 support
-rows remain H-FT, H-CY, J-FT, and J-CY.
+## Consumers and agreement
 
-**Rust consumer (M0-03f review Accept):** [`rclwebd/src/protocol/`](../../rclwebd/src/protocol/)
-loads the valid/boundary and malformed corpora specifically through locked crate
-tests. Bootstrap steps 1–9 and selected-frame steps 1–16 cover all 20 valid
-entries (including the manifest-driven 64 MiB segment recipe) and all 55
-malformed binaries with exact code/name/reason/offset/plane/step. Commits
-`9c07b4a`, `cca270c`. M0-03h2 adds the agreement outcome emitter as the
-integration test [`rclwebd/tests/protocol_agreement.rs`](../../rclwebd/tests/protocol_agreement.rs);
-after h4 review Accept, `cargo test --locked -p rclwebd` reports 56 passed
-across 3 suites.
+**Current corpus counts:** 20 valid/boundary entries; 55 malformed fixtures
+(14 bootstrap / 41 selected-frame); 13 receiver scenarios / 26 events; 46
+shared WT/WSS identities; 20 registry-bound transport rules. Phase 1 fixtures
+cover H-FT, H-CY, J-FT, and J-CY.
 
-**MoonBit consumer (M0-03g review Accept):** [`rclmbt/protocol/`](../../rclmbt/protocol/)
-loads the same corpora through the white-box fixture bridge
-(`fixture_data_wbtest.mbt`) and focused frozen Wasm tests
-(`moon test --frozen --target wasm rclmbt/protocol` 69 of 69). Bootstrap steps
-1–9 and selected-frame steps 1–16 cover all 20 valid entries (3 bootstrap
-binaries, 16 frame binaries, fully materialized 64 MiB segment recipe) and all
-55 malformed binaries (14 bootstrap / 41 frame) with exact
-code/name/reason/offset/plane/step; deterministic CBOR; extension TLVs; all 15
-CONTROL kinds; four exact Phase 1 SessionReady rows H-FT / H-CY / J-FT / J-CY;
-u32 / u64 / i64 bounds; borrowed extension and application `BytesView` backing.
-Commits `2f7352f` (fixture bridge), `1157138` (bootstrap + CBOR), `0c5e4d2`
-(extension + CONTROL), `133fd9f` (frame). M0-03h3 adds the agreement outcome
-emitter as the executable package [`rclmbt/cmd/agree/`](../../rclmbt/cmd/agree/).
+**Rust consumer:** [`rclwebd/src/protocol/`](../../rclwebd/src/protocol/) loads
+the valid/boundary and malformed corpora through locked crate tests. It covers
+bootstrap steps 1–9, selected-frame steps 1–16, the 64 MiB segment recipe, and
+exact error code/name/reason/offset/plane/step outcomes. The integration test
+[`rclwebd/tests/protocol_agreement.rs`](../../rclwebd/tests/protocol_agreement.rs)
+emits the Rust agreement projection.
 
-**Cross-language agreement (M0-03h review Accept):**
-[`agreement/`](./agreement/) holds the TypeScript expected corpus
-(`expected.json`) and the three-language report (`report.json`). Implementation
-order is typescript → rust → moonbit. Report facts: 234265 bytes;
-SHA-256 `e1295ab1ee56c83a3c3e8e5ada6699fdc7b693b86bd9dc399f07a00ccc8753d4`;
-101 outcomes (46 success / 55 error); outcomes SHA-256
-`d22a58fbed0c2612f6c00901053a492f5c03ec76fcd4689fa1542aa002e2e220`; canonical
-SHA-256 `cece56e1c70fc741f30e54dee9b35d6ed024992be83b6dbe8a4b31c183724341`;
-expected raw SHA-256 `6193eda2bc6916796515ee6dfb1543a811be46f07a76d5a00cf8acf095fcb717`;
-transport bindings SHA-256 `d4489d75e6146ed20d9bfe4d80fbcc6fe671b29c0fdfd86009995aa328ba119d`;
-46 WT/WSS identities and 20 rules; Phase 1 rows H-FT, H-CY, J-FT, J-CY. Commits
-`72ccd28b53820af9c3dd015b9be77a35aa6371b6` (h1),
-`33c947414110fee47fa96429a70e795a645cc5cb` (h2),
-`9fa91a4f9f956670368b0d36783991312f0e6900` (h3),
-`da5f28c3e6b9db8b939c2bceee5ba415442358d5` (h4). Focused agreement suite 22/22
-(94 assertions, exactly two real emitter subprocesses); full `bun test` 675/675
-(5228 assertions); pinned `just check` status=ok.
+**MoonBit consumer:** [`rclmbt/protocol/`](../../rclmbt/protocol/) loads the same
+corpora through `fixture_data_wbtest.mbt`. It covers the same validation steps,
+deterministic CBOR, extension TLVs, all 15 CONTROL kinds, integer header bounds,
+and borrowed extension/application `BytesView` payloads. The executable package
+[`rclmbt/cmd/agree/`](../../rclmbt/cmd/agree/) emits the MoonBit agreement
+projection.
+
+**Cross-language agreement:** [`agreement/`](./agreement/) holds the TypeScript
+expected corpus and the TypeScript/Rust/MoonBit report. The [agreement
+reference](./agreement/README.md) owns report fields, digests, emitter commands,
+and delivery revisions. The [M0-03 completion
+record](../../docs/milestones/m0-03-r2wp-foundation.md) owns the accepted delivery
+snapshot and phase boundary.
 
 ## Coverage highlights (valid/boundary)
 

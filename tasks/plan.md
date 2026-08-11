@@ -18,14 +18,7 @@ The planning baseline uses five core engineers, 18 weeks for the mainline, and 6
 
 - The repository contains formal technical specifications, PCR records, polyglot workspace scaffolding, and this execution plan.
 - M0-02 has local root commands, pinned Bun/Rust/MoonBit/just identities, and a foundation CI workflow; hosted CI run evidence remains open.
-- M0-03a freezes the R2WP wire version 0 normative package (markdown, registry JSON, control CDDL, ADR 0009 Accepted).
-- M0-03b is verified complete: `scripts/protocol-check.ts` validates the frozen contract; root entrypoints are `bun run protocol-check`, `just protocol-check`, and `bun run test:protocol`.
-- M0-03c is verified complete: browser-internal deterministic CBOR encode/decode in `sdk/typescript/src/protocol/cbor.ts`; package root continues to export `src/index.ts`.
-- M0-03d is verified complete: TypeScript bootstrap, extension, CONTROL_CBOR (all 15 kinds), and selected-frame codecs; valid/boundary fixtures with versioned manifest and checker. Implementations live at `sdk/typescript/src/protocol/{bootstrap,extension,control,frame}.ts` and their tests.
-- M0-03e is verified complete (e1–e4 review Accept): static malformed corpus (55 fixtures), receiver state sequences (13 scenarios / 26 events), dual-transport parity (46 shared identities + 20 registry-bound rules), and documentation closeout. Aggregate write/check order is exactly `valid_boundary → malformed → sequences → parity` once each via `scripts/protocol-fixtures.ts`. Commits: `3600ff4` (e1), `63f21df` (e2), `154afb1` (e3). Root `bun run check` runs `docs:check`, `protocol-check`, then aggregate `protocol-fixtures:check`.
-- M0-03f is verified complete (review Accept): Rust reference parser in `rclwebd` covers bootstrap receiver steps 1–9 and selected-frame steps 1–16, deterministic CBOR, extension TLVs, all 15 CONTROL kinds with nested CDDL, all 20 valid fixtures including the manifest-driven 64 MiB segment recipe, and all 55 malformed binaries (14 bootstrap / 41 frame) with exact code/name/reason/offset/plane/step. Commits: `9c07b4ad2679cf00056c3ae8ebcfcddd096ee55e` (`feat(rclwebd): add r2wp bootstrap parser`), `cca270cae74c28e3d7f1a98c224bafc837d19d85` (`feat(rclwebd): add r2wp frame parser`). Locked crate tests 55 of 55; the `rclwebd` normal tree is std only; the `serde_json` dev dependency serves fixture tests.
-- M0-03g is verified complete (review Accept): MoonBit reference parser in `rclmbt/protocol` covers bootstrap receiver steps 1–9 and selected-frame steps 1–16, deterministic CBOR, extension TLVs, all 15 CONTROL kinds with nested CDDL, all 20 valid fixtures (3 bootstrap binaries, 16 frame binaries, fully materialized 64 MiB segment recipe), and all 55 malformed binaries (14 bootstrap / 41 frame) with exact code/name/reason/offset/plane/step; four exact Phase 1 SessionReady rows H-FT / H-CY / J-FT / J-CY; u32 / u64 / i64 header bounds; borrowed extension and application `BytesView` backing. Commits: `2f7352f82d147355ad85269c0b055707897e0722` (fixture bridge), `11571380f7199f6cccd0e13d7c8aecaaed1cc0b7` (bootstrap + deterministic CBOR), `0c5e4d20b444948f4f878e74530d75fa2b3f370f` (extension TLVs + all 15 CONTROL kinds), `133fd9f6fbdfece03ecbe413920b02d37c658d8a` (selected-frame steps 1–16). Focused frozen Wasm tests 69 of 69.
-- M0-03h is verified complete (Codex h4 review Accept): cross-language agreement gate for TypeScript, Rust, and MoonBit against the committed fixture corpora. Delivery commits: `72ccd28b53820af9c3dd015b9be77a35aa6371b6` (h1 expected corpus), `33c947414110fee47fa96429a70e795a645cc5cb` (h2 Rust emitter), `9fa91a4f9f956670368b0d36783991312f0e6900` (h3 MoonBit emitter), `da5f28c3e6b9db8b939c2bceee5ba415442358d5` (h4 triple-language gate). Authoritative commands: `bun run protocol-agree`, `bun run protocol-agree:write`, `bun run test:protocol-agree`, `just protocol-agree`, `just protocol-agree-write`. Root `bun run check` executes `protocol-agree:check` once after `protocol-moonbit-fixtures:check`. Report facts: `report.json` 234265 bytes, SHA-256 `e1295ab1ee56c83a3c3e8e5ada6699fdc7b693b86bd9dc399f07a00ccc8753d4`; 101 outcomes (46 success / 55 error); implementation order typescript/rust/moonbit; outcomes SHA-256 `d22a58fbed0c2612f6c00901053a492f5c03ec76fcd4689fa1542aa002e2e220`; canonical SHA-256 `cece56e1c70fc741f30e54dee9b35d6ed024992be83b6dbe8a4b31c183724341`; expected raw SHA-256 `6193eda2bc6916796515ee6dfb1543a811be46f07a76d5a00cf8acf095fcb717`; transport bindings SHA-256 `d4489d75e6146ed20d9bfe4d80fbcc6fe671b29c0fdfd86009995aa328ba119d`; 46 WT/WSS identities and 20 rules; Phase 1 rows H-FT, H-CY, J-FT, J-CY. Verification: focused agreement 22/22 (94 assertions, exactly two real emitter subprocesses); full `bun test` 675/675 (5228 assertions); `cargo test --locked -p rclwebd` 56 passed across 3 suites; MoonBit protocol 69/69; pinned `just check` status=ok under Bun 1.3.14 / Rust 1.97.1 / moonc 0.10.6+80dc50f24 / just 1.50.0; digest-tamper and spawn-exception diagnostics closed; worktree/`git diff --check` clean. Top-level M0-03 is verified complete. The broader M0 gate remains open for remaining M0 work, hosted workflow evidence, and human decision.
+- M0-03 is verified complete: the frozen R2WP v0 contract, TypeScript codecs, Rust and MoonBit reference parsers, four fixture corpora, and three-language agreement gate are in place. The [M0-03 completion record](../docs/milestones/m0-03-r2wp-foundation.md) owns delivered batches, revisions, accepted local evidence, and the remaining M0 boundary.
 - Active mainline workspaces: `rclwebd/` (Cargo), `rclmbt/` (`moon.work`), `sdk/typescript/` (`@moonspan/sdk`). Studio is a U0 side project after M3.
 - R2WP, MoonBit/Wasm, Rust/C ABI, ROS support, and performance values are design baselines awaiting their named gates.
 - The mainline and UI side-project boundary is fixed in [product scope](../docs/product-scope.md).
@@ -196,9 +189,9 @@ Every task clears these conditions:
 - [x] Normative package freezes bootstrap, framing, sequence domains/dispositions, opcode/channel/transport invariants, extensions, bounds, SessionReady/Resume, capability negotiation, QoS/ChannelReady rules, Parameter composition, media/recording/asset contracts, and transport length rules with RFC 2119 keywords.
 - [x] Registry is exhaustive and machine-usable: scoped `control_field_keys` for bootstrap, every control message, and nested maps; enums, dispositions, source-entry encodings, non-ROS payload keys, bounds, single-valued `validation_order`, protocol state machine, and direction tables as source of truth.
 - [x] CDDL root is `r2wp-v0-control`; all collections are bounded; dead rules eliminated; channel/payload mappings cover topics, Service client **and** server, Action client **and** server (browser OpenChannel roles with inverted directions), Parameter composition, media, recording, and assets; graph endpoint roles remain independent.
-- [x] ADR 0009 Accepted after Codex review; phase-one support rows remain H-FT/H-CY/J-FT/J-CY only; Studio workspace enrollment and Jazzy+ expansion stay outside this batch (U0 / later expansion).
+- [x] ADR 0009 is Accepted; Phase 1 support rows remain H-FT/H-CY/J-FT/J-CY; Studio workspace enrollment starts at U0 and later matrix revisions own Jazzy+ expansion.
 
-**Verification (Codex acceptance evidence):** `bun run check` status=ok (34 markdown, 310 links); `bun test` 53/53; `git diff --check` clean; JSON parse OK; official `cddl` gem generated 100 instances; `just check`/`test`/`build` under Bun 1.3.14, Rust 1.97.1, MoonBit moonc 0.10.6+80dc50f24, just 1.50.0.
+**Completion evidence:** [M0-03 delivered scope and accepted verification](../docs/milestones/m0-03-r2wp-foundation.md).
 
 - **Dependencies:** M0-01, M0-02
 - **Likely files:** `protocol/r2wp-v0.md`, `protocol/registry/r2wp-v0.json`, `protocol/schema/control-v0.cddl`, `docs/adr/0009-r2wp-v0-wire-encoding.md`, `docs/adr/README.md`, `docs/protocol/r2wp.md`, `docs/README.md`, `docs/references.md`, `.agents/docs/technology-stack.md`, `tasks/plan.md`, `tasks/todo.md`
@@ -214,7 +207,7 @@ Every task clears these conditions:
 - [x] Root surface exposes the check: `bun run protocol-check`, `just protocol-check` (depends on `toolchain-check`), and `bun run check` chains `docs:check` then `protocol-check`. `just check` executes `protocol-check` exactly once through `bun run check`.
 - [x] Focused unit tests cover the valid repository contract and intentional corruptions (`bun run test:protocol`).
 
-**Verification (acceptance evidence):** focused `bun run test:protocol` 36/36; full `bun test` 89/89; 14 independent mutation probes rejected; `bun run protocol-check` and `bun run check` status=ok; pinned Bun 1.3.14 / Rust 1.97.1 / moonc 0.10.6+80dc50f24 / just 1.50.0 `just protocol-check` and `just check` pass; `git diff --check` clean. Coverage includes frozen top-level shape, exact phase-one profiles H-FT/H-CY/J-FT/J-CY, all 23 absolute limits, 21 directly owned CDDL bound surfaces, bounded arrays/maps, root-first/duplicate/dead/undefined CDDL rules, exact wire/bootstrap error sets with code 20 out-of-band, and validation-order references/steps.
+**Completion evidence:** [M0-03 delivered scope and accepted verification](../docs/milestones/m0-03-r2wp-foundation.md).
 
 - **Dependencies:** M0-03a
 - **Likely files:** `scripts/protocol-check.ts`, `scripts/protocol-check.test.ts`, `justfile`, `package.json`
@@ -230,7 +223,7 @@ Every task clears these conditions:
 - [x] Nesting depth and map entry bounds match the registry (`MAX_NESTING_DEPTH=16`, `MAX_MAP_ENTRIES=4096`).
 - [x] Focused Bun tests cover accept and reject vectors without full frame fixtures yet (`bun run --filter @moonspan/sdk test:cbor`).
 
-**Verification (acceptance evidence):** encoder commit `6979be7`; decoder commit `6c46cf6`. Focused CBOR tests 59/59; full `bun test` 148/148; SDK `check`/`build` pass (browser entrypoints include `src/protocol/cbor.ts`); pinned Bun 1.3.14 / Rust 1.97.1 / moonc 0.10.6+80dc50f24 / just 1.50.0 `just check` pass; `git diff --check` clean. Codec provides deterministic encode/decode with definite/shortest forms, sorted unsigned map keys, rejected types, UTF-8 with BOM preserved as U+FEFF, depth 16, and map 4096. Decode yields an atomic whole value; input-driven and native decoder failures normalize to `CborDecodeError`.
+**Completion evidence:** [M0-03 delivered scope and accepted verification](../docs/milestones/m0-03-r2wp-foundation.md).
 
 - **Dependencies:** M0-03b
 - **Likely files:** `sdk/typescript/src/protocol/cbor.ts`, `sdk/typescript/src/protocol/cbor.test.ts`, `sdk/typescript/package.json`
@@ -246,7 +239,7 @@ Every task clears these conditions:
 - [x] Valid/boundary fixtures cover exact limits and header bounds: 12-byte bootstrap prefix, 32-byte selected frame header, extension area 4096, CONTROL payload 1048576, application payload 67108864, u32/u64/i64 header bounds, 4096-byte bootstrap text, both schema identity schemes (`rep2011-rihs` and `moonspan-schema-v1`), and the four exact Phase 1 SessionReady rows H-FT / H-CY / J-FT / J-CY. Corpus size: 20 entries (19 committed binaries under `protocol/testdata/valid/` plus one manifest-only exact 64 MiB application frame).
 - [x] Manifest records exact lengths, SHA-256, language-neutral executable tagged source, expected success, and explicit decode-reencode or source-reencode mode. Fixture checker uses Bun, closed manifest/tag validation, canonical paths before disk access, deterministic code-unit sorting, allocation-bounded recipes, exact file/hash checks, and decode/re-encode verification. Root surface: `bun run protocol-fixtures:check` / `protocol-fixtures:write`, `just protocol-fixtures-check` / `protocol-fixtures-write`, `bun run test:protocol-fixtures`; `bun run check` chains `docs:check`, `protocol-check`, then `protocol-fixtures:check`. Representation details: [protocol/testdata/README.md](../protocol/testdata/README.md).
 
-**Verification (acceptance evidence):** Implementation commits `5c21f74` bootstrap codec, `48dfbdd` extension codec, `51a5d73` control codec, `193b279` frame codec, `f992feb` CONTROL priority precedence, `fc18b3d` valid/boundary fixtures. Fixture tooling commits with `fc18b3d` (`scripts/protocol-fixtures.ts`, `scripts/protocol-fixtures.test.ts`, `protocol/testdata/manifest.json`, `protocol/testdata/README.md`, `protocol/testdata/valid/`). Focused fixture tests 25/25; full `bun test` 332/332; `bun run check` status=ok; `just check` status=ok under Bun 1.3.14 / Rust 1.97.1 / moonc 0.10.6+80dc50f24 / just 1.50.0; after a second write the versioned manifest and 19 committed binaries remain hash-identical for the 20-entry corpus (one manifest-only exact 64 MiB application frame); `git diff --check` clean.
+**Completion evidence:** [M0-03 delivered scope and accepted verification](../docs/milestones/m0-03-r2wp-foundation.md).
 
 - **Dependencies:** M0-03c
 - **Likely files:** `sdk/typescript/src/protocol/frame.ts`, `sdk/typescript/src/protocol/bootstrap.ts`, `sdk/typescript/src/protocol/extension.ts`, `sdk/typescript/src/protocol/control.ts`, `sdk/typescript/src/protocol/*.test.ts`, `scripts/protocol-fixtures.ts`, `scripts/protocol-fixtures.test.ts`, `protocol/testdata/valid/`, `protocol/testdata/manifest.json`, `protocol/testdata/README.md`, `package.json`, `justfile`
@@ -268,7 +261,7 @@ Every task clears these conditions:
 - [x] Coverage includes bootstrap receiver steps 1–9 for every wire-constructible case; selected-frame static steps 1–16; truncation; declared-bound overflow; malformed extensions; duplicate and non-shortest CBOR; and multi-invalid precedence. Bootstrap step 6: real binary fixture declares u32 `payload_len` 65536 against the absolute 65,535-byte ceiling (`message_too_large` / `payload_too_large` @ offset 8), proving step 6 before exact-total step 7.
 - [x] Numeric code, name, and step cross-bind to [protocol/registry/r2wp-v0.json](../protocol/registry/r2wp-v0.json). Canonical paths gate disk reads. Mutation and allocation recipes are closed and bounded.
 
-**Verification (review Accept):** 55 malformed fixtures; commit `3600ff4` (`test(protocol): add malformed r2wp fixtures`); focused and aggregate paths green under pinned Bun/Rust/MoonBit/just.
+**Completion evidence:** [M0-03 delivered scope](../docs/milestones/m0-03-r2wp-foundation.md#delivered-scope) and [fixture reference](../protocol/testdata/README.md).
 
 - **Dependencies:** M0-03d
 - **Likely files:** `protocol/testdata/malformed/`, `protocol/testdata/malformed/manifest.json`, `scripts/protocol-malformed-fixtures.ts`, `scripts/protocol-malformed-fixtures.test.ts`, `package.json`, `justfile`
@@ -285,7 +278,7 @@ Every task clears these conditions:
 - [x] Coverage includes `no_common_version`; fresh open success; resume success; `gateway_instance_mismatch`; `support_row_mismatch`; multi-domain same-row; cross-row independent sessions; best-effort `sequence_gap` and `stale_sequence`; and reliable sequence mismatch as `protocol_violation`.
 - [x] Phase 1 support rows remain exactly H-FT, H-CY, J-FT, and J-CY. Each gateway process binds one row; cross-row composition uses independent sessions.
 
-**Verification (review Accept):** 13 scenarios / 26 events; commit `63f21df` (`test(protocol): add r2wp state sequences`); disk-first check, closed state oracle, and adversarial matrix green.
+**Completion evidence:** [M0-03 delivered scope](../docs/milestones/m0-03-r2wp-foundation.md#delivered-scope) and [fixture reference](../protocol/testdata/README.md).
 
 - **Dependencies:** M0-03e1
 - **Likely files:** `protocol/testdata/sequences/`, `protocol/testdata/sequences/manifest.json`, scenario JSON and event `.bin` files, `scripts/protocol-sequence-fixtures.ts`, `scripts/protocol-sequence-fixtures.test.ts`, `package.json`, `justfile`
@@ -301,7 +294,7 @@ Every task clears these conditions:
 - [x] Checker validates WT and WSS mappings against registry rules with byte identity of the shared semantic set: Service request/response and Action goal/cancel/result use reliable streams; Action feedback/status follow their effective topic QoS; best-effort topic samples and best-effort Action feedback/status use a WebTransport datagram when negotiated and size-fit, with sample-scoped streams as the size/capability fallback; binary WSS maps one complete frame per message and applies bounded latest-wins admission before write.
 - [x] `scripts/protocol-fixtures.ts` aggregates write/check exactly once per corpus (valid/boundary, malformed, sequences, parity) in deterministic order. `test:protocol-fixtures` invokes `scripts/protocol-fixtures.test.ts`, `scripts/protocol-malformed-fixtures.test.ts`, `scripts/protocol-sequence-fixtures.test.ts`, and `scripts/protocol-parity-fixtures.test.ts` exactly once each. Matching `just` recipes use the same root commands.
 
-**Verification (review Accept):** Exact 46 shared identities and 20 registry-bound transport rules; commit `154afb1` (`test(protocol): add r2wp transport parity`); aggregate order `valid_boundary → malformed → sequences → parity`; two aggregate writes retain parity SHA-256 `d75d07e46f878be00bb05fd395ccec768ad52950f749cad8b9fcd28a208f80c9`.
+**Completion evidence:** [M0-03 delivered scope](../docs/milestones/m0-03-r2wp-foundation.md#delivered-scope) and [fixture reference](../protocol/testdata/README.md).
 
 - **Dependencies:** M0-03e2
 - **Likely files:** `protocol/testdata/parity.json`, `scripts/protocol-parity-fixtures.ts`, `scripts/protocol-parity-fixtures.test.ts`, `scripts/protocol-fixtures.ts`, `scripts/protocol-fixtures.test.ts`, `scripts/protocol-malformed-fixtures.test.ts`, `scripts/protocol-sequence-fixtures.test.ts`, `package.json`, `justfile`, `protocol/testdata/README.md`
@@ -309,15 +302,15 @@ Every task clears these conditions:
 
 ###### M0-03e4 — Documentation and status closeout
 
-**Description:** Record M0-03e completion in protocol, validation, PCR, and root documentation after e1–e3 review Accept and local evidence.
+**Description:** Record M0-03e completion in protocol, validation, PCR, and root documentation after e1–e3 acceptance.
 
 **Acceptance criteria:**
 
 - [x] Protocol overview, validation evidence, PCR stack notes, and root command docs describe the malformed, sequence, and parity corpora and the aggregate check path.
-- [x] Plan and todo mark M0-03e verified after e1–e3 review Accept and recorded evidence.
+- [x] Plan and todo mark M0-03e verified with recorded evidence.
 - [x] M0-03f Rust, M0-03g MoonBit, and M0-03h agreement work followed the accepted e4 closeout.
 
-**Verification:** `bun run docs:check`; `bun run check`; `bun run test:protocol-fixtures` (277/277 across four files); full `bun test` (584/584); `just check` under Bun 1.3.14 / Rust 1.97.1 / moonc 0.10.6+80dc50f24 / just 1.50.0; `git diff --check` clean; hosted CI run evidence remains pending. Conventional Commit subject: `docs(plan): record r2wp scenario fixture completion`.
+**Completion evidence:** [M0-03 delivered scope and accepted verification](../docs/milestones/m0-03-r2wp-foundation.md).
 
 - **Dependencies:** M0-03e3
 - **Likely files:** `docs/protocol/r2wp.md`, `docs/validation.md`, `docs/README.md`, `README.md`, `.agents/docs/technology-stack.md`, `.agents/docs/validation.md`, `tasks/plan.md`, `tasks/todo.md`, `protocol/testdata/README.md`
@@ -335,7 +328,7 @@ Every task clears these conditions:
 - [x] Coverage includes all 20 valid entries (including the manifest-driven 64 MiB segment recipe) and all 55 malformed binaries (14 bootstrap / 41 frame).
 - [x] The `rclwebd` normal tree is std only; the `serde_json` dev dependency serves fixture tests.
 
-**Verification (review Accept):** full hashes `9c07b4ad2679cf00056c3ae8ebcfcddd096ee55e` (f1 bootstrap; short `9c07b4a`) and `cca270cae74c28e3d7f1a98c224bafc837d19d85` (f2 frame; short `cca270c`); `cargo test --locked -p rclwebd` 55 of 55; `cargo fmt --all -- --check`; `cargo clippy --locked -p rclwebd --all-targets -- -D warnings`; full `bun test` 584 of 584; pinned `just check` under Bun 1.3.14 / Rust 1.97.1 / moonc 0.10.6+80dc50f24 / just 1.50.0; `git diff --check` clean. Conventional Commit subject for documentation closeout: `docs(plan): record rust r2wp parser completion`.
+**Completion evidence:** [M0-03 delivered scope and accepted verification](../docs/milestones/m0-03-r2wp-foundation.md).
 
 - **Dependencies:** M0-03e
 - **Likely files:** `rclwebd/src/protocol/{mod,error,cbor,bootstrap,extension,control,frame,tests}.rs`, `rclwebd/src/lib.rs`, `rclwebd/Cargo.toml`, `Cargo.lock`, `docs/protocol/r2wp.md`, `docs/validation.md`, `docs/gateway/rclwebd.md`, `README.md`, `.agents/docs/technology-stack.md`, `.agents/docs/validation.md`, `tasks/plan.md`, `tasks/todo.md`, `protocol/testdata/README.md`
@@ -353,7 +346,7 @@ Every task clears these conditions:
 - [x] Coverage includes all 20 valid entries (3 bootstrap binaries, 16 frame binaries, fully materialized 64 MiB segment recipe) and all 55 malformed binaries (14 bootstrap / 41 frame).
 - [x] Four exact Phase 1 SessionReady rows H-FT / H-CY / J-FT / J-CY and u32 / u64 / i64 header bounds are covered.
 
-**Verification (review Accept):** full hashes `2f7352f82d147355ad85269c0b055707897e0722` (g1 fixture bridge; short `2f7352f`), `11571380f7199f6cccd0e13d7c8aecaaed1cc0b7` (g2 bootstrap + deterministic CBOR; short `1157138`), `0c5e4d20b444948f4f878e74530d75fa2b3f370f` (g3a extension TLVs + all 15 CONTROL kinds; short `0c5e4d2`), `133fd9f6fbdfece03ecbe413920b02d37c658d8a` (g3b selected-frame steps 1–16; short `133fd9f`); focused `moon test --frozen --target wasm rclmbt/protocol` 69 of 69; full `bun test` 613 of 613; pinned `just check` under Bun 1.3.14 / Rust 1.97.1 / moonc 0.10.6+80dc50f24 / just 1.50.0; `git diff --check` clean. Conventional Commit subject for documentation closeout: `docs(plan): record moonbit r2wp parser completion`. Hosted CI run evidence remains pending.
+**Completion evidence:** [M0-03 delivered scope and accepted verification](../docs/milestones/m0-03-r2wp-foundation.md).
 
 - **Dependencies:** M0-03e
 - **Likely files:** `rclmbt/protocol/moon.pkg`, `rclmbt/protocol/{error,cbor,bootstrap,extension,control,frame}.mbt`, `rclmbt/protocol/{cbor,bootstrap,extension,control,frame,fixture_data}_wbtest.mbt`, `scripts/protocol-moonbit-fixtures.ts`, `scripts/protocol-moonbit-fixtures.test.ts`, `rclmbt/moon.mod`, `docs/protocol/r2wp.md`, `docs/runtime/rclmbt.md`, `docs/validation.md`, `README.md`, `.agents/docs/technology-stack.md`, `.agents/docs/validation.md`, `tasks/plan.md`, `tasks/todo.md`, `protocol/testdata/README.md`
@@ -367,11 +360,11 @@ Every task clears these conditions:
 
 - [x] Agreement report covers every golden fixture semantic record or stable error code across the three parsers (101 outcomes: 46 success / 55 error).
 - [x] WebTransport and WSS share the semantic fixture set in the report (46 shared identities + 20 rules).
-- [x] Plan/todo mark M0-03h and top-level M0-03 verified after Codex h4 review Accept; the broader M0 gate remains open for remaining M0 work, hosted workflow evidence, and human decision.
+- [x] Plan and todo mark M0-03h and top-level M0-03 verified; the broader M0 gate remains open for remaining M0 work, hosted workflow evidence, and human decision.
 - [x] Root surface: `bun run protocol-agree`, `bun run protocol-agree:write`, `bun run test:protocol-agree`, `just protocol-agree`, `just protocol-agree-write`; root `bun run check` executes `protocol-agree:check` once after `protocol-moonbit-fixtures:check`.
 - [x] Implementation order is typescript → rust → moonbit; Phase 1 rows remain exact H-FT, H-CY, J-FT, J-CY.
 
-**Verification (Codex h4 review Accept + h5 documentation closeout):** Delivery commits `72ccd28b53820af9c3dd015b9be77a35aa6371b6` (h1; short `72ccd28`), `33c947414110fee47fa96429a70e795a645cc5cb` (h2; short `33c9474`), `9fa91a4f9f956670368b0d36783991312f0e6900` (h3; short `9fa91a4`), `da5f28c3e6b9db8b939c2bceee5ba415442358d5` (h4; short `da5f28c`). Report facts: `report.json` 234265 bytes, SHA-256 `e1295ab1ee56c83a3c3e8e5ada6699fdc7b693b86bd9dc399f07a00ccc8753d4`; outcomes SHA-256 `d22a58fbed0c2612f6c00901053a492f5c03ec76fcd4689fa1542aa002e2e220`; canonical SHA-256 `cece56e1c70fc741f30e54dee9b35d6ed024992be83b6dbe8a4b31c183724341`; expected raw SHA-256 `6193eda2bc6916796515ee6dfb1543a811be46f07a76d5a00cf8acf095fcb717`; transport bindings SHA-256 `d4489d75e6146ed20d9bfe4d80fbcc6fe671b29c0fdfd86009995aa328ba119d`. Focused agreement 22/22 (94 assertions, exactly two real emitter subprocesses); full `bun test` 675/675 (5228 assertions); `cargo test --locked -p rclwebd` 56 passed across 3 suites; MoonBit protocol 69/69; pinned `just check` status=ok under Bun 1.3.14 / Rust 1.97.1 / moonc 0.10.6+80dc50f24 / just 1.50.0; digest-tamper and spawn-exception diagnostics closed; worktree/`git diff --check` clean. Hosted CI run evidence remains pending. Conventional Commit subject for documentation closeout: `docs(plan): record r2wp agreement completion`.
+**Completion evidence:** [M0-03 delivered scope and accepted verification](../docs/milestones/m0-03-r2wp-foundation.md), with report-level digests in the [agreement reference](../protocol/testdata/agreement/README.md).
 
 - **Dependencies:** M0-03f, M0-03g
 - **Likely files:** `scripts/protocol-agree.ts`, `scripts/protocol-agree-run.ts`, `scripts/protocol-agree-run.test.ts`, `protocol/testdata/agreement/`, `rclwebd/tests/protocol_agreement.rs`, `rclmbt/cmd/agree/`, `package.json`, `justfile`, `docs/protocol/r2wp.md`, `docs/validation.md`, `docs/README.md`, `docs/gateway/rclwebd.md`, `docs/runtime/rclmbt.md`, `docs/adr/README.md`, `README.md`, `.agents/docs/technology-stack.md`, `.agents/docs/validation.md`, `tasks/plan.md`, `tasks/todo.md`, `protocol/testdata/README.md`

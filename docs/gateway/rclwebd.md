@@ -2,7 +2,7 @@
 
 `rclwebd` is Moonspan's controlled edge boundary between browser sessions and ROS 2 domains. Rust owns transport, scheduling, sessions, schemas, policy, audit, metrics, and recovery. A narrow C ABI adapter owns distro-specific `rcl` and `rmw` integration.
 
-**Status:** design baseline for gateway process work. M0-03f lands the R2WP v0 reference parser under [`rclwebd/src/protocol/`](../../rclwebd/src/protocol/) (bootstrap steps 1–9, selected-frame steps 1–16; review Accept commits `9c07b4a`, `cca270c`). M0-03h2 adds the agreement outcome emitter at [`rclwebd/tests/protocol_agreement.rs`](../../rclwebd/tests/protocol_agreement.rs) (commit `33c947414110fee47fa96429a70e795a645cc5cb`); after h4 review Accept, `cargo test --locked -p rclwebd` reports 56 passed across 3 suites and participates in the three-language agreement gate. M1 proves generic serialized graph and publish/subscribe; M2 expands ROS semantics; M3 qualifies production controls and operations.
+**Status:** the R2WP v0 reference parser and agreement emitter are complete. M1 proves generic serialized graph and publish/subscribe; M2 expands ROS semantics; M3 qualifies production controls and operations. Delivery revisions and accepted evidence live in the [M0-03 completion record](../milestones/m0-03-r2wp-foundation.md).
 
 Schema identity follows [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md). Process and support-row topology follows [ADR 0008](../adr/0008-one-adapter-row-per-gateway-process.md). Phase 1 distro, RMW, image, and row status live in the [support matrix](../support-matrix.md) (H-FT, H-CY, J-FT, J-CY).
 
@@ -15,7 +15,7 @@ The crate exposes public `rclwebd::protocol` and reexports primary parser types 
 - deterministic CBOR decode; extension TLV decode; CONTROL_CBOR decode for all 15 kinds with nested CDDL;
 - `ProtocolError` agreement fields: registry code, name, reason, absolute offset, plane, step.
 
-Locked tests load committed fixtures from [`protocol/testdata/`](../../protocol/testdata/README.md): all 20 valid entries (including the manifest-driven 64 MiB segment recipe) and all 55 malformed binaries (14 bootstrap / 41 frame). The agreement integration test [`rclwebd/tests/protocol_agreement.rs`](../../rclwebd/tests/protocol_agreement.rs) projects the same corpora into the shared outcome document consumed by `bun run protocol-agree`, and runs under the locked cargo test command with emit mode when the orchestrator spawns it. The `rclwebd` normal tree is std only. The `serde_json` dev dependency serves fixture tests. Focused verification: `cargo test --locked -p rclwebd` (56 passed across 3 suites after M0-03h).
+Locked tests load committed fixtures from [`protocol/testdata/`](../../protocol/testdata/README.md): all 20 valid entries, including the manifest-driven 64 MiB segment recipe, and all 55 malformed binaries. The agreement integration test [`rclwebd/tests/protocol_agreement.rs`](../../rclwebd/tests/protocol_agreement.rs) projects the same corpora into the shared outcome document consumed by `bun run protocol-agree`. The `rclwebd` normal tree uses the standard library; the `serde_json` dev dependency serves fixture tests. Run `cargo test --locked -p rclwebd` for the focused parser and emitter suites.
 
 ## Responsibilities
 
