@@ -77,12 +77,19 @@ Pinned **Fast-CDR v1.0.29** (`Cdr::serialize(const wchar_t*)` / `Cdr::deserializ
 
 #### Top-level tail slack (outside the wstring value)
 
-Some Phase 1 fixtures carry **four extra zero bytes after a terminal wstring**. Those bytes are **top-level sample tail slack** from the RMW serialization path (pre-zeroed buffers / padding), **not** part of the declared wstring value.
+Some Phase 1 fixtures carry **four extra zero bytes after a terminal wstring**. Those bytes are **top-level sample tail slack** from the RMW serialization path (pre-zeroed buffers and size budgeting), **not** part of the declared wstring value.
+
+Upstream chain that produces one preallocated zero slot:
+
+1. Humble `rosidl_typesupport_fastrtps_cpp` ([`msg__type_support.cpp.em`](https://raw.githubusercontent.com/ros2/rosidl_typesupport_fastrtps/humble/rosidl_typesupport_fastrtps_cpp/resource/msg__type_support.cpp.em)) converts `u16string` to `std::wstring` on the AbstractWString serialize branch (`u16string_to_wstring` then `cdr << wstr`).
+2. The same template’s `get_serialized_size` budgets `wchar_size * (message.size() + 1)` with `wchar_size = 4`, so the size estimate includes one extra 32-bit unit beyond the character payload.
+3. Fast-CDR v1.0.29 still writes only `wstrlen` and `wstrlen * 4` payload bytes (no terminating zero in the value).
+4. When RMW serialization runs into a zero-filled buffer sized from that estimate, the unused final slot remains as four zero bytes of **tail slack** after a terminal wstring.
 
 | Observation | Rows / cases | After core wstring |
 |---|---|---|
 | Exact sample end | Cyclone (H-CY, J-CY); Fast DDS big-endian `primitive_scalars` | No extra bytes |
-| One trailing `UInt32` zero | Fast DDS and Zenoh little-endian (H-FT, H-ZN, J-FT, J-ZN) | Exactly four `0x00` bytes after a **terminal** wstring |
+| One trailing `UInt32` zero | Fast DDS and Zenoh little-endian (H-FT, H-ZN, J-FT, J-ZN) | Exactly four `0x00` bytes of top-level tail slack after a **terminal** wstring |
 
 Binding corpus evidence (Phase 1 contract):
 
@@ -246,7 +253,8 @@ Official references that ground this contract:
 | OMG DDS-XTypes 1.3 PDF | https://www.omg.org/spec/DDS-XTypes/1.3/PDF | Clause **7.4.1** PLAIN_CDR (encoding version 1); Clause **7.4.1.1.2** character data (generic Char8 / Char16 rules; Phase 1 ROS `wstring` uses the legacy Fast-CDR profile above); **Table 31** primitive size and alignment; Clause **7.4.3** XCDR stream model and TOP_LEVEL encapsulation; **Table 60** RTPS encapsulation identifiers; XCDR2 as encoding version 2 follow-on |
 | ROS 2 Creating an RMW Implementation | https://docs.ros.org/en/ros2_documentation/jazzy/Tutorials/Advanced/Creating-An-RMW-Implementation.html | RMW serialization boundary, typesupport expectations, and distribution-facing encode/decode responsibilities |
 | eProsima Fast-CDR v1.0.29 `Cdr.cpp` | https://raw.githubusercontent.com/eProsima/Fast-CDR/v1.0.29/src/cpp/Cdr.cpp | Upstream `serialize(const wchar_t*)` / wide-string deserialize: `uint32` count then `count * 4` payload; comment that wide strings omit a terminating zero |
+| ROS 2 Humble `rosidl_typesupport_fastrtps_cpp` template | https://raw.githubusercontent.com/ros2/rosidl_typesupport_fastrtps/humble/rosidl_typesupport_fastrtps_cpp/resource/msg__type_support.cpp.em | AbstractWString serialize: `u16string_to_wstring` then Fast-CDR `<<`; `get_serialized_size` budgets `wchar_size * (size() + 1)` — explains one preallocated zero slot of top-level **tail slack** when the buffer is zero-filled |
 | MoonBit core `@bytes` package | https://mooncakes.io/docs/moonbitlang/core/bytes | Core bytes and view APIs used for buffer slices |
 | MoonBit language fundamentals | https://docs.moonbitlang.com/en/latest/language/fundamentals.html | Owned `Bytes` versus borrowed `BytesView` table and language-level slicing model |
 
-Committed fixtures under [`conformance/cdr/`](../../conformance/cdr/README.md) are the binding Phase 1 wire contract for this profile; Fast-CDR v1.0.29 is the upstream implementation reference for the core value layout. Generator provenance and row pins live in the corpus README. Schema identity across Humble and Jazzy is fixed by [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md).
+Committed fixtures under [`conformance/cdr/`](../../conformance/cdr/README.md) are the binding Phase 1 wire contract for this profile. Fast-CDR v1.0.29 is the upstream reference for the core value layout; the Humble fastrtps typesupport template is the official ROS reference for size budgeting that leaves tail slack. Generator provenance and row pins live in the corpus README. Schema identity across Humble and Jazzy is fixed by [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md).
