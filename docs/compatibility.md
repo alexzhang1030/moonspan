@@ -8,8 +8,10 @@ Moonspan publishes support as reviewed matrix rows across ROS, RMW, CPU architec
 |---|---|---|---|
 | H-FT | Humble | `rmw_fastrtps_cpp` | Ubuntu 22.04 |
 | H-CY | Humble | `rmw_cyclonedds_cpp` | Ubuntu 22.04 |
+| H-ZN | Humble | `rmw_zenoh_cpp` | Ubuntu 22.04 |
 | J-FT | Jazzy | `rmw_fastrtps_cpp` | Ubuntu 24.04 |
 | J-CY | Jazzy | `rmw_cyclonedds_cpp` | Ubuntu 24.04 |
+| J-ZN | Jazzy | `rmw_zenoh_cpp` | Ubuntu 24.04 |
 
 Each row qualifies independently on `amd64` and `arm64`. One gateway process binds one row and may host multiple ROS domain IDs. Applications combine independent sessions across rows. Startup validates the row and adapter profile before readiness.
 
@@ -57,4 +59,4 @@ R2WP negotiates wire versions, the adapter ABI uses versioned structures, the SD
 
 A support row records its code and environment identity, adapter profile, gateway and domain provenance, browser and buffer path, transport and network profile, semantic results, performance summary, raw evidence, limits, and reviewer. A row becomes **Qualified** after its evidence passes [validation](./validation.md) and human review.
 
-Later expansion covers Kilted, Lyrical, Rolling, selected `rmw_zenoh` and Zenoh router profiles, broader browser tiers, and additional transport or process topologies. Each candidate receives an independent matrix revision and qualification cycle.
+Phase 1 already includes Fast DDS, Cyclone DDS, and Zenoh (`rmw_zenoh_cpp`) as first-class rows. Later expansion covers Kilted, Lyrical, Rolling, broader browser tiers, Zenoh router topologies beyond the Phase 1 rows, and additional transport or process topologies. Each candidate receives an independent matrix revision and qualification cycle.

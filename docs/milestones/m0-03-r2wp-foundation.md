@@ -43,4 +43,4 @@ moon test --frozen --target wasm rclmbt/protocol
 
 ## Phase boundary
 
-M0 continues with support decisions, hosted workflow evidence, the ROS CDR corpus, the evidence schema, and the phase gate. Phase 1 covers Humble and Jazzy rows H-FT, H-CY, J-FT, and J-CY. Studio starts at U0 after the M3 mainline release gate.
+M0 continues with support decisions, hosted workflow evidence, the ROS CDR corpus, the evidence schema, and the phase gate. Phase 1 covers Humble and Jazzy rows H-FT, H-CY, H-ZN, J-FT, J-CY, and J-ZN. Studio starts at U0 after the M3 mainline release gate.

@@ -19,10 +19,12 @@ Status: design baseline. Every row remains a **Qualification target** until its 
 |---|---|---|---|---|---|
 | H-FT | Humble Hawksbill | `rmw_fastrtps_cpp` | Ubuntu 22.04 | `amd64`, `arm64` | Qualification target |
 | H-CY | Humble Hawksbill | `rmw_cyclonedds_cpp` | Ubuntu 22.04 | `amd64`, `arm64` | Qualification target |
+| H-ZN | Humble Hawksbill | `rmw_zenoh_cpp` | Ubuntu 22.04 | `amd64`, `arm64` | Qualification target |
 | J-FT | Jazzy Jalisco | `rmw_fastrtps_cpp` | Ubuntu 24.04 | `amd64`, `arm64` | Qualification target |
 | J-CY | Jazzy Jalisco | `rmw_cyclonedds_cpp` | Ubuntu 24.04 | `amd64`, `arm64` | Qualification target |
+| J-ZN | Jazzy Jalisco | `rmw_zenoh_cpp` | Ubuntu 24.04 | `amd64`, `arm64` | Qualification target |
 
-Fast DDS is the reference row for each ROS distribution. Cyclone DDS is the second qualification row.
+Fast DDS (`rmw_fastrtps_cpp`) is the reference and default row for each ROS distribution. Cyclone DDS (`rmw_cyclonedds_cpp`) and Zenoh (`rmw_zenoh_cpp`) are peer first-class Phase 1 rows. All three RMW implementations share the same support level.
 
 One gateway process binds one row and may host multiple domain IDs. `support_row_id` is fixed for the running artifact. `gateway_instance_id` identifies the deployment across eligible restart and upgrade paths. Applications use independent sessions across rows.
 
@@ -34,6 +36,17 @@ One gateway process binds one row and may host multiple domain IDs. `support_row
 | Jazzy | `docker.io/library/ros:jazzy-ros-base-noble@sha256:da725acf8b0f9f30c683e33ffbdcd6482d077af96d6fdc7688c5f4f280b7d923` |
 
 Qualification reports record the exercised architecture digest, installed ROS and RMW packages, adapter ABI, and support-row identity.
+
+### RMW package pins (arm64, 2026-08-11 probe)
+
+| Distro | Package | Candidate version |
+|---|---|---|
+| Humble | `ros-humble-rmw-cyclonedds-cpp` | recorded in CDR corpus environment manifests |
+| Humble | `ros-humble-rmw-zenoh-cpp` | `0.1.9-1jammy.20260725.135946` (binary available) |
+| Jazzy | `ros-jazzy-rmw-cyclonedds-cpp` | recorded in CDR corpus environment manifests |
+| Jazzy | `ros-jazzy-rmw-zenoh-cpp` | binary preferred when present; otherwise pinned source build |
+
+Zenoh enters Phase 1 with official binaries where available ([rmw_zenoh binaries announcement](https://discourse.openrobotics.org/t/rmw-zenoh-binaries-for-rolling-jazzy-and-humble/41395), [ROS index](https://index.ros.org/r/rmw_zenoh/), [source](https://github.com/ros2/rmw_zenoh)). When a binary is absent for a platform, the corpus generator records a reproducible pinned source revision, dependencies, and build recipe in the environment manifest.
 
 ## Schema identity
 
@@ -69,7 +82,7 @@ A row becomes **Qualified** when its reports pass [validation](./validation.md) 
 
 ## Later candidates
 
-Jazzy+ expansion includes Kilted, Lyrical, Rolling, selected `rmw_zenoh` and Zenoh router profiles, broader browser tiers, and separately reviewed process or buffer experiments.
+Jazzy+ expansion includes Kilted, Lyrical, Rolling, broader browser tiers, and separately reviewed process or buffer experiments. Zenoh router topologies beyond the Phase 1 `rmw_zenoh_cpp` support rows remain later topology work.
 
 Changes to images, browsers, schema schemes, or row membership require a matrix revision and fresh evidence for affected rows.
 
@@ -78,4 +91,5 @@ Changes to images, browsers, schema schemes, or row membership require a matrix 
 - [REP-2000](https://raw.githubusercontent.com/ros-infrastructure/rep/master/rep-2000.rst)
 - [Official ROS images](https://hub.docker.com/_/ros)
 - [Multiple RMW implementations](https://docs.ros.org/en/humble/How-To-Guides/Working-with-multiple-RMW-implementations.html)
+- [rmw_zenoh](https://github.com/ros2/rmw_zenoh)
 - [Playwright releases](https://playwright.dev/docs/release-notes)

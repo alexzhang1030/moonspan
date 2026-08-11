@@ -10,13 +10,13 @@ Accepted
 
 ## Context
 
-First-stage support rows H-FT, H-CY, J-FT, and J-CY differ by ROS distro, RMW implementation, adapter binary, and image profile. Moonspan treats one adapter support row per gateway process as a deployment policy grounded in ROS runtime selection through `RMW_IMPLEMENTATION` and the usual process-local graph-cache model. Multi-domain gateway aggregation still needs clear provenance for evidence, audit, and SDK sessions.
+First-stage support rows H-FT, H-CY, H-ZN, J-FT, J-CY, and J-ZN differ by ROS distro, RMW implementation, adapter binary, and image profile. Moonspan treats one adapter support row per gateway process as a deployment policy grounded in ROS runtime selection through `RMW_IMPLEMENTATION` and the usual process-local graph-cache model. Multi-domain gateway aggregation still needs clear provenance for evidence, audit, and SDK sessions.
 
 ## Decision
 
 Bind each `rclwebd` process to exactly one ROS adapter support row.
 
-- One `rclwebd` process binds to exactly one distro/RMW adapter support row: H-FT, H-CY, J-FT, or J-CY.
+- One `rclwebd` process binds to exactly one distro/RMW adapter support row: H-FT, H-CY, H-ZN, J-FT, J-CY, or J-ZN.
 - That process may create multiple ROS contexts and domain IDs under the same selected row.
 - Each row ships as an independently qualified deployment artifact and image variant with its distro adapter, RMW selection, adapter ABI version, and support-row identity.
 - `support_row_id` is immutable for the running artifact and profile.
@@ -39,7 +39,7 @@ Bind each `rclwebd` process to exactly one ROS adapter support row.
 
 ## Consequences
 
-- Deployment ships four first-stage process and image variants for H-FT, H-CY, J-FT, and J-CY.
+- Deployment ships six first-stage process and image variants for H-FT, H-CY, H-ZN, J-FT, J-CY, and J-ZN.
 - Readiness endpoints surface `adapter_profile_mismatch` when configuration and artifact identity diverge; the process stays outside ready until the profile matches.
 - R2WP `SessionReady` is emitted by a ready gateway and carries the validated profile, including `gateway_instance_id` and `support_row_id`.
 - R2WP resume matching includes gateway instance and support row; M0-03 freezes the exact resume-mismatch code.

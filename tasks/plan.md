@@ -11,8 +11,9 @@ Planning windows guide sequencing. Gate evidence controls progression.
 - M0 is active.
 - M0-03 is complete. Its [completion note](../docs/milestones/m0-03-r2wp-foundation.md) records the delivered scope.
 - M0-01 and M0-02 are active. Hosted CI evidence and human decisions remain open.
-- M0-04 and M0-05 are queued.
-- Phase 1 covers Humble and Jazzy rows H-FT, H-CY, J-FT, and J-CY.
+- M0-04 delivers the authoritative ROS CDR corpus across six Phase 1 rows.
+- M0-05 is queued.
+- Phase 1 covers Humble and Jazzy rows H-FT, H-CY, H-ZN, J-FT, J-CY, and J-ZN (Fast DDS, Cyclone DDS, and Zenoh as first-class RMW rows).
 - Studio begins at U0 after M3. Jazzy+ belongs to a later support expansion.
 
 ## 3. Authoritative documentation
@@ -82,7 +83,7 @@ Each phase closes when its automated evidence passes and the designated human re
 | M0-01 | Active | Close architecture, support-profile, ownership, and licensing decisions | None |
 | M0-02 | Active | Complete root tooling, workspaces, and reviewed hosted CI evidence | M0-01 |
 | M0-03 | Complete | Freeze R2WP v0 and prove TypeScript, Rust, and MoonBit agreement | M0-01, M0-02 |
-| M0-04 | Queued | Generate the authoritative ROS CDR corpus | M0-01, M0-02 |
+| M0-04 | Complete | Generate the authoritative ROS CDR corpus | M0-01, M0-02 |
 | M0-05 | Queued | Establish the evidence schema and report harness | M0-02 |
 
 M0 exit requires accepted decisions, clean-checkout root commands, reproducible R2WP and CDR fixtures, valid evidence artifacts, and human approval for M1.

@@ -52,7 +52,7 @@ just build
 
 ## ROS profile
 
-Phase 1 qualifies Humble and Jazzy with Fast DDS and Cyclone DDS. Humble uses `moonspan-schema-v1` bundle identity. Jazzy uses `rep2011-rihs` type identity. Exact images, architectures, browser references, and qualification state live in the [support matrix](../../docs/support-matrix.md).
+Phase 1 qualifies Humble and Jazzy with Fast DDS, Cyclone DDS, and Zenoh (`rmw_zenoh_cpp`) as first-class RMW rows (H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN). Fast DDS remains the reference row per distro. Humble uses `moonspan-schema-v1` bundle identity. Jazzy uses `rep2011-rihs` type identity. Exact images, architectures, browser references, and qualification state live in the [support matrix](../../docs/support-matrix.md).
 
 ## Decision lifecycle
 

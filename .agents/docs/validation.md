@@ -12,7 +12,7 @@ Detailed workloads and evidence requirements live in [validation](../../docs/val
 4. M3 proves identity, policy, security, compatibility, deployment, operations, faults, performance, and release reproducibility.
 5. U0 proves the Studio integration, rendering, media, accessibility, command presentation, and workspace performance on the released SDK.
 
-Phase 1 qualification covers H-FT, H-CY, J-FT, and J-CY. Studio begins after M3.
+Phase 1 qualification covers H-FT, H-CY, H-ZN, J-FT, J-CY, and J-ZN. Studio begins after M3.
 
 ## Evidence contract
 

@@ -7,7 +7,7 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
 - [~] M0-01 Close architecture, support-profile, ownership, and licensing decisions.
 - [~] M0-02 Complete root tooling, workspaces, and reviewed hosted CI evidence.
 - [x] M0-03 Freeze R2WP v0 and establish cross-language agreement. See the [completion note](../docs/milestones/m0-03-r2wp-foundation.md).
-- [ ] M0-04 Generate the authoritative ROS CDR corpus.
+- [x] M0-04 Generate the authoritative ROS CDR corpus (six Phase 1 rows H-FT/H-CY/H-ZN/J-FT/J-CY/J-ZN; `bun run cdr-corpus:check` / `just cdr-corpus-check`; focused `bun run test:cdr-corpus`).
 - [ ] M0-05 Establish the evidence harness and report schema.
 
 ### M0 gate

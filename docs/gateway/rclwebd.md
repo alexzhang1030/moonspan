@@ -29,7 +29,7 @@ The R2WP v0 reference parser is complete. M1 adds serialized graph and publish/s
 
 ## Support-row binding
 
-One `rclwebd` process binds one Phase 1 adapter row: H-FT, H-CY, J-FT, or J-CY. The process may open multiple ROS domain IDs within that row. Applications use independent sessions across rows.
+One `rclwebd` process binds one Phase 1 adapter row: H-FT, H-CY, H-ZN, J-FT, J-CY, or J-ZN. The process may open multiple ROS domain IDs within that row. Applications use independent sessions across rows.
 
 `support_row_id` is fixed for the running artifact. `gateway_instance_id` identifies the logical deployment and supports resume across ordinary restart or in-place upgrade when state is preserved. Startup validates the configured row, ROS distribution, RMW, adapter ABI, and artifact profile. A mismatch keeps readiness closed with `adapter_profile_mismatch`.
 
