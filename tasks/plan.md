@@ -129,9 +129,9 @@ M0 exit requires accepted decisions, clean-checkout root commands, reproducible 
 | M1-01c3b | Complete | Implement arrays, sequences, nesting, borrowed byte sequences in `rclmbt/cdr` | M1-01c3a |
 | M1-01d | Active | Authoritative corpus proof: semantic agreement, round trips, malformed input, resource bounds | M1-01c, M0-04 |
 | M1-01d0 | Complete | Top-level zero-tail evidence, corrected contract, declared completion API | M1-01c3 |
-| M1-01d1 | Active | Fixture bridge from committed corpus into MoonBit tests | M1-01d0 |
-| M1-01d2 | Queued | Semantic decode and exact re-encode proof | M1-01d1 |
-| M1-01d3 | Queued | Malformed/resource cases and final M1-01 gate | M1-01d2 |
+| M1-01d1 | Complete | Fixture bridge from committed corpus into MoonBit tests | M1-01d0 |
+| M1-01d2 | Complete | Semantic decode and exact re-encode proof | M1-01d1 |
+| M1-01d3 | Active | Malformed/resource cases and final M1-01 gate | M1-01d2 |
 | M1-02 | Queued | Generate types and build the schema-identity registry | M0-04, M1-01 |
 | M1-03 | Queued | Establish the Wasm host ABI and executor poll loop | M0-02, M0-03 |
 | M1-04 | Queued | Implement the serialized ROS C ABI | M0-02, M0-04 |
@@ -165,8 +165,8 @@ M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both 
 | M1-01d | Active | Corpus-driven proof: semantic agreement, round trips, malformed input, resource bounds |
 | M1-01d0 | Complete | Top-level zero-tail evidence (`tail-slack.json`), contract correction, `ensure_complete_with_zero_tail` |
 | M1-01d1 | Complete | Fixture bridge from committed corpus into MoonBit tests |
-| M1-01d2 | Active | Semantic decode and exact re-encode proof |
-| M1-01d3 | Queued | Malformed/resource cases and final M1-01 gate |
+| M1-01d2 | Complete | Semantic decode and exact re-encode proof |
+| M1-01d3 | Active | Malformed/resource cases and final M1-01 gate |
 
 **Acceptance criteria (M1-01 overall):**
 
@@ -180,7 +180,8 @@ M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both 
 - [x] Arrays, sequences, nested-depth guards, borrowed `BytesView` fields implemented in `rclmbt/cdr` (M1-01c3b).
 - [x] Top-level declared zero-tail completion API and frozen tail-slack evidence (M1-01d0).
 - [x] Corpus fixture bridge into MoonBit white-box tests with frozen counts and CDR open proofs (M1-01d1).
-- [ ] Semantic agreement, exact re-encode, and adversarial resource cases (M1-01d2–d3).
+- [x] Semantic decode and exact canonical re-encode for all 56 fixtures and 18 comparison groups (M1-01d2).
+- [ ] Adversarial malformed/resource cases and final M1-01 gate (M1-01d3).
 
 **Verification:** focused MoonBit/Wasm tests for `cdr_mbt`; corpus-driven checks against `conformance/cdr/manifest.json`; root `just check`, `just test`, and `just build` when implementation lands.
 

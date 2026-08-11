@@ -38,8 +38,8 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
   - [~] M1-01d Prove the authoritative corpus, semantic agreement, round trips, malformed input, and resource bounds.
     - [x] M1-01d0 Top-level zero-tail evidence, contract correction, `ensure_complete_with_zero_tail`.
     - [x] M1-01d1 Fixture bridge from committed corpus into MoonBit tests.
-    - [~] M1-01d2 Semantic decode and exact re-encode proof.
-    - [ ] M1-01d3 Malformed/resource cases and final M1-01 gate.
+    - [x] M1-01d2 Semantic decode and exact re-encode proof.
+    - [~] M1-01d3 Malformed/resource cases and final M1-01 gate.
 - [ ] M1-02 Implement generated types and the type registry.
 - [ ] M1-03 Establish the Wasm host ABI and executor poll loop.
 - [ ] M1-04 Implement the serialized ROS C ABI.

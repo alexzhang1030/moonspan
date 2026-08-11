@@ -47,7 +47,7 @@ just cdr-moonbit-fixtures-write
 
 ### MoonBit white-box bridge (M1-01d1)
 
-Package-internal fixtures and CDR open/tail proofs generated from this corpus:
+Package-internal fixtures and CDR open/tail proofs generated from this corpus. **M1-01d2** builds on this bridge with hand-written white-box semantic decode and exact re-encode proofs in `rclmbt/cdr/corpus_semantics_wbtest.mbt` (all 56 fixtures and 18 comparison groups).
 
 | Field | Value |
 |---|---|
