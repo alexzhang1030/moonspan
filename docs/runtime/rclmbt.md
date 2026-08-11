@@ -64,9 +64,9 @@ The runtime receives normalized schema records from the gateway and remains inde
 
 ## CDR and buffers
 
-`cdr_mbt` implements the [CDR core contract](./cdr.md). M1 targets PLAIN_CDR/CDR1 for the authoritative ROS corpus in little and big endian. XCDR2 stream foundations remain a follow-on surface for later schema work. The module returns typed errors for truncation, alignment, bounds, overflow, allocation, encoding, and lease faults.
+`cdr_mbt` implements the [CDR core contract](./cdr.md). M1 targets CDR1 for the authoritative ROS corpus in little and big endian. XCDR2 stream foundations remain a follow-on surface for later schema work. The codec returns typed faults for encapsulation, truncation, bounds, length overflow, alignment overflow, and string encoding.
 
-Every buffer has one owner at each boundary. Large fields use bounded views and parent-buffer leases. Applications retain data through an explicit copy or lease extension. Shared rings and transferable buffers implement the same event lifecycle and expose their costs through telemetry.
+Large fields return bounds-checked views into parent storage that the caller retains. Host buffer leases, release, and transferred-buffer lifecycle belong to the Wasm host poll ABI (M1-03). Applications that keep payload data past host release copy or extend the host lease through the host API. Shared rings and transferable buffers implement the same host event lifecycle and expose their costs through telemetry.
 
 ## State and recovery
 

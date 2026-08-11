@@ -131,13 +131,13 @@ M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both 
 
 #### M1-01 — MoonBit CDR core
 
-**Description:** Implement `cdr_mbt` against the frozen [CDR core contract](../docs/runtime/cdr.md) and the committed ROS corpus (`moonspan-ros-cdr-v1`, 56 fixtures, six Phase 1 rows, 18 semantic comparisons).
+**Description:** Implement `cdr_mbt` against the frozen [CDR core contract](../docs/runtime/cdr.md) and the committed ROS corpus (`moonspan-ros-cdr-v1`, `schema_version` 1, 56 fixtures, six Phase 1 rows, 18 semantic comparisons).
 
 **Sub-batches:**
 
 | ID | State | Scope |
 |---|---|---|
-| M1-01a | Complete | Documentation and plan freeze: PLAIN_CDR/CDR1 little and big endian target; XCDR2 stream foundations as follow-on; semantic cross-row agreement; deterministic zero-fill encoder padding; decoder accepts legal padding; official sources |
+| M1-01a | Complete | Documentation and plan freeze: CDR1 little and big endian target; XCDR2 stream foundations as follow-on; semantic cross-row agreement; 4-byte encapsulation framing; deterministic zero-fill encoder padding; decoder consumes legal padding; official sources |
 | M1-01b | Queued | Bounded stream reader/writer, encapsulation, endian, alignment, limits, typed errors |
 | M1-01c | Queued | Primitives, strings/wstrings, arrays, sequences, nested values, borrowed `BytesView` fields |
 | M1-01d | Queued | Corpus-driven proof: semantic agreement, round trips, malformed input, resource bounds |
