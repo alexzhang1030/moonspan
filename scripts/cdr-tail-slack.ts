@@ -11,8 +11,8 @@
  *   bun run scripts/cdr-tail-slack.ts --write
  *   bun run scripts/cdr-tail-slack.ts --check
  */
-import { createHash } from "node:crypto";
-import { lstat, readFile, writeFile } from "node:fs/promises";
+import { createHash, randomBytes } from "node:crypto";
+import { lstat, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 export const CORPUS_REL = "conformance/cdr";
@@ -149,8 +149,8 @@ export function parseCliMode(args: string[]): { mode: Mode } | { error: string }
 }
 
 /**
- * Safe relative path: nonempty, relative, no backslashes, no empty/dot/parent
- * path segments.
+ * Safe paths use nonempty ordinary segments and forward slashes.
+ * Absolute paths, backslashes, empty segments, `.`, and `..` are rejected.
  */
 export function isSafeRelativePath(rel: string): boolean {
   if (typeof rel !== "string" || rel.length === 0) return false;
@@ -327,8 +327,8 @@ export function enforceFrozenSummary(
 
 /**
  * Build the full evidence model from loaded fixtures and manifest comparisons.
- * Pure over already-validated in-memory bytes. Does not apply frozen production
- * counts; call `enforceFrozenSummary` from the production CLI path.
+ * Pure over already-validated in-memory bytes. Production callers apply
+ * `enforceFrozenSummary` after this model build.
  */
 export function buildTailSlackModel(
   fixtures: readonly LoadedFixture[],
@@ -484,6 +484,32 @@ export function buildTailSlackModel(
   }
   if (diagnostics.length > 0) return { ok: false, diagnostics };
 
+  // Cross-row fixture groups and comparison identities form a bijection:
+  // every multi-row group has exactly one comparison, and every comparison
+  // resolves to exactly one multi-row group. Single-row groups (exact-only
+  // big-endian primitives) remain fixture evidence without a comparison row.
+  const multiRowGroupKeys = new Set<string>();
+  for (const [key, meta] of groupMeta.entries()) {
+    if (meta.by_row.size > 1) multiRowGroupKeys.add(key);
+  }
+  for (const key of multiRowGroupKeys) {
+    if (!seenComparisonKeys.has(key)) {
+      const [ros_distro, case_id] = key.split("\0");
+      diagnostics.push(
+        `fixture group ${ros_distro}/${case_id}: missing comparison entry`,
+      );
+    }
+  }
+  for (const key of seenComparisonKeys) {
+    if (!multiRowGroupKeys.has(key)) {
+      const [ros_distro, case_id] = key.split("\0");
+      diagnostics.push(
+        `comparison ${ros_distro}/${case_id}: fixture group must contain multiple support rows`,
+      );
+    }
+  }
+  if (diagnostics.length > 0) return { ok: false, diagnostics };
+
   comparisonEvidence.sort((a, b) => {
     const d = asciiCompare(a.ros_distro, b.ros_distro);
     if (d !== 0) return d;
@@ -531,29 +557,112 @@ export function buildTailSlackModel(
 
 // --- I/O and CLI ---
 
-async function readRegularFile(
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+/**
+ * Resolve a trusted relative file by lstat-checking every path component from
+ * the root. Intermediate components are regular directories; the final target
+ * is a regular file. Symlinks at any component are rejected so the resolved
+ * file stays inside the intended subtree.
+ */
+export async function resolveTrustedRelativeFile(
   root: string,
   rel: string,
+  opts?: { requireFixtureBinary?: boolean },
 ): Promise<{ ok: true; abs: string; bytes: Uint8Array } | { ok: false; error: string }> {
   if (!isSafeRelativePath(rel)) {
     return { ok: false, error: `unsafe path ${rel}` };
   }
-  const abs = path.resolve(root, rel);
+  if (opts?.requireFixtureBinary) {
+    // Fixture binaries use corpus-relative paths under fixtures/.
+    const underCorpus = rel.startsWith(`${CORPUS_REL}/`)
+      ? rel.slice(CORPUS_REL.length + 1)
+      : rel;
+    if (!isFixtureBinaryPath(underCorpus)) {
+      return {
+        ok: false,
+        error: `serialized path must be a safe relative path under fixtures/: ${rel}`,
+      };
+    }
+  }
+
   const rootAbs = path.resolve(root);
-  if (!abs.startsWith(rootAbs + path.sep) && abs !== rootAbs) {
-    return { ok: false, error: `path escapes root: ${rel}` };
-  }
-  let st;
+  let rootSt;
   try {
-    st = await lstat(abs);
+    rootSt = await lstat(rootAbs);
   } catch {
-    return { ok: false, error: `missing file ${rel}` };
+    return { ok: false, error: `missing root ${root}` };
   }
-  if (st.isSymbolicLink() || !st.isFile()) {
-    return { ok: false, error: `regular file required: ${rel}` };
+  if (rootSt.isSymbolicLink()) {
+    return { ok: false, error: `symlink rejected: ${root}` };
   }
-  const buf = await readFile(abs);
-  return { ok: true, abs, bytes: new Uint8Array(buf) };
+  if (!rootSt.isDirectory()) {
+    return { ok: false, error: `directory required: ${root}` };
+  }
+
+  const parts = rel.split("/");
+  let cur = rootAbs;
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i]!;
+    cur = path.join(cur, part);
+    if (!cur.startsWith(rootAbs + path.sep) && cur !== rootAbs) {
+      return { ok: false, error: `path escapes root: ${rel}` };
+    }
+    let st;
+    try {
+      st = await lstat(cur);
+    } catch {
+      return {
+        ok: false,
+        error: `missing path component: ${parts.slice(0, i + 1).join("/")}`,
+      };
+    }
+    if (st.isSymbolicLink()) {
+      return {
+        ok: false,
+        error: `symlink rejected: ${parts.slice(0, i + 1).join("/")}`,
+      };
+    }
+    const isLast = i === parts.length - 1;
+    if (isLast) {
+      if (!st.isFile()) {
+        return { ok: false, error: `regular file required: ${rel}` };
+      }
+    } else if (!st.isDirectory()) {
+      return {
+        ok: false,
+        error: `directory required: ${parts.slice(0, i + 1).join("/")}`,
+      };
+    }
+  }
+  const buf = await readFile(cur);
+  return { ok: true, abs: cur, bytes: new Uint8Array(buf) };
+}
+
+/** Atomic write of tail-slack.json: temp regular file in the same directory, then rename. */
+export async function writeArtifactAtomic(
+  root: string,
+  content: string,
+): Promise<void> {
+  const abs = path.resolve(root, ARTIFACT_REL);
+  const dir = path.dirname(abs);
+  const tmp = path.join(
+    dir,
+    `.tail-slack.${process.pid}.${randomBytes(8).toString("hex")}.tmp`,
+  );
+  try {
+    await writeFile(tmp, content, "utf8");
+    await rename(tmp, abs);
+  } catch (err) {
+    try {
+      await unlink(tmp);
+    } catch {
+      // temp already gone
+    }
+    throw err;
+  }
 }
 
 export async function loadCorpus(
@@ -568,99 +677,130 @@ export async function loadCorpus(
   | { ok: false; diagnostics: string[] }
 > {
   const diagnostics: string[] = [];
-  const manRead = await readRegularFile(root, MANIFEST_REL);
+  const manRead = await resolveTrustedRelativeFile(root, MANIFEST_REL);
   if (!manRead.ok) return { ok: false, diagnostics: [manRead.error] };
   const sourceManifestSha256 = sha256Hex(manRead.bytes);
-  let doc: ManifestDoc;
+
+  let raw: unknown;
   try {
-    doc = JSON.parse(new TextDecoder().decode(manRead.bytes)) as ManifestDoc;
+    raw = JSON.parse(new TextDecoder().decode(manRead.bytes));
   } catch {
     return { ok: false, diagnostics: ["manifest.json: invalid JSON"] };
   }
-  if (doc.corpus !== CORPUS_ID) {
-    diagnostics.push(`manifest corpus ${doc.corpus} != ${CORPUS_ID}`);
+  if (!isPlainObject(raw)) {
+    return {
+      ok: false,
+      diagnostics: ["manifest.json: root must be a plain object"],
+    };
   }
-  if (!Array.isArray(doc.fixtures) || !Array.isArray(doc.comparisons)) {
-    diagnostics.push("manifest: fixtures/comparisons must be arrays");
+  if (raw.corpus !== CORPUS_ID) {
+    diagnostics.push(`manifest corpus ${String(raw.corpus)} != ${CORPUS_ID}`);
+  }
+  if (!Array.isArray(raw.fixtures)) {
+    diagnostics.push("manifest: fixtures must be an array");
+    return { ok: false, diagnostics };
+  }
+  if (!Array.isArray(raw.comparisons)) {
+    diagnostics.push("manifest: comparisons must be an array");
     return { ok: false, diagnostics };
   }
 
   const fixtures: LoadedFixture[] = [];
-  for (const f of doc.fixtures) {
+  for (const entry of raw.fixtures) {
+    if (!isPlainObject(entry)) {
+      diagnostics.push("fixture entry must be a plain object");
+      continue;
+    }
     if (
-      !isNonemptyString(f?.id) ||
-      !isNonemptyString(f?.case_id) ||
-      !isNonemptyString(f?.ros_distro) ||
-      !isNonemptyString(f?.support_row_id)
+      !isNonemptyString(entry.id) ||
+      !isNonemptyString(entry.case_id) ||
+      !isNonemptyString(entry.ros_distro) ||
+      !isNonemptyString(entry.support_row_id)
     ) {
       diagnostics.push(
-        `fixture entry requires nonempty string identities: ${JSON.stringify(f?.id)}`,
+        `fixture entry requires nonempty string identities: ${JSON.stringify(entry.id)}`,
       );
       continue;
     }
-    if (!isSafeNonnegInt(f?.serialized?.byte_length)) {
-      diagnostics.push(`${f.id}: byte_length must be a safe nonnegative integer`);
+    if (!isPlainObject(entry.serialized)) {
+      diagnostics.push(`${entry.id}: serialized must be a plain object`);
       continue;
     }
-    if (!isLowerHexSha256(f?.serialized?.sha256)) {
-      diagnostics.push(`${f.id}: sha256 must be lowercase 64-hex`);
-      continue;
-    }
-    if (!isNonemptyString(f?.serialized?.path) || !isFixtureBinaryPath(f.serialized.path)) {
+    const serialized = entry.serialized;
+    if (!isSafeNonnegInt(serialized.byte_length)) {
       diagnostics.push(
-        `${f.id}: serialized path must be a safe relative path under fixtures/`,
+        `${entry.id}: byte_length must be a safe nonnegative integer`,
       );
       continue;
     }
-    const binRel = path.posix.join(CORPUS_REL, f.serialized.path);
-    const bin = await readRegularFile(root, binRel);
+    if (!isLowerHexSha256(serialized.sha256)) {
+      diagnostics.push(`${entry.id}: sha256 must be lowercase 64-hex`);
+      continue;
+    }
+    if (
+      !isNonemptyString(serialized.path) ||
+      !isFixtureBinaryPath(serialized.path)
+    ) {
+      diagnostics.push(
+        `${entry.id}: serialized path must be a safe relative path under fixtures/`,
+      );
+      continue;
+    }
+    const binRel = path.posix.join(CORPUS_REL, serialized.path);
+    const bin = await resolveTrustedRelativeFile(root, binRel, {
+      requireFixtureBinary: true,
+    });
     if (!bin.ok) {
-      diagnostics.push(`${f.id}: ${bin.error}`);
+      diagnostics.push(`${entry.id}: ${bin.error}`);
       continue;
     }
-    if (bin.bytes.length !== f.serialized.byte_length) {
+    if (bin.bytes.length !== serialized.byte_length) {
       diagnostics.push(
-        `${f.id}: byte_length mismatch disk=${bin.bytes.length} manifest=${f.serialized.byte_length}`,
+        `${entry.id}: byte_length mismatch disk=${bin.bytes.length} manifest=${serialized.byte_length}`,
       );
       continue;
     }
     const digest = sha256Hex(bin.bytes);
-    if (digest !== f.serialized.sha256) {
-      diagnostics.push(`${f.id}: sha256 mismatch`);
+    if (digest !== serialized.sha256) {
+      diagnostics.push(`${entry.id}: sha256 mismatch`);
       continue;
     }
     fixtures.push({
-      id: f.id,
-      case_id: f.case_id,
-      ros_distro: f.ros_distro,
-      support_row_id: f.support_row_id,
-      path: f.serialized.path,
+      id: entry.id,
+      case_id: entry.case_id,
+      ros_distro: entry.ros_distro,
+      support_row_id: entry.support_row_id,
+      path: serialized.path,
       bytes: bin.bytes,
     });
   }
 
   const comparisons: ManifestComparison[] = [];
-  for (const c of doc.comparisons) {
-    if (
-      !isNonemptyString(c?.case_id) ||
-      !isNonemptyString(c?.ros_distro) ||
-      !Array.isArray(c?.rows)
-    ) {
-      diagnostics.push(`comparison entry malformed: ${JSON.stringify(c)}`);
+  for (const entry of raw.comparisons) {
+    if (!isPlainObject(entry)) {
+      diagnostics.push("comparison entry must be a plain object");
       continue;
     }
-    if (c.rows.length === 0) {
+    if (
+      !isNonemptyString(entry.case_id) ||
+      !isNonemptyString(entry.ros_distro) ||
+      !Array.isArray(entry.rows)
+    ) {
+      diagnostics.push(`comparison entry malformed: ${JSON.stringify(entry)}`);
+      continue;
+    }
+    if (entry.rows.length === 0) {
       diagnostics.push(
-        `comparison ${c.ros_distro}/${c.case_id}: support rows must be nonempty`,
+        `comparison ${entry.ros_distro}/${entry.case_id}: support rows must be nonempty`,
       );
       continue;
     }
     const rows: string[] = [];
     let rowsOk = true;
-    for (const row of c.rows) {
+    for (const row of entry.rows) {
       if (!isNonemptyString(row)) {
         diagnostics.push(
-          `comparison ${c.ros_distro}/${c.case_id}: support row must be a nonempty string`,
+          `comparison ${entry.ros_distro}/${entry.case_id}: support row must be a nonempty string`,
         );
         rowsOk = false;
         break;
@@ -669,8 +809,8 @@ export async function loadCorpus(
     }
     if (!rowsOk) continue;
     comparisons.push({
-      case_id: c.case_id,
-      ros_distro: c.ros_distro,
+      case_id: entry.case_id,
+      ros_distro: entry.ros_distro,
       rows,
     });
   }
@@ -688,6 +828,7 @@ export async function buildFromRoot(root: string): Promise<BuildResult> {
     loaded.sourceManifestSha256,
   );
   if (!built.ok) return built;
+  // Production callers apply enforceFrozenSummary.
   const frozen = enforceFrozenSummary(built.artifact);
   if (!frozen.ok) return frozen;
   return built;
@@ -714,12 +855,19 @@ export async function runCli(
     return 1;
   }
   if (parsed.mode === "write") {
-    const abs = path.resolve(root, ARTIFACT_REL);
-    await writeFile(abs, built.bytes, "utf8");
+    try {
+      await writeArtifactAtomic(root, built.bytes);
+    } catch (err) {
+      console.error(
+        `cdr-tail-slack: write failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      console.error("cdr-tail-slack: status=fail");
+      return 1;
+    }
     console.log(formatStatusLine(built.artifact));
     return 0;
   }
-  const existing = await readRegularFile(root, ARTIFACT_REL);
+  const existing = await resolveTrustedRelativeFile(root, ARTIFACT_REL);
   if (!existing.ok) {
     console.error(existing.error);
     console.error("cdr-tail-slack: status=fail");

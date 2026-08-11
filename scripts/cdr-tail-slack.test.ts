@@ -1,5 +1,14 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import {
+  cp,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import {
@@ -286,6 +295,22 @@ describe("cdr-tail-slack model assembly", () => {
       expect(again).toBe(built.bytes);
     }
   });
+
+  test("multi-row fixture group without comparison fails", () => {
+    const fixtures = [
+      fixture("H-CY-x", "x", "humble", "H-CY", new Uint8Array([1])),
+      fixture("H-FT-x", "x", "humble", "H-FT", new Uint8Array([1, 0, 0, 0, 0])),
+    ];
+    const built = buildTailSlackModel(fixtures, [], "ab".repeat(32));
+    expect(built.ok).toBe(false);
+    if (!built.ok) {
+      expect(
+        built.diagnostics.some((d) =>
+          d.includes("fixture group humble/x: missing comparison entry"),
+        ),
+      ).toBe(true);
+    }
+  });
 });
 
 describe("cdr-tail-slack real corpus", () => {
@@ -315,6 +340,148 @@ describe("cdr-tail-slack real corpus", () => {
 });
 
 describe("cdr-tail-slack I/O adversarial", () => {
+  test("null and non-object manifest roots return diagnostics", async () => {
+    const root = await tempRoot();
+    await mkdir(path.join(root, CORPUS_REL), { recursive: true });
+    await writeFile(path.join(root, MANIFEST_REL), "null");
+    const nullRoot = await buildFromRoot(root);
+    expect(nullRoot.ok).toBe(false);
+    if (!nullRoot.ok) {
+      expect(
+        nullRoot.diagnostics.some((d) =>
+          d.includes("root must be a plain object"),
+        ),
+      ).toBe(true);
+    }
+    const nullCode = await runCli(["--check"], root);
+    expect(nullCode).toBe(1);
+
+    await writeFile(path.join(root, MANIFEST_REL), "[]");
+    const arrayRoot = await buildFromRoot(root);
+    expect(arrayRoot.ok).toBe(false);
+    if (!arrayRoot.ok) {
+      expect(
+        arrayRoot.diagnostics.some((d) =>
+          d.includes("root must be a plain object"),
+        ),
+      ).toBe(true);
+    }
+
+    await writeFile(path.join(root, MANIFEST_REL), "42");
+    const primRoot = await buildFromRoot(root);
+    expect(primRoot.ok).toBe(false);
+    if (!primRoot.ok) {
+      expect(
+        primRoot.diagnostics.some((d) =>
+          d.includes("root must be a plain object"),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  test("fixture directory symlink is rejected", async () => {
+    const root = await tempRoot();
+    const corpus = path.join(root, CORPUS_REL);
+    await mkdir(corpus, { recursive: true });
+    const realFix = path.join(root, "real-fixtures");
+    await mkdir(realFix, { recursive: true });
+    const payload = new Uint8Array([1, 2, 3]);
+    const digest = sha256Hex(payload);
+    await writeFile(path.join(realFix, "a.bin"), payload);
+    await symlink(realFix, path.join(corpus, "fixtures"));
+    const manifest = {
+      corpus: CORPUS_ID,
+      fixtures: [
+        {
+          id: "sym",
+          case_id: "c",
+          ros_distro: "humble",
+          support_row_id: "H-CY",
+          serialized: {
+            path: "fixtures/a.bin",
+            byte_length: 3,
+            sha256: digest,
+          },
+        },
+      ],
+      comparisons: [],
+    };
+    await writeFile(path.join(root, MANIFEST_REL), JSON.stringify(manifest));
+    const loaded = await buildFromRoot(root);
+    expect(loaded.ok).toBe(false);
+    if (!loaded.ok) {
+      expect(
+        loaded.diagnostics.some((d) => d.includes("symlink rejected")),
+      ).toBe(true);
+    }
+  });
+
+  test("final fixture file symlink is rejected", async () => {
+    const root = await tempRoot();
+    const corpus = path.join(root, CORPUS_REL);
+    const fixDir = path.join(corpus, "fixtures");
+    await mkdir(fixDir, { recursive: true });
+    const payload = new Uint8Array([1, 2, 3]);
+    const digest = sha256Hex(payload);
+    const realFile = path.join(root, "real.bin");
+    await writeFile(realFile, payload);
+    await symlink(realFile, path.join(fixDir, "a.bin"));
+    const manifest = {
+      corpus: CORPUS_ID,
+      fixtures: [
+        {
+          id: "filesym",
+          case_id: "c",
+          ros_distro: "humble",
+          support_row_id: "H-CY",
+          serialized: {
+            path: "fixtures/a.bin",
+            byte_length: 3,
+            sha256: digest,
+          },
+        },
+      ],
+      comparisons: [],
+    };
+    await writeFile(path.join(root, MANIFEST_REL), JSON.stringify(manifest));
+    const loaded = await buildFromRoot(root);
+    expect(loaded.ok).toBe(false);
+    if (!loaded.ok) {
+      expect(
+        loaded.diagnostics.some((d) => d.includes("symlink rejected")),
+      ).toBe(true);
+    }
+  });
+
+  test("write replaces artifact symlink without following the target", async () => {
+    const root = await tempRoot();
+    const srcCorpus = path.join(process.cwd(), CORPUS_REL);
+    const dstCorpus = path.join(root, CORPUS_REL);
+    await mkdir(dstCorpus, { recursive: true });
+    await cp(
+      path.join(srcCorpus, "manifest.json"),
+      path.join(dstCorpus, "manifest.json"),
+    );
+    await cp(path.join(srcCorpus, "fixtures"), path.join(dstCorpus, "fixtures"), {
+      recursive: true,
+    });
+    const outside = path.join(root, "outside-target.json");
+    await writeFile(outside, "sentinel-outside\n", "utf8");
+    await symlink(outside, path.join(dstCorpus, "tail-slack.json"));
+
+    const code = await runCli(["--write"], root);
+    expect(code).toBe(0);
+
+    const artifactPath = path.join(root, ARTIFACT_REL);
+    const st = await lstat(artifactPath);
+    expect(st.isSymbolicLink()).toBe(false);
+    expect(st.isFile()).toBe(true);
+    const body = await readFile(artifactPath, "utf8");
+    expect(body.includes('"exact_fixtures": 24')).toBe(true);
+    const outsideBody = await readFile(outside, "utf8");
+    expect(outsideBody).toBe("sentinel-outside\n");
+  });
+
   test("escaped fixture path and malformed length/SHA fail load", async () => {
     const root = await tempRoot();
     const corpus = path.join(root, CORPUS_REL);
