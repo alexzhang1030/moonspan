@@ -51,9 +51,8 @@ pub fn CdrReader::open(
 ) -> Result[CdrReader, CdrError] {
   let len = bytes.length()
   if len > limits.max_stream_bytes {
-    // Oversized input: needed = stream ceiling, remaining = actual length.
-    // Avoid max+1 arithmetic.
-    return Err(CdrError::bounds_exceeded(0, limits.max_stream_bytes, len))
+    // needed = requested input size; remaining = available stream capacity.
+    return Err(CdrError::bounds_exceeded(0, len, limits.max_stream_bytes))
   }
   if len < HEADER_LENGTH {
     return Err(CdrError::invalid_encapsulation(0, HEADER_LENGTH, len))
@@ -295,8 +294,8 @@ pub fn CdrReader::read_bytes(
 
 ///|
 /// Checked `count * element_size` for a borrowed span length.
-/// Detects arithmetic overflow and lengths that exceed remaining input or
-/// the stream ceiling. Does not consult `max_temporary_allocation`.
+/// Order: multiply → absolute stream ceiling (`length_overflow`) → remaining
+/// (`truncated`). Does not consult `max_temporary_allocation`.
 pub fn CdrReader::checked_span_length(
   self : CdrReader,
   count : UInt64,
@@ -304,19 +303,16 @@ pub fn CdrReader::checked_span_length(
 ) -> Result[Int, CdrError] {
   let field_start = self.offset
   let rem = self.remaining()
+  let max_stream = self.limits.max_stream_bytes
   match multiply_length(count, element_size, field_start, rem) {
     Ok(bytes) => {
+      // Absolute stream ceiling before remaining: validated openers keep
+      // rem <= max_stream, so this branch is for computed spans above the ceiling.
+      if bytes > max_stream {
+        return Err(CdrError::length_overflow(field_start, bytes, max_stream))
+      }
       if bytes > rem {
         return Err(CdrError::truncated(field_start, bytes, rem))
-      }
-      if bytes > self.limits.max_stream_bytes {
-        return Err(
-          CdrError::bounds_exceeded(
-            field_start,
-            bytes,
-            self.limits.max_stream_bytes,
-          ),
-        )
       }
       Ok(bytes)
     }
@@ -327,6 +323,7 @@ pub fn CdrReader::checked_span_length(
 ///|
 /// Checked `count * element_size` for an owned temporary allocation budget.
 /// Detects arithmetic overflow and lengths above `max_temporary_allocation`.
+/// `needed` = requested size; `remaining` = allocation capacity.
 pub fn CdrReader::checked_alloc_length(
   self : CdrReader,
   count : UInt64,
@@ -334,16 +331,11 @@ pub fn CdrReader::checked_alloc_length(
 ) -> Result[Int, CdrError] {
   let field_start = self.offset
   let rem = self.remaining()
+  let capacity = self.limits.max_temporary_allocation
   match multiply_length(count, element_size, field_start, rem) {
     Ok(bytes) => {
-      if bytes > self.limits.max_temporary_allocation {
-        return Err(
-          CdrError::bounds_exceeded(
-            field_start,
-            bytes,
-            self.limits.max_temporary_allocation,
-          ),
-        )
+      if bytes > capacity {
+        return Err(CdrError::bounds_exceeded(field_start, bytes, capacity))
       }
       Ok(bytes)
     }

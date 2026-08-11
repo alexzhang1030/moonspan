@@ -149,19 +149,20 @@ Implementable codec faults with stable codes:
 | `invalid_utf8` | Char8 string payload fails UTF-8 well-formedness |
 | `invalid_wstring_scalar` | ROS legacy `wstring` 32-bit slot is outside accepted Unicode scalar values from `u16string_to_wstring` |
 | `missing_string_terminator` | Char8 declared span ends on a nonzero byte |
-| `bounds_exceeded` | Stream length, owned temporary allocation, or a configured type bound is exceeded |
-| `length_overflow` | Length or size arithmetic overflows the host size domain |
+| `bounds_exceeded` | Input stream longer than `max_stream_bytes`, owned temporary allocation above capacity, or a configured type bound is exceeded |
+| `length_overflow` | Length arithmetic overflows the host size domain, or a borrowed span length exceeds the absolute stream ceiling |
 | `alignment_overflow` | Required padding would advance past the end of the stream |
 | `trailing_data` | Strict completion mode requires a fully consumed stream and unread bytes remain (including four-byte zero tail slack) |
 
-`CdrError` fields are public across packages:
+`CdrError` fields are public across packages. Numeric convention: **`needed` = requested/required size**, **`remaining` = available capacity**.
 
 | Field | Meaning |
 |---|---|
 | `offset` | Absolute fault site (field-start on failed field reads; `0` for open/config faults) |
-| `needed` | Bytes required for the operation, or the rejected limit value for `invalid_limits` / oversized-stream reporting (never `max+1`) |
-| `remaining` | Bytes available at the fault site (input length at open; stream remaining on field faults) |
+| `needed` | Requested or required size (input length when the stream is oversized; computed span/alloc size; header length when truncated; rejected limit value for `invalid_limits`) |
+| `remaining` | Available capacity (e.g. `max_stream_bytes` for oversized open; `max_temporary_allocation` for alloc bounds; bytes remaining for field faults) |
 
+`checked_span_length` order: multiply → span above `max_stream_bytes` → `length_overflow` → span above remaining → `truncated`.
 `schema_mismatch` and related identity faults belong to M1-02 generated types and M2-01 dynamic projection. Host buffer lease and transfer faults belong to M1-03.
 
 ## Overflow and allocation limits

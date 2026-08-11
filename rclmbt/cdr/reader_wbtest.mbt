@@ -284,7 +284,7 @@ test "exact cursor preservation after each failure kind" {
 }
 
 ///|
-test "custom small stream limit bounds_exceeded without max plus one" {
+test "custom small stream limit bounds_exceeded needed is input length" {
   let input = b"\x00\x01\x00\x00\x01\x02\x03\x04"
   let limits = limits_ok(4, 64, 4)
   match CdrReader::open(input[:], limits) {
@@ -292,8 +292,9 @@ test "custom small stream limit bounds_exceeded without max plus one" {
     Err(e) => {
       assert_eq(e.code, CODE_BOUNDS_EXCEEDED)
       assert_eq(e.offset, 0)
-      assert_eq(e.needed, 4)
-      assert_eq(e.remaining, 8)
+      // needed = requested input size; remaining = stream capacity
+      assert_eq(e.needed, 8)
+      assert_eq(e.remaining, 4)
     }
   }
 }
@@ -350,9 +351,28 @@ test "checked span versus alloc length" {
     Ok(_) => abort("expected length_overflow")
     Err(e) => assert_eq(e.code, CODE_LENGTH_OVERFLOW)
   }
+  // Stream ceiling before remaining: 5 * 4 = 20 > max_stream 16 → length_overflow
+  let small_stream = limits_ok(16, 8, 16)
+  match CdrReader::open(b"\x00\x01\x00\x00"[:], small_stream) {
+    Ok(rs) =>
+      match rs.checked_span_length(5UL, 4) {
+        Ok(_) => abort("expected length_overflow vs stream ceiling")
+        Err(e) => {
+          assert_eq(e.code, CODE_LENGTH_OVERFLOW)
+          assert_eq(e.needed, 20)
+          assert_eq(e.remaining, 16)
+        }
+      }
+    Err(e) => abort(e.code)
+  }
+  // In-range span above remaining → truncated
   match r.checked_span_length(100UL, 4) {
     Ok(_) => abort("expected truncated vs remaining 0")
-    Err(e) => assert_eq(e.code, CODE_TRUNCATED)
+    Err(e) => {
+      assert_eq(e.code, CODE_TRUNCATED)
+      assert_eq(e.needed, 400)
+      assert_eq(e.remaining, 0)
+    }
   }
   // 4-byte header + 20 body bytes; temp alloc ceiling 16.
   let limits = limits_ok(64, 8, 16)

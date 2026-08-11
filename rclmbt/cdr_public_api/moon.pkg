@@ -1,0 +1,7 @@
+// Cross-package black-box check of the public CDR reader surface (M1-01b1).
+
+supported_targets = "wasm"
+
+import {
+  "moonspan/rclmbt/cdr",
+}

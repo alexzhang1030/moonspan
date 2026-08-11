@@ -39,21 +39,20 @@ pub const CODE_TRAILING_DATA : String = "trailing_data"
 /// Structured CDR fault. All fields are public and readable across packages.
 /// Callers match `code` and numeric fields only.
 ///
-/// Field meaning:
-/// - `offset`: absolute byte offset of the fault site (field-start on failed field reads;
-///   `0` for open/config faults).
-/// - `needed`: bytes required for the attempted operation, or the rejected limit value
-///   for configuration faults (never computed as max+1).
-/// - `remaining`: bytes available at the fault site (input length at open; stream
-///   remaining on field faults).
+/// Numeric convention: `needed` = requested/required size;
+/// `remaining` = available capacity.
+/// - `offset`: absolute fault site (field-start on failed field reads; `0` for open/config).
+/// - `needed`: requested input length, computed span/alloc size, header length, or
+///   rejected limit value for `invalid_limits`.
+/// - `remaining`: stream capacity, alloc capacity, or bytes remaining at the fault site.
 pub struct CdrError {
   /// Stable fault code from the CDR taxonomy.
   code : String
   /// Absolute byte offset of the fault.
   offset : Int
-  /// Bytes required, or rejected limit value for `invalid_limits`.
+  /// Requested or required size.
   needed : Int
-  /// Bytes remaining / available at the fault site.
+  /// Available capacity at the fault site.
   remaining : Int
 }
 
