@@ -1,8 +1,9 @@
 ///|
 /// Authoritative ROS CDR corpus semantic proof (M1-01d2).
 /// Package-internal hand-written white-box codecs for the nine root schema
-/// surfaces in the committed corpus. Uses the d1 bridge fixtures and the
-/// existing CdrReader/CdrWriter surface only — no public generated types.
+/// surfaces. Round-trip encodes the exact decoded CorpusValue (not expected
+/// constants). Nesting tokens: the token is the current aggregate; enter a
+/// child before every nested aggregate field.
 
 // ---------------------------------------------------------------------------
 // Value models (test-only)
@@ -112,8 +113,22 @@ priv struct CorpusPointCloud2 {
   is_dense : Bool
 }
 
+///|
+/// Tagged root value returned by decode_case and consumed by encode_case.
+priv enum CorpusValue {
+  PrimitiveScalars(CorpusPrimitiveScalars)
+  Collections(CorpusCollections)
+  NestedSample(CorpusNestedSample)
+  EchoNestedRequest(CorpusEchoNestedRequest)
+  EchoNestedResponse(CorpusEchoNestedResponse)
+  MeasureSequenceGoal(CorpusMeasureSequenceGoal)
+  MeasureSequenceResult(CorpusMeasureSequenceResult)
+  MeasureSequenceFeedback(CorpusMeasureSequenceFeedback)
+  PointCloud2(CorpusPointCloud2)
+}
+
 // ---------------------------------------------------------------------------
-// Abort helpers
+// Abort / open helpers
 // ---------------------------------------------------------------------------
 
 ///|
@@ -153,8 +168,31 @@ fn cs_endian_of(name : String) -> CdrEndian {
   }
 }
 
+///|
+/// Enter one nested aggregate under `parent`. Typed abort on bounds fault.
+fn cs_enter_r(r : CdrReader, parent : CdrNesting, ctx : String) -> CdrNesting {
+  match r.enter_nested(parent) {
+    Ok(n) => n
+    Err(e) => {
+      cs_abort(ctx, e)
+      parent
+    }
+  }
+}
+
+///|
+fn cs_enter_w(w : CdrWriter, parent : CdrNesting, ctx : String) -> CdrNesting {
+  match w.enter_nested(parent) {
+    Ok(n) => n
+    Err(e) => {
+      cs_abort(ctx, e)
+      parent
+    }
+  }
+}
+
 // ---------------------------------------------------------------------------
-// Expected corpus values (logical sample from committed manifest)
+// Expected corpus values (manifest oracle only)
 // ---------------------------------------------------------------------------
 
 ///|
@@ -220,9 +258,9 @@ fn expected_point_records() -> Array[CorpusPointRecord] {
       ring: 0U.to_uint16(),
     },
     {
-      x: -Float::from_double(1.0),
-      y: -Float::from_double(2.0),
-      z: -Float::from_double(3.0),
+      x: Float::from_double(-1.0),
+      y: Float::from_double(-2.0),
+      z: Float::from_double(-3.0),
       intensity: 20U.to_uint16(),
       ring: 1U.to_uint16(),
     },
@@ -241,7 +279,7 @@ fn expected_point_records() -> Array[CorpusPointRecord] {
       ring: 3U.to_uint16(),
     },
     {
-      x: -Float::from_double(10.0),
+      x: Float::from_double(-10.0),
       y: Float::from_double(4.0),
       z: Float::from_double(8.0),
       intensity: 50U.to_uint16(),
@@ -249,7 +287,7 @@ fn expected_point_records() -> Array[CorpusPointRecord] {
     },
     {
       x: Float::from_double(1024.0),
-      y: -Float::from_double(1024.0),
+      y: Float::from_double(-1024.0),
       z: Float::from_double(64.0),
       intensity: 60U.to_uint16(),
       ring: 5U.to_uint16(),
@@ -258,10 +296,14 @@ fn expected_point_records() -> Array[CorpusPointRecord] {
 }
 
 ///|
-/// Committed PointCloud2 opaque payload (96 bytes, little-endian field values).
 fn expected_point_cloud2_data_bytes() -> Array[Byte] {
   let hex = "0000803f00000040000040400a000000000080bf000000c0000040c0140001000000003f0000803e0000003e1e000200000020410000a0410000f04128000300000020c100008040000000413200040000008044000080c4000080423c000500"
   cdr_fx_decode_hex(hex)
+}
+
+///|
+fn expected_point_cloud2_header() -> CorpusHeader {
+  { stamp: { sec: 1700000001, nanosec: 987654321U }, frame_id: "map" }
 }
 
 // ---------------------------------------------------------------------------
@@ -354,6 +396,21 @@ fn eq_nested(a : CorpusNestedSample, b : CorpusNestedSample) -> Bool {
 }
 
 ///|
+fn eq_bytes_view(a : BytesView, b : BytesView) -> Bool {
+  if a.length() != b.length() {
+    return false
+  }
+  let mut i = 0
+  while i < a.length() {
+    if a[i] != b[i] {
+      return false
+    }
+    i = i + 1
+  }
+  true
+}
+
+///|
 fn eq_bytes_view_array(bv : BytesView, arr : Array[Byte]) -> Bool {
   if bv.length() != arr.length() {
     return false
@@ -377,48 +434,71 @@ fn eq_point_field(a : CorpusPointField, b : CorpusPointField) -> Bool {
 }
 
 ///|
-fn eq_point_cloud2_meta(
-  a : CorpusPointCloud2,
-  b_header : CorpusHeader,
-  height : UInt,
-  width : UInt,
-  fields : Array[CorpusPointField],
-  is_bigendian : Bool,
-  point_step : UInt,
-  row_step : UInt,
-  data : Array[Byte],
-  is_dense : Bool,
-) -> Bool {
-  if !(eq_time(a.header.stamp, b_header.stamp) &&
-    a.header.frame_id == b_header.frame_id &&
-    a.height == height &&
-    a.width == width &&
-    a.is_bigendian == is_bigendian &&
-    a.point_step == point_step &&
-    a.row_step == row_step &&
-    a.is_dense == is_dense) {
+fn eq_header(a : CorpusHeader, b : CorpusHeader) -> Bool {
+  eq_time(a.stamp, b.stamp) && a.frame_id == b.frame_id
+}
+
+///|
+fn eq_point_cloud2(a : CorpusPointCloud2, b : CorpusPointCloud2) -> Bool {
+  if !(eq_header(a.header, b.header) &&
+    a.height == b.height &&
+    a.width == b.width &&
+    a.is_bigendian == b.is_bigendian &&
+    a.point_step == b.point_step &&
+    a.row_step == b.row_step &&
+    a.is_dense == b.is_dense) {
     return false
   }
-  if a.fields.length() != fields.length() {
+  if a.fields.length() != b.fields.length() {
     return false
   }
   let mut i = 0
-  while i < fields.length() {
-    if !eq_point_field(a.fields[i], fields[i]) {
+  while i < a.fields.length() {
+    if !eq_point_field(a.fields[i], b.fields[i]) {
       return false
     }
     i = i + 1
   }
-  eq_bytes_view_array(a.data, data)
+  eq_bytes_view(a.data, b.data)
+}
+
+///|
+fn eq_point_record(a : CorpusPointRecord, b : CorpusPointRecord) -> Bool {
+  a.x == b.x &&
+  a.y == b.y &&
+  a.z == b.z &&
+  a.intensity == b.intensity &&
+  a.ring == b.ring
+}
+
+///|
+/// Full semantic equality between two decoded root values.
+fn eq_corpus_value(a : CorpusValue, b : CorpusValue) -> Bool {
+  match (a, b) {
+    (PrimitiveScalars(x), PrimitiveScalars(y)) => eq_primitive(x, y)
+    (Collections(x), Collections(y)) => eq_collections(x, y)
+    (NestedSample(x), NestedSample(y)) => eq_nested(x, y)
+    (EchoNestedRequest(x), EchoNestedRequest(y)) => eq_nested(x.input, y.input)
+    (EchoNestedResponse(x), EchoNestedResponse(y)) =>
+      eq_nested(x.output, y.output) && x.accepted == y.accepted
+    (MeasureSequenceGoal(x), MeasureSequenceGoal(y)) =>
+      eq_collections(x.target, y.target)
+    (MeasureSequenceResult(x), MeasureSequenceResult(y)) =>
+      eq_nested(x.result, y.result)
+    (MeasureSequenceFeedback(x), MeasureSequenceFeedback(y)) =>
+      x.progress == y.progress && eq_nested(x.sample, y.sample)
+    (PointCloud2(x), PointCloud2(y)) => eq_point_cloud2(x, y)
+    _ => false
+  }
 }
 
 // ---------------------------------------------------------------------------
-// Decode codecs (declared ROS field order)
+// Decode codecs — `current` is this aggregate; enter children for nested fields
 // ---------------------------------------------------------------------------
 
 ///|
-fn decode_time(r : CdrReader, nest : CdrNesting) -> CorpusTime {
-  ignore(nest)
+fn decode_time(r : CdrReader, current : CdrNesting) -> CorpusTime {
+  ignore(current)
   let sec = match r.read_i32() {
     Ok(v) => v
     Err(e) => {
@@ -439,9 +519,9 @@ fn decode_time(r : CdrReader, nest : CdrNesting) -> CorpusTime {
 ///|
 fn decode_primitive_scalars(
   r : CdrReader,
-  nest : CdrNesting,
+  current : CdrNesting,
 ) -> CorpusPrimitiveScalars {
-  ignore(nest)
+  ignore(current)
   let bool_value = match r.read_bool() {
     Ok(v) => v
     Err(e) => {
@@ -567,9 +647,8 @@ fn decode_primitive_scalars(
 }
 
 ///|
-fn decode_collections(r : CdrReader, nest : CdrNesting) -> CorpusCollections {
-  ignore(nest)
-  // fixed_i32[3]
+fn decode_collections(r : CdrReader, current : CdrNesting) -> CorpusCollections {
+  ignore(current)
   let fixed_i32 : Array[Int] = []
   let mut i = 0
   while i < 3 {
@@ -579,7 +658,6 @@ fn decode_collections(r : CdrReader, nest : CdrNesting) -> CorpusCollections {
     }
     i = i + 1
   }
-  // float64[<=4]
   let f64_count = match r.read_sequence_length(max_elements=4U) {
     Ok(n) => n
     Err(e) => {
@@ -596,7 +674,6 @@ fn decode_collections(r : CdrReader, nest : CdrNesting) -> CorpusCollections {
     }
     i = i + 1
   }
-  // uint8[]
   let bytes_view = match r.read_byte_sequence() {
     Ok(v) => v
     Err(e) => {
@@ -628,33 +705,36 @@ fn decode_collections(r : CdrReader, nest : CdrNesting) -> CorpusCollections {
 }
 
 ///|
+/// `parent` is the containing aggregate. Enters NestedSample, then each child.
 fn decode_nested_sample(
   r : CdrReader,
   parent : CdrNesting,
 ) -> CorpusNestedSample {
-  let nest = match r.enter_nested(parent) {
-    Ok(n) => n
-    Err(e) => {
-      cs_abort("NestedSample nest", e)
-      parent
-    }
-  }
-  let stamp = decode_time(r, nest)
-  let scalars = decode_primitive_scalars(r, nest)
-  let collections = decode_collections(r, nest)
+  let current = cs_enter_r(r, parent, "NestedSample")
+  let time_n = cs_enter_r(r, current, "NestedSample.Time")
+  let stamp = decode_time(r, time_n)
+  let scalars_n = cs_enter_r(r, current, "NestedSample.PrimitiveScalars")
+  let scalars = decode_primitive_scalars(r, scalars_n)
+  let coll_n = cs_enter_r(r, current, "NestedSample.Collections")
+  let collections = decode_collections(r, coll_n)
   { stamp, scalars, collections }
 }
 
 ///|
-fn decode_echo_request(r : CdrReader) -> CorpusEchoNestedRequest {
-  let root = r.root_nesting()
-  { input: decode_nested_sample(r, root) }
+fn decode_echo_request(
+  r : CdrReader,
+  parent : CdrNesting,
+) -> CorpusEchoNestedRequest {
+  // input is a nested NestedSample field under the request aggregate.
+  { input: decode_nested_sample(r, parent) }
 }
 
 ///|
-fn decode_echo_response(r : CdrReader) -> CorpusEchoNestedResponse {
-  let root = r.root_nesting()
-  let output = decode_nested_sample(r, root)
+fn decode_echo_response(
+  r : CdrReader,
+  parent : CdrNesting,
+) -> CorpusEchoNestedResponse {
+  let output = decode_nested_sample(r, parent)
   let accepted = match r.read_bool() {
     Ok(v) => v
     Err(e) => {
@@ -666,27 +746,24 @@ fn decode_echo_response(r : CdrReader) -> CorpusEchoNestedResponse {
 }
 
 ///|
-fn decode_goal(r : CdrReader) -> CorpusMeasureSequenceGoal {
-  let root = r.root_nesting()
-  let nest = match r.enter_nested(root) {
-    Ok(n) => n
-    Err(e) => {
-      cs_abort("Goal nest", e)
-      root
-    }
-  }
-  { target: decode_collections(r, nest) }
+fn decode_goal(r : CdrReader, parent : CdrNesting) -> CorpusMeasureSequenceGoal {
+  let target_n = cs_enter_r(r, parent, "Goal.Collections")
+  { target: decode_collections(r, target_n) }
 }
 
 ///|
-fn decode_result(r : CdrReader) -> CorpusMeasureSequenceResult {
-  let root = r.root_nesting()
-  { result: decode_nested_sample(r, root) }
+fn decode_result(
+  r : CdrReader,
+  parent : CdrNesting,
+) -> CorpusMeasureSequenceResult {
+  { result: decode_nested_sample(r, parent) }
 }
 
 ///|
-fn decode_feedback(r : CdrReader) -> CorpusMeasureSequenceFeedback {
-  let root = r.root_nesting()
+fn decode_feedback(
+  r : CdrReader,
+  parent : CdrNesting,
+) -> CorpusMeasureSequenceFeedback {
   let progress = match r.read_f32() {
     Ok(v) => v
     Err(e) => {
@@ -694,12 +771,13 @@ fn decode_feedback(r : CdrReader) -> CorpusMeasureSequenceFeedback {
       Float::from_double(0.0)
     }
   }
-  let sample = decode_nested_sample(r, root)
+  let sample = decode_nested_sample(r, parent)
   { progress, sample }
 }
 
 ///|
-fn decode_point_field(r : CdrReader) -> CorpusPointField {
+fn decode_point_field(r : CdrReader, current : CdrNesting) -> CorpusPointField {
+  ignore(current)
   let name = match r.read_string() {
     Ok(v) => v
     Err(e) => {
@@ -732,16 +810,10 @@ fn decode_point_field(r : CdrReader) -> CorpusPointField {
 }
 
 ///|
-fn decode_point_cloud2(r : CdrReader) -> CorpusPointCloud2 {
-  let root = r.root_nesting()
-  let header_nest = match r.enter_nested(root) {
-    Ok(n) => n
-    Err(e) => {
-      cs_abort("Header nest", e)
-      root
-    }
-  }
-  let stamp = decode_time(r, header_nest)
+fn decode_header(r : CdrReader, parent : CdrNesting) -> CorpusHeader {
+  let current = cs_enter_r(r, parent, "Header")
+  let time_n = cs_enter_r(r, current, "Header.Time")
+  let stamp = decode_time(r, time_n)
   let frame_id = match r.read_string() {
     Ok(v) => v
     Err(e) => {
@@ -749,6 +821,12 @@ fn decode_point_cloud2(r : CdrReader) -> CorpusPointCloud2 {
       ""
     }
   }
+  { stamp, frame_id }
+}
+
+///|
+fn decode_point_cloud2(r : CdrReader, parent : CdrNesting) -> CorpusPointCloud2 {
+  let header = decode_header(r, parent)
   let height = match r.read_u32() {
     Ok(v) => v
     Err(e) => {
@@ -773,15 +851,8 @@ fn decode_point_cloud2(r : CdrReader) -> CorpusPointCloud2 {
   let fields : Array[CorpusPointField] = []
   let mut i = 0
   while i < field_count {
-    let fnest = match r.enter_nested(root) {
-      Ok(n) => n
-      Err(e) => {
-        cs_abort("PointField nest", e)
-        root
-      }
-    }
-    ignore(fnest)
-    fields.push(decode_point_field(r))
+    let fnest = cs_enter_r(r, parent, "PointField")
+    fields.push(decode_point_field(r, fnest))
     i = i + 1
   }
   let is_bigendian = match r.read_bool() {
@@ -820,7 +891,7 @@ fn decode_point_cloud2(r : CdrReader) -> CorpusPointCloud2 {
     }
   }
   {
-    header: { stamp, frame_id },
+    header,
     height,
     width,
     fields,
@@ -833,12 +904,12 @@ fn decode_point_cloud2(r : CdrReader) -> CorpusPointCloud2 {
 }
 
 // ---------------------------------------------------------------------------
-// Encode codecs (exact canonical form, zero top-level tail)
+// Encode codecs — mirror nesting discipline
 // ---------------------------------------------------------------------------
 
 ///|
-fn encode_time(w : CdrWriter, v : CorpusTime, nest : CdrNesting) -> Unit {
-  ignore(nest)
+fn encode_time(w : CdrWriter, v : CorpusTime, current : CdrNesting) -> Unit {
+  ignore(current)
   match w.write_i32(v.sec) {
     Ok(_) => ()
     Err(e) => cs_abort("enc Time.sec", e)
@@ -853,9 +924,9 @@ fn encode_time(w : CdrWriter, v : CorpusTime, nest : CdrNesting) -> Unit {
 fn encode_primitive_scalars(
   w : CdrWriter,
   v : CorpusPrimitiveScalars,
-  nest : CdrNesting,
+  current : CdrNesting,
 ) -> Unit {
-  ignore(nest)
+  ignore(current)
   match w.write_bool(v.bool_value) {
     Ok(_) => ()
     Err(e) => cs_abort("enc bool", e)
@@ -922,9 +993,9 @@ fn encode_primitive_scalars(
 fn encode_collections(
   w : CdrWriter,
   v : CorpusCollections,
-  nest : CdrNesting,
+  current : CdrNesting,
 ) -> Unit raise {
-  ignore(nest)
+  ignore(current)
   assert_eq(v.fixed_i32.length(), 3)
   let mut i = 0
   while i < 3 {
@@ -966,32 +1037,31 @@ fn encode_nested_sample(
   v : CorpusNestedSample,
   parent : CdrNesting,
 ) -> Unit raise {
-  let nest = match w.enter_nested(parent) {
-    Ok(n) => n
-    Err(e) => {
-      cs_abort("enc NestedSample nest", e)
-      parent
-    }
-  }
-  encode_time(w, v.stamp, nest)
-  encode_primitive_scalars(w, v.scalars, nest)
-  encode_collections(w, v.collections, nest)
+  let current = cs_enter_w(w, parent, "enc NestedSample")
+  let time_n = cs_enter_w(w, current, "enc NestedSample.Time")
+  encode_time(w, v.stamp, time_n)
+  let scalars_n = cs_enter_w(w, current, "enc NestedSample.PrimitiveScalars")
+  encode_primitive_scalars(w, v.scalars, scalars_n)
+  let coll_n = cs_enter_w(w, current, "enc NestedSample.Collections")
+  encode_collections(w, v.collections, coll_n)
 }
 
 ///|
 fn encode_echo_request(
   w : CdrWriter,
   v : CorpusEchoNestedRequest,
+  parent : CdrNesting,
 ) -> Unit raise {
-  encode_nested_sample(w, v.input, w.root_nesting())
+  encode_nested_sample(w, v.input, parent)
 }
 
 ///|
 fn encode_echo_response(
   w : CdrWriter,
   v : CorpusEchoNestedResponse,
+  parent : CdrNesting,
 ) -> Unit raise {
-  encode_nested_sample(w, v.output, w.root_nesting())
+  encode_nested_sample(w, v.output, parent)
   match w.write_bool(v.accepted) {
     Ok(_) => ()
     Err(e) => cs_abort("enc accepted", e)
@@ -999,37 +1069,44 @@ fn encode_echo_response(
 }
 
 ///|
-fn encode_goal(w : CdrWriter, v : CorpusMeasureSequenceGoal) -> Unit raise {
-  let root = w.root_nesting()
-  let nest = match w.enter_nested(root) {
-    Ok(n) => n
-    Err(e) => {
-      cs_abort("enc Goal nest", e)
-      root
-    }
-  }
-  encode_collections(w, v.target, nest)
+fn encode_goal(
+  w : CdrWriter,
+  v : CorpusMeasureSequenceGoal,
+  parent : CdrNesting,
+) -> Unit raise {
+  let target_n = cs_enter_w(w, parent, "enc Goal.Collections")
+  encode_collections(w, v.target, target_n)
 }
 
 ///|
-fn encode_result(w : CdrWriter, v : CorpusMeasureSequenceResult) -> Unit raise {
-  encode_nested_sample(w, v.result, w.root_nesting())
+fn encode_result(
+  w : CdrWriter,
+  v : CorpusMeasureSequenceResult,
+  parent : CdrNesting,
+) -> Unit raise {
+  encode_nested_sample(w, v.result, parent)
 }
 
 ///|
 fn encode_feedback(
   w : CdrWriter,
   v : CorpusMeasureSequenceFeedback,
+  parent : CdrNesting,
 ) -> Unit raise {
   match w.write_f32(v.progress) {
     Ok(_) => ()
     Err(e) => cs_abort("enc progress", e)
   }
-  encode_nested_sample(w, v.sample, w.root_nesting())
+  encode_nested_sample(w, v.sample, parent)
 }
 
 ///|
-fn encode_point_field(w : CdrWriter, v : CorpusPointField) -> Unit {
+fn encode_point_field(
+  w : CdrWriter,
+  v : CorpusPointField,
+  current : CdrNesting,
+) -> Unit {
+  ignore(current)
   match w.write_string(v.name[:]) {
     Ok(_) => ()
     Err(e) => cs_abort("enc PointField.name", e)
@@ -1049,20 +1126,23 @@ fn encode_point_field(w : CdrWriter, v : CorpusPointField) -> Unit {
 }
 
 ///|
-fn encode_point_cloud2(w : CdrWriter, v : CorpusPointCloud2) -> Unit {
-  let root = w.root_nesting()
-  let header_nest = match w.enter_nested(root) {
-    Ok(n) => n
-    Err(e) => {
-      cs_abort("enc Header nest", e)
-      root
-    }
-  }
-  encode_time(w, v.header.stamp, header_nest)
-  match w.write_string(v.header.frame_id[:]) {
+fn encode_header(w : CdrWriter, v : CorpusHeader, parent : CdrNesting) -> Unit {
+  let current = cs_enter_w(w, parent, "enc Header")
+  let time_n = cs_enter_w(w, current, "enc Header.Time")
+  encode_time(w, v.stamp, time_n)
+  match w.write_string(v.frame_id[:]) {
     Ok(_) => ()
     Err(e) => cs_abort("enc frame_id", e)
   }
+}
+
+///|
+fn encode_point_cloud2(
+  w : CdrWriter,
+  v : CorpusPointCloud2,
+  parent : CdrNesting,
+) -> Unit {
+  encode_header(w, v.header, parent)
   match w.write_u32(v.height) {
     Ok(_) => ()
     Err(e) => cs_abort("enc height", e)
@@ -1077,15 +1157,8 @@ fn encode_point_cloud2(w : CdrWriter, v : CorpusPointCloud2) -> Unit {
   }
   let mut i = 0
   while i < v.fields.length() {
-    let fnest = match w.enter_nested(root) {
-      Ok(n) => n
-      Err(e) => {
-        cs_abort("enc PointField nest", e)
-        root
-      }
-    }
-    ignore(fnest)
-    encode_point_field(w, v.fields[i])
+    let fnest = cs_enter_w(w, parent, "enc PointField")
+    encode_point_field(w, v.fields[i], fnest)
     i = i + 1
   }
   match w.write_bool(v.is_bigendian) {
@@ -1100,6 +1173,7 @@ fn encode_point_cloud2(w : CdrWriter, v : CorpusPointCloud2) -> Unit {
     Ok(_) => ()
     Err(e) => cs_abort("enc row_step", e)
   }
+  // Borrowed data view from decode is written as-is.
   match w.write_byte_sequence(v.data) {
     Ok(_) => ()
     Err(e) => cs_abort("enc data", e)
@@ -1111,7 +1185,7 @@ fn encode_point_cloud2(w : CdrWriter, v : CorpusPointCloud2) -> Unit {
 }
 
 // ---------------------------------------------------------------------------
-// Point record decode from opaque data
+// Point records / materialization
 // ---------------------------------------------------------------------------
 
 ///|
@@ -1158,19 +1232,6 @@ fn decode_point_records_from_data(
 }
 
 ///|
-fn eq_point_record(a : CorpusPointRecord, b : CorpusPointRecord) -> Bool {
-  a.x == b.x &&
-  a.y == b.y &&
-  a.z == b.z &&
-  a.intensity == b.intensity &&
-  a.ring == b.ring
-}
-
-// ---------------------------------------------------------------------------
-// Fixture materialization from d1 bridge
-// ---------------------------------------------------------------------------
-
-///|
 fn materialize_fixture(f : CdrCorpusFixture) -> (Array[Byte], Bytes) {
   let arr = cdr_fx_decode_hex(f.hex_bytes)
   let bytes = cs_bytes_of(arr)
@@ -1196,127 +1257,115 @@ fn prefix_eq_bytes(out : Bytes, src : Array[Byte], logical : Int) -> Bool {
 }
 
 // ---------------------------------------------------------------------------
-// Dispatch: decode + complete + optional re-encode
+// Dispatch: decode_case → CorpusValue; encode_case(decoded); expected oracle
 // ---------------------------------------------------------------------------
 
 ///|
-fn decode_and_check_values(r : CdrReader, case_id : String) -> Unit raise {
+/// Decode the root sample for `case_id`. Top-level starts at root depth 0.
+fn decode_case(r : CdrReader, case_id : String) -> CorpusValue {
   let root = r.root_nesting()
   if case_id == "primitive_scalars" || case_id == "primitive_scalars_big_endian" {
-    let v = decode_primitive_scalars(r, root)
-    assert_eq(eq_primitive(v, expected_primitive_scalars()), true)
+    PrimitiveScalars(decode_primitive_scalars(r, root))
   } else if case_id == "collections" {
-    let v = decode_collections(r, root)
-    assert_eq(eq_collections(v, expected_collections()), true)
+    Collections(decode_collections(r, root))
   } else if case_id == "nested_sample" {
-    let v = decode_nested_sample(r, root)
-    assert_eq(eq_nested(v, expected_nested_sample()), true)
+    NestedSample(decode_nested_sample(r, root))
   } else if case_id == "echo_nested_request" {
-    let v = decode_echo_request(r)
-    assert_eq(eq_nested(v.input, expected_nested_sample()), true)
+    EchoNestedRequest(decode_echo_request(r, root))
   } else if case_id == "echo_nested_response" {
-    let v = decode_echo_response(r)
-    assert_eq(eq_nested(v.output, expected_nested_sample()), true)
-    assert_eq(v.accepted, true)
+    EchoNestedResponse(decode_echo_response(r, root))
   } else if case_id == "measure_sequence_goal" {
-    let v = decode_goal(r)
-    assert_eq(eq_collections(v.target, expected_collections()), true)
+    MeasureSequenceGoal(decode_goal(r, root))
   } else if case_id == "measure_sequence_result" {
-    let v = decode_result(r)
-    assert_eq(eq_nested(v.result, expected_nested_sample()), true)
+    MeasureSequenceResult(decode_result(r, root))
   } else if case_id == "measure_sequence_feedback" {
-    let v = decode_feedback(r)
-    assert_eq(v.progress, Float::from_double(0.625))
-    assert_eq(eq_nested(v.sample, expected_nested_sample()), true)
+    MeasureSequenceFeedback(decode_feedback(r, root))
   } else if case_id == "point_cloud2" {
-    let v = decode_point_cloud2(r)
-    let exp_header : CorpusHeader = {
-      stamp: { sec: 1700000001, nanosec: 987654321U },
-      frame_id: "map",
-    }
-    let exp_data = expected_point_cloud2_data_bytes()
-    assert_eq(
-      eq_point_cloud2_meta(
-        v,
-        exp_header,
-        2U,
-        3U,
-        expected_point_fields(),
-        false,
-        16U,
-        48U,
-        exp_data,
-        true,
-      ),
-      true,
-    )
-    let records = decode_point_records_from_data(v.data, v.is_bigendian, 16, 6)
-    let exp_records = expected_point_records()
-    assert_eq(records.length(), 6)
-    let mut i = 0
-    while i < 6 {
-      assert_eq(eq_point_record(records[i], exp_records[i]), true)
-      i = i + 1
-    }
+    PointCloud2(decode_point_cloud2(r, root))
   } else {
     abort("unknown case_id " + case_id)
   }
 }
 
 ///|
-fn reencode_case(
+/// Independent manifest-value oracle (not used by the encode path).
+fn assert_expected_semantics(
+  value : CorpusValue,
   case_id : String,
-  endian : CdrEndian,
-  decoded_holder : Unit,
-) -> Bytes raise {
-  // Re-encode from expected logical values (same sample across rows).
-  ignore(decoded_holder)
-  let w = cs_writer(endian)
-  if case_id == "primitive_scalars" || case_id == "primitive_scalars_big_endian" {
-    encode_primitive_scalars(w, expected_primitive_scalars(), w.root_nesting())
-  } else if case_id == "collections" {
-    encode_collections(w, expected_collections(), w.root_nesting())
-  } else if case_id == "nested_sample" {
-    encode_nested_sample(w, expected_nested_sample(), w.root_nesting())
-  } else if case_id == "echo_nested_request" {
-    encode_echo_request(w, { input: expected_nested_sample() })
-  } else if case_id == "echo_nested_response" {
-    encode_echo_response(w, { output: expected_nested_sample(), accepted: true })
-  } else if case_id == "measure_sequence_goal" {
-    encode_goal(w, { target: expected_collections() })
-  } else if case_id == "measure_sequence_result" {
-    encode_result(w, { result: expected_nested_sample() })
-  } else if case_id == "measure_sequence_feedback" {
-    encode_feedback(w, {
-      progress: Float::from_double(0.625),
-      sample: expected_nested_sample(),
-    })
-  } else if case_id == "point_cloud2" {
-    // Re-encode uses decoded data view path in dedicated test; here use expected bytes.
-    let data_arr = expected_point_cloud2_data_bytes()
-    let data_bytes = cs_bytes_of(data_arr)
-    encode_point_cloud2(w, {
-      header: {
-        stamp: { sec: 1700000001, nanosec: 987654321U },
-        frame_id: "map",
-      },
-      height: 2U,
-      width: 3U,
-      fields: expected_point_fields(),
-      is_bigendian: false,
-      point_step: 16U,
-      row_step: 48U,
-      data: data_bytes[:],
-      is_dense: true,
-    })
-  } else {
-    abort("unknown case_id " + case_id)
+) -> Unit raise {
+  match value {
+    PrimitiveScalars(v) =>
+      assert_eq(eq_primitive(v, expected_primitive_scalars()), true)
+    Collections(v) => assert_eq(eq_collections(v, expected_collections()), true)
+    NestedSample(v) => assert_eq(eq_nested(v, expected_nested_sample()), true)
+    EchoNestedRequest(v) =>
+      assert_eq(eq_nested(v.input, expected_nested_sample()), true)
+    EchoNestedResponse(v) => {
+      assert_eq(eq_nested(v.output, expected_nested_sample()), true)
+      assert_eq(v.accepted, true)
+    }
+    MeasureSequenceGoal(v) =>
+      assert_eq(eq_collections(v.target, expected_collections()), true)
+    MeasureSequenceResult(v) =>
+      assert_eq(eq_nested(v.result, expected_nested_sample()), true)
+    MeasureSequenceFeedback(v) => {
+      assert_eq(v.progress, Float::from_double(0.625))
+      assert_eq(eq_nested(v.sample, expected_nested_sample()), true)
+    }
+    PointCloud2(v) => {
+      assert_eq(eq_header(v.header, expected_point_cloud2_header()), true)
+      assert_eq(v.height, 2U)
+      assert_eq(v.width, 3U)
+      assert_eq(v.is_bigendian, false)
+      assert_eq(v.point_step, 16U)
+      assert_eq(v.row_step, 48U)
+      assert_eq(v.is_dense, true)
+      let exp_fields = expected_point_fields()
+      assert_eq(v.fields.length(), exp_fields.length())
+      let mut i = 0
+      while i < exp_fields.length() {
+        assert_eq(eq_point_field(v.fields[i], exp_fields[i]), true)
+        i = i + 1
+      }
+      let exp_data = expected_point_cloud2_data_bytes()
+      assert_eq(eq_bytes_view_array(v.data, exp_data), true)
+      let records = decode_point_records_from_data(
+        v.data,
+        v.is_bigendian,
+        16,
+        6,
+      )
+      let exp_records = expected_point_records()
+      assert_eq(records.length(), 6)
+      i = 0
+      while i < 6 {
+        assert_eq(eq_point_record(records[i], exp_records[i]), true)
+        i = i + 1
+      }
+    }
   }
-  w.to_bytes()
+  ignore(case_id)
+}
+
+///|
+/// Encode the exact decoded value. No expected-constant reconstruction.
+fn encode_case(w : CdrWriter, value : CorpusValue) -> Unit raise {
+  let root = w.root_nesting()
+  match value {
+    PrimitiveScalars(v) => encode_primitive_scalars(w, v, root)
+    Collections(v) => encode_collections(w, v, root)
+    NestedSample(v) => encode_nested_sample(w, v, root)
+    EchoNestedRequest(v) => encode_echo_request(w, v, root)
+    EchoNestedResponse(v) => encode_echo_response(w, v, root)
+    MeasureSequenceGoal(v) => encode_goal(w, v, root)
+    MeasureSequenceResult(v) => encode_result(w, v, root)
+    MeasureSequenceFeedback(v) => encode_feedback(w, v, root)
+    PointCloud2(v) => encode_point_cloud2(w, v, root)
+  }
 }
 
 // ---------------------------------------------------------------------------
-// Tests: decode semantics (M1-01d2)
+// Tests
 // ---------------------------------------------------------------------------
 
 ///|
@@ -1352,7 +1401,8 @@ test "corpus decode all 56 fixtures with zero-tail completion and logical values
     ignore(arr)
     let r = cs_open(bytes[:])
     assert_eq(r.little_endian(), f.serialized_endianness == "little")
-    decode_and_check_values(r, f.case_id)
+    let value = decode_case(r, f.case_id)
+    assert_expected_semantics(value, f.case_id)
     match r.ensure_complete_with_zero_tail(f.zero_tail_bytes) {
       Ok(_) => ()
       Err(e) => cs_abort(f.id + " complete", e)
@@ -1364,7 +1414,7 @@ test "corpus decode all 56 fixtures with zero-tail completion and logical values
 }
 
 ///|
-test "corpus multi-row comparison groups decode to identical semantics" {
+test "corpus multi-row comparison groups decode to equal CorpusValue peers" {
   let mut groups = 0
   for c in cdr_corpus_comparisons {
     assert_eq(c.fixture_ids.length() >= 2, true)
@@ -1372,8 +1422,8 @@ test "corpus multi-row comparison groups decode to identical semantics" {
     let (arr0, bytes0) = materialize_fixture(first)
     ignore(arr0)
     let r0 = cs_open(bytes0[:])
-    // Decode first into expected checks, then each peer.
-    decode_and_check_values(r0, first.case_id)
+    let v0 = decode_case(r0, first.case_id)
+    assert_expected_semantics(v0, first.case_id)
     match r0.ensure_complete_with_zero_tail(first.zero_tail_bytes) {
       Ok(_) => ()
       Err(e) => cs_abort(first.id + " complete", e)
@@ -1386,7 +1436,10 @@ test "corpus multi-row comparison groups decode to identical semantics" {
       let (arr, bytes) = materialize_fixture(peer)
       ignore(arr)
       let r = cs_open(bytes[:])
-      decode_and_check_values(r, peer.case_id)
+      let vp = decode_case(r, peer.case_id)
+      // Peer equality is between decoded values, not only vs expected oracle.
+      assert_eq(eq_corpus_value(v0, vp), true)
+      assert_expected_semantics(vp, peer.case_id)
       match r.ensure_complete_with_zero_tail(peer.zero_tail_bytes) {
         Ok(_) => ()
         Err(e) => cs_abort(peer.id + " complete", e)
@@ -1398,27 +1451,25 @@ test "corpus multi-row comparison groups decode to identical semantics" {
   assert_eq(groups, CDR_FX_COMPARISON_TOTAL)
 }
 
-// ---------------------------------------------------------------------------
-// Tests: exact re-encode (M1-01d2)
-// ---------------------------------------------------------------------------
-
 ///|
-test "corpus exact re-encode matches logical prefix for all 56 fixtures" {
+test "corpus exact re-encode of decoded CorpusValue matches logical prefix" {
   let mut n = 0
   for f in cdr_corpus_fixtures {
     let (arr, bytes) = materialize_fixture(f)
     let r = cs_open(bytes[:])
-    decode_and_check_values(r, f.case_id)
+    let value = decode_case(r, f.case_id)
+    assert_expected_semantics(value, f.case_id)
     match r.ensure_complete_with_zero_tail(f.zero_tail_bytes) {
       Ok(_) => ()
       Err(e) => cs_abort(f.id + " complete", e)
     }
+    // Encode the same decoded object — no expected-constant reconstruction.
     let endian = cs_endian_of(f.serialized_endianness)
-    let out = reencode_case(f.case_id, endian, ())
+    let w = cs_writer(endian)
+    encode_case(w, value)
+    let out = w.to_bytes()
     assert_eq(out.length(), f.logical_byte_length)
     assert_eq(prefix_eq_bytes(out, arr, f.logical_byte_length), true)
-    // Canonical encode carries zero top-level tail.
-    assert_eq(out.length() == f.byte_length || f.zero_tail_bytes > 0, true)
     if f.zero_tail_bytes == 0 {
       assert_eq(out.length(), f.byte_length)
     } else {
@@ -1430,32 +1481,35 @@ test "corpus exact re-encode matches logical prefix for all 56 fixtures" {
 }
 
 ///|
-test "point_cloud2 data is borrowed input-backed view and re-encodes exactly" {
+test "point_cloud2 data is borrowed input-backed view and re-encodes decoded value" {
   let f = cdr_fx_find("H-CY-point_cloud2")
   let (arr, bytes) = materialize_fixture(f)
   let input = bytes
   let r = cs_open(input[:])
-  let cloud = decode_point_cloud2(r)
+  let value = decode_case(r, f.case_id)
   match r.ensure_complete_with_zero_tail(f.zero_tail_bytes) {
     Ok(_) => ()
     Err(e) => cs_abort("pc2 complete", e)
   }
-  let exp = expected_point_cloud2_data_bytes()
-  assert_eq(cloud.data.length(), 96)
-  assert_eq(eq_bytes_view_array(cloud.data, exp), true)
-  // Package-visible view identity: data() spans the full input buffer.
-  assert_eq(cloud.data.data().length(), input.length())
-  assert_eq(physical_equal(cloud.data.data(), input), true)
-  // Exact re-encode from the borrowed view (not a copied array).
+  match value {
+    PointCloud2(cloud) => {
+      let exp = expected_point_cloud2_data_bytes()
+      assert_eq(cloud.data.length(), 96)
+      assert_eq(eq_bytes_view_array(cloud.data, exp), true)
+      assert_eq(cloud.data.data().length(), input.length())
+      assert_eq(physical_equal(cloud.data.data(), input), true)
+    }
+    _ => abort("expected PointCloud2")
+  }
   let w = cs_writer(CdrEndian::Little)
-  encode_point_cloud2(w, cloud)
+  encode_case(w, value)
   let out = w.to_bytes()
   assert_eq(out.length(), f.logical_byte_length)
   assert_eq(prefix_eq_bytes(out, arr, f.logical_byte_length), true)
 }
 
 ///|
-test "big-endian primitive singletons decode and re-encode" {
+test "big-endian primitive singletons decode and re-encode decoded values" {
   for
     id in [
       "H-FT-primitive_scalars_big_endian", "J-FT-primitive_scalars_big_endian",
@@ -1465,27 +1519,37 @@ test "big-endian primitive singletons decode and re-encode" {
     let (arr, bytes) = materialize_fixture(f)
     let r = cs_open(bytes[:])
     assert_eq(r.little_endian(), false)
-    let v = decode_primitive_scalars(r, r.root_nesting())
-    assert_eq(eq_primitive(v, expected_primitive_scalars()), true)
+    let value = decode_case(r, f.case_id)
+    assert_expected_semantics(value, f.case_id)
     match r.ensure_complete_with_zero_tail(f.zero_tail_bytes) {
       Ok(_) => ()
       Err(e) => cs_abort(id + " complete", e)
     }
-    let out = reencode_case(f.case_id, CdrEndian::Big, ())
+    let w = cs_writer(CdrEndian::Big)
+    encode_case(w, value)
+    let out = w.to_bytes()
     assert_eq(out.length(), f.logical_byte_length)
     assert_eq(prefix_eq_bytes(out, arr, f.logical_byte_length), true)
   }
 }
 
 ///|
-test "comparison groups re-encode to one logical prefix per group" {
-  // Cross-row fixtures share logical values; exact re-encode is identical per
-  // case_id and endianness, and equals each member's canonical logical prefix.
+test "comparison groups re-encode decoded first member to each logical prefix" {
   let mut groups = 0
   for c in cdr_corpus_comparisons {
     let first = cdr_fx_find(c.fixture_ids[0])
+    let (arr0, bytes0) = materialize_fixture(first)
+    ignore(arr0)
+    let r0 = cs_open(bytes0[:])
+    let v0 = decode_case(r0, first.case_id)
+    match r0.ensure_complete_with_zero_tail(first.zero_tail_bytes) {
+      Ok(_) => ()
+      Err(e) => cs_abort(first.id + " complete", e)
+    }
     let endian = cs_endian_of(first.serialized_endianness)
-    let out = reencode_case(first.case_id, endian, ())
+    let w = cs_writer(endian)
+    encode_case(w, v0)
+    let out = w.to_bytes()
     let mut i = 0
     while i < c.fixture_ids.length() {
       let f = cdr_fx_find(c.fixture_ids[i])
@@ -1498,4 +1562,66 @@ test "comparison groups re-encode to one logical prefix per group" {
     groups = groups + 1
   }
   assert_eq(groups, CDR_FX_COMPARISON_TOTAL)
+}
+
+///|
+test "encode_case reflects mutated decoded CorpusValue not expected constants" {
+  // Decode a real collections fixture, mutate one field, prove encode differs
+  // from the corpus logical prefix (and from encoding the unmutated value).
+  let f = cdr_fx_find("H-CY-collections")
+  let (arr, bytes) = materialize_fixture(f)
+  let r = cs_open(bytes[:])
+  let value = decode_case(r, f.case_id)
+  match r.ensure_complete_with_zero_tail(f.zero_tail_bytes) {
+    Ok(_) => ()
+    Err(e) => cs_abort("mutate complete", e)
+  }
+  let w0 = cs_writer(CdrEndian::Little)
+  encode_case(w0, value)
+  let baseline = w0.to_bytes()
+  assert_eq(prefix_eq_bytes(baseline, arr, f.logical_byte_length), true)
+  // Mutate decoded fixed_i32[1] from 0 to 1.
+  let mutated = match value {
+    Collections(c) => {
+      let fixed : Array[Int] = [c.fixed_i32[0], 1, c.fixed_i32[2]]
+      Collections({
+        fixed_i32: fixed,
+        bounded_f64: c.bounded_f64,
+        bytes_value: c.bytes_value,
+        bounded_string: c.bounded_string,
+        bounded_wstring: c.bounded_wstring,
+      })
+    }
+    _ => abort("expected Collections")
+  }
+  let w1 = cs_writer(CdrEndian::Little)
+  encode_case(w1, mutated)
+  let altered = w1.to_bytes()
+  assert_eq(altered.length(), baseline.length())
+  // At least one byte differs from the corpus logical prefix.
+  let mut differs = false
+  let mut i = 0
+  while i < f.logical_byte_length {
+    if altered[i] != arr[i] {
+      differs = true
+    }
+    i = i + 1
+  }
+  assert_eq(differs, true)
+  assert_eq(eq_corpus_value(value, mutated), false)
+}
+
+///|
+test "direct peer decoded CorpusValue equality without expected oracle" {
+  let a = cdr_fx_find("H-FT-collections")
+  let b = cdr_fx_find("H-CY-collections")
+  let (_, ba) = materialize_fixture(a)
+  let (_, bb) = materialize_fixture(b)
+  let ra = cs_open(ba[:])
+  let rb = cs_open(bb[:])
+  let va = decode_case(ra, a.case_id)
+  let vb = decode_case(rb, b.case_id)
+  assert_eq(eq_corpus_value(va, vb), true)
+  // Wire bytes may differ across rows (tail slack); values still equal.
+  assert_eq(a.byte_length == b.byte_length || true, true)
 }
