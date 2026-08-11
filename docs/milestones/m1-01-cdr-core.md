@@ -16,7 +16,7 @@ Status: Complete. M1 remains active.
 | M1-01d0 | Declared zero-tail API and frozen tail-slack evidence | [`tail-slack.json`](../../conformance/cdr/tail-slack.json) |
 | M1-01d1 | Corpus fixture bridge into MoonBit white-box tests | [Corpus README d1 table](../../conformance/cdr/README.md#moonbit-white-box-bridge-m1-01d1) |
 | M1-01d2 | Semantic decode and exact canonical re-encode (56 fixtures, 18 groups) | [`corpus_semantics_wbtest.mbt`](../../rclmbt/cdr/corpus_semantics_wbtest.mbt) |
-| M1-01d3 | Corpus adversarial gate (completion, tails, stream bounds, framing) | [`corpus_adversarial_wbtest.mbt`](../../rclmbt/cdr/corpus_adversarial_wbtest.mbt) |
+| M1-01d3 | Corpus adversarial gate (completion, tails, exact-end declarations, stream bounds, framing) | [`corpus_adversarial_wbtest.mbt`](../../rclmbt/cdr/corpus_adversarial_wbtest.mbt) |
 
 Low-level typed adversarial coverage for illegal booleans, UTF-8, string and wstring faults, Unicode scalar slots, sequence bounds, alignment and allocation ceilings, nesting 64/65, writer atomicity, and unit-level strict/declared tails lives in the focused `*_wbtest.mbt` suites under [`rclmbt/cdr/`](../../rclmbt/cdr/). The corpus adversarial gate composes those APIs over the d1 bridge and d2 decode pipeline and leaves field-codec implementation to those focused suites.
 
