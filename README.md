@@ -116,9 +116,10 @@ M0 foundation work is in progress. R2WP v0 milestone `M0-03a–h` is verified co
 
 | Detail | Canonical record |
 |---|---|
+| M0-03 outcome and accepted verification | [M0-03 completion record](./docs/milestones/m0-03-r2wp-foundation.md) |
 | Protocol contract and implementation coverage | [R2WP protocol](./docs/protocol/r2wp.md) |
 | Fixture coverage and parser consumers | [Protocol fixtures](./protocol/testdata/README.md) |
-| Agreement hashes, delivery commits, and accepted verification | [Cross-language agreement](./protocol/testdata/agreement/README.md) |
+| Agreement report, digests, and emitter commands | [Cross-language agreement](./protocol/testdata/agreement/README.md) |
 | Remaining M0 work and decision gates | [Implementation plan](./tasks/plan.md) |
 | Phase 1 Humble/Jazzy rows | [Support matrix](./docs/support-matrix.md) |
 

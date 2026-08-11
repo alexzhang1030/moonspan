@@ -24,6 +24,7 @@ The scope ordering and Bun choice record human direction from 2026-08-10. Other 
 | R2WP overview and design entry | [R2WP](./protocol/r2wp.md) |
 | R2WP wire version 0 normative contract | [protocol/r2wp-v0.md](../protocol/r2wp-v0.md), [registry](../protocol/registry/r2wp-v0.json), [control CDDL](../protocol/schema/control-v0.cddl), [ADR 0009](./adr/0009-r2wp-v0-wire-encoding.md), [contract validator](../scripts/protocol-check.ts) |
 | R2WP codecs, parsers, fixture corpora, and agreement | [R2WP overview](./protocol/r2wp.md), [TypeScript SDK codecs](../sdk/typescript/src/protocol/), [Rust gateway parser](./gateway/rclwebd.md), [MoonBit runtime parser](./runtime/rclmbt.md), [fixtures README](../protocol/testdata/README.md), valid [manifest](../protocol/testdata/manifest.json) / [malformed](../protocol/testdata/malformed/) / [sequences](../protocol/testdata/sequences/) / [parity.json](../protocol/testdata/parity.json) / [agreement/](../protocol/testdata/agreement/), aggregate [fixture checker](../scripts/protocol-fixtures.ts), [agreement orchestrator](../scripts/protocol-agree-run.ts) |
+| M0-03 R2WP foundation outcome and completion evidence | [M0-03 completion record](./milestones/m0-03-r2wp-foundation.md) |
 | MoonBit/Wasm runtime, schemas, host ABI | [`rclmbt`](./runtime/rclmbt.md) |
 | Gateway, ROS adapter, scheduling, operations | [`rclwebd`](./gateway/rclwebd.md) |
 | Identity, policy, audit, resource controls | [Security](./security.md) |

@@ -23,6 +23,7 @@ Use this map to load the smallest durable context for a task. PCR records captur
 | Existing solution landscape | [docs/landscape.md](../../docs/landscape.md) |
 | Technical reference set | [docs/references.md](../../docs/references.md) |
 | R2WP | [docs/protocol/r2wp.md](../../docs/protocol/r2wp.md) |
+| M0-03 R2WP foundation completion | [docs/milestones/m0-03-r2wp-foundation.md](../../docs/milestones/m0-03-r2wp-foundation.md) |
 | `rclmbt` | [docs/runtime/rclmbt.md](../../docs/runtime/rclmbt.md) |
 | `rclwebd` | [docs/gateway/rclwebd.md](../../docs/gateway/rclwebd.md) |
 | Security | [docs/security.md](../../docs/security.md) |
