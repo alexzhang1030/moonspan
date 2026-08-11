@@ -25,7 +25,7 @@ Planning windows guide sequencing. Gate evidence controls progression.
 | Architecture | [Architecture](../docs/architecture.md) |
 | Decisions | [ADR register](../docs/adr/README.md) |
 | Protocol | [R2WP](../docs/protocol/r2wp.md) |
-| Runtime and gateway | [`rclmbt`](../docs/runtime/rclmbt.md), [CDR core](../docs/runtime/cdr.md), [`rclwebd`](../docs/gateway/rclwebd.md) |
+| Runtime and gateway | [`rclmbt`](../docs/runtime/rclmbt.md), [CDR core](../docs/runtime/cdr.md), [generated types](../docs/runtime/generated-types.md), [`rclwebd`](../docs/gateway/rclwebd.md) |
 | Security and compatibility | [Security](../docs/security.md), [compatibility](../docs/compatibility.md) |
 | Supported profiles | [Support matrix](../docs/support-matrix.md) |
 | Evidence | [Validation](../docs/validation.md) |
@@ -133,6 +133,11 @@ M0 exit requires accepted decisions, clean-checkout root commands, reproducible 
 | M1-01d2 | Complete | Semantic decode and exact re-encode proof | M1-01d1 |
 | M1-01d3 | Complete | Malformed/resource cases and final M1-01 gate | M1-01d2 |
 | M1-02 | Active | Generate types and build the schema-identity registry | M0-04, M1-01 |
+| M1-02a | Complete | Freeze the generated-types and schema-registry contract | M1-01, M0-04 |
+| M1-02b | Queued | Deterministic Bun generator and committed generated MoonBit artifacts | M1-02a |
+| M1-02c | Queued | Production MoonBit models and CDR1 codecs for nine corpus roots plus shared dependencies | M1-02b |
+| M1-02d | Queued | Dual-scheme registry, Jazzy provenance, support-row zero-tail lookup | M1-02c |
+| M1-02e | Queued | Corpus, adversarial, and public completion gate | M1-02d |
 | M1-03 | Queued | Establish the Wasm host ABI and executor poll loop | M0-02, M0-03 |
 | M1-04 | Queued | Implement the serialized ROS C ABI | M0-02, M0-04 |
 | M1-05 | Queued | Build the gateway graph, schema, telemetry, and scheduler core | M0-03, M1-04 |
@@ -187,6 +192,34 @@ M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both 
 
 - **Dependencies:** M0-02, M0-04 (M1-01a complete on documentation alone)
 - **Likely files:** `docs/runtime/cdr.md`, `docs/runtime/rclmbt.md`, `docs/README.md`, `.agents/docs/**`, `tasks/plan.md`, `tasks/todo.md`, later `rclmbt/**` for b–d
+- **Scope:** L
+
+#### M1-02 — Generated types and schema-identity registry
+
+**Description:** Generate production MoonBit models and CDR1 codecs for the nine authoritative corpus roots, and build a dual-scheme schema registry that resolves Humble `moonspan-schema-v1` and Jazzy `rep2011-rihs` identities before channel activation. Contract: [generated types](../docs/runtime/generated-types.md). Identity strategy: [ADR 0007](../docs/adr/0007-humble-jazzy-schema-identity.md).
+
+**Sub-batches:**
+
+| ID | State | Scope |
+|---|---|---|
+| M1-02a | Complete | Documentation freeze: generator inputs, nine-root surface, SchemaKey, schemes, 18→9 resolve, provenance, lookup with zero-tail, registration, bounds, typed errors, acceptance evidence |
+| M1-02b | Queued | Deterministic Bun generator (`--write` / `--check`) from committed bundles, manifest, tail-slack, and Jazzy RIHS map; checked-in MoonBit artifacts with byte identity |
+| M1-02c | Queued | Production MoonBit models and CDR1 codecs for nine roots plus shared dependencies; `cdr_mbt` composition; field bounds, nesting, borrowed PointCloud2 data |
+| M1-02d | Queued | Dual-scheme registry; RIHS provenance; lookup with `support_row_id` and committed expected zero-tail; idempotent vs conflicting registration |
+| M1-02e | Queued | Corpus, adversarial, and public completion gate |
+
+**Acceptance criteria (M1-02 overall):**
+
+- [x] Authoritative contract at `docs/runtime/generated-types.md` routed from docs, PCR, and tasks (M1-02a).
+- [ ] Bun generator with `--write`/`--check` byte identity over committed MoonBit output (M1-02b).
+- [ ] Nine-root CDR1 codecs plus shared dependencies, using `cdr_mbt` with schema bounds, nesting, and borrowed PointCloud2 data (M1-02c).
+- [ ] Eighteen identities resolve to nine descriptors; schemes stay independent; missing material is `schema_unavailable` before activation; lookup returns committed zero-tail (M1-02d).
+- [ ] Corpus, adversarial, and public gate pass (M1-02e).
+
+**Verification:** focused generator and MoonBit/Wasm tests; corpus-driven checks; root `just check`, `just test`, and `just build` when implementation lands.
+
+- **Dependencies:** M0-04, M1-01 (M1-02a is documentation alone)
+- **Likely files:** `docs/runtime/generated-types.md`, `docs/runtime/rclmbt.md`, `docs/README.md`, `.agents/docs/README.md`, `tasks/plan.md`, `tasks/todo.md`, later `scripts/**`, `rclmbt/**`, `package.json`, `justfile`
 - **Scope:** L
 
 ### M2: ROS semantics
@@ -261,9 +294,9 @@ Work is grouped into ROS and middleware, MoonBit and Wasm, Rust and transport, b
 
 ## 11. Immediate execution order
 
-1. Advance M1-02 generated types against the completed M1-01 CDR core.
+1. Advance M1-02b (deterministic generator) against the frozen M1-02a contract and completed M1-01 CDR core.
 2. Continue M0 carryover in parallel: M0-01 decisions, M0-02 hosted CI review, M0-05b collector, M0-05c hosted integration.
-3. Advance M1-02 and M1-03 once M1-01 behavior is stable enough for consumers.
+3. Continue M1-02c–e and open M1-03 when host ABI work can proceed in parallel.
 4. Keep M1-08 gated on M0-05 so the PointCloud2 report uses the finished evidence harness.
 
 ## 12. Risks and responses

@@ -1,6 +1,6 @@
 # `rclmbt` browser runtime
 
-`rclmbt` is Moonspan's MoonBit/Wasm runtime for deterministic browser-side ROS 2 behavior. The R2WP v0 parser is complete. M1 builds the CDR core, host boundary, and publish/subscribe path; M2 completes the planned N2 semantics. The CDR behavioral contract lives in [CDR core](./cdr.md).
+`rclmbt` is Moonspan's MoonBit/Wasm runtime for deterministic browser-side ROS 2 behavior. The R2WP v0 parser is complete. M1 builds the CDR core, generated types, host boundary, and publish/subscribe path; M2 completes the planned N2 semantics. The CDR behavioral contract lives in [CDR core](./cdr.md). Generated types and the schema-identity registry live in [generated types](./generated-types.md).
 
 ## Responsibilities
 
@@ -53,14 +53,16 @@ Each host turn passes a bounded event batch into `poll`. The result contains out
 
 ## Types and schemas
 
-The runtime receives normalized schema records from the gateway and remains independent of the ROS distribution.
+The runtime receives normalized schema records from the gateway and remains independent of the ROS distribution. The M1-02 contract is [generated types and schema registry](./generated-types.md).
 
 - Jazzy uses `rep2011-rihs` identity and native type descriptions.
 - Humble uses complete recursive bundles identified by `moonspan-schema-v1`.
-- Generated codecs serve pinned interfaces and application-owned schemas.
-- Dynamic plans validate recursive descriptions and project requested fields.
-- Cache identity includes scheme, value, type name, encoding, and schema generation.
+- Generated codecs serve the nine Phase 1 corpus roots and their shared dependencies (CDR1).
+- Dual-scheme lookup resolves 18 identities to nine codec descriptors; RIHS-to-bundle maps are provenance only.
+- Cache identity is `SchemaKey`: scheme, value, type name, encoding, and schema generation.
+- Lookup also takes `support_row_id` and returns the committed expected top-level zero-tail.
 - Missing required schema material yields `schema_unavailable` before channel activation.
+- The M1 registry is static and finite; dynamic plans and open registration belong to M2.
 
 ## CDR and buffers
 

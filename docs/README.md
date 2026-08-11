@@ -18,7 +18,7 @@ This directory contains the technical documentation for Moonspan. Each document 
 | System boundaries and data paths | [Architecture](./architecture.md) |
 | Related projects and source material | [Landscape](./landscape.md), [references](./references.md) |
 | Protocol contract and implementations | [R2WP](./protocol/r2wp.md) |
-| Runtime and gateway | [`rclmbt`](./runtime/rclmbt.md), [CDR core](./runtime/cdr.md), [`rclwebd`](./gateway/rclwebd.md) |
+| Runtime and gateway | [`rclmbt`](./runtime/rclmbt.md), [CDR core](./runtime/cdr.md), [generated types](./runtime/generated-types.md), [`rclwebd`](./gateway/rclwebd.md) |
 | Security and compatibility | [Security](./security.md), [compatibility](./compatibility.md) |
 | Supported ROS profiles | [Support matrix](./support-matrix.md) |
 | Evidence and release gates | [Validation](./validation.md), [evidence contracts](../evidence/README.md) |
@@ -34,7 +34,7 @@ This directory contains the technical documentation for Moonspan. Each document 
 |---|---|
 | Root tooling | [Technology stack](../.agents/docs/technology-stack.md), [repository README](../README.md) |
 | `protocol/**` | [R2WP](./protocol/r2wp.md), [normative contract](../protocol/r2wp-v0.md), [fixtures](../protocol/testdata/README.md) |
-| `rclmbt/**` | [`rclmbt`](./runtime/rclmbt.md), [CDR core](./runtime/cdr.md), [architecture](./architecture.md) |
+| `rclmbt/**` | [`rclmbt`](./runtime/rclmbt.md), [CDR core](./runtime/cdr.md), [generated types](./runtime/generated-types.md), [architecture](./architecture.md) |
 | `rclwebd/**` | [`rclwebd`](./gateway/rclwebd.md), [security](./security.md) |
 | `sdk/**` | [Architecture](./architecture.md), [R2WP](./protocol/r2wp.md) |
 | `conformance/**`, `benchmarks/**`, `evidence/**` | [Validation](./validation.md), [support matrix](./support-matrix.md), [evidence contracts](../evidence/README.md) |

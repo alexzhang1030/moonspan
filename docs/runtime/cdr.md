@@ -1,6 +1,6 @@
 # CDR core contract
 
-Authoritative runtime contract for Moonspan CDR in `cdr_mbt` (M1-01). Generated types (M1-02) and the Wasm host poll boundary (M1-03) consume this surface.
+Authoritative runtime contract for Moonspan CDR in `cdr_mbt` (M1-01). Generated types and the schema registry ([M1-02](./generated-types.md)) and the Wasm host poll boundary (M1-03) consume this surface.
 
 ## Purpose
 

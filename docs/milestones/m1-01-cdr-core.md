@@ -44,4 +44,4 @@ just build
 
 ## Phase boundary
 
-M1 continues. **M1-02** (generated types and schema-identity registry) and **M1-03** (Wasm host ABI and executor poll loop) are the next consumers of this core. The M1 phase gate stays open until graph, transport, SDK, and qualification work land.
+M1 continues. **M1-02** (generated types and schema-identity registry; [contract](../runtime/generated-types.md)) and **M1-03** (Wasm host ABI and executor poll loop) are the next consumers of this core. The M1 phase gate stays open until graph, transport, SDK, and qualification work land.

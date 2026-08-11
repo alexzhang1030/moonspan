@@ -40,7 +40,12 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
     - [x] M1-01d1 Fixture bridge from committed corpus into MoonBit tests.
     - [x] M1-01d2 Semantic decode and exact re-encode proof.
     - [x] M1-01d3 Malformed/resource cases and final M1-01 gate.
-- [~] M1-02 Implement generated types and the type registry.
+- [~] M1-02 Implement generated types and the type registry ([contract](../docs/runtime/generated-types.md)).
+  - [x] M1-02a Freeze the generated-types and schema-registry contract.
+  - [ ] M1-02b Deterministic Bun generator and committed generated MoonBit artifacts.
+  - [ ] M1-02c Production MoonBit models and CDR1 codecs for nine corpus roots plus shared dependencies.
+  - [ ] M1-02d Dual-scheme registry, Jazzy provenance, support-row zero-tail lookup.
+  - [ ] M1-02e Corpus, adversarial, and public completion gate.
 - [ ] M1-03 Establish the Wasm host ABI and executor poll loop.
 - [ ] M1-04 Implement the serialized ROS C ABI.
 - [ ] M1-05 Build the gateway graph, schema, telemetry, and scheduler core.

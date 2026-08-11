@@ -26,7 +26,7 @@ PCR records preserve the durable reasoning that contributors need across tasks. 
 | Area | Context |
 |---|---|
 | `protocol/**` | [Architecture](./architecture.md), [R2WP](../../docs/protocol/r2wp.md) |
-| `rclmbt/**` | [Architecture](./architecture.md), [technology stack](./technology-stack.md), [`rclmbt`](../../docs/runtime/rclmbt.md), [CDR core](../../docs/runtime/cdr.md) |
+| `rclmbt/**` | [Architecture](./architecture.md), [technology stack](./technology-stack.md), [`rclmbt`](../../docs/runtime/rclmbt.md), [CDR core](../../docs/runtime/cdr.md), [generated types](../../docs/runtime/generated-types.md) |
 | `rclwebd/**` | [Architecture](./architecture.md), [`rclwebd`](../../docs/gateway/rclwebd.md), [security](../../docs/security.md) |
 | `sdk/**` | [Intent](./intent.md), [architecture](../../docs/architecture.md) |
 | `conformance/**`, `benchmarks/**`, `evidence/**` | [Validation](./validation.md), [CDR core](../../docs/runtime/cdr.md), [support matrix](../../docs/support-matrix.md), [evidence contracts](../../evidence/README.md) |
