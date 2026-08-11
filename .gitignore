@@ -31,3 +31,7 @@ _build/
 tmp/
 temp/
 artifacts/
+
+# MoonBit package introspection dumps (moon info)
+pkg.generated.mbti
+**/pkg.generated.mbti
