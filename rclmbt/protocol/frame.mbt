@@ -91,6 +91,17 @@ pub fn FrameOptions::default() -> FrameOptions {
 }
 
 ///|
+/// Construct selected-frame receiver configuration from version, experimental
+/// opcode policy, and available clock identifiers.
+pub fn FrameOptions::new(
+  selected_version : Int,
+  experimental_opcodes_enabled : Bool,
+  available_clock_ids : Array[Int],
+) -> FrameOptions {
+  { selected_version, experimental_opcodes_enabled, available_clock_ids }
+}
+
+///|
 /// Frame payload: borrowed application bytes or validated CONTROL_CBOR.
 pub enum FramePayload {
   Application(BytesView)
