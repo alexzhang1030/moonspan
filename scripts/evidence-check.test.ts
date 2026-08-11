@@ -176,7 +176,7 @@ describe("evidence module wiring", () => {
       Object.keys(evidenceContract).filter((k) => k === "GATES" || k === "SCHEMA_VERSION"),
     ).toEqual([]);
 
-    // Schema depends on model constants (not the validator module) and produces schema.
+    // Schema depends on model constants directly and produces the public schema.
     expect(typeof evidenceSchema.buildQualificationReportSchema).toBe("function");
     expect(typeof evidenceSchema.schemaCanonicalBytes).toBe("function");
     const schema = evidenceSchema.buildQualificationReportSchema();

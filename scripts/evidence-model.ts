@@ -2,7 +2,8 @@
  * Shared qualification report v1 model (M0-05a).
  *
  * Pure enums, bounds, key arrays, regexes, and helpers used by runtime
- * validation, schema generation, and filesystem checks. No I/O.
+ * validation, schema generation, and filesystem checks. This module is
+ * pure data and pure functions; filesystem work stays in evidence-check.ts.
  */
 
 import path from "node:path";
