@@ -1,6 +1,10 @@
-// R2WP protocol package (M0-03g). Fixture bridge white-box data lands first (g1).
-// Production dependency surface uses core/prelude.
+// R2WP protocol package (M0-03g).
+// Production dependency surface uses core/prelude and core encoding utf8.
 // Generated bridge source is owned by scripts/protocol-moonbit-fixtures.ts.
+import {
+  "moonbitlang/core/encoding/utf8",
+}
+
 supported_targets = "wasm"
 
 formatter(ignore: [ "fixture_data_wbtest.mbt" ])
