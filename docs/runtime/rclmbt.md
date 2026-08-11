@@ -2,9 +2,23 @@
 
 `rclmbt` is Moonspan's MoonBit-to-Wasm implementation of browser-native ROS 2 runtime semantics. It owns deterministic state, CDR processing, type identity, graph state, QoS compatibility, executor dispatch, and typed operations exposed through the browser SDK.
 
-**Status:** design baseline. M1 establishes the host boundary and publish/subscribe core; M2 completes the N2 semantic surface.
+**Status:** design baseline. M0-03g lands the R2WP wire version 0 reference parser under [`rclmbt/protocol/`](../../rclmbt/protocol/) (review Accept). M1 establishes the host boundary and publish/subscribe core; M2 completes the N2 semantic surface.
 
 Schema identity follows [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md). Gateway process and support-row topology follows [ADR 0008](../adr/0008-one-adapter-row-per-gateway-process.md). First-stage environment pins live in the [support matrix](../support-matrix.md).
+
+## R2WP reference parser (M0-03g)
+
+The MoonBit package [`rclmbt/protocol/`](../../rclmbt/protocol/) implements the wire version 0 receiver for bootstrap steps 1–9 and selected-frame steps 1–16. It shares the committed fixture corpora under [protocol/testdata/](../../protocol/testdata/README.md) through a white-box fixture bridge (`fixture_data_wbtest.mbt`).
+
+Coverage (review Accept; commits `2f7352f`, `1157138`, `0c5e4d2`, `133fd9f`):
+
+- deterministic CBOR; extension TLVs; all 15 CONTROL kinds with nested CDDL shapes;
+- all 20 valid entries: 3 bootstrap binaries, 16 frame binaries, and the fully materialized 64 MiB segment recipe;
+- all 55 malformed binaries (14 bootstrap / 41 frame) with exact code, name, reason, absolute offset, plane, and step;
+- four exact Phase 1 SessionReady rows H-FT, H-CY, J-FT, and J-CY; u32 / u64 / i64 header bounds;
+- borrowed extension and application `BytesView` backing shared with the input storage.
+
+Focused verification: `moon test --frozen --target wasm rclmbt/protocol` (69 of 69). Full Bun suite 613 of 613; pinned `just check` status=ok under Bun 1.3.14 / Rust 1.97.1 / moonc 0.10.6+80dc50f24 / just 1.50.0. Cross-language agreement continues through M0-03h. Hosted CI run evidence remains pending.
 
 ## Runtime scope
 

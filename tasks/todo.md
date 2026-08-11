@@ -16,8 +16,8 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
     - [x] M0-03e2 State-sequence corpus (13 scenarios / 26 events; `protocol/testdata/sequences/`, `scripts/protocol-sequence-fixtures.ts`; commit `63f21df`).
     - [x] M0-03e3 Transport parity and aggregate checking (46 shared identities + 20 registry-bound rules; aggregate order `valid_boundary → malformed → sequences → parity` once each; commit `154afb1`; parity SHA-256 `d75d07e46f878be00bb05fd395ccec768ad52950f749cad8b9fcd28a208f80c9` after two aggregate writes).
     - [x] M0-03e4 Documentation/status closeout after e1–e3 evidence (commit subject `docs(plan): record r2wp scenario fixture completion`).
-  - [x] M0-03f Rust reference parser in `rclwebd` (verified; review Accept; commits `9c07b4a` bootstrap, `cca270c` frame; `cargo test --locked -p rclwebd` 55 of 55; M0-03 remains active for g/h).
-  - [ ] M0-03g MoonBit reference parser (`rclmbt/protocol`).
+  - [x] M0-03f Rust reference parser in `rclwebd` (verified; review Accept; commits `9c07b4a` bootstrap, `cca270c` frame; `cargo test --locked -p rclwebd` 55 of 55).
+  - [x] M0-03g MoonBit reference parser in `rclmbt/protocol` (verified; review Accept; commits `2f7352f` fixture bridge, `1157138` bootstrap+CBOR, `0c5e4d2` extension+CONTROL, `133fd9f` frame; `moon test --frozen --target wasm rclmbt/protocol` 69 of 69; full `bun test` 613 of 613; M0-03 remains active for h).
   - [ ] M0-03h Cross-language agreement and M0-03 gate.
 - [ ] M0-04 Generate the authoritative ROS CDR corpus.
 - [ ] M0-05 Establish the evidence harness and report schema.

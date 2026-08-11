@@ -78,9 +78,21 @@ bun run protocol-fixtures:check   # same order, exactly once each
 bun run test:protocol-fixtures    # four test files exactly once, fixed order
 ```
 
-Root `bun run check` and `just check` run aggregate `protocol-fixtures:check`
-after `protocol-check`. Aggregate ownership lives in `scripts/protocol-fixtures.ts`
-and covers valid_boundary, malformed, sequences, and parity in that fixed order.
+Root `bun run check` runs `docs:check`, then `protocol-check`, then aggregate
+`protocol-fixtures:check`, then `protocol-moonbit-fixtures:check`. `just check`
+invokes that same `bun run check` chain after toolchain identity. Aggregate
+ownership lives in `scripts/protocol-fixtures.ts` and covers valid_boundary,
+malformed, sequences, and parity in that fixed order.
+
+MoonBit fixture bridge (M0-03g1 owner: `scripts/protocol-moonbit-fixtures.ts`),
+after the aggregate fixture check in root `bun run check`:
+
+```bash
+bun run protocol-moonbit-fixtures:write   # regenerate rclmbt/protocol/fixture_data_wbtest.mbt
+bun run protocol-moonbit-fixtures:check   # reconstruct/verify the bridge source
+bun run test:protocol-moonbit-fixtures    # focused bridge suite
+bun test scripts/protocol-moonbit-fixtures.test.ts
+```
 
 Standalone corpus commands (complete write/check surface):
 
@@ -122,8 +134,21 @@ loads the valid/boundary and malformed corpora specifically through locked crate
 tests (`cargo test --locked -p rclwebd` 55 of 55). Bootstrap steps 1–9 and
 selected-frame steps 1–16 cover all 20 valid entries (including the
 manifest-driven 64 MiB segment recipe) and all 55 malformed binaries with exact
-code/name/reason/offset/plane/step. Commits `9c07b4a`, `cca270c`. Sequences and
-parity feed later agreement and runtime work (M0-03g–h and beyond).
+code/name/reason/offset/plane/step. Commits `9c07b4a`, `cca270c`.
+
+**MoonBit consumer (M0-03g review Accept):** [`rclmbt/protocol/`](../../rclmbt/protocol/)
+loads the same corpora through the white-box fixture bridge
+(`fixture_data_wbtest.mbt`) and focused frozen Wasm tests
+(`moon test --frozen --target wasm rclmbt/protocol` 69 of 69). Bootstrap steps
+1–9 and selected-frame steps 1–16 cover all 20 valid entries (3 bootstrap
+binaries, 16 frame binaries, fully materialized 64 MiB segment recipe) and all
+55 malformed binaries (14 bootstrap / 41 frame) with exact
+code/name/reason/offset/plane/step; deterministic CBOR; extension TLVs; all 15
+CONTROL kinds; four exact Phase 1 SessionReady rows H-FT / H-CY / J-FT / J-CY;
+u32 / u64 / i64 bounds; borrowed extension and application `BytesView` backing.
+Commits `2f7352f` (fixture bridge), `1157138` (bootstrap + CBOR), `0c5e4d2`
+(extension + CONTROL), `133fd9f` (frame). Sequences and parity feed M0-03h
+cross-language agreement and later runtime work.
 
 ## Coverage highlights (valid/boundary)
 

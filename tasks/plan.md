@@ -23,7 +23,8 @@ The planning baseline uses five core engineers, 18 weeks for the mainline, and 6
 - M0-03c is verified complete: browser-internal deterministic CBOR encode/decode in `sdk/typescript/src/protocol/cbor.ts`; package root continues to export `src/index.ts`.
 - M0-03d is verified complete: TypeScript bootstrap, extension, CONTROL_CBOR (all 15 kinds), and selected-frame codecs; valid/boundary fixtures with versioned manifest and checker. Implementations live at `sdk/typescript/src/protocol/{bootstrap,extension,control,frame}.ts` and their tests.
 - M0-03e is verified complete (e1–e4 review Accept): static malformed corpus (55 fixtures), receiver state sequences (13 scenarios / 26 events), dual-transport parity (46 shared identities + 20 registry-bound rules), and documentation closeout. Aggregate write/check order is exactly `valid_boundary → malformed → sequences → parity` once each via `scripts/protocol-fixtures.ts`. Commits: `3600ff4` (e1), `63f21df` (e2), `154afb1` (e3). Root `bun run check` runs `docs:check`, `protocol-check`, then aggregate `protocol-fixtures:check`.
-- M0-03f is verified complete (review Accept): Rust reference parser in `rclwebd` covers bootstrap receiver steps 1–9 and selected-frame steps 1–16, deterministic CBOR, extension TLVs, all 15 CONTROL kinds with nested CDDL, all 20 valid fixtures including the manifest-driven 64 MiB segment recipe, and all 55 malformed binaries (14 bootstrap / 41 frame) with exact code/name/reason/offset/plane/step. Commits: `9c07b4ad2679cf00056c3ae8ebcfcddd096ee55e` (`feat(rclwebd): add r2wp bootstrap parser`), `cca270cae74c28e3d7f1a98c224bafc837d19d85` (`feat(rclwebd): add r2wp frame parser`). Locked crate tests 55 of 55; the `rclwebd` normal tree is std only; the `serde_json` dev dependency serves fixture tests. M0-03 remains active for M0-03g MoonBit and M0-03h agreement.
+- M0-03f is verified complete (review Accept): Rust reference parser in `rclwebd` covers bootstrap receiver steps 1–9 and selected-frame steps 1–16, deterministic CBOR, extension TLVs, all 15 CONTROL kinds with nested CDDL, all 20 valid fixtures including the manifest-driven 64 MiB segment recipe, and all 55 malformed binaries (14 bootstrap / 41 frame) with exact code/name/reason/offset/plane/step. Commits: `9c07b4ad2679cf00056c3ae8ebcfcddd096ee55e` (`feat(rclwebd): add r2wp bootstrap parser`), `cca270cae74c28e3d7f1a98c224bafc837d19d85` (`feat(rclwebd): add r2wp frame parser`). Locked crate tests 55 of 55; the `rclwebd` normal tree is std only; the `serde_json` dev dependency serves fixture tests.
+- M0-03g is verified complete (review Accept): MoonBit reference parser in `rclmbt/protocol` covers bootstrap receiver steps 1–9 and selected-frame steps 1–16, deterministic CBOR, extension TLVs, all 15 CONTROL kinds with nested CDDL, all 20 valid fixtures (3 bootstrap binaries, 16 frame binaries, fully materialized 64 MiB segment recipe), and all 55 malformed binaries (14 bootstrap / 41 frame) with exact code/name/reason/offset/plane/step; four exact Phase 1 SessionReady rows H-FT / H-CY / J-FT / J-CY; u32 / u64 / i64 header bounds; borrowed extension and application `BytesView` backing. Commits: `2f7352f82d147355ad85269c0b055707897e0722` (fixture bridge), `11571380f7199f6cccd0e13d7c8aecaaed1cc0b7` (bootstrap + deterministic CBOR), `0c5e4d20b444948f4f878e74530d75fa2b3f370f` (extension TLVs + all 15 CONTROL kinds), `133fd9f6fbdfece03ecbe413920b02d37c658d8a` (selected-frame steps 1–16). Focused frozen Wasm tests 69 of 69; full `bun test` 613 of 613; pinned `just check` under Bun 1.3.14 / Rust 1.97.1 / moonc 0.10.6+80dc50f24 / just 1.50.0. M0-03 remains active for M0-03h agreement.
 - Active mainline workspaces: `rclwebd/` (Cargo), `rclmbt/` (`moon.work`), `sdk/typescript/` (`@moonspan/sdk`). Studio is a U0 side project after M3.
 - R2WP, MoonBit/Wasm, Rust/C ABI, ROS support, and performance values are design baselines awaiting their named gates.
 - The mainline and UI side-project boundary is fixed in [product scope](../docs/product-scope.md).
@@ -341,17 +342,20 @@ Every task clears these conditions:
 
 ##### M0-03g — MoonBit reference parser in rclmbt
 
-**Description:** Implement the wire version 0 parser inside the MoonBit runtime module.
+**Description:** Implement the wire version 0 parser inside the MoonBit runtime module as sequential slices: fixture bridge (g1), bootstrap/CBOR (g2), extension/CONTROL (g3a), selected-frame (g3b), and documentation closeout (g4).
 
 **Acceptance criteria:**
 
-- [ ] `rclmbt` parses the same fixture set with matching error codes for assigned coverage.
-- [ ] Frozen `moon test --target wasm` covers the protocol package.
+- [x] `rclmbt` parses valid fixtures into structured records and maps malformed fixtures to registry error codes with stable `code` / `name` / `reason` / absolute `offset` / `plane` / `step`.
+- [x] Frozen Wasm white-box tests consume the fixture bridge for committed valid/boundary and malformed corpora.
+- [x] Bootstrap receiver steps 1–9 and selected-frame steps 1–16; deterministic CBOR; extension TLVs; all 15 CONTROL kinds with nested CDDL; borrowed extension and application `BytesView` payloads.
+- [x] Coverage includes all 20 valid entries (3 bootstrap binaries, 16 frame binaries, fully materialized 64 MiB segment recipe) and all 55 malformed binaries (14 bootstrap / 41 frame).
+- [x] Four exact Phase 1 SessionReady rows H-FT / H-CY / J-FT / J-CY and u32 / u64 / i64 header bounds are covered.
 
-**Verification:** `moon test --frozen --target wasm` for `rclmbt/protocol` sources.
+**Verification (review Accept):** full hashes `2f7352f82d147355ad85269c0b055707897e0722` (g1 fixture bridge; short `2f7352f`), `11571380f7199f6cccd0e13d7c8aecaaed1cc0b7` (g2 bootstrap + deterministic CBOR; short `1157138`), `0c5e4d20b444948f4f878e74530d75fa2b3f370f` (g3a extension TLVs + all 15 CONTROL kinds; short `0c5e4d2`), `133fd9f6fbdfece03ecbe413920b02d37c658d8a` (g3b selected-frame steps 1–16; short `133fd9f`); focused `moon test --frozen --target wasm rclmbt/protocol` 69 of 69; full `bun test` 613 of 613; pinned `just check` under Bun 1.3.14 / Rust 1.97.1 / moonc 0.10.6+80dc50f24 / just 1.50.0; `git diff --check` clean. Conventional Commit subject for documentation closeout: `docs(plan): record moonbit r2wp parser completion`. Hosted CI run evidence remains pending.
 
 - **Dependencies:** M0-03e
-- **Likely files:** `rclmbt/protocol/moon.pkg`, `rclmbt/protocol/frame.mbt`, `rclmbt/protocol/bootstrap.mbt`, `rclmbt/protocol/frame_test.mbt`, `rclmbt/moon.mod`
+- **Likely files:** `rclmbt/protocol/moon.pkg`, `rclmbt/protocol/{error,cbor,bootstrap,extension,control,frame}.mbt`, `rclmbt/protocol/{cbor,bootstrap,extension,control,frame,fixture_data}_wbtest.mbt`, `scripts/protocol-moonbit-fixtures.ts`, `scripts/protocol-moonbit-fixtures.test.ts`, `rclmbt/moon.mod`, `docs/protocol/r2wp.md`, `docs/runtime/rclmbt.md`, `docs/validation.md`, `README.md`, `.agents/docs/technology-stack.md`, `.agents/docs/validation.md`, `tasks/plan.md`, `tasks/todo.md`, `protocol/testdata/README.md`
 - **Scope:** M
 
 ##### M0-03h — Cross-language agreement and M0-03 gate
