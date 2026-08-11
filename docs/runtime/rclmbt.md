@@ -59,8 +59,8 @@ The runtime receives normalized schema records from the gateway and remains inde
 - Humble uses complete recursive bundles identified by `moonspan-schema-v1`.
 - Generated codecs serve the nine Phase 1 corpus roots and their shared dependencies (CDR1).
 - Dual-scheme lookup resolves 18 identities to nine codec descriptors; RIHS-to-bundle maps are provenance only.
-- Cache identity is `SchemaKey`: scheme, value, type name, encoding, and schema generation.
-- Lookup also takes `support_row_id` and returns the committed expected top-level zero-tail.
+- Cache identity is `SchemaKey`: scheme, value, type name, encoding, and schema generation (representation is not part of the key).
+- Zero-tail resolution takes `support_row_id` and CDR representation (`CDR_LE` / `CDR_BE`) against committed tail-slack evidence.
 - Missing required schema material yields `schema_unavailable` before channel activation.
 - The M1 registry is static and finite; dynamic plans and open registration belong to M2.
 
