@@ -1,181 +1,66 @@
 # R2WP v0 test fixtures
 
-Versioned R2WP v0 fixture corpora for wire version 0. Aggregate write/check ownership
-lives in [`scripts/protocol-fixtures.ts`](../../scripts/protocol-fixtures.ts) and runs
-exactly once per corpus in order `valid_boundary → malformed → sequences → parity`.
-Standalone scripts remain available for each corpus.
+These corpora provide the shared executable examples for R2WP v0. TypeScript generates and checks them. Rust and MoonBit consume the same data for parser agreement.
 
 ## Layout
 
 | Path | Role |
 |---|---|
-| `manifest.json` | Valid/boundary index: id, kind, path, lengths, SHA-256, coverage, executable tagged semantic `source`, expected success and roundtrip mode |
-| `valid/*.bin` | Materialized exact wire bytes for small and medium valid/boundary fixtures |
-| `malformed/` | Static malformed wire corpus (M0-03e1); own manifest + `*.bin` |
-| `sequences/` | Receiver state-sequence corpus (M0-03e2); scenarios + events |
-| `parity.json` | Dual-transport parity corpus (M0-03e3); shared artifact identities + transport rule matrix |
-| `agreement/` | Cross-language agreement expected corpus and three-language report (M0-03h); see [agreement/README.md](./agreement/README.md) |
+| `manifest.json` | Valid and boundary fixture index with source, expected result, length, digest, and round-trip mode |
+| `valid/*.bin` | Materialized valid wire records |
+| [`malformed/`](./malformed/README.md) | Invalid wire records and expected registry errors |
+| [`sequences/`](./sequences/README.md) | Ordered receiver events and state outcomes |
+| `parity.json` | WebTransport and binary WebSocket semantic bindings |
+| [`agreement/`](./agreement/README.md) | Expected outcomes and the cross-language report |
 
-## Representations (valid/boundary)
+## Fixture representation
 
-**Entry `representation` controls committed full-wire storage for valid/boundary fixtures:**
+Valid entries use one of two storage modes:
 
-| `representation` | Committed wire | Typical use |
-|---|---|---|
-| `binary` | `valid/<id>.bin` exact bytes | Small/medium frames and bootstrap records |
-| `segment_recipe` | Manifest-only wire storage (`path` is `null`) | Full-wire 64 MiB application payload |
-
-**Nested semantic recipes** (inside `source`) compact repeated byte values for
-`binary` entries that still commit exact wire under `valid/`. Examples: the 1 MiB
-SchemaAdvertise description and the 4092-byte unknown noncritical extension value use
-
-```json
-{ "$type": "recipe", "kind": "pattern_fill", "pattern_hex": "42", "length": 1048452 }
-```
-
-The generator expands those recipes when encoding wire bytes; the committed `.bin`
-is still exact. The 64 MiB fixture is manifest-only: nested recipe plus entry
-`representation: "segment_recipe"`.
-
-```json
-{
-  "$type": "recipe",
-  "kind": "pattern_fill",
-  "pattern_hex": "a55a",
-  "length": 67108864
-}
-```
-
-The checker materializes recipes in memory, encodes the full selected-version
-frame, and verifies `payload_length`, full-frame `byte_length`, and `sha256`.
-
-## Tagged semantic JSON (valid/boundary)
-
-Executable closed tags for valid/boundary encode inputs:
-
-| Tag | Meaning |
+| Mode | Use |
 |---|---|
-| `{ "$type": "bytes", "hex": "..." }` | Byte string (lowercase hex) |
-| `{ "$type": "bigint", "value": "..." }` | Arbitrary-precision integer (decimal string) |
-| `{ "$type": "map", "entries": [[k,v], ...] }` | CBOR/control map with numeric keys |
-| `{ "$type": "recipe", ... }` | Deterministic byte materialization |
-| `{ "$type": "bootstrap", ... }` | Bootstrap encode input (camelCase fields) |
-| `{ "$type": "frame", ... }` | Frame encode input |
+| `binary` | Commit the exact wire record under `valid/` |
+| `segment_recipe` | Reconstruct a large deterministic record from its manifest source |
 
-## Roundtrip modes (valid/boundary)
+Manifest sources use closed tagged JSON values for bytes, integers, maps, repeated byte recipes, bootstrap records, and selected-version frames. Recipes keep large repeated payloads compact while preserving deterministic length and digest checks.
 
-| Mode | Rule |
+Round-trip modes are:
+
+| Mode | Check |
 |---|---|
-| `decode-reencode` | Decode committed/reconstructed bytes, encode again, require exact byte equality |
-| `source-reencode` | Reconstruct from `source`, require decode success, and source encode equality (used when the decoder intentionally skips valid wire detail such as unknown noncritical TLVs, or for the 64 MiB recipe) |
+| `decode-reencode` | Decode and encode to the same bytes |
+| `source-reencode` | Reconstruct from source, decode successfully, and encode to the same bytes |
 
 ## Commands
 
-Aggregate (M0-03e3 owner: `scripts/protocol-fixtures.ts`):
+| Command | Purpose |
+|---|---|
+| `bun run protocol-fixtures:write` | Regenerate valid, malformed, sequence, and parity corpora |
+| `bun run protocol-fixtures:check` | Reconstruct and verify every corpus |
+| `bun run test:protocol-fixtures` | Run focused fixture tooling tests |
+| `bun run protocol-moonbit-fixtures:write` | Regenerate the MoonBit fixture bridge |
+| `bun run protocol-moonbit-fixtures:check` | Verify the MoonBit fixture bridge |
+| `bun run protocol-agree` | Verify TypeScript, Rust, and MoonBit outcomes |
+| `bun run protocol-agree:write` | Regenerate the agreement report |
 
-```bash
-bun run protocol-fixtures:write   # valid_boundary → malformed → sequences → parity
-bun run protocol-fixtures:check   # same order, exactly once each
-bun run test:protocol-fixtures    # four test files exactly once, fixed order
-```
+Standalone write and check scripts remain available for malformed, sequence, and parity corpora through the root `package.json` and `justfile`.
 
-Root `bun run check` runs `docs:check`, then `protocol-check`, then aggregate
-`protocol-fixtures:check`, then `protocol-moonbit-fixtures:check`, then
-`protocol-agree:check` exactly once. `just check` invokes that same
-`bun run check` chain after toolchain identity. Aggregate ownership lives in
-`scripts/protocol-fixtures.ts` and covers valid_boundary, malformed, sequences,
-and parity in that fixed order.
+## Invariants
 
-MoonBit fixture bridge (M0-03g1 owner: `scripts/protocol-moonbit-fixtures.ts`),
-after the aggregate fixture check in root `bun run check`:
+- Fixture IDs and paths are canonical and closed to the declared manifest.
+- Lengths and content digests are verified before semantic comparison.
+- Construction recipes are deterministic and allocation-bounded.
+- Expected errors bind to the registry code, name, location, plane, and validation step.
+- Receiver scenarios apply decoded wire events to a deterministic state machine.
+- Transport parity maps both transports to the same semantic identity.
+- Phase 1 session fixtures cover H-FT, H-CY, J-FT, and J-CY.
 
-```bash
-bun run protocol-moonbit-fixtures:write   # regenerate rclmbt/protocol/fixture_data_wbtest.mbt
-bun run protocol-moonbit-fixtures:check   # reconstruct/verify the bridge source
-bun run test:protocol-moonbit-fixtures    # focused bridge suite
-bun test scripts/protocol-moonbit-fixtures.test.ts
-```
+## Consumers
 
-Cross-language agreement (M0-03h owner: `scripts/protocol-agree-run.ts`), after
-the MoonBit fixture bridge check in root `bun run check`:
+| Consumer | Source |
+|---|---|
+| TypeScript codecs and oracle | [`sdk/typescript/src/protocol/`](../../sdk/typescript/src/protocol/), [`scripts/`](../../scripts/) |
+| Rust parser and emitter | [`rclwebd/src/protocol/`](../../rclwebd/src/protocol/), [`rclwebd/tests/protocol_agreement.rs`](../../rclwebd/tests/protocol_agreement.rs) |
+| MoonBit parser and emitter | [`rclmbt/protocol/`](../../rclmbt/protocol/), [`rclmbt/cmd/agree/`](../../rclmbt/cmd/agree/) |
 
-```bash
-bun run protocol-agree          # check: TypeScript expected + Rust/MoonBit emitters + report
-bun run protocol-agree:write    # regenerate protocol/testdata/agreement/report.json
-bun run test:protocol-agree     # focused orchestrator suite
-just protocol-agree
-just protocol-agree-write
-```
-
-Agreement layout and commands: [agreement/README.md](./agreement/README.md).
-
-Standalone corpus commands (complete write/check surface):
-
-```bash
-bun run protocol-malformed-fixtures:write
-bun run protocol-malformed-fixtures:check
-bun test scripts/protocol-malformed-fixtures.test.ts
-just protocol-malformed-fixtures-write
-just protocol-malformed-fixtures-check
-
-bun run protocol-sequence-fixtures:write
-bun run protocol-sequence-fixtures:check
-bun test scripts/protocol-sequence-fixtures.test.ts
-just protocol-sequence-fixtures-write
-just protocol-sequence-fixtures-check
-
-bun run protocol-parity-fixtures:write
-bun run protocol-parity-fixtures:check
-bun test scripts/protocol-parity-fixtures.test.ts
-just protocol-parity-fixtures-write
-just protocol-parity-fixtures-check
-```
-
-`parity.json` indexes the exact union of 20 valid/boundary fixture identities and
-26 sequence event identities with WebTransport and binary_wss transport refs that
-must share semantic identity, length, and SHA-256. A separate `transport_rules`
-matrix (20 rows) covers dual-transport semantics (topic/service/action reliability
-paths, WSS one-frame/latest-wins/HOL evidence) and is cross-bound to
-`protocol/registry/r2wp-v0.json`.
-
-## Consumers and agreement
-
-**Current corpus counts:** 20 valid/boundary entries; 55 malformed fixtures
-(14 bootstrap / 41 selected-frame); 13 receiver scenarios / 26 events; 46
-shared WT/WSS identities; 20 registry-bound transport rules. Phase 1 fixtures
-cover H-FT, H-CY, J-FT, and J-CY.
-
-**Rust consumer:** [`rclwebd/src/protocol/`](../../rclwebd/src/protocol/) loads
-the valid/boundary and malformed corpora through locked crate tests. It covers
-bootstrap steps 1-9, selected-frame steps 1-16, the 64 MiB segment recipe, and
-exact error code/name/reason/offset/plane/step outcomes. The integration test
-[`rclwebd/tests/protocol_agreement.rs`](../../rclwebd/tests/protocol_agreement.rs)
-emits the Rust agreement projection.
-
-**MoonBit consumer:** [`rclmbt/protocol/`](../../rclmbt/protocol/) loads the same
-corpora through `fixture_data_wbtest.mbt`. It covers the same validation steps,
-deterministic CBOR, extension TLVs, all 15 CONTROL kinds, integer header bounds,
-and borrowed extension/application `BytesView` payloads. The executable package
-[`rclmbt/cmd/agree/`](../../rclmbt/cmd/agree/) emits the MoonBit agreement
-projection.
-
-**Cross-language agreement:** [`agreement/`](./agreement/) holds the TypeScript
-expected corpus and the TypeScript/Rust/MoonBit report. The [agreement
-reference](./agreement/README.md) owns report fields, digests, emitter commands,
-and delivery revisions. The [M0-03 completion
-record](../../docs/milestones/m0-03-r2wp-foundation.md) owns the accepted delivery
-snapshot and phase boundary.
-
-## Coverage highlights (valid/boundary)
-
-- ClientHello at list/field maxima (16 wire versions, u32/u64 requested limits, 64 caps)
-- ServerHello effective limit ceilings
-- BootstrapError message/detail exactly 4096 UTF-8 bytes
-- SessionReady for H-FT, H-CY, J-FT, J-CY exact support-row triples; TRACE on H-FT
-- SchemaRequest for `rep2011-rihs` and `moonspan-schema-v1`
-- ROS_SAMPLE channel/sequence/time/flags/priority/clock boundaries
-- MEDIA_CHUNK KEYFRAME with deterministic CBOR application payload
-- SERVICE_REQUEST with TRACE_CONTEXT + OPERATION_ID
-- Extension area exactly 4096 bytes (unknown noncritical TLV; source-reencode)
-- CONTROL_CBOR payload exactly 1 MiB
-- Application payload exactly 64 MiB (segment recipe)
+The corpora cover valid and boundary records, malformed input, receiver state, transport parity, schema identities, Phase 1 support rows, control messages, application data, media, operations, and size boundaries. [`report.json`](./agreement/report.json) contains the complete current result.

@@ -1,26 +1,18 @@
-# R2WP v0 receiver state-sequence fixtures
+# R2WP v0 receiver sequence fixtures
 
-State-sequence corpus for session, channel, and sequence receiver behavior (M0-03e2).
-Generated and checked by [`scripts/protocol-sequence-fixtures.ts`](../../../scripts/protocol-sequence-fixtures.ts).
+This corpus verifies session, channel, resume, and sequence state across ordered wire events. [`scripts/protocol-sequence-fixtures.ts`](../../../scripts/protocol-sequence-fixtures.ts) owns generation and checking.
 
 ## Layout
 
 | Path | Role |
 |---|---|
-| `manifest.json` | Versioned index of scenarios and reusable events |
-| `scenarios/*.json` | Ordered events, expected outcomes, full state projections |
-| `events/*.bin` | Exact wire event bytes (bootstrap / CONTROL_CBOR / ROS_SAMPLE) |
+| `manifest.json` | Scenario and reusable event index |
+| `scenarios/*.json` | Ordered events, expected outcomes, and state projections |
+| `events/*.bin` | Bootstrap, control, and application wire records |
 
-## Phase 1 support rows
+Scenarios cover Phase 1 rows H-FT, H-CY, J-FT, and J-CY. One gateway process binds one row and may expose multiple domain IDs. Cross-row composition uses independent sessions.
 
-| Row | ROS distro | RMW |
-|---|---|---|
-| H-FT | humble | rmw_fastrtps_cpp |
-| H-CY | humble | rmw_cyclonedds_cpp |
-| J-FT | jazzy | rmw_fastrtps_cpp |
-| J-CY | jazzy | rmw_cyclonedds_cpp |
-
-Each gateway process binds one row. Multiple domain ids share that row. Cross-row composition uses independent sessions.
+Expected outcomes come from a deterministic receiver state machine and bind to the registry's errors, dispositions, and validation order.
 
 ## Commands
 
@@ -29,6 +21,3 @@ bun run protocol-sequence-fixtures:write
 bun run protocol-sequence-fixtures:check
 bun test scripts/protocol-sequence-fixtures.test.ts
 ```
-
-Oracle outcomes are hard-coded from a deterministic state machine and cross-bound to
-[`protocol/registry/r2wp-v0.json`](../../registry/r2wp-v0.json) error, disposition, and validation_order tables.
