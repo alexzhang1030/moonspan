@@ -75,6 +75,11 @@ cdr-corpus-write: toolchain-check
 cdr-corpus-reproduce: toolchain-check
     cd "{{root}}" && bun run cdr-corpus:reproduce
 
+# Qualification report v1 contract check (scripts/evidence-check.ts).
+[group('quality')]
+evidence-check: toolchain-check
+    cd "{{root}}" && bun run evidence:check
+
 # Toolchain identity, Bun docs + protocol validation, Rust fmt/clippy, MoonBit format/check, TypeScript check.
 [group('quality')]
 check: toolchain-check

@@ -21,7 +21,7 @@ This directory contains the technical documentation for Moonspan. Each document 
 | Runtime and gateway | [`rclmbt`](./runtime/rclmbt.md), [`rclwebd`](./gateway/rclwebd.md) |
 | Security and compatibility | [Security](./security.md), [compatibility](./compatibility.md) |
 | Supported ROS profiles | [Support matrix](./support-matrix.md) |
-| Evidence and release gates | [Validation](./validation.md) |
+| Evidence and release gates | [Validation](./validation.md), [evidence contracts](../evidence/README.md) |
 | Architecture decisions | [ADR register](./adr/README.md) |
 | M0-03 outcome | [Completion note](./milestones/m0-03-r2wp-foundation.md) |
 | Plan and current work | [Implementation plan](../tasks/plan.md), [execution checklist](../tasks/todo.md) |
@@ -36,7 +36,7 @@ This directory contains the technical documentation for Moonspan. Each document 
 | `rclmbt/**` | [`rclmbt`](./runtime/rclmbt.md), [architecture](./architecture.md) |
 | `rclwebd/**` | [`rclwebd`](./gateway/rclwebd.md), [security](./security.md) |
 | `sdk/**` | [Architecture](./architecture.md), [R2WP](./protocol/r2wp.md) |
-| `conformance/**`, `benchmarks/**` | [Validation](./validation.md), [support matrix](./support-matrix.md) |
+| `conformance/**`, `benchmarks/**`, `evidence/**` | [Validation](./validation.md), [support matrix](./support-matrix.md), [evidence contracts](../evidence/README.md) |
 | `deploy/**` | [Security](./security.md), [compatibility](./compatibility.md) |
 | `studio/**` | [Studio prototype](./prototypes/studio-ui.md), [design system](../.agents/docs/DESIGN.md) |
 

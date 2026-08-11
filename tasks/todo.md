@@ -8,7 +8,10 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified.
 - [~] M0-02 Complete root tooling, workspaces, and reviewed hosted CI evidence.
 - [x] M0-03 Freeze R2WP v0 and establish cross-language agreement. See the [completion note](../docs/milestones/m0-03-r2wp-foundation.md).
 - [x] M0-04 Generate the authoritative ROS CDR corpus (six Phase 1 rows H-FT/H-CY/H-ZN/J-FT/J-CY/J-ZN; `bun run cdr-corpus:check` / `just cdr-corpus-check`; focused `bun run test:cdr-corpus`).
-- [ ] M0-05 Establish the evidence harness and report schema.
+- [~] M0-05 Establish the evidence harness and report schema.
+  - [x] M0-05a Qualification report v1 schema, checker, and fixtures (`evidence/schema/qualification-report-v1.json`, `scripts/evidence-check.ts`, `bun run evidence:check` / `just evidence-check`).
+  - [ ] M0-05b Evidence collector that writes valid reports from raw runs.
+  - [ ] M0-05c Hosted CI integration and final M0-05 review.
 
 ### M0 gate
 

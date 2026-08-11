@@ -56,7 +56,7 @@ Each accepted claim records:
 - artifact location and integrity;
 - reviewer, gate, decision, and known limits.
 
-Checked-in scripts derive reports from raw artifacts.
+Checked-in scripts derive reports from raw artifacts. The closed machine-readable report contract is [evidence/README.md](../evidence/README.md) with schema [qualification-report-v1.json](../evidence/schema/qualification-report-v1.json) and checker `bun run evidence:check`.
 
 ## Foundation CI
 

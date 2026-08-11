@@ -29,7 +29,7 @@ PCR records preserve the durable reasoning that contributors need across tasks. 
 | `rclmbt/**` | [Architecture](./architecture.md), [technology stack](./technology-stack.md), [`rclmbt`](../../docs/runtime/rclmbt.md) |
 | `rclwebd/**` | [Architecture](./architecture.md), [`rclwebd`](../../docs/gateway/rclwebd.md), [security](../../docs/security.md) |
 | `sdk/**` | [Intent](./intent.md), [architecture](../../docs/architecture.md) |
-| `conformance/**`, `benchmarks/**` | [Validation](./validation.md), [support matrix](../../docs/support-matrix.md) |
+| `conformance/**`, `benchmarks/**`, `evidence/**` | [Validation](./validation.md), [support matrix](../../docs/support-matrix.md), [evidence contracts](../../evidence/README.md) |
 | `deploy/**` | [Security](../../docs/security.md), [compatibility](../../docs/compatibility.md) |
 | `studio/**` | [Prototype scope](../../docs/prototypes/studio-ui.md), [DESIGN.md](./DESIGN.md) |
 

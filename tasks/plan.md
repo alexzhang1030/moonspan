@@ -12,7 +12,7 @@ Planning windows guide sequencing. Gate evidence controls progression.
 - M0-03 is complete. Its [completion note](../docs/milestones/m0-03-r2wp-foundation.md) records the delivered scope.
 - M0-01 and M0-02 are active. Hosted CI evidence and human decisions remain open.
 - M0-04 delivers the authoritative ROS CDR corpus across six Phase 1 rows.
-- M0-05 is queued.
+- M0-05 is active. M0-05a lands the qualification report v1 contract; M0-05b/c cover collector and hosted integration.
 - Phase 1 covers Humble and Jazzy rows H-FT, H-CY, H-ZN, J-FT, J-CY, and J-ZN (Fast DDS, Cyclone DDS, and Zenoh as first-class RMW rows).
 - Studio begins at U0 after M3. Jazzy+ belongs to a later support expansion.
 
@@ -84,9 +84,30 @@ Each phase closes when its automated evidence passes and the designated human re
 | M0-02 | Active | Complete root tooling, workspaces, and reviewed hosted CI evidence | M0-01 |
 | M0-03 | Complete | Freeze R2WP v0 and prove TypeScript, Rust, and MoonBit agreement | M0-01, M0-02 |
 | M0-04 | Complete | Generate the authoritative ROS CDR corpus | M0-01, M0-02 |
-| M0-05 | Queued | Establish the evidence schema and report harness | M0-02 |
+| M0-05 | Active | Establish the evidence schema and report harness | M0-02 |
+| M0-05a | Complete | Qualification report v1 schema, checker, and fixtures | M0-02 |
+| M0-05b | Queued | Evidence collector that writes valid reports from raw runs | M0-05a |
+| M0-05c | Queued | Hosted CI integration and final M0-05 review | M0-05a, M0-02 |
 
 M0 exit requires accepted decisions, clean-checkout root commands, reproducible R2WP and CDR fixtures, valid evidence artifacts, and human approval for M1.
+
+#### M0-05a — Qualification report v1 contract
+
+**Description:** Publish the closed machine-readable qualification report contract, a dependency-free Bun checker, and committed valid fixtures.
+
+**Acceptance criteria:**
+
+- [x] JSON Schema 2020-12 at `evidence/schema/qualification-report-v1.json`.
+- [x] Dependency-free `scripts/evidence-check.ts` enforces closed keys, enums, bounds, sorted collections, path confinement, symlink rejection, and artifact integrity.
+- [x] Valid corpus under `evidence/testdata/valid/` with referenced artifacts.
+- [x] Focused tests, `bun run evidence:check`, `just evidence-check`, and root `bun run check` include the checker exactly once.
+- [x] Docs/PCR/tasks route to `evidence/README.md`. Top-level M0-05 remains active for collector and hosted integration.
+
+**Verification:** focused `bun run test:evidence`; `bun run evidence:check`; `bun run check`; `just check`; `just test`; `just build`; `git diff --check` clean.
+
+- **Dependencies:** M0-02
+- **Likely files:** `evidence/**`, `scripts/evidence-check.ts`, `scripts/evidence-check.test.ts`, `package.json`, `justfile`, `docs/README.md`, `docs/validation.md`, `.agents/docs/README.md`, `tasks/plan.md`, `tasks/todo.md`
+- **Scope:** M
 
 ### M1: Core data path
 
