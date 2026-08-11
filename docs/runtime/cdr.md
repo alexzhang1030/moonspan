@@ -46,16 +46,58 @@ Frozen framing for top-level sample streams (DDS-XTypes 1.3 Clause **7.4.1** PLA
 4. **Containers and nesting**
    Sequences and strings carry a length prefix, then elements under the same alignment rules. Nested structures continue on the same stream origin for the active nested encode/decode.
 
-## Strings and wide strings (CDR1)
+## Strings and wide strings
 
-Grounded in DDS-XTypes 1.3 Clause **7.4.1.1.2 Character Data**:
+### Char8 / ROS `string` (CDR1)
 
-| Type | Encoding | Serialized length | Terminator |
-|---|---|---|---|
-| `String<Char8>` (ROS `string`) | UTF-8 | Number of **bytes** occupied by the characters **including the terminating NUL character** | Required single `0x00` byte at the end of the character data; length accounts for that byte |
-| `String<Char16>` (ROS `wstring`) | UTF-16, Basic Multilingual Plane | Number of **bytes** occupied by the characters (twice the character count for BMP units) | Length alone delimits the payload; endianness follows the encapsulation identifier; BOM is omitted (XTypes 7.4.1.1.2) |
+Grounded in DDS-XTypes 1.3 Clause **7.4.1.1.2 Character Data** for `String<Char8>`:
 
-A Char8 string whose length claims character data without a final `0x00` inside the declared span surfaces `missing_string_terminator`. Invalid UTF-8 or UTF-16 unit sequences surface `invalid_utf8` or `invalid_utf16`. Boolean values other than `0` (false) and `1` (true) surface `invalid_boolean` (Table 31).
+| Rule | Contract |
+|---|---|
+| Encoding | UTF-8 |
+| Serialized length | Number of **bytes** occupied by the characters **including the terminating NUL character** |
+| Terminator | Required single `0x00` byte at the end of the character data; the length field accounts for that byte |
+
+A Char8 string whose length claims character data without a final `0x00` inside the declared span surfaces `missing_string_terminator`. Invalid UTF-8 surfaces `invalid_utf8`. Boolean values other than `0` (false) and `1` (true) surface `invalid_boolean` (Table 31).
+
+### ROS 2 `wstring` interoperability profile (authoritative for M1)
+
+DDS-XTypes 1.3 Clause **7.4.1.1.2** also defines generic `String<Char16>` as UTF-16 code units with a **byte** length and without a trailing NUL. **The committed ROS fixtures do not use that generic Char16 layout.** M1 treats ROS `wstring` under an explicit **ROS 2 generated-typesupport wire profile** derived from `conformance/cdr` (generator values such as `月面CDR` and `0123456789abcdef` on PrimitiveScalars and Collections).
+
+| Rule | ROS 2 wstring profile (corpus-backed) |
+|---|---|
+| Length field | `uint32` count of **32-bit serialized character slots** (one slot per logical character in the fixture set) |
+| Character payload | Exactly that many 32-bit slots in encapsulation endianness (little: `08 67 00 00` for U+6708; big: `00 00 67 08`) |
+| Endianness | Follows the CDR1 encapsulation identifier |
+| Legal form A | Declared slots only — Cyclone DDS rows (H-CY, J-CY); Fast DDS big-endian `primitive_scalars` |
+| Legal form B | Declared slots plus one trailing **32-bit zero** slot — Fast DDS and Zenoh little-endian rows (H-FT, H-ZN, J-FT, J-ZN) |
+| Semantic agreement | Cross-row decode normalizes both legal forms to the same logical string (for example `月面CDR` or `0123456789abcdef`) |
+
+Corpus length checks that match this profile:
+
+- H-FT `primitive_scalars`: length `5`, five 32-bit slots for `月面CDR`, trailing zero slot, total sample **104** bytes.
+- H-FT `primitive_scalars_big_endian`: length `5`, five big-endian 32-bit slots, form A (no trailing zero), total **100** bytes.
+- H-CY `collections`: length `16`, sixteen 32-bit slots for `0123456789abcdef`, form A, total **156** bytes.
+- H-FT / H-ZN `collections`: same declared length and sixteen slots plus trailing zero, form B, total **160** bytes. Jazzy rows follow the same CY versus FT/ZN split.
+
+#### Encoder policy: `ros_wstring_terminal_zero_v1`
+
+Moonspan encode is deterministic. For every ROS `wstring` field the encoder:
+
+1. writes the slot count `N` as `uint32`;
+2. writes exactly `N` 32-bit character slots in stream endianness;
+3. writes one trailing 32-bit zero slot (`ros_wstring_terminal_zero_v1`).
+
+Encode therefore matches form B. Decode accepts form A and form B and yields one semantic value.
+
+#### Optional terminal zero and the next member
+
+Schema-aware decode after the `N` character slots:
+
+1. When the wstring is the **last member of the active sample** (true for every wstring in the current corpus), remaining bytes equal to one 32-bit zero are consumed as the optional terminal slot of form B; any other remainder is handled under stream completion rules (`trailing_data` in strict mode).
+2. When a later member exists, generated schema plans (M1-02 layout metadata) supply the next member’s alignment origin so the decoder can tell an optional terminal zero from the next field. Broader non-terminal wstring boundary cases land with those schema plans when the corpus expands past terminal-only placement.
+
+`invalid_utf16` covers a 32-bit character slot outside the accepted Unicode scalar rules for this ROS profile. A missing required Char8 NUL remains `missing_string_terminator`.
 
 ## Reader and writer API direction
 
@@ -83,14 +125,14 @@ Implementable codec faults with stable codes:
 | `truncated` | Input ends before a required field completes |
 | `invalid_boolean` | Boolean byte is outside `{0, 1}` |
 | `invalid_utf8` | Char8 string payload fails UTF-8 well-formedness |
-| `invalid_utf16` | Char16 string payload fails UTF-16 unit rules for the declared length |
+| `invalid_utf16` | ROS `wstring` 32-bit character slot fails accepted Unicode scalar rules for this profile |
 | `missing_string_terminator` | Char8 string length span lacks the required terminating NUL |
 | `bounds_exceeded` | Sequence or string length exceeds a configured codec or type bound available to the call |
 | `length_overflow` | Length or size arithmetic exceeds the stream ceiling or host size domain |
 | `alignment_overflow` | Required padding would advance past the end of the stream |
 | `trailing_data` | Strict completion mode requires a fully consumed stream and unread bytes remain |
 
-`schema_mismatch` and related identity faults belong to M1-02 generated/dynamic layers. Host buffer lease and transfer faults belong to M1-03.
+`schema_mismatch` and related identity faults belong to M1-02 generated types and M2-01 dynamic projection. Host buffer lease and transfer faults belong to M1-03.
 
 ## Overflow and allocation limits
 
@@ -121,7 +163,8 @@ Crossing a limit returns a typed fault from the taxonomy above. On failed encode
 
 - Field order follows the ROS IDL member order for the type.
 - Padding bytes written by the encoder are zero.
-- Container and string lengths use the CDR1 length widths for the active representation.
+- Container and Char8 string lengths use the CDR1 length widths for the active representation.
+- ROS `wstring` encode follows `ros_wstring_terminal_zero_v1` (slot count, character slots, trailing zero slot).
 - Encode is a pure function of logical value, CDR1 endianness, and configured limits.
 
 ## Corpus-driven conformance
@@ -142,7 +185,7 @@ The authoritative corpus is [`conformance/cdr/`](../../conformance/cdr/README.md
 
 ### Semantic agreement
 
-Legal ROS encoders may emit distinct bytes for one logical value. Cross-row validation compares **decoded semantics** (and committed semantic digests) as the agreement criterion. When byte digests match across rows, the corpus records that equality as an additional observation.
+Legal ROS encoders may emit distinct bytes for one logical value, including the two ROS `wstring` terminal-slot forms above. Cross-row validation compares **decoded semantics** (and committed semantic digests) as the agreement criterion. When byte digests match across rows, the corpus records that equality as an additional observation.
 
 ### Round trip and malformed input
 
@@ -179,8 +222,8 @@ M1-01 closes when batches b–d pass their focused tests and the corpus-driven c
 
 | Consumer | Expectation |
 |---|---|
-| M1-02 generated types | Call `cdr_mbt` for field layout; own schema identity, type registry keys, and per-type bounds |
-| M1-02 dynamic projection | Reuse reader views and codec error taxonomy; map schema identity faults in the type layer |
+| M1-02 generated types | Call `cdr_mbt` for field layout; own schema identity, type registry keys, per-type bounds, and non-terminal member boundary metadata |
+| M2-01 dynamic projection | Reuse reader views and codec error taxonomy; map schema identity faults in the dynamic type layer |
 | M1-03 host ABI | Own buffer ownership transfer, leases, release, and poll batches; pass retained bytes into decode |
 | R2WP / gateway | Carry opaque CDR payloads and schema identity; leave codec work to `rclmbt` |
 | Evidence / N1 gate | Record corpus revision, support rows, and agreement results per [validation](../validation.md) |
@@ -192,7 +235,7 @@ Official references that ground this contract:
 | Source | Stable URL | Relevant material |
 |---|---|---|
 | OMG DDS-XTypes 1.3 About | https://www.omg.org/spec/DDS-XTypes/1.3/About-DDS-XTypes/ | Specification overview and document set |
-| OMG DDS-XTypes 1.3 PDF | https://www.omg.org/spec/DDS-XTypes/1.3/PDF | Clause **7.4.1** PLAIN_CDR (encoding version 1); Clause **7.4.1.1.2** character data / strings; **Table 31** primitive size and alignment; Clause **7.4.3** XCDR stream model and TOP_LEVEL encapsulation; **Table 60** RTPS encapsulation identifiers; XCDR2 as encoding version 2 follow-on |
+| OMG DDS-XTypes 1.3 PDF | https://www.omg.org/spec/DDS-XTypes/1.3/PDF | Clause **7.4.1** PLAIN_CDR (encoding version 1); Clause **7.4.1.1.2** character data (generic Char8 / Char16 rules; ROS `wstring` wire form is the corpus profile above); **Table 31** primitive size and alignment; Clause **7.4.3** XCDR stream model and TOP_LEVEL encapsulation; **Table 60** RTPS encapsulation identifiers; XCDR2 as encoding version 2 follow-on |
 | ROS 2 Creating an RMW Implementation | https://docs.ros.org/en/ros2_documentation/jazzy/Tutorials/Advanced/Creating-An-RMW-Implementation.html | RMW serialization boundary, typesupport expectations, and distribution-facing encode/decode responsibilities |
 | MoonBit core `@bytes` package | https://mooncakes.io/docs/moonbitlang/core/bytes | Core bytes and view APIs used for buffer slices |
 | MoonBit language fundamentals | https://docs.moonbitlang.com/en/latest/language/fundamentals.html | Owned `Bytes` versus borrowed `BytesView` table and language-level slicing model |

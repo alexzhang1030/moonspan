@@ -137,17 +137,17 @@ M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both 
 
 | ID | State | Scope |
 |---|---|---|
-| M1-01a | Complete | Documentation and plan freeze: CDR1 little and big endian target; XCDR2 stream foundations as follow-on; semantic cross-row agreement; 4-byte encapsulation framing; deterministic zero-fill encoder padding; decoder consumes legal padding; official sources |
+| M1-01a | Complete | Documentation and plan freeze: CDR1 little and big endian target; ROS 2 wstring interoperability profile from corpus; XCDR2 stream foundations as follow-on; semantic cross-row agreement; 4-byte encapsulation framing; deterministic zero-fill encoder padding; decoder consumes legal padding; official sources |
 | M1-01b | Queued | Bounded stream reader/writer, encapsulation, endian, alignment, limits, typed errors |
-| M1-01c | Queued | Primitives, strings/wstrings, arrays, sequences, nested values, borrowed `BytesView` fields |
-| M1-01d | Queued | Corpus-driven proof: semantic agreement, round trips, malformed input, resource bounds |
+| M1-01c | Queued | Primitives, strings/wstrings (ROS profile), arrays, sequences, nested values, borrowed `BytesView` fields |
+| M1-01d | Queued | Corpus-driven proof: semantic agreement (including both wstring terminal forms), round trips, malformed input, resource bounds |
 
 **Acceptance criteria (M1-01 overall):**
 
-- [x] Authoritative contract at `docs/runtime/cdr.md` routed from docs and PCR maps (M1-01a).
+- [x] Authoritative contract at `docs/runtime/cdr.md` routed from docs and PCR maps (M1-01a), including the ROS 2 wstring interoperability profile and `ros_wstring_terminal_zero_v1` encoder policy.
 - [ ] Reader/writer, encapsulation, endian, alignment, limits, and typed errors (M1-01b).
-- [ ] Primitive and container codecs with borrowed views (M1-01c).
-- [ ] Corpus agreement and adversarial resource cases (M1-01d).
+- [ ] Primitive and container codecs with borrowed views; ROS `wstring` encode/decode per the corpus profile (M1-01c).
+- [ ] Corpus agreement (both legal wstring terminal forms normalize to one semantic value) and adversarial resource cases (M1-01d).
 
 **Verification:** focused MoonBit/Wasm tests for `cdr_mbt`; corpus-driven checks against `conformance/cdr/manifest.json`; root `just check`, `just test`, and `just build` when implementation lands.
 
