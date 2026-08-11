@@ -13,7 +13,7 @@ Planning windows guide sequencing. Gate evidence controls progression.
 - M0-03 is complete. Its [completion note](../docs/milestones/m0-03-r2wp-foundation.md) records the delivered scope.
 - M0-04 delivers the authoritative ROS CDR corpus across six Phase 1 rows.
 - M0-05a is complete (qualification report v1 contract). M0-05 stays active for M0-05b/c.
-- M1-01 is active. M1-01a freezes the [CDR core contract](../docs/runtime/cdr.md); M1-01b/c/d implement and prove `cdr_mbt`.
+- M1-01 is complete ([completion note](../docs/milestones/m1-01-cdr-core.md)). M1-02 is active for generated types and the schema-identity registry.
 - Phase 1 covers Humble and Jazzy rows H-FT, H-CY, H-ZN, J-FT, J-CY, and J-ZN (Fast DDS, Cyclone DDS, and Zenoh as first-class RMW rows).
 - Studio begins at U0 after M3. Jazzy+ belongs to a later support expansion.
 
@@ -114,7 +114,7 @@ M0 exit requires accepted decisions, clean-checkout root commands, reproducible 
 
 | ID | State | Deliverable | Depends on |
 |---|---|---|---|
-| M1-01 | Active | Implement the MoonBit CDR core and bounded views | M0-02, M0-04 |
+| M1-01 | Complete | Implement the MoonBit CDR core and bounded views | M0-02, M0-04 |
 | M1-01a | Complete | Freeze the CDR core contract and conformance plan | M0-04 |
 | M1-01b | Complete | Bounded stream reader/writer, encapsulation, endian, alignment, limits, typed errors | M1-01a |
 | M1-01b1 | Complete | Bounded CDR1 reader (header, options, origin-4 alignment, raw reads, limits, strict completion) | M1-01a |
@@ -127,12 +127,12 @@ M0 exit requires accepted decisions, clean-checkout root commands, reproducible 
 | M1-01c3 | Complete | Arrays, sequences, nested-depth guards, borrowed BytesView fields | M1-01c2 |
 | M1-01c3a | Complete | Container codec contract: fixed arrays, sequences, nesting tokens | M1-01c2 |
 | M1-01c3b | Complete | Implement arrays, sequences, nesting, borrowed byte sequences in `rclmbt/cdr` | M1-01c3a |
-| M1-01d | Active | Authoritative corpus proof: semantic agreement, round trips, malformed input, resource bounds | M1-01c, M0-04 |
+| M1-01d | Complete | Authoritative corpus proof: semantic agreement, round trips, malformed input, resource bounds | M1-01c, M0-04 |
 | M1-01d0 | Complete | Top-level zero-tail evidence, corrected contract, declared completion API | M1-01c3 |
 | M1-01d1 | Complete | Fixture bridge from committed corpus into MoonBit tests | M1-01d0 |
 | M1-01d2 | Complete | Semantic decode and exact re-encode proof | M1-01d1 |
-| M1-01d3 | Active | Malformed/resource cases and final M1-01 gate | M1-01d2 |
-| M1-02 | Queued | Generate types and build the schema-identity registry | M0-04, M1-01 |
+| M1-01d3 | Complete | Malformed/resource cases and final M1-01 gate | M1-01d2 |
+| M1-02 | Active | Generate types and build the schema-identity registry | M0-04, M1-01 |
 | M1-03 | Queued | Establish the Wasm host ABI and executor poll loop | M0-02, M0-03 |
 | M1-04 | Queued | Implement the serialized ROS C ABI | M0-02, M0-04 |
 | M1-05 | Queued | Build the gateway graph, schema, telemetry, and scheduler core | M0-03, M1-04 |
@@ -162,11 +162,11 @@ M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both 
 | M1-01c3 | Complete | Arrays, sequences, nested-depth guards, borrowed `BytesView` fields |
 | M1-01c3a | Complete | Container codec contract freeze: fixed arrays, sequence length/byte APIs, `CdrNesting` depth tokens |
 | M1-01c3b | Complete | Sequences, fixed-array composition, nesting, borrowed byte sequences in `rclmbt/cdr` |
-| M1-01d | Active | Corpus-driven proof: semantic agreement, round trips, malformed input, resource bounds |
+| M1-01d | Complete | Corpus-driven proof: semantic agreement, round trips, malformed input, resource bounds |
 | M1-01d0 | Complete | Top-level zero-tail evidence (`tail-slack.json`), contract correction, `ensure_complete_with_zero_tail` |
 | M1-01d1 | Complete | Fixture bridge from committed corpus into MoonBit tests |
 | M1-01d2 | Complete | Semantic decode and exact re-encode proof |
-| M1-01d3 | Active | Malformed/resource cases and final M1-01 gate |
+| M1-01d3 | Complete | Corpus adversarial gate and final M1-01 gate |
 
 **Acceptance criteria (M1-01 overall):**
 
@@ -181,7 +181,7 @@ M1 exit requires CDR agreement, bidirectional graph and publish/subscribe, both 
 - [x] Top-level declared zero-tail completion API and frozen tail-slack evidence (M1-01d0).
 - [x] Corpus fixture bridge into MoonBit white-box tests with frozen counts and CDR open proofs (M1-01d1).
 - [x] Semantic decode and exact canonical re-encode for all 56 fixtures and 18 comparison groups (M1-01d2).
-- [ ] Adversarial malformed/resource cases and final M1-01 gate (M1-01d3).
+- [x] Corpus adversarial gate and final M1-01 gate (M1-01d3); completion note [m1-01-cdr-core.md](../docs/milestones/m1-01-cdr-core.md).
 
 **Verification:** focused MoonBit/Wasm tests for `cdr_mbt`; corpus-driven checks against `conformance/cdr/manifest.json`; root `just check`, `just test`, and `just build` when implementation lands.
 
@@ -261,7 +261,7 @@ Work is grouped into ROS and middleware, MoonBit and Wasm, Rust and transport, b
 
 ## 11. Immediate execution order
 
-1. Complete M1-01b through M1-01d against the frozen CDR contract (M1-01a complete).
+1. Advance M1-02 generated types against the completed M1-01 CDR core.
 2. Continue M0 carryover in parallel: M0-01 decisions, M0-02 hosted CI review, M0-05b collector, M0-05c hosted integration.
 3. Advance M1-02 and M1-03 once M1-01 behavior is stable enough for consumers.
 4. Keep M1-08 gated on M0-05 so the PointCloud2 report uses the finished evidence harness.

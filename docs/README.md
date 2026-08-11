@@ -24,6 +24,7 @@ This directory contains the technical documentation for Moonspan. Each document 
 | Evidence and release gates | [Validation](./validation.md), [evidence contracts](../evidence/README.md) |
 | Architecture decisions | [ADR register](./adr/README.md) |
 | M0-03 outcome | [Completion note](./milestones/m0-03-r2wp-foundation.md) |
+| M1-01 outcome | [Completion note](./milestones/m1-01-cdr-core.md) |
 | Plan and current work | [Implementation plan](../tasks/plan.md), [execution checklist](../tasks/todo.md) |
 | Post-mainline Studio work | [Studio prototype](./prototypes/studio-ui.md), [design system](../.agents/docs/DESIGN.md) |
 

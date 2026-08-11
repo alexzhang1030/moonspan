@@ -182,6 +182,7 @@ BytesView  ->  bounds-checked slice into parent storage the caller retains
 | Declared zero tail | M1-01d0 | `ensure_complete_with_zero_tail(expected_tail_bytes)`; top-level completion independent of final member; Phase 1 declarations `0`/`4`/`12` |
 | Corpus fixture bridge | M1-01d1 | Deterministic Bun bridge of the 56-fixture ROS corpus into package-internal MoonBit white-box tests; see [corpus README](../../conformance/cdr/README.md#moonbit-white-box-bridge-m1-01d1) |
 | Corpus semantic proof | M1-01d2 | Hand-written white-box decode/re-encode of all 56 fixtures and 18 comparison groups (`rclmbt/cdr/corpus_semantics_wbtest.mbt`) |
+| Corpus adversarial gate | M1-01d3 | Strict vs declared completion, nonzero tail mutations, wrong declarations, stream bounds, PointCloud2 borrowed budget, framing bridge (`rclmbt/cdr/corpus_adversarial_wbtest.mbt`) |
 | Fixed arrays | M1-01c3b | Schema-declared element count composed from existing element codecs; first-element body-origin alignment; optional fixed-width preflight via `checked_span_length` |
 | Sequences | M1-01c3b | `read_sequence_length` / `write_sequence_length`; `read_byte_sequence` / `write_byte_sequence` with optional `max_elements`; stream work ceiling; borrowed byte views |
 | Nesting | M1-01c3b | Immutable `CdrNesting` token; `root_nesting` / `enter_nested`; depth against `max_nesting_depth` |
@@ -285,9 +286,10 @@ M1-01d proves:
 
 - **M1-01d1 complete:** the 56-fixture ROS corpus bridges into package-internal MoonBit white-box tests (`CdrReader::open_default`, zero-tail and multi-row identity proofs). Authoritative size/SHA and commands: [corpus README](../../conformance/cdr/README.md#moonbit-white-box-bridge-m1-01d1) (`bun run cdr-moonbit-fixtures:check`).
 - **M1-01d2 complete:** hand-written package-internal codecs decode every committed fixture field-by-field against manifest logical values, finish with `ensure_complete_with_zero_tail`, and re-encode to the exact logical prefix (zero top-level tail). All 18 multi-row groups agree semantically; PointCloud2 `data` is a borrowed input-backed view. Tests: `moon test --frozen --target wasm rclmbt/cdr`.
+- **M1-01d3 complete:** corpus adversarial gate over all 56 fixtures — strict vs declared completion (24 exact / 32 tail-bearing), 288 nonzero tail-byte mutations, wrong declarations and appended bytes, stream open at length and reject one-byte-below, PointCloud2 borrowed payload under a small owned-temporary budget, and a concise LE/BE framing bridge. Focused `*_wbtest.mbt` suites remain the typed source for field-level illegal inputs. Completion note: [M1-01 CDR core](../milestones/m1-01-cdr-core.md).
 - exact and zero-tail fixtures for the same logical sample normalize to one semantic value;
 - encode under Moonspan CDR1 uses exact form (zero top-level tail) and round-trips with semantic equality;
-- malformed truncation, illegal lengths, and alignment overflow return the typed error taxonomy above;
+- malformed truncation, illegal lengths, and alignment overflow return the typed error taxonomy above (focused suites + corpus gate);
 - resource bounds reject oversized streams with stable codes;
 - strict completion reports `trailing_data` on zero-tail samples; declared completion accepts exact end or the declared all-zero length;
 - M1-01c exercises `invalid_wstring_scalar` at the Unicode scalar boundary for legacy wstring slots.
@@ -310,9 +312,9 @@ These cases produce typed codec faults and appear in conformance and evidence re
 | M1-01a | This contract, plan split, PCR and doc routes (documentation freeze) |
 | M1-01b | Bounded stream reader/writer, encapsulation, endian, alignment, limits (including nesting and temporary-allocation defaults), typed errors |
 | M1-01c | Primitives, strings/wstrings (legacy ROS profile, scalar-boundary tests), arrays, sequences, nested values, borrowed `BytesView` fields |
-| M1-01d | Authoritative corpus proof: top-level zero-tail completion (d0 complete), fixture bridge (d1 complete), semantic decode/re-encode (d2 complete), malformed input, resource bounds |
+| M1-01d | Authoritative corpus proof: d0–d3 complete (zero-tail API, fixture bridge, semantic decode/re-encode, adversarial gate) |
 
-M1-01 closes when batches b–d pass their focused tests and the corpus-driven checks. M1-02 and M1-03 consume this surface: M1-02 adds schema keys and per-type bounds; M1-03 adds host buffer leases and keeps CDR layout rules as defined here.
+M1-01 is complete. M1-02 and M1-03 consume this surface: M1-02 adds schema keys and per-type bounds; M1-03 adds host buffer leases and keeps CDR layout rules as defined here. See [M1-01 completion note](../milestones/m1-01-cdr-core.md).
 
 ## Dependency boundaries
 
