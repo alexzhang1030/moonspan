@@ -126,12 +126,12 @@ test "origin four alignment for 1 2 4 8" {
   }
   assert_eq(r.position(), 5)
   match r.read_u16() {
-    Ok(v) => assert_eq(v, 0x1234UL)
+    Ok(v) => assert_eq(v, (0x1234).to_uint16())
     Err(e) => abort(e.code)
   }
   assert_eq(r.position(), 8)
   match r.read_u32() {
-    Ok(v) => assert_eq(v, 0x12345678UL)
+    Ok(v) => assert_eq(v, 0x12345678U)
     Err(e) => abort(e.code)
   }
   assert_eq(r.position(), 12)
@@ -152,11 +152,11 @@ test "big and little raw bit equality including max u32 and u64" {
   ])
   let r = open_ok(le2[:])
   match r.read_u16() {
-    Ok(v) => assert_eq(v, 0xabcdUL)
+    Ok(v) => assert_eq(v, (0xabcd).to_uint16())
     Err(e) => abort(e.code)
   }
   match r.read_u32() {
-    Ok(v) => assert_eq(v, 0xffffffffUL)
+    Ok(v) => assert_eq(v, 0xffffffffU)
     Err(e) => abort(e.code)
   }
   match r.read_u64() {
@@ -171,11 +171,11 @@ test "big and little raw bit equality including max u32 and u64" {
   ])
   let rb = open_ok(be[:])
   match rb.read_u16() {
-    Ok(v) => assert_eq(v, 0xabcdUL)
+    Ok(v) => assert_eq(v, (0xabcd).to_uint16())
     Err(e) => abort(e.code)
   }
   match rb.read_u32() {
-    Ok(v) => assert_eq(v, 0xffffffffUL)
+    Ok(v) => assert_eq(v, 0xffffffffU)
     Err(e) => abort(e.code)
   }
   match rb.read_u64() {
@@ -563,7 +563,7 @@ test "corpus primitive_scalars prefix float64 at absolute offset 12" {
     Err(e) => abort(e.code)
   }
   match r.read_u32() {
-    Ok(bits) => assert_eq(bits, 0xc1480000UL)
+    Ok(bits) => assert_eq(bits, 0xc1480000U)
     Err(e) => abort(e.code)
   }
   assert_eq(r.position(), 12)

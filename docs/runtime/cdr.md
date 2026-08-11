@@ -133,7 +133,7 @@ BytesView  ->  bounds-checked slice into parent storage the caller retains
 - Public codecs are deterministic: the same logical value, the same CDR1 endianness, and the same writer limits produce the same bytes.
 - Large binary fields return a bounds-checked `BytesView` into parent storage. The parent buffer remains retained by the caller for the view’s lifetime. Host lease tracking and buffer release live in M1-03.
 
-MoonBit reader surface lands in M1-01b1 (`rclmbt/cdr`); writer in M1-01b2; semantic primitives, strings, collections, and ROS wstring in M1-01c. This document freezes the behavioral contract those signatures implement.
+MoonBit reader surface lands in M1-01b1 (`rclmbt/cdr`); writer in M1-01b2; semantic primitives, strings, collections, and ROS wstring in M1-01c. Raw integer bit patterns use width-exact MoonBit types: `Byte` / `UInt16` / `UInt` / `UInt64`. This document freezes the behavioral contract those signatures implement.
 
 ## Typed error taxonomy (`cdr_mbt`)
 
