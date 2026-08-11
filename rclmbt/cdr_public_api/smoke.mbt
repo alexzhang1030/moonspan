@@ -161,7 +161,8 @@ pub fn require_write_char16(
 
 ///|
 /// Compile-time binding: `CdrReader::read_string` returns owned `String`.
-/// Optional `max_bytes` is UTF-8 payload bytes excluding the terminating NUL.
+/// Optional `max_bytes` counts UTF-8 payload bytes only; the terminating NUL
+/// is outside that bound.
 pub fn require_read_string(
   reader : @cdr.CdrReader,
   max_bytes? : UInt,
@@ -174,7 +175,8 @@ pub fn require_read_string(
 
 ///|
 /// Compile-time binding: `CdrWriter::write_string` accepts `StringView`.
-/// Optional `max_bytes` is UTF-8 payload bytes excluding the terminating NUL.
+/// Optional `max_bytes` counts UTF-8 payload bytes only; the terminating NUL
+/// is outside that bound.
 pub fn require_write_string(
   writer : @cdr.CdrWriter,
   value : StringView,

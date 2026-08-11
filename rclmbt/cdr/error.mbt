@@ -105,8 +105,8 @@ pub fn CdrError::invalid_boolean(offset : Int, remaining : Int) -> CdrError {
 }
 
 ///|
-/// Char8 string payload is not well-formed UTF-8 (or writer input has an
-/// unpaired UTF-16 surrogate). Numeric fields follow the shared convention.
+/// Char8 string payload fails UTF-8 well-formedness, or writer input contains
+/// an unpaired UTF-16 surrogate. Numeric fields follow the shared convention.
 pub fn CdrError::invalid_utf8(
   offset : Int,
   needed : Int,
@@ -116,7 +116,8 @@ pub fn CdrError::invalid_utf8(
 }
 
 ///|
-/// Char8 declared span has no terminating NUL, or the final byte is nonzero.
+/// Char8 declared span ends on a nonzero final byte, or length is zero so the
+/// required terminator is absent. Numeric fields follow the shared convention.
 pub fn CdrError::missing_string_terminator(
   offset : Int,
   needed : Int,

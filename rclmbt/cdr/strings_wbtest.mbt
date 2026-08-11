@@ -278,7 +278,7 @@ test "string malformed utf8 families restore cursor" {
     }
   }
   assert_eq(r1.position(), 4)
-  // Truncated multi-byte: E2 9C without third byte before NUL — length 3
+  // Truncated multi-byte: E2 9C alone before NUL — length 3
   let bad2 = b"\x00\x01\x00\x00\x03\x00\x00\x00\xe2\x9c\x00"
   let r2 = sreader(bad2[:])
   match r2.read_string() {
@@ -326,7 +326,7 @@ test "string length zero missing terminator" {
 
 ///|
 test "string missing terminator nonzero final byte" {
-  // length 2, payload 'A' without NUL (final byte 0x41)
+  // length 2, payload ends on 0x41 (nonzero final byte)
   let input = b"\x00\x01\x00\x00\x02\x00\x00\x00\x41\x41"
   let r = sreader(input[:])
   match r.read_string() {
@@ -519,7 +519,7 @@ test "string writer invalid unpaired surrogate atomic" {
 
 ///|
 test "string error precedence type bound before truncation" {
-  // length 100 but stream short; bound 5 → bounds_exceeded (not truncated)
+  // length 100 but stream short; bound 5 → bounds_exceeded ahead of truncated
   let input = b"\x00\x01\x00\x00\x64\x00\x00\x00\x41"
   let r = sreader(input[:])
   match r.read_string(max_bytes=5U) {
@@ -542,4 +542,132 @@ test "string error precedence length zero before other faults" {
     Err(e) => assert_eq(e.code, CODE_MISSING_STRING_TERMINATOR)
   }
   assert_eq(r.position(), 4)
+}
+
+///|
+test "string declared span above max_stream length_overflow before truncated" {
+  // max_stream=64; declared length 65 fits host Int and exceeds the ceiling.
+  let limits = match CdrLimits::new(64, 4, 64) {
+    Ok(l) => l
+    Err(e) => abort(e.code)
+  }
+  // length 65 LE; input only has the length field (remaining short).
+  let input = b"\x00\x01\x00\x00\x41\x00\x00\x00"
+  let r = sreader_limits(input[:], limits)
+  assert_eq(r.position(), 4)
+  match r.read_string() {
+    Ok(_) => abort("expected length_overflow stream ceiling")
+    Err(e) => {
+      assert_eq(e.code, CODE_LENGTH_OVERFLOW)
+      assert_eq(e.offset, 4)
+      assert_eq(e.needed, 65)
+      assert_eq(e.remaining, 64)
+    }
+  }
+  assert_eq(r.position(), 4)
+}
+
+///|
+test "string default max_stream plus one length_overflow metrics" {
+  // DEFAULT_MAX_STREAM_BYTES + 1 = 67108865 still fits host Int.
+  let len = DEFAULT_MAX_STREAM_BYTES + 1
+  // LE u32 for 67108865 = 0x04000001 → 01 00 00 04
+  let input = b"\x00\x01\x00\x00\x01\x00\x00\x04"
+  let r = sreader(input[:])
+  match r.read_string() {
+    Ok(_) => abort("expected length_overflow default max+1")
+    Err(e) => {
+      assert_eq(e.code, CODE_LENGTH_OVERFLOW)
+      assert_eq(e.offset, 4)
+      assert_eq(e.needed, len)
+      assert_eq(e.remaining, DEFAULT_MAX_STREAM_BYTES)
+    }
+  }
+  assert_eq(r.position(), 4)
+}
+
+///|
+test "string exact max_stream boundary then remaining truncation" {
+  // Declared span == max_stream passes the absolute ceiling; short remaining
+  // yields truncated with full-field needed.
+  let limits = match CdrLimits::new(64, 4, 64) {
+    Ok(l) => l
+    Err(e) => abort(e.code)
+  }
+  // length 64 LE
+  let input = b"\x00\x01\x00\x00\x40\x00\x00\x00"
+  let r = sreader_limits(input[:], limits)
+  match r.read_string() {
+    Ok(_) => abort("expected truncated after ceiling pass")
+    Err(e) => {
+      assert_eq(e.code, CODE_TRUNCATED)
+      assert_eq(e.offset, 4)
+      // pad0 + 4 + 64 = 68
+      assert_eq(e.needed, 68)
+      assert_eq(e.remaining, 4)
+    }
+  }
+  assert_eq(r.position(), 4)
+}
+
+///|
+test "string high-bit length still length_overflow needed zero" {
+  // 0xffffffff remains host-domain overflow (needed = 0 sentinel).
+  let input = b"\x00\x01\x00\x00\xff\xff\xff\xff"
+  let r = sreader(input[:])
+  match r.read_string() {
+    Ok(_) => abort("expected length_overflow")
+    Err(e) => {
+      assert_eq(e.code, CODE_LENGTH_OVERFLOW)
+      assert_eq(e.needed, 0)
+    }
+  }
+  assert_eq(r.position(), 4)
+}
+
+///|
+test "string writer early capacity ceiling on large input" {
+  // capacity 20: header 4, rem 16, pad 0 → max payload 11.
+  // Large ASCII input trips the UTF-16 lower-bound capacity path early.
+  let limits = match CdrLimits::new(20, 4, 20) {
+    Ok(l) => l
+    Err(e) => abort(e.code)
+  }
+  let w = swriter_limits(CdrEndian::Little, limits)
+  let before = w.to_bytes()
+  let pos = w.position()
+  // 64 ASCII bytes >> max payload 11.
+  let large = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+  match w.write_string(large[:]) {
+    Ok(_) => abort("expected capacity bounds early")
+    Err(e) => {
+      assert_eq(e.code, CODE_BOUNDS_EXCEEDED)
+      assert_eq(e.offset, pos)
+      // pad0 + 4 + (11+1) + 1 = 17
+      assert_eq(e.needed, 17)
+      assert_eq(e.remaining, 16)
+    }
+  }
+  expect_writer_unchanged(w, before, pos)
+  // Exact max payload of 11 still succeeds.
+  let w2 = swriter_limits(CdrEndian::Little, limits)
+  match w2.write_string("ABCDEFGHIJK"[:]) {
+    Ok(_) => ()
+    Err(e) => abort(e.code)
+  }
+  assert_eq(w2.position(), 20)
+  // Type bound still wins when tighter than capacity.
+  let w3 = swriter_limits(CdrEndian::Little, limits)
+  let before3 = w3.to_bytes()
+  let pos3 = w3.position()
+  match w3.write_string(large[:], max_bytes=5U) {
+    Ok(_) => abort("expected type bounds")
+    Err(e) => {
+      assert_eq(e.code, CODE_BOUNDS_EXCEEDED)
+      assert_eq(e.offset, pos3)
+      assert_eq(e.needed, 64)
+      assert_eq(e.remaining, 5)
+    }
+  }
+  expect_writer_unchanged(w3, before3, pos3)
 }
