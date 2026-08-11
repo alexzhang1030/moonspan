@@ -2,7 +2,7 @@
 
 R2WP is Moonspan's versioned browser transport for ROS 2 semantics and serialized data. It carries bootstrap negotiation, a fixed 32-byte selected-version frame header, deterministic CBOR control maps, and CDR or media payloads over WebTransport and binary WebSocket.
 
-**Status:** wire version **0** accepted normative freeze ([ADR 0009](../adr/0009-r2wp-v0-wire-encoding.md)); M0-03a–g complete (contract, validator, TypeScript codecs, fixture corpora, Rust reference parser in `rclwebd`, MoonBit reference parser in `rclmbt`); M0-03h continues cross-language agreement against this contract.
+**Status:** wire version **0** accepted normative freeze ([ADR 0009](../adr/0009-r2wp-v0-wire-encoding.md)); M0-03a–h complete (contract, validator, TypeScript codecs, fixture corpora, Rust reference parser in `rclwebd`, MoonBit reference parser in `rclmbt`, cross-language agreement).
 
 | Surface | File |
 |---|---|
@@ -18,12 +18,13 @@ R2WP is Moonspan's versioned browser transport for ROS 2 semantics and serialize
 | State-sequence corpus | [sequences/](../../protocol/testdata/sequences/) (13 scenarios / 26 events; `scripts/protocol-sequence-fixtures.ts`) |
 | Transport parity corpus | [parity.json](../../protocol/testdata/parity.json) (46 shared identities + 20 registry-bound rules; `scripts/protocol-parity-fixtures.ts`) |
 | Aggregate fixture write/check | [scripts/protocol-fixtures.ts](../../scripts/protocol-fixtures.ts) (`bun run protocol-fixtures:check` / `protocol-fixtures:write`, `just protocol-fixtures-check` / `protocol-fixtures-write`; order `valid_boundary → malformed → sequences → parity`) |
+| Cross-language agreement | [agreement/](../../protocol/testdata/agreement/) (`expected.json`, `report.json`; `bun run protocol-agree` / `protocol-agree:write`, `just protocol-agree` / `protocol-agree-write`) |
 | Rust reference parser (`rclwebd`) | [`rclwebd/src/protocol/`](../../rclwebd/src/protocol/) (`parse_bootstrap`, `parse_frame`; `cargo test --locked -p rclwebd`) |
 | MoonBit reference parser (`rclmbt`) | [`rclmbt/protocol/`](../../rclmbt/protocol/) (`parse_bootstrap`, `parse_frame`; `moon test --frozen --target wasm rclmbt/protocol`) |
 | Encoding ADR | [ADR 0009](../adr/0009-r2wp-v0-wire-encoding.md) |
 | Versioning model | [ADR 0005](../adr/0005-r2wp-wire-versioning.md) |
 
-This page is the design overview and documentation entry. Byte-level rules, registries, absolute limits, dispositions, and transport length rules are normative in the protocol package above. The contract validator checks normative package consistency. TypeScript codecs implement deterministic CBOR, bootstrap records, extension TLVs, all 15 CONTROL kinds, and selected-frame static steps 1–16. The Rust reference parser in [`rclwebd`](../gateway/rclwebd.md) and the MoonBit reference parser in [`rclmbt`](../runtime/rclmbt.md) consume the same committed fixtures for bootstrap steps 1–9 and selected-frame steps 1–16. Bun fixture tooling under `protocol/testdata/` and `scripts/protocol-*-fixtures.ts` covers valid/boundary goldens, static malformed wire, receiver state sequences, and dual-transport parity through one aggregate check path. Normative authority remains the three-file protocol package.
+This page is the design overview and documentation entry. Byte-level rules, registries, absolute limits, dispositions, and transport length rules are normative in the protocol package above. The contract validator checks normative package consistency. TypeScript codecs implement deterministic CBOR, bootstrap records, extension TLVs, all 15 CONTROL kinds, and selected-frame static steps 1–16. The Rust reference parser in [`rclwebd`](../gateway/rclwebd.md) and the MoonBit reference parser in [`rclmbt`](../runtime/rclmbt.md) consume the same committed fixtures for bootstrap steps 1–9 and selected-frame steps 1–16. Bun fixture tooling under `protocol/testdata/` and `scripts/protocol-*-fixtures.ts` covers valid/boundary goldens, static malformed wire, receiver state sequences, and dual-transport parity through one aggregate check path. The three-language agreement gate under [protocol/testdata/agreement/](../../protocol/testdata/agreement/) proves TypeScript, Rust, and MoonBit project identical outcomes. Normative authority remains the three-file protocol package.
 
 The browser-internal CBOR codec implements the R2WP v0 deterministic subset: definite lengths, shortest integer/length arguments, unsigned map keys sorted by encoded-key order, nesting depth 16, map entry ceiling 4096, and rejection of tags, floats, indefinite forms, and malformed UTF-8. Decode failures use `CborDecodeError` with `code: "invalid_control"`, a typed reason, and a byte offset. Decode yields an atomic whole value. Input-driven and native decoder failures normalize to `CborDecodeError`.
 
@@ -180,7 +181,7 @@ M0-03e (review Accept; commits `3600ff4`, `63f21df`, `154afb1`) adds three corpo
 
 Sequence coverage includes `no_common_version`, fresh open and resume success, gateway/support-row mismatch, multi-domain same-row, cross-row independent sessions (one process per H-FT/H-CY/J-FT/J-CY row), best-effort `sequence_gap` / `stale_sequence`, and reliable sequence mismatch as `protocol_violation`. Parity cross-binds the exact union of 20 valid/boundary identities and 26 sequence event identities for WebTransport and binary WSS, with a closed 20-row transport rule matrix against [protocol/registry/r2wp-v0.json](../../protocol/registry/r2wp-v0.json).
 
-Aggregate write/check runs exactly once per corpus in order `valid_boundary → malformed → sequences → parity` via [scripts/protocol-fixtures.ts](../../scripts/protocol-fixtures.ts). Layout and commands: [protocol/testdata/README.md](../../protocol/testdata/README.md). Root verification: `bun run protocol-fixtures:check` / `just protocol-fixtures-check`; root `bun run check` chains `docs:check`, `protocol-check`, aggregate `protocol-fixtures:check`, then `protocol-moonbit-fixtures:check`. Focused suites: `bun run test:protocol-fixtures` (four files once each) and `bun run test:protocol-moonbit-fixtures`.
+Aggregate write/check runs exactly once per corpus in order `valid_boundary → malformed → sequences → parity` via [scripts/protocol-fixtures.ts](../../scripts/protocol-fixtures.ts). Layout and commands: [protocol/testdata/README.md](../../protocol/testdata/README.md). Root verification: `bun run protocol-fixtures:check` / `just protocol-fixtures-check`; root `bun run check` chains `docs:check`, `protocol-check`, aggregate `protocol-fixtures:check`, `protocol-moonbit-fixtures:check`, then `protocol-agree:check` exactly once. Focused suites: `bun run test:protocol-fixtures` (four files once each), `bun run test:protocol-moonbit-fixtures`, and `bun run test:protocol-agree`.
 
 ### Delivered (M0-03f Rust reference parser)
 
@@ -190,7 +191,7 @@ M0-03f (review Accept; commits `9c07b4a`, `cca270c`) lands the Rust reference pa
 - deterministic CBOR decoder; extension TLV structural and unknown-critical validation; all 15 CONTROL kinds with nested CDDL shape rules;
 - all 20 valid/boundary entries, including the manifest-driven 64 MiB segment recipe, with structured records and borrowed extension/application payloads;
 - all 55 malformed binaries (14 bootstrap / 41 frame) with exact registry code, name, reason, absolute offset, plane, and step;
-- locked crate tests `cargo test --locked -p rclwebd` 55 of 55; the `rclwebd` normal tree is std only; the `serde_json` dev dependency serves fixture tests.
+- locked crate tests; the `rclwebd` normal tree is std only; the `serde_json` dev dependency serves fixture tests. After M0-03h2 agreement emitter work, `cargo test --locked -p rclwebd` reports 56 passed across 3 suites.
 
 ### Delivered (M0-03g MoonBit reference parser)
 
@@ -204,11 +205,45 @@ M0-03g (review Accept; commits `2f7352f`, `1157138`, `0c5e4d2`, `133fd9f`) lands
 - four exact Phase 1 SessionReady rows H-FT, H-CY, J-FT, and J-CY; u32 / u64 / i64 header bounds;
 - focused frozen Wasm tests `moon test --frozen --target wasm rclmbt/protocol` 69 of 69.
 
-### Planned (M0-03h)
+### Delivered (M0-03h cross-language agreement)
 
-- M0-03h — cross-language agreement report that closes M0-03.
+M0-03h (Codex h4 review Accept) closes top-level M0-03 with a triple-language agreement gate. Delivery commits:
 
-[M0-04](../../tasks/plan.md) owns broader CDR sample coverage, Jazzy provenance mapping, and related corpus expansion. The committed parity corpus establishes the shared WebTransport/binary-WSS semantic set.
+| Slice | Full hash | Subject |
+|---|---|---|
+| h1 expected corpus | `72ccd28b53820af9c3dd015b9be77a35aa6371b6` | `test(protocol): add r2wp agreement corpus` |
+| h2 Rust emitter | `33c947414110fee47fa96429a70e795a645cc5cb` | `test(rclwebd): emit r2wp agreement outcomes` |
+| h3 MoonBit emitter | `9fa91a4f9f956670368b0d36783991312f0e6900` | `test(rclmbt): emit r2wp agreement outcomes` |
+| h4 triple-language gate | `da5f28c3e6b9db8b939c2bceee5ba415442358d5` | `test(protocol): gate r2wp cross-language agreement` |
+
+Authoritative surface:
+
+```bash
+bun run protocol-agree
+bun run protocol-agree:write
+bun run test:protocol-agree
+just protocol-agree
+just protocol-agree-write
+```
+
+Committed artifacts under [protocol/testdata/agreement/](../../protocol/testdata/agreement/):
+
+| Field | Value |
+|---|---|
+| `report.json` size | 234265 bytes |
+| `report.json` SHA-256 | `e1295ab1ee56c83a3c3e8e5ada6699fdc7b693b86bd9dc399f07a00ccc8753d4` |
+| Outcomes | 101 total (46 success / 55 error) |
+| Implementation order | typescript, rust, moonbit |
+| Outcomes SHA-256 | `d22a58fbed0c2612f6c00901053a492f5c03ec76fcd4689fa1542aa002e2e220` |
+| Canonical SHA-256 | `cece56e1c70fc741f30e54dee9b35d6ed024992be83b6dbe8a4b31c183724341` |
+| Expected raw SHA-256 | `6193eda2bc6916796515ee6dfb1543a811be46f07a76d5a00cf8acf095fcb717` |
+| Transport bindings SHA-256 | `d4489d75e6146ed20d9bfe4d80fbcc6fe671b29c0fdfd86009995aa328ba119d` |
+| WT/WSS shared identities / rules | 46 / 20 |
+| Phase 1 rows | H-FT, H-CY, J-FT, J-CY |
+
+Accepted local verification: focused agreement 22/22 (94 assertions, exactly two real emitter subprocesses); full `bun test` 675/675 (5228 assertions); `cargo test --locked -p rclwebd` 56 passed across 3 suites; MoonBit protocol 69/69; pinned `just check` status=ok; digest-tamper and spawn-exception diagnostics closed; worktree/`git diff --check` clean. Layout: [agreement/README.md](../../protocol/testdata/agreement/README.md).
+
+[M0-04](../../tasks/plan.md) owns broader CDR sample coverage, Jazzy provenance mapping, and related corpus expansion. Phase 1 support rows remain exact H-FT, H-CY, J-FT, and J-CY; Jazzy+ is later expansion; Studio is a U0 side project after M3. The committed parity corpus establishes the shared WebTransport/binary-WSS semantic set.
 
 ## Related documents
 

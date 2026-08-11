@@ -14,6 +14,7 @@ Standalone scripts remain available for each corpus.
 | `malformed/` | Static malformed wire corpus (M0-03e1); own manifest + `*.bin` |
 | `sequences/` | Receiver state-sequence corpus (M0-03e2); scenarios + events |
 | `parity.json` | Dual-transport parity corpus (M0-03e3); shared artifact identities + transport rule matrix |
+| `agreement/` | Cross-language agreement expected corpus and three-language report (M0-03h); see [agreement/README.md](./agreement/README.md) |
 
 ## Representations (valid/boundary)
 
@@ -79,10 +80,11 @@ bun run test:protocol-fixtures    # four test files exactly once, fixed order
 ```
 
 Root `bun run check` runs `docs:check`, then `protocol-check`, then aggregate
-`protocol-fixtures:check`, then `protocol-moonbit-fixtures:check`. `just check`
-invokes that same `bun run check` chain after toolchain identity. Aggregate
-ownership lives in `scripts/protocol-fixtures.ts` and covers valid_boundary,
-malformed, sequences, and parity in that fixed order.
+`protocol-fixtures:check`, then `protocol-moonbit-fixtures:check`, then
+`protocol-agree:check` exactly once. `just check` invokes that same
+`bun run check` chain after toolchain identity. Aggregate ownership lives in
+`scripts/protocol-fixtures.ts` and covers valid_boundary, malformed, sequences,
+and parity in that fixed order.
 
 MoonBit fixture bridge (M0-03g1 owner: `scripts/protocol-moonbit-fixtures.ts`),
 after the aggregate fixture check in root `bun run check`:
@@ -93,6 +95,19 @@ bun run protocol-moonbit-fixtures:check   # reconstruct/verify the bridge source
 bun run test:protocol-moonbit-fixtures    # focused bridge suite
 bun test scripts/protocol-moonbit-fixtures.test.ts
 ```
+
+Cross-language agreement (M0-03h owner: `scripts/protocol-agree-run.ts`), after
+the MoonBit fixture bridge check in root `bun run check`:
+
+```bash
+bun run protocol-agree          # check: TypeScript expected + Rust/MoonBit emitters + report
+bun run protocol-agree:write    # regenerate protocol/testdata/agreement/report.json
+bun run test:protocol-agree     # focused orchestrator suite
+just protocol-agree
+just protocol-agree-write
+```
+
+Agreement layout, digests, and h1–h4 commits: [agreement/README.md](./agreement/README.md).
 
 Standalone corpus commands (complete write/check surface):
 
@@ -131,10 +146,13 @@ rows remain H-FT, H-CY, J-FT, and J-CY.
 
 **Rust consumer (M0-03f review Accept):** [`rclwebd/src/protocol/`](../../rclwebd/src/protocol/)
 loads the valid/boundary and malformed corpora specifically through locked crate
-tests (`cargo test --locked -p rclwebd` 55 of 55). Bootstrap steps 1–9 and
-selected-frame steps 1–16 cover all 20 valid entries (including the
-manifest-driven 64 MiB segment recipe) and all 55 malformed binaries with exact
-code/name/reason/offset/plane/step. Commits `9c07b4a`, `cca270c`.
+tests. Bootstrap steps 1–9 and selected-frame steps 1–16 cover all 20 valid
+entries (including the manifest-driven 64 MiB segment recipe) and all 55
+malformed binaries with exact code/name/reason/offset/plane/step. Commits
+`9c07b4a`, `cca270c`. M0-03h2 adds the agreement outcome emitter as the
+integration test [`rclwebd/tests/protocol_agreement.rs`](../../rclwebd/tests/protocol_agreement.rs);
+after h4 review Accept, `cargo test --locked -p rclwebd` reports 56 passed
+across 3 suites.
 
 **MoonBit consumer (M0-03g review Accept):** [`rclmbt/protocol/`](../../rclmbt/protocol/)
 loads the same corpora through the white-box fixture bridge
@@ -147,8 +165,26 @@ code/name/reason/offset/plane/step; deterministic CBOR; extension TLVs; all 15
 CONTROL kinds; four exact Phase 1 SessionReady rows H-FT / H-CY / J-FT / J-CY;
 u32 / u64 / i64 bounds; borrowed extension and application `BytesView` backing.
 Commits `2f7352f` (fixture bridge), `1157138` (bootstrap + CBOR), `0c5e4d2`
-(extension + CONTROL), `133fd9f` (frame). Sequences and parity feed M0-03h
-cross-language agreement and later runtime work.
+(extension + CONTROL), `133fd9f` (frame). M0-03h3 adds the agreement outcome
+emitter as the executable package [`rclmbt/cmd/agree/`](../../rclmbt/cmd/agree/).
+
+**Cross-language agreement (M0-03h review Accept):**
+[`agreement/`](./agreement/) holds the TypeScript expected corpus
+(`expected.json`) and the three-language report (`report.json`). Implementation
+order is typescript → rust → moonbit. Report facts: 234265 bytes;
+SHA-256 `e1295ab1ee56c83a3c3e8e5ada6699fdc7b693b86bd9dc399f07a00ccc8753d4`;
+101 outcomes (46 success / 55 error); outcomes SHA-256
+`d22a58fbed0c2612f6c00901053a492f5c03ec76fcd4689fa1542aa002e2e220`; canonical
+SHA-256 `cece56e1c70fc741f30e54dee9b35d6ed024992be83b6dbe8a4b31c183724341`;
+expected raw SHA-256 `6193eda2bc6916796515ee6dfb1543a811be46f07a76d5a00cf8acf095fcb717`;
+transport bindings SHA-256 `d4489d75e6146ed20d9bfe4d80fbcc6fe671b29c0fdfd86009995aa328ba119d`;
+46 WT/WSS identities and 20 rules; Phase 1 rows H-FT, H-CY, J-FT, J-CY. Commits
+`72ccd28b53820af9c3dd015b9be77a35aa6371b6` (h1),
+`33c947414110fee47fa96429a70e795a645cc5cb` (h2),
+`9fa91a4f9f956670368b0d36783991312f0e6900` (h3),
+`da5f28c3e6b9db8b939c2bceee5ba415442358d5` (h4). Focused agreement suite 22/22
+(94 assertions, exactly two real emitter subprocesses); full `bun test` 675/675
+(5228 assertions); pinned `just check` status=ok.
 
 ## Coverage highlights (valid/boundary)
 

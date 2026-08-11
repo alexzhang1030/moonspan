@@ -63,6 +63,7 @@ bun install --frozen-lockfile
 just toolchain-check
 just protocol-check
 just protocol-fixtures-check
+just protocol-agree
 just check
 just test
 just build
@@ -77,7 +78,9 @@ just build
 | `just protocol-malformed-fixtures-check` / `-write` | Standalone malformed corpus |
 | `just protocol-sequence-fixtures-check` / `-write` | Standalone state-sequence corpus |
 | `just protocol-parity-fixtures-check` / `-write` | Standalone transport parity corpus |
-| `just check` | Toolchain identity, `bun run check` (docs, protocol contract, aggregate fixtures, then MoonBit fixture bridge), `cargo fmt` + locked `clippy -D warnings`, frozen `moon check --fmt`, `@moonspan/sdk` browser build check |
+| `just protocol-agree` | Toolchain identity, then three-language agreement check (`bun run protocol-agree`) |
+| `just protocol-agree-write` | Toolchain identity, then regenerate `protocol/testdata/agreement/report.json` (`bun run protocol-agree:write`) |
+| `just check` | Toolchain identity, `bun run check` (docs, protocol contract, aggregate fixtures, MoonBit fixture bridge, then agreement), `cargo fmt` + locked `clippy -D warnings`, frozen `moon check --fmt`, `@moonspan/sdk` browser build check |
 | `just test` | Root/tooling/SDK `bun test` once, locked `cargo test --workspace`, frozen `moon test --target wasm` |
 | `just build` | Locked `cargo build --workspace`, frozen `moon build --target wasm`, `@moonspan/sdk` browser build |
 
@@ -85,27 +88,29 @@ Bun script meanings:
 
 | Script | Meaning |
 |---|---|
-| `bun run check` | `docs:check`, then `protocol-check`, then aggregate `protocol-fixtures:check`, then `protocol-moonbit-fixtures:check` (deterministic order) |
+| `bun run check` | `docs:check`, then `protocol-check`, then aggregate `protocol-fixtures:check`, then `protocol-moonbit-fixtures:check`, then `protocol-agree:check` exactly once |
 | `bun run protocol-check` | R2WP v0 registry + control CDDL contract validator (`scripts/protocol-check.ts`) |
 | `bun run protocol-fixtures:check` | Aggregate reconstruct/verify: valid_boundary → malformed → sequences → parity (`scripts/protocol-fixtures.ts --check`) |
 | `bun run protocol-fixtures:write` | Aggregate regenerate of all four corpora (`scripts/protocol-fixtures.ts --write`) |
 | `bun run protocol-moonbit-fixtures:check` | MoonBit white-box fixture bridge reconstruct/verify (`scripts/protocol-moonbit-fixtures.ts --check`) |
 | `bun run protocol-moonbit-fixtures:write` | Regenerate `rclmbt/protocol/fixture_data_wbtest.mbt` from committed corpora (`scripts/protocol-moonbit-fixtures.ts --write`) |
+| `bun run protocol-agree` | Three-language agreement check (`scripts/protocol-agree-run.ts --check`) |
+| `bun run protocol-agree:write` | Regenerate `protocol/testdata/agreement/report.json` (`scripts/protocol-agree-run.ts --write`) |
 | `bun run protocol-malformed-fixtures:write` / `:check` | Standalone malformed corpus regenerate / reconstruct-verify |
 | `bun run protocol-sequence-fixtures:write` / `:check` | Standalone state-sequence corpus regenerate / reconstruct-verify |
 | `bun run protocol-parity-fixtures:write` / `:check` | Standalone transport parity corpus regenerate / reconstruct-verify |
 | `bun run toolchain-check` | Installed-tool probe against project pins |
-| `bun test` | All Bun tests (docs, toolchain, protocol-check, four fixture suites, MoonBit fixture bridge, SDK codecs) |
-| `bun run test:docs` / `test:protocol` / `test:protocol-fixtures` / `test:protocol-moonbit-fixtures` / `test:toolchain` | Focused root Bun test entrypoints (`test:protocol-fixtures` runs four files once each; `test:protocol-moonbit-fixtures` runs the bridge suite) |
+| `bun test` | All Bun tests (docs, toolchain, protocol-check, four fixture suites, MoonBit fixture bridge, agreement, SDK codecs) |
+| `bun run test:docs` / `test:protocol` / `test:protocol-fixtures` / `test:protocol-moonbit-fixtures` / `test:protocol-agree` / `test:toolchain` | Focused root Bun test entrypoints (`test:protocol-fixtures` runs four files once each; `test:protocol-moonbit-fixtures` runs the bridge suite; `test:protocol-agree` runs the agreement orchestrator) |
 | `bun run --filter @moonspan/sdk test:cbor` | Focused R2WP v0 deterministic CBOR encode/decode tests |
 | `bun run --filter @moonspan/sdk test:bootstrap` | Focused bootstrap codec tests |
 | `bun run --filter @moonspan/sdk test:extension` | Focused extension TLV codec tests |
 | `bun run --filter @moonspan/sdk test:control` | Focused CONTROL_CBOR codec tests |
 | `bun run --filter @moonspan/sdk test:frame` | Focused selected-frame codec tests |
-| `cargo test --locked -p rclwebd` | Focused R2WP Rust reference parser tests (bootstrap, frame, fixture oracles; 55 tests) |
+| `cargo test --locked -p rclwebd` | Focused R2WP Rust reference parser and agreement emitter tests (56 tests across 3 suites) |
 | `moon test --frozen --target wasm rclmbt/protocol` | Focused R2WP MoonBit reference parser tests (bootstrap, frame, fixture bridge; 69 tests) |
 
-Current R2WP foundation progress: M0-03a–g are verified. Normative freeze and contract validator stand; TypeScript codecs cover CBOR, bootstrap, extension TLVs, all 15 CONTROL kinds, and selected-frame steps 1–16 at `sdk/typescript/src/protocol/{cbor,bootstrap,extension,control,frame}.ts` (package root continues to export `src/index.ts`). Rust reference parser at `rclwebd/src/protocol/` covers bootstrap steps 1–9 and selected-frame steps 1–16 against the same fixtures (`cargo test --locked -p rclwebd` 55 of 55; commits `9c07b4a`, `cca270c`). MoonBit reference parser at `rclmbt/protocol/` covers the same surfaces with borrowed `BytesView` payloads (`moon test --frozen --target wasm rclmbt/protocol` 69 of 69; commits `2f7352f`, `1157138`, `0c5e4d2`, `133fd9f`). Fixture corpora: [protocol/testdata/README.md](./protocol/testdata/README.md) — valid/boundary (20 entries), malformed (55 fixtures: 14 bootstrap / 41 frame), sequences (13 scenarios / 26 events), parity (46 shared identities + 20 registry-bound rules); aggregate check via `bun run protocol-fixtures:check`. Fixture commits `3600ff4`, `63f21df`, `154afb1`. M0-03 remains active for M0-03h cross-language agreement. Phase 1 support rows remain H-FT, H-CY, J-FT, and J-CY; Jazzy+ is later expansion; Studio is a U0 side project after M3.
+Current R2WP foundation progress: M0-03a–h are verified and top-level M0-03 is complete. Normative freeze and contract validator stand; TypeScript codecs cover CBOR, bootstrap, extension TLVs, all 15 CONTROL kinds, and selected-frame steps 1–16 at `sdk/typescript/src/protocol/{cbor,bootstrap,extension,control,frame}.ts` (package root continues to export `src/index.ts`). Rust reference parser at `rclwebd/src/protocol/` covers bootstrap steps 1–9 and selected-frame steps 1–16 against the same fixtures and emits agreement outcomes (`cargo test --locked -p rclwebd` 56 passed across 3 suites; parser commits `9c07b4a`, `cca270c`; agreement emitter `33c947414110fee47fa96429a70e795a645cc5cb`). MoonBit reference parser at `rclmbt/protocol/` covers the same surfaces with borrowed `BytesView` payloads and emits agreement outcomes (`moon test --frozen --target wasm rclmbt/protocol` 69 of 69; parser commits `2f7352f`, `1157138`, `0c5e4d2`, `133fd9f`; agreement emitter `9fa91a4f9f956670368b0d36783991312f0e6900`). Fixture corpora: [protocol/testdata/README.md](./protocol/testdata/README.md) — valid/boundary (20 entries), malformed (55 fixtures: 14 bootstrap / 41 frame), sequences (13 scenarios / 26 events), parity (46 shared identities + 20 registry-bound rules); aggregate check via `bun run protocol-fixtures:check`. Fixture commits `3600ff4`, `63f21df`, `154afb1`. Cross-language agreement: [protocol/testdata/agreement/](./protocol/testdata/agreement/) — `report.json` 234265 bytes, SHA-256 `e1295ab1ee56c83a3c3e8e5ada6699fdc7b693b86bd9dc399f07a00ccc8753d4`; 101 outcomes (46 success / 55 error); implementation order typescript/rust/moonbit; outcomes SHA-256 `d22a58fbed0c2612f6c00901053a492f5c03ec76fcd4689fa1542aa002e2e220`; canonical SHA-256 `cece56e1c70fc741f30e54dee9b35d6ed024992be83b6dbe8a4b31c183724341`; expected raw SHA-256 `6193eda2bc6916796515ee6dfb1543a811be46f07a76d5a00cf8acf095fcb717`; transport bindings SHA-256 `d4489d75e6146ed20d9bfe4d80fbcc6fe671b29c0fdfd86009995aa328ba119d`; 46 WT/WSS identities and 20 rules; Phase 1 rows H-FT, H-CY, J-FT, J-CY. Agreement commits `72ccd28b53820af9c3dd015b9be77a35aa6371b6` (h1), `33c947414110fee47fa96429a70e795a645cc5cb` (h2), `9fa91a4f9f956670368b0d36783991312f0e6900` (h3), `da5f28c3e6b9db8b939c2bceee5ba415442358d5` (h4). Codex h4 review Accept: focused agreement 22/22 (94 assertions, exactly two real emitter subprocesses); full `bun test` 675/675 (5228 assertions); pinned `just check` status=ok. The broader M0 gate remains open for remaining M0 work, hosted workflow evidence, and human decision. Phase 1 support rows remain H-FT, H-CY, J-FT, and J-CY; Jazzy+ is later expansion; Studio is a U0 side project after M3.
 
 Bun carries workspace identity only. The `rclwebd` normal tree is std only. The `serde_json` dev dependency serves fixture tests. Workspace members stay private at version `0.0.0`. Repository `LICENSE` / `NOTICE` wait on the [D-06](./tasks/plan.md#13-kickoff-decision-register) human ruling.
 

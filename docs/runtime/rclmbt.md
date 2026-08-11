@@ -2,7 +2,7 @@
 
 `rclmbt` is Moonspan's MoonBit-to-Wasm implementation of browser-native ROS 2 runtime semantics. It owns deterministic state, CDR processing, type identity, graph state, QoS compatibility, executor dispatch, and typed operations exposed through the browser SDK.
 
-**Status:** design baseline. M0-03g lands the R2WP wire version 0 reference parser under [`rclmbt/protocol/`](../../rclmbt/protocol/) (review Accept). M1 establishes the host boundary and publish/subscribe core; M2 completes the N2 semantic surface.
+**Status:** design baseline. M0-03g lands the R2WP wire version 0 reference parser under [`rclmbt/protocol/`](../../rclmbt/protocol/) (review Accept). M0-03h3 adds the agreement outcome emitter as the executable package [`rclmbt/cmd/agree/`](../../rclmbt/cmd/agree/) (commit `9fa91a4f9f956670368b0d36783991312f0e6900`); after h4 review Accept the package participates in the three-language agreement gate. M1 establishes the host boundary and publish/subscribe core; M2 completes the N2 semantic surface.
 
 Schema identity follows [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md). Gateway process and support-row topology follows [ADR 0008](../adr/0008-one-adapter-row-per-gateway-process.md). First-stage environment pins live in the [support matrix](../support-matrix.md).
 
@@ -18,7 +18,7 @@ Coverage (review Accept; commits `2f7352f`, `1157138`, `0c5e4d2`, `133fd9f`):
 - four exact Phase 1 SessionReady rows H-FT, H-CY, J-FT, and J-CY; u32 / u64 / i64 header bounds;
 - borrowed extension and application `BytesView` backing shared with the input storage.
 
-Focused verification: `moon test --frozen --target wasm rclmbt/protocol` (69 of 69). Full Bun suite 613 of 613; pinned `just check` status=ok under Bun 1.3.14 / Rust 1.97.1 / moonc 0.10.6+80dc50f24 / just 1.50.0. Cross-language agreement continues through M0-03h. Hosted CI run evidence remains pending.
+Focused verification: `moon test --frozen --target wasm rclmbt/protocol` (69 of 69). After M0-03h review Accept the executable package [`rclmbt/cmd/agree/`](../../rclmbt/cmd/agree/) emits agreement outcomes for `bun run protocol-agree` via `moon run --frozen --release --target wasm rclmbt/cmd/agree`; full Bun suite 675 of 675 (5228 assertions); pinned `just check` status=ok under Bun 1.3.14 / Rust 1.97.1 / moonc 0.10.6+80dc50f24 / just 1.50.0. Agreement layout and digests: [protocol/testdata/agreement/README.md](../../protocol/testdata/agreement/README.md). Hosted CI run evidence remains pending.
 
 ## Runtime scope
 
