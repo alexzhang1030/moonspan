@@ -8,7 +8,7 @@ Moonspan stores machine-readable qualification evidence under `evidence/`.
 |---|---|
 | [`schema/qualification-report-v1.json`](./schema/qualification-report-v1.json) | Public JSON Schema 2020-12 for the closed report contract |
 | [`testdata/valid/`](./testdata/valid/) | Committed valid report fixtures |
-| [`testdata/artifacts/`](./testdata/artifacts/) | Small artifacts referenced by valid fixtures |
+| [`testdata/payloads/`](./testdata/payloads/) | Small payload files referenced by valid fixtures |
 
 The Bun checker enforces the closed contract without third-party schema runtimes. Report JSON and referenced artifacts are treated as untrusted input.
 
