@@ -99,6 +99,12 @@ pub fn CdrError::truncated(
 }
 
 ///|
+/// Boolean octet outside `{0, 1}`. `needed` is the field width (1).
+pub fn CdrError::invalid_boolean(offset : Int, remaining : Int) -> CdrError {
+  CdrError::new(CODE_INVALID_BOOLEAN, offset, 1, remaining)
+}
+
+///|
 pub fn CdrError::bounds_exceeded(
   offset : Int,
   needed : Int,
