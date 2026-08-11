@@ -158,3 +158,30 @@ pub fn require_write_char16(
 ) -> Result[Unit, @cdr.CdrError] {
   writer.write_char16(value)
 }
+
+///|
+/// Compile-time binding: `CdrReader::read_string` returns owned `String`.
+/// Optional `max_bytes` is UTF-8 payload bytes excluding the terminating NUL.
+pub fn require_read_string(
+  reader : @cdr.CdrReader,
+  max_bytes? : UInt,
+) -> Result[String, @cdr.CdrError] {
+  match max_bytes {
+    Some(n) => reader.read_string(max_bytes=n)
+    None => reader.read_string()
+  }
+}
+
+///|
+/// Compile-time binding: `CdrWriter::write_string` accepts `StringView`.
+/// Optional `max_bytes` is UTF-8 payload bytes excluding the terminating NUL.
+pub fn require_write_string(
+  writer : @cdr.CdrWriter,
+  value : StringView,
+  max_bytes? : UInt,
+) -> Result[Unit, @cdr.CdrError] {
+  match max_bytes {
+    Some(n) => writer.write_string(value, max_bytes=n)
+    None => writer.write_string(value)
+  }
+}

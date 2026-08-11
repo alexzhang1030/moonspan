@@ -245,3 +245,79 @@ test "public invalid_boolean error fields across package boundary" {
     Err(e) => abort(e.code)
   }
 }
+
+///|
+test "public UTF-8 string codec across package boundary" {
+  let limits = match @cdr.CdrLimits::new(128, 8, 128) {
+    Ok(l) => l
+    Err(e) => abort(e.code)
+  }
+  match @cdr.CdrWriter::new(@cdr.CdrEndian::little(), limits) {
+    Ok(w) => {
+      match require_write_string(w, "Moonspan CDR ✓"[:]) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      match require_write_string(w, ""[:], max_bytes=0U) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      match require_write_string(w, "AB"[:], max_bytes=2U) {
+        Ok(_) => ()
+        Err(e) => abort(e.code)
+      }
+      match @cdr.CdrReader::open_default(w.to_bytes()[:]) {
+        Ok(r) => {
+          match require_read_string(r) {
+            Ok(s) => assert_eq(s, "Moonspan CDR ✓")
+            Err(e) => abort(e.code)
+          }
+          match require_read_string(r) {
+            Ok(s) => assert_eq(s, "")
+            Err(e) => abort(e.code)
+          }
+          match require_read_string(r, max_bytes=2U) {
+            Ok(s) => assert_eq(s, "AB")
+            Err(e) => abort(e.code)
+          }
+        }
+        Err(e) => abort(e.code)
+      }
+    }
+    Err(e) => abort(e.code)
+  }
+}
+
+///|
+test "public string invalid_utf8 and missing terminator across packages" {
+  let bad_utf8 = b"\x00\x01\x00\x00\x03\x00\x00\x00\xc3\x28\x00"
+  match @cdr.CdrReader::open_default(bad_utf8[:]) {
+    Ok(r) => {
+      match require_read_string(r) {
+        Ok(_) => abort("expected invalid_utf8")
+        Err(e) => {
+          assert_eq(e.code, @cdr.CODE_INVALID_UTF8)
+          assert_eq(e.offset, 4)
+          assert_eq(e.needed, 3)
+        }
+      }
+      assert_eq(r.position(), 4)
+    }
+    Err(e) => abort(e.code)
+  }
+  let no_term = b"\x00\x01\x00\x00\x00\x00\x00\x00"
+  match @cdr.CdrReader::open_default(no_term[:]) {
+    Ok(r) => {
+      match require_read_string(r) {
+        Ok(_) => abort("expected missing_string_terminator")
+        Err(e) => {
+          assert_eq(e.code, @cdr.CODE_MISSING_STRING_TERMINATOR)
+          assert_eq(e.offset, 4)
+          assert_eq(e.needed, 1)
+        }
+      }
+      assert_eq(r.position(), 4)
+    }
+    Err(e) => abort(e.code)
+  }
+}

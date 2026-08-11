@@ -63,10 +63,14 @@ Grounded in DDS-XTypes 1.3 Clause **7.4.1.1.2 Character Data** for `String<Char8
 | Rule | Contract |
 |---|---|
 | Encoding | UTF-8 |
-| Serialized length | Number of **bytes** occupied by the characters **including the terminating NUL character** |
+| Serialized length | Endian-aware `UInt32`: number of **bytes** occupied by the characters **including the terminating NUL character** |
 | Terminator | Required single `0x00` byte at the end of the character data; the length field accounts for that byte |
+| Empty string | Length `1` plus a single `0x00` |
+| Optional type bound (`max_bytes`) | Counts **UTF-8 payload bytes only** and **excludes** the required terminating NUL. Exact bound succeeds; bound + 1 fails with `bounds_exceeded` before decode allocation and before writer mutation |
+| Decode | Checks length arithmetic and stream span before host `Int` conversion; requires the final NUL; strictly validates UTF-8; preserves a UTF-8 BOM as U+FEFF; returns an owned `String`. Worst-case owned UTF-16 storage (`payload_bytes * 2`) is charged to `max_temporary_allocation` before the strict decoder runs |
+| Encode | Validates every input scalar and computes checked UTF-8 byte length before mutation; unpaired UTF-16 surrogates map to `invalid_utf8`. One complete field preflight covers alignment padding, `UInt32` length, payload, and NUL, then emits directly into the owned writer buffer (no second payload-sized temporary) |
 
-When the declared Char8 span ends on a nonzero byte, the fault is `missing_string_terminator`. Invalid UTF-8 surfaces `invalid_utf8`. Boolean values outside the set `{0, 1}` surface `invalid_boolean` (Table 31: `0` false, `1` true).
+When the declared Char8 span ends on a nonzero byte, or the length is zero, the fault is `missing_string_terminator`. Invalid UTF-8 surfaces `invalid_utf8`. Boolean values outside the set `{0, 1}` surface `invalid_boolean` (Table 31: `0` false, `1` true).
 
 ### ROS 2 legacy `wstring` wire profile (authoritative for M1)
 
@@ -141,7 +145,8 @@ BytesView  ->  bounds-checked slice into parent storage the caller retains
 | `CdrWriter` | M1-01b2 | Canonical header on construct, deterministic zero padding, owned `to_bytes` snapshots |
 | Raw integers | b1/b2 | Width-exact APIs: `read_u8`/`write_u8` → `Byte`; `read_u16`/`write_u16` → `UInt16`; `read_u32`/`write_u32` → `UInt`; `read_u64`/`write_u64` → `UInt64`. Reader assembly uses `Byte::to_uint16` / `Byte::to_uint` so shifts stay unsigned through `0x80000000..0xffffffff` |
 | Semantic primitives | M1-01c1 | `bool`; signed `i8`/`i16`/`i32`/`i64` (`Int`/`Int64`); `Float`/`Double` IEEE bit patterns; `Char8`/`Char16`. Built on raw read/write. `i8`/`i16` writers validate representable ranges. Boolean accepts `0`/`1` only (`invalid_boolean`) |
-| Strings / ROS wstring | M1-01c2 | Char8 strings, ROS legacy wstring (`count * 4`, `invalid_wstring_scalar`, terminal four-byte zero tail slack) |
+| Char8 string | M1-01c2a | `read_string` / `write_string` with optional `max_bytes` (UTF-8 payload bytes excluding NUL); owned `String` decode; direct writer emit after full-field preflight |
+| ROS legacy wstring | M1-01c2b | ROS legacy wstring (`count * 4`, `invalid_wstring_scalar`, terminal four-byte zero tail slack) and corpus-tail completion |
 | Arrays / sequences / views | M1-01c3 | Arrays, sequences, nested-depth guards, borrowed `BytesView` fields |
 
 **Writer capacity:** `capacity = min(max_stream_bytes, max_temporary_allocation)`, counted over the **complete stream including the 4-byte header**. Construction emits the full canonical header immediately (`LE = 00 01 00 00`, `BE = 00 00 00 00`; options always `0x0000`). When temporary capacity is below 4, construction returns `bounds_exceeded` with `needed = 4` and `remaining =` temporary capacity. Each field preflights `pad + size` arithmetic and full capacity before mutating the buffer; faults leave position and bytes byte-identical. `to_bytes` returns an owned snapshot isolated from later writes.

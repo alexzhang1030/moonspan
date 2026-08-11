@@ -105,6 +105,27 @@ pub fn CdrError::invalid_boolean(offset : Int, remaining : Int) -> CdrError {
 }
 
 ///|
+/// Char8 string payload is not well-formed UTF-8 (or writer input has an
+/// unpaired UTF-16 surrogate). Numeric fields follow the shared convention.
+pub fn CdrError::invalid_utf8(
+  offset : Int,
+  needed : Int,
+  remaining : Int,
+) -> CdrError {
+  CdrError::new(CODE_INVALID_UTF8, offset, needed, remaining)
+}
+
+///|
+/// Char8 declared span has no terminating NUL, or the final byte is nonzero.
+pub fn CdrError::missing_string_terminator(
+  offset : Int,
+  needed : Int,
+  remaining : Int,
+) -> CdrError {
+  CdrError::new(CODE_MISSING_STRING_TERMINATOR, offset, needed, remaining)
+}
+
+///|
 pub fn CdrError::bounds_exceeded(
   offset : Int,
   needed : Int,
