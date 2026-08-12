@@ -72,3 +72,7 @@ Canonical CDR bundles for `*_Request` / `*_Response` / `*_Goal` / `*_Result` / `
 ## GitHub Releases downloads need retries
 
 Foundation CI installs Bun with SHA-pinned `oven-sh/setup-bun` (`.bun-version`) and just with SHA-pinned `extractions/setup-just` (`.just-version`); a failed just step waits 15s and retries once. `dtolnay/rust-toolchain` installs the channel in `rust-toolchain.toml`. E2e images copy `/usr/local/bin/bun` from digest-pinned `oven/bun` (must match `.bun-version`); do not pipe `bun.sh/install`. Cloud-agent setup has no Actions, so it uses [`scripts/install-pinned-bun.sh`](../../scripts/install-pinned-bun.sh) and [`scripts/github-release-curl.sh`](../../scripts/github-release-curl.sh). Paid flakes were GitHub Releases 503/curl 56, not a broken setup-just. Landed in [`45cacd5`](https://github.com/alexzhang1030/rclweb/commit/45cacd5) (#19).
+
+## release-wasm inherits native release settings
+
+`[profile.release-wasm] inherits = "release"`. Adding `strip`, `lto`, or panic settings to native release also applies to the wasm ship profile unless that key is set again on `release-wasm`. Putting `strip = "symbols"` on native release dropped staged `rclweb.wasm` from 593631 bytes to 376519. Keep fat LTO, `panic = abort`, `opt-level = "z"`, and `strip` explicit on `release-wasm`. Reproduce with `just build` and [`docs/evidence/r1-04-wasm-size.json`](../../docs/evidence/r1-04-wasm-size.json).

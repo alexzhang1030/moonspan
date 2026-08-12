@@ -42,9 +42,11 @@ codegen-units = 1
 strip = "symbols"
 
 # Fat LTO ship profile for the wasm artifact (R-D1 reopen inputs).
+# Inherits native release (including strip); keep wasm-specific keys explicit.
 [profile.release-wasm]
 inherits = "release"
 lto = "fat"
 codegen-units = 1
 panic = "abort"
 opt-level = "z"
+strip = "symbols"
