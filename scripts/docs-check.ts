@@ -32,6 +32,7 @@ const SKIP_DIR_NAMES = new Set([
   ".turbo",
   ".next",
   "target",
+  ".pixi",
 ]);
 
 const URI_SCHEME_RE = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
