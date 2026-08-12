@@ -13,6 +13,8 @@
 
 Robot private keys stay in the edge enclave.
 
+Authenticate is evaluated at the gateway ([R4-01](./milestones/r4-01-oidc-sros2-audit.md)). Default `off` accepts any credential and keeps SessionReady field 21 as `anonymous` (no audit). `oidc` mode verifies JWT issuer, audience, expiry, and signature (HS256 secret or JWKS) and fails with wire code 26. The named OIDC tenant and SROS2 keystore are D-04; this process does not embed a vendor.
+
 ## Authorization
 
 Policy can scope access by subject, tenant, robot, gateway, support row, ROS domain, operation kind, ROS name, type, schema identity, QoS, resource budget, and diagnostic visibility.

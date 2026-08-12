@@ -591,11 +591,19 @@ impl TestClient {
     }
 
     pub fn authenticate_msg(correlation: &[u8; 16]) -> CborValue<'static> {
+        Self::authenticate_msg_with(correlation, "token", b"anonymous")
+    }
+
+    pub fn authenticate_msg_with(
+        correlation: &[u8; 16],
+        scheme: &str,
+        token: &[u8],
+    ) -> CborValue<'static> {
         CborValue::Map(vec![
             (1, CborValue::Unsigned(1)),
             (2, bytes_val(correlation)),
-            (16, text_val("token")),
-            (17, bytes_val(b"anonymous")),
+            (16, text_val(scheme)),
+            (17, bytes_val(token)),
         ])
     }
 
@@ -826,12 +834,20 @@ pub async fn start_gateway() -> (String, std::sync::Arc<MockBackend>) {
 pub async fn start_gateway_with_row(
     support_row: rclwebd::SupportRow,
 ) -> (String, std::sync::Arc<MockBackend>) {
-    let backend = std::sync::Arc::new(MockBackend::default());
-    let config = std::sync::Arc::new(rclwebd::GatewayConfig {
+    start_gateway_with_config(rclwebd::GatewayConfig {
         gateway_instance_id: "gw-test".to_owned(),
         support_row,
         ..rclwebd::GatewayConfig::default()
-    });
+    })
+    .await
+}
+
+/// Start a mock gateway with a fully specified config (R4-01 auth modes).
+pub async fn start_gateway_with_config(
+    config: rclwebd::GatewayConfig,
+) -> (String, std::sync::Arc<MockBackend>) {
+    let backend = std::sync::Arc::new(MockBackend::default());
+    let config = std::sync::Arc::new(config);
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
         .expect("bind");

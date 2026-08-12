@@ -11,6 +11,7 @@
 #![deny(unsafe_code)]
 
 pub mod adapter;
+pub mod auth;
 pub mod backend;
 pub mod budgets;
 pub mod config;
@@ -24,6 +25,7 @@ pub mod telemetry;
 pub mod ws;
 pub mod wt;
 
+pub use auth::{AUTHENTICATION_FAILED, AuthMode, AuthResult, OidcSettings, mint_hs256_token};
 pub use backend::{
     ActionInbound, BackendError, ChannelSpec, EntityId, GraphEndpointInfo, GraphNodeInfo,
     GraphView, RosBackend, ServiceRequest, SubscriptionSample,

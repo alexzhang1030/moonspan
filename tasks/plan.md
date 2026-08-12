@@ -75,7 +75,7 @@ Gate: N2 subset demonstrated; conformance green on two rows and two transports.
 
 | ID | State | Deliverable |
 |---|---|---|
-| R4-01 | Queued | OIDC identity, SROS2/ACL, audit |
+| R4-01 | Active | OIDC identity, SROS2/ACL, audit — first slice: Authenticate off-by-default / opt-in `oidc` + audit JSON; tenant/keystore remain D-04 |
 | R4-02 | Queued | Deployment packaging and observability |
 | R4-03 | Queued | Evidence harness returns (recycling the pre-restructure report contract) validating real gate reports; support matrix expansion to remaining rows |
 | R4-04 | Queued | SDK stabilization, docs, examples, and release |
@@ -93,6 +93,6 @@ Every task provides acceptance evidence, focused tests, explicit budgets where r
 | D-01 | Reference robot, artifact storage, and qualification environment | Reviewed environment manifest and storage record | Partial |
 | D-02 | Named workstream, integration, and review owners | Ownership record | Open |
 | D-03 | Bun version and workspace convention | Project pins, workspace manifests, lockfile, and root checks | Resolved 2026-08-11 with Bun 1.3.14 |
-| D-04 | OIDC provider and SROS2 reference environment | Identity tenant and SROS2 environment record | Open (R4 entry) |
+| D-04 | OIDC provider and SROS2 reference environment | Identity tenant and SROS2 environment record | Open (R4 entry). Gateway consumes issuer/audience/JWKS from env; it does not pick a vendor. |
 | D-05 | Benchmark artifact retention and publication | Storage, retention, access, and integrity policy | Open (R2 entry) |
 | D-06 | Repository license and third-party licensing policy | License, notice, dependency inventory, and compliance policy | Human ruling pending |

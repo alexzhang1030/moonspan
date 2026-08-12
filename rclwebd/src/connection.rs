@@ -418,8 +418,20 @@ impl<'a> ConnState<'a> {
     ) {
         match msg.kind {
             CONTROL_KIND_AUTHENTICATE => {
-                // R1 accepts every credential; identity/policy land in R4.
                 let correlation = field_bytes(msg, 2).unwrap_or(&control::ZERO_CORRELATION);
+                let scheme = field_text(msg, 16).unwrap_or("");
+                let token = field_bytes(msg, 17).unwrap_or(&[]);
+                let decision = crate::auth::authenticate(self.config, scheme, token);
+                if !decision.allow {
+                    let err = control::session_error_with_correlation(
+                        correlation,
+                        crate::auth::AUTHENTICATION_FAILED,
+                        &decision.reason,
+                    );
+                    let _ = self.push_control(outcome, &err);
+                    outcome.close = true;
+                    return;
+                }
                 let Some(server_hello) = self.server_hello.clone() else {
                     outcome.close = true;
                     return;
@@ -430,7 +442,7 @@ impl<'a> ConnState<'a> {
                     &server_hello,
                     correlation,
                     &session_id,
-                    "anonymous",
+                    &decision.subject,
                 );
                 if !self.push_control(outcome, &ready) {
                     return;
