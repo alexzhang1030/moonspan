@@ -126,9 +126,31 @@ impl ProtocolError {
         Self::selected_frame(25, "protocol_violation", reason, offset, step)
     }
 
+    /// Selected-frame step 17: ready-required control or data before ready.
+    #[must_use]
+    pub const fn session_not_ready(reason: &'static str, offset: usize) -> Self {
+        Self::selected_frame(27, "session_not_ready", reason, offset, 17)
+    }
+
+    /// Selected-frame step 20: data on failed, closed, or never-opened channel.
+    #[must_use]
+    pub const fn unknown_channel(reason: &'static str, offset: usize) -> Self {
+        Self::selected_frame(7, "unknown_channel", reason, offset, 20)
+    }
+
     #[must_use]
     pub const fn clock_unavailable(reason: &'static str, offset: usize, step: u8) -> Self {
         Self::selected_frame(28, "clock_unavailable", reason, offset, step)
+    }
+
+    /// Bootstrap-plane protocol violation (registry code 25).
+    #[must_use]
+    pub const fn protocol_violation_bootstrap(
+        reason: &'static str,
+        offset: usize,
+        step: u8,
+    ) -> Self {
+        Self::bootstrap(25, "protocol_violation", reason, offset, step)
     }
 }
 
