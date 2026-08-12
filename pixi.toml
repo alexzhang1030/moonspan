@@ -1,0 +1,26 @@
+# Optional local J-FT ROS prefix via RoboStack.
+# Not a toolchain pin, not part of `just check` / `just test` / `just build`,
+# and not CI evidence — Docker compose e2e stays the digest-pinned talker lane.
+# H-FT still needs Humble (existing Docker image or a second prefix).
+#
+#   pixi install --locked
+#   pixi run just ros-test
+#   # or: just ros-test-pixi
+[workspace]
+name = "rclweb-ros"
+channels = ["https://prefix.dev/robostack-jazzy", "conda-forge"]
+platforms = ["linux-64", "osx-arm64"]
+
+[dependencies]
+ros-jazzy-rcl = "*"
+ros-jazzy-rcl-action = "*"
+ros-jazzy-rmw-fastrtps-cpp = "*"
+ros-jazzy-std-msgs = "*"
+ros-jazzy-sensor-msgs = "*"
+ros-jazzy-example-interfaces = "*"
+# Live talker e2e (`ros2 topic pub`) must be this prefix, not a host /opt/ros.
+ros-jazzy-ros2cli = "*"
+ros-jazzy-ros2topic = "*"
+
+[activation]
+scripts = ["scripts/pixi-ros-activate.sh"]

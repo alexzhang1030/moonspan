@@ -48,6 +48,7 @@ The project was restructured and renamed from moonspan to rclweb ([ADR 0010](../
 | `docker/**` | [R1-05 compose lane](../../docs/milestones/r1-05-e2e-evidence.md), [R2-04 live perf compose](../../docs/milestones/r2-04-perf-baseline.md), [R3-03 H-FT mock + live Humble](../../docs/milestones/r3-03-h-ft-webtransport.md), digest-pinned `oven/bun` ([gotchas](./gotchas.md#github-releases-downloads-need-retries)) |
 | `.github/workflows/ci.yml` | Foundation: `setup-bun` / `setup-just` (one retry) / `rust-toolchain`; e2e images copy Bun from `oven/bun` ([gotchas](./gotchas.md#github-releases-downloads-need-retries)) |
 | `scripts/cloud-agent-install.sh`, `scripts/install-pinned-bun.sh`, `scripts/github-release-curl.sh` | Non-Actions toolchain install (cloud-agent VM) ([gotchas](./gotchas.md#github-releases-downloads-need-retries)) |
+| `pixi.toml`, `just ros-test-pixi` | Optional RoboStack J-FT for local `ros-test`; not a pin and not CI evidence ([technology stack](./technology-stack.md#optional-local-ros-prefix), [gotchas](./gotchas.md#pixi-ros-test-must-pin-rosprefix-over-a-host-optros)) |
 | `scripts/perf-baseline/**`, `scripts/measure-perf-baseline.ts` | [R2-04 Foxglove/rosbridge baseline](../../docs/milestones/r2-04-perf-baseline.md) |
 | `conformance/**` | [Validation](./validation.md), [corpus README](../../conformance/cdr/README.md), [support matrix](../../docs/support-matrix.md) |
 | `studio/**` | [Prototype scope](../../docs/prototypes/studio-ui.md), [DESIGN.md](./DESIGN.md) |

@@ -61,6 +61,7 @@ control frame through its own session machine before sending it.
 cargo test --locked -p rclweb                      # includes encoder oracle round-trips
 cargo test --locked -p rclwebd                     # WebSocket integration, mock backend
 source /opt/ros/jazzy/setup.bash && just ros-test  # rcl loopback, graph, live-talker e2e
+just ros-test-pixi                                # optional RoboStack Jazzy; not CI evidence
 just check && just test && just build
 ```
 

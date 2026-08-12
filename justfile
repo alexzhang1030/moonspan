@@ -91,17 +91,33 @@ test: toolchain-check
 # Default committed bindings target J-FT (`/opt/ros/jazzy`). For H-FT, use
 # `just e2e-h-ft` (regenerates FFI against Humble inside the digest-pinned image)
 # or `ROS_PREFIX=/opt/ros/humble bash scripts/generate-rcl-bindings.sh` then link.
+# Local alternative without apt ROS or Docker: `just ros-test-pixi` (RoboStack).
 [group('quality')]
 ros-test: toolchain-check
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{root}}"
     if [ -z "${AMENT_PREFIX_PATH:-}" ]; then
-        echo "error: source a ROS 2 environment first (e.g. /opt/ros/jazzy/setup.bash or /opt/ros/humble/setup.bash)" >&2
+        echo "error: source a ROS 2 environment first (e.g. /opt/ros/jazzy/setup.bash, /opt/ros/humble/setup.bash, or just ros-test-pixi)" >&2
         exit 1
     fi
     cargo test --locked -p rclwebd --features ros
     cargo clippy --locked -p rclwebd --features ros --all-targets -- -D warnings
+
+# Same as ros-test, using the optional RoboStack Jazzy prefix (pixi).
+# Not a toolchain pin and not a substitute for digest-pinned Docker e2e evidence.
+[group('quality')]
+ros-test-pixi: toolchain-check
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{root}}"
+    export PATH="${HOME}/.pixi/bin:${PATH}"
+    if ! command -v pixi >/dev/null 2>&1; then
+        echo "error: pixi is required for just ros-test-pixi (https://pixi.sh)" >&2
+        exit 1
+    fi
+    pixi install --locked
+    pixi run just ros-test
 
 # Cargo native build, rclweb wasm32 (fat LTO) staged into the SDK, and SDK build.
 [group('quality')]

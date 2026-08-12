@@ -55,6 +55,11 @@ describe("githubHeadingSlug", () => {
   test("punctuation stripping", () => {
     expect(githubHeadingSlug("Hello, World!")).toBe("hello-world");
   });
+  test("strips underscores and slashes", () => {
+    expect(githubHeadingSlug("pin ROS_PREFIX over a host /opt/ros")).toBe(
+      "pin-rosprefix-over-a-host-optros",
+    );
+  });
   test("strips inline HTML tags", () => {
     expect(githubHeadingSlug('Hello <span class="x">World</span>')).toBe("hello-world");
   });
@@ -148,6 +153,20 @@ describe("checkDocs", () => {
     expect(result.ok).toBe(true);
     expect(result.markdownFiles).toBe(5);
     expect(result.pcrMarkers).toBe(2);
+  });
+
+  test("skips .pixi markdown", async () => {
+    const root = await fixtureRoot({
+      "AGENTS.md": baseAgents,
+      "docs/README.md": baseDocsReadme,
+      "docs/architecture.md": "# Architecture\n\nOk.\n",
+      ".agents/docs/README.md": baseAgentsReadme,
+      ".agents/docs/technology-stack.md": "# Stack\n\nOk.\n",
+      ".pixi/envs/default/share/doc/foo.md": "[Broken](./missing.md)\n",
+    });
+    const result = await checkDocs({ root });
+    expect(result.ok).toBe(true);
+    expect(result.markdownFiles).toBe(5);
   });
 
   test("missing path", async () => {

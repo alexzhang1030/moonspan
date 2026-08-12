@@ -46,6 +46,8 @@ just build
 | `just poll-latency` | Record wasm poll latency + size evidence (R-D1) |
 | `just e2e` | Docker compose: Jazzy talker → rclwebd (J-FT) → SDK subscribe |
 | `just e2e-h-ft` | Docker compose: Humble talker → rclwebd (H-FT) → SDK subscribe |
+| `just ros-test` | Gateway tests against real rcl (sourced Jazzy env) |
+| `just ros-test-pixi` | Same, using optional RoboStack Jazzy via pixi (not CI evidence) |
 | `just protocol-check` | Validate the R2WP registry JSON and control CDDL |
 | `just cdr-corpus-check` | Verify the committed ROS CDR corpus |
 
