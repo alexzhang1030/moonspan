@@ -110,6 +110,25 @@ poll-latency: toolchain-check
 large-message: toolchain-check
     cd "{{root}}" && bun run scripts/measure-large-message.ts
 
+# R2-04 performance baseline (host workloads + protocol-cost models).
+[group('quality')]
+perf-baseline: toolchain-check
+    cd "{{root}}" && bun run scripts/measure-perf-baseline.ts
+
+# R2-04 live three-way bridge comparison (requires Docker + heavy image build).
+[group('quality')]
+perf-baseline-live: toolchain-check
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{root}}"
+    if ! command -v docker >/dev/null 2>&1; then
+        echo "error: docker is required for just perf-baseline-live" >&2
+        exit 1
+    fi
+    docker compose -f docker/compose.r2-04-perf.yml build
+    docker compose -f docker/compose.r2-04-perf.yml run --rm perf
+    bun run scripts/measure-perf-baseline.ts
+
 # Live ROS talker → rclwebd → SDK subscribe via docker compose (R1-05).
 [group('quality')]
 e2e: toolchain-check

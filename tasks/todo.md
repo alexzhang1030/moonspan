@@ -30,7 +30,7 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified. Phase details live in
 - [x] R2-01 Publish direction, QoS subset, budgets, reconnect.
 - [x] R2-02 Large-message path on both buffer strategies.
 - [x] R2-03 Fixtures regenerated for the v0.1 subset; fuzzing.
-- [ ] R2-04 Performance baseline versus Foxglove bridge and rosbridge.
+- [x] R2-04 Performance baseline versus Foxglove bridge and rosbridge.
 
 ## R3: Semantics and breadth
 

@@ -21,7 +21,7 @@ ROS talker
   -> typed SDK event in a demo page
 ```
 
-R1 gates on this slice running live in CI, with recorded wasm artifact size, poll latency, and copy counters. R2 extends it to the PointCloud2 large-message path, backpressure, and the performance baseline against Foxglove bridge and rosbridge.
+R1 gates on this slice running live in CI, with recorded wasm artifact size, poll latency, and copy counters. R2 extends it to the PointCloud2 large-message path, backpressure, and the performance baseline against Foxglove bridge and rosbridge ([R2-04](./milestones/r2-04-perf-baseline.md)).
 
 ## Mainline targets
 

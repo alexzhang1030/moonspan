@@ -43,6 +43,7 @@ cargo +nightly fuzz run parse_bootstrap -- -max_total_time=30
 
 ## Ownership after completion
 
-R2-04 owns the Foxglove/rosbridge performance baseline on fixed workloads.
-Parked protocol sections stay parked until R3 re-freezes them; their fixture
-bins remain integrity-checked frozen data until then.
+R2-04 recorded the Foxglove/rosbridge performance baseline —
+see [R2-04](./r2-04-perf-baseline.md). Parked protocol sections stay parked
+until R3 re-freezes them; their fixture bins remain integrity-checked frozen
+data until then.
