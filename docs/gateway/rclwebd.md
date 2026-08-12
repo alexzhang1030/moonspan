@@ -1,8 +1,8 @@
 # `rclwebd` edge gateway
 
-`rclwebd` is Moonspan's controlled edge boundary between browser sessions and ROS 2 domains. Rust owns transport, scheduling, sessions, schemas, policy, audit, telemetry, and recovery. A versioned C ABI adapter owns ROS distribution and RMW integration.
+`rclwebd` is rclweb's controlled edge boundary between browser sessions and ROS 2 domains. It links the shared [`rclweb` core](../runtime/core.md) for R2WP parsing and owns transport, scheduling, sessions, schemas, policy, audit, telemetry, and recovery. ROS attachment goes through a narrow serialized-only rcl FFI surface (static typesupport links in R1; a versioned adapter ABI with dynamic typesupport in R3).
 
-The R2WP v0 reference parser is complete. M1 adds serialized graph and publish/subscribe. M2 adds the remaining ROS semantics. M3 qualifies identity, policy, compatibility, deployment, and operations.
+R1 adds the WebSocket endpoint and serialized subscribe/publish for the walking skeleton. R2 hardens the data plane. R3 adds the remaining ROS semantics. R4 qualifies identity, policy, compatibility, deployment, and operations.
 
 ## Responsibilities
 
@@ -29,15 +29,15 @@ The R2WP v0 reference parser is complete. M1 adds serialized graph and publish/s
 
 ## Support-row binding
 
-One `rclwebd` process binds one Phase 1 adapter row: H-FT, H-CY, H-ZN, J-FT, J-CY, or J-ZN. The process may open multiple ROS domain IDs within that row. Applications use independent sessions across rows.
+One `rclwebd` process binds one adapter support row; Phase 1 gates J-FT, with the other rows returning through the support matrix in R3/R4. The process may open multiple ROS domain IDs within that row. Applications use independent sessions across rows.
 
 `support_row_id` is fixed for the running artifact. `gateway_instance_id` identifies the logical deployment and supports resume across ordinary restart or in-place upgrade when state is preserved. Startup validates the configured row, ROS distribution, RMW, adapter ABI, and artifact profile. A mismatch keeps readiness closed with `adapter_profile_mismatch`.
 
 Graph, schema, channel, policy, telemetry, audit, and evidence records retain gateway, support-row, and domain provenance.
 
-## ROS adapter ABI
+## ROS adapter surface
 
-The adapter exposes generic serialized operations with fixed-width, versioned structures and explicit ownership. Its surface covers:
+Per the owner constraint recorded in [ADR 0010](../adr/0010-restructure-single-rust-core.md), the gateway neither embeds a client library nor depends on a third-party rcl binding: it binds the serialized-only rcl surface directly (init, node, serialized publish/take, wait set, graph queries). The versioned C ABI packaging of that surface ([ADR 0006](../adr/0006-edge-ros-c-abi-boundary.md)) lands in R3. The surface covers:
 
 - lifecycle and domain attachment;
 - graph snapshots, deltas, endpoint QoS, and liveliness;
@@ -87,11 +87,11 @@ Operations expose liveness, readiness, configuration validation, metrics, logs, 
 
 ## Validation
 
-Gateway qualification covers protocol agreement, serialized ROS interoperability, schema identity, adapter profile validation, bounded memory, scheduling fairness, deadlines, reconnect and resume, policy and audit, operations, and dependency faults.
+Gateway qualification covers protocol conformance against the frozen fixtures, serialized ROS interoperability, schema identity, adapter profile validation, bounded memory, scheduling fairness, deadlines, reconnect and resume, policy and audit, operations, and dependency faults.
 
 ```bash
 cargo test --locked -p rclwebd
-bun run protocol-agree
+cargo test --locked -p rclweb
 ```
 
 [Compatibility](../compatibility.md), [security](../security.md), and [validation](../validation.md) own the release evidence.

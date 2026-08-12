@@ -1,6 +1,6 @@
 # Authoritative ROS CDR corpus (M0-04)
 
-Pinned Humble and Jazzy CDR fixtures for the six Phase 1 support rows:
+Pinned Humble and Jazzy CDR fixtures for the six support rows:
 
 | Row | Distro | RMW |
 |---|---|---|
@@ -10,6 +10,10 @@ Pinned Humble and Jazzy CDR fixtures for the six Phase 1 support rows:
 | J-FT | jazzy | `rmw_fastrtps_cpp` |
 | J-CY | jazzy | `rmw_cyclonedds_cpp` |
 | J-ZN | jazzy | `rmw_zenoh_cpp` |
+
+This corpus is the oracle for the Rust CDR port in the `rclweb` core (R1-01, [ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md)). Phase 1 gates row J-FT; the other five rows stay committed for R3/R4 breadth. The retired MoonBit white-box bridge and its proofs (M1-01d1–d3) live at tag `pre-restructure`; the [M1-01 completion note](../../docs/milestones/m1-01-cdr-core.md) records that milestone, which proved the corpus implementable end to end (semantic decode, exact canonical re-encode, adversarial gating over all 56 fixtures and 18 comparison groups).
+
+Directory and package names (`moonspan_cdr_generator`, `moonspan_cdr_interfaces`, corpus id `moonspan-ros-cdr-v1`, scheme `moonspan-schema-v1`) keep their historical names: committed hashes and wire identity depend on them.
 
 ## Layout
 
@@ -33,33 +37,14 @@ bun run test:cdr-corpus        # focused helper suite
 bun run cdr-tail-slack:check   # verify top-level tail-slack evidence artifact
 bun run cdr-tail-slack:write   # regenerate tail-slack.json from committed binaries
 bun run test:cdr-tail-slack    # focused tail-slack helper suite
-bun run cdr-moonbit-fixtures:check  # verify MoonBit white-box corpus bridge
-bun run cdr-moonbit-fixtures:write  # regenerate rclmbt/cdr/fixture_data_wbtest.mbt
-bun run test:cdr-moonbit-fixtures   # focused bridge helper suite
 just cdr-corpus-check
 just cdr-corpus-write
 just cdr-corpus-reproduce
 just cdr-tail-slack-check
 just cdr-tail-slack-write
-just cdr-moonbit-fixtures-check
-just cdr-moonbit-fixtures-write
 ```
 
-### MoonBit white-box bridge (M1-01d1)
-
-Package-internal fixtures and CDR open/tail proofs generated from this corpus. **M1-01d2** builds on this bridge with hand-written white-box semantic decode and exact re-encode proofs in `rclmbt/cdr/corpus_semantics_wbtest.mbt` (all 56 fixtures and 18 comparison groups). **M1-01d3** adds the corpus adversarial gate in `rclmbt/cdr/corpus_adversarial_wbtest.mbt` (strict/declared completion, nonzero tail mutations, exact-end declaration success, wrong-declaration rejections on tail-bearing fixtures, appended-byte rejection, stream bounds, PointCloud2 borrowed payload, framing bridge).
-
-| Field | Value |
-|---|---|
-| Output | [`rclmbt/cdr/fixture_data_wbtest.mbt`](../../rclmbt/cdr/fixture_data_wbtest.mbt) |
-| Size | 85 351 bytes |
-| SHA-256 | `b1bff5ea561802909ce26dcdd304f978361f4dc7780f6aa779f6294a42e2c15d` |
-| Fixtures / comparisons | 56 / 18 |
-| Source manifest SHA-256 | `319cb1c55da8a236054ba625f3fdbd43e239bd13c74c523d7912618c02b9fa7f` |
-| Source tail-slack SHA-256 | `1531d011f0715e5b82fa675be266d97387db7dd55ed8ff06784b213ae6256984` |
-| Check | `bun run cdr-moonbit-fixtures:check` / `just cdr-moonbit-fixtures-check` |
-
-Root `bun run check` runs `cdr-corpus:check`, then `cdr-tail-slack:check`, then `cdr-moonbit-fixtures:check` after the R2WP agreement gate.
+Root `bun run check` runs `cdr-corpus:check` and `cdr-tail-slack:check`.
 
 ## Top-level tail slack
 

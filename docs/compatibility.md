@@ -1,6 +1,6 @@
 # Compatibility strategy
 
-Moonspan publishes support as reviewed matrix rows across ROS, RMW, CPU architecture, browser capability, transport, buffer path, network profile, and compatibility endpoint. Exact pins and row state live in the [support matrix](./support-matrix.md).
+rclweb publishes support as reviewed matrix rows across ROS, RMW, CPU architecture, browser capability, transport, buffer path, network profile, and compatibility endpoint. Exact pins and row state live in the [support matrix](./support-matrix.md).
 
 ## Phase 1 ROS profile
 
@@ -15,7 +15,7 @@ Moonspan publishes support as reviewed matrix rows across ROS, RMW, CPU architec
 
 Each row qualifies independently on `amd64` and `arm64`. One gateway process binds one row and may host multiple ROS domain IDs. Applications combine independent sessions across rows. Startup validates the row and adapter profile before readiness.
 
-ROS variation stays behind the versioned adapter ABI. R2WP, `rclmbt`, and the SDK remain shared.
+ROS variation stays behind the versioned adapter ABI. R2WP, the `rclweb` core, and the SDK remain shared.
 
 ## Schema identity
 

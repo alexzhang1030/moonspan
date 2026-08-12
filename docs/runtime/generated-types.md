@@ -1,6 +1,6 @@
 # Generated types and schema registry
 
-Authoritative runtime contract for Moonspan generated types and the schema-identity registry (M1-02). Consumes the [CDR core contract](./cdr.md). Schema identity strategy remains [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md). Payload encoding values follow the R2WP v0 `payload-encoding-cdr` domain ([registry](../../protocol/registry/r2wp-v0.json), [CDDL](../../protocol/schema/control-v0.cddl)).
+Authoritative runtime contract for rclweb generated types and the schema-identity registry. The contract was frozen before the restructure ([ADR 0010](../adr/0010-restructure-single-rust-core.md)); it retargets from MoonBit to Rust code generation in R3-02 with behavior unchanged, so batch identifiers (M1-02x) and MoonBit mentions below are historical labels for the frozen behavior. Consumes the [CDR core contract](./cdr.md). Schema identity strategy remains [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md). Payload encoding values follow the R2WP v0 `payload-encoding-cdr` domain ([registry](../../protocol/registry/r2wp-v0.json), [CDDL](../../protocol/schema/control-v0.cddl)).
 
 ## Purpose
 
@@ -125,7 +125,7 @@ M1-02c extends the M1-02b descriptor surface into production models and codecs:
 - pass `CdrNesting` tokens through nested aggregates and respect `max_nesting_depth`;
 - return borrowed `BytesView` for large binary payloads, including **PointCloud2 `data`**, as zero-copy views into caller-retained storage;
 - complete top-level samples with the registry-supplied expected zero-tail via `ensure_complete_with_zero_tail`;
-- produce exact canonical encode (zero top-level tail) for Moonspan writers.
+- produce exact canonical encode (zero top-level tail) for rclweb writers.
 
 Canonical encode remains exact. Cross-row semantic agreement compares decoded logical values; RMW capacity tails stay outside that comparison.
 
@@ -280,7 +280,7 @@ Error payloads carry the fault code and stable diagnostic context (offending fie
 | Schema identity strategy | [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md) |
 | Payload encoding enum | [R2WP v0](../../protocol/r2wp-v0.md), [registry](../../protocol/registry/r2wp-v0.json) |
 | Corpus layout and bridge commands | [Corpus README](../../conformance/cdr/README.md) |
-| Runtime package placement | [`rclmbt`](./rclmbt.md) |
+| Runtime package placement | [`rclweb` core](./core.md) |
 | Phase evidence | [Validation](../validation.md) |
 | Task state | [Implementation plan](../../tasks/plan.md), [execution checklist](../../tasks/todo.md) |
 

@@ -1,14 +1,10 @@
-# Moonspan documentation
+# rclweb documentation
 
-This directory contains the technical documentation for Moonspan. Each document has a clear subject: product scope, architecture, protocol, runtime, gateway, validation, or delivery.
+This directory contains the technical documentation for rclweb. Each document has a clear subject: product scope, architecture, protocol, core, gateway, validation, or delivery.
 
 ## Delivery order
 
-1. Define contracts, fixtures, support profiles, and repository tooling.
-2. Deliver R2WP, `rclmbt`, `rclwebd`, and the browser SDK data path.
-3. Complete ROS 2 semantics, type handling, recording, and topology support.
-4. Qualify identity, policy, compatibility, operations, and release artifacts.
-5. Build the common Studio prototype on the released SDK.
+The restructure plan governs sequencing: R0 stop-loss, R1 walking skeleton, R2 data-plane hardening, R3 semantics and breadth, R4 productionization and release, then the U0 Studio prototype. Details live in the [plan](../tasks/plan.md) and the [restructure proposal](./proposals/architecture-restructure.md).
 
 ## Document map
 
@@ -16,15 +12,16 @@ This directory contains the technical documentation for Moonspan. Each document 
 |---|---|
 | Product purpose and delivery sequence | [Product scope](./product-scope.md) |
 | System boundaries and data paths | [Architecture](./architecture.md) |
+| Restructure plan, rulings, performance plan | [Architecture restructure proposal](./proposals/architecture-restructure.md) |
 | Related projects and source material | [Landscape](./landscape.md), [references](./references.md) |
-| Protocol contract and implementations | [R2WP](./protocol/r2wp.md) |
-| Runtime and gateway | [`rclmbt`](./runtime/rclmbt.md), [CDR core](./runtime/cdr.md), [generated types](./runtime/generated-types.md), [`rclwebd`](./gateway/rclwebd.md) |
+| Protocol contract and implementation | [R2WP](./protocol/r2wp.md) |
+| Core and gateway | [`rclweb` core](./runtime/core.md), [CDR contract](./runtime/cdr.md), [generated types](./runtime/generated-types.md), [`rclwebd`](./gateway/rclwebd.md) |
 | Security and compatibility | [Security](./security.md), [compatibility](./compatibility.md) |
 | Supported ROS profiles | [Support matrix](./support-matrix.md) |
-| Evidence and release gates | [Validation](./validation.md), [evidence contracts](../evidence/README.md) |
+| Evidence and release gates | [Validation](./validation.md) |
 | Architecture decisions | [ADR register](./adr/README.md) |
-| M0-03 outcome | [Completion note](./milestones/m0-03-r2wp-foundation.md) |
-| M1-01 outcome | [Completion note](./milestones/m1-01-cdr-core.md) |
+| Historical M0-03 outcome | [Completion note](./milestones/m0-03-r2wp-foundation.md) |
+| Historical M1-01 outcome | [Completion note](./milestones/m1-01-cdr-core.md) |
 | Plan and current work | [Implementation plan](../tasks/plan.md), [execution checklist](../tasks/todo.md) |
 | Post-mainline Studio work | [Studio prototype](./prototypes/studio-ui.md), [design system](../.agents/docs/DESIGN.md) |
 
@@ -34,17 +31,16 @@ This directory contains the technical documentation for Moonspan. Each document 
 |---|---|
 | Root tooling | [Technology stack](../.agents/docs/technology-stack.md), [repository README](../README.md) |
 | `protocol/**` | [R2WP](./protocol/r2wp.md), [normative contract](../protocol/r2wp-v0.md), [fixtures](../protocol/testdata/README.md) |
-| `rclmbt/**` | [`rclmbt`](./runtime/rclmbt.md), [CDR core](./runtime/cdr.md), [generated types](./runtime/generated-types.md), [architecture](./architecture.md) |
+| `rclweb/**` | [`rclweb` core](./runtime/core.md), [CDR contract](./runtime/cdr.md), [architecture](./architecture.md) |
 | `rclwebd/**` | [`rclwebd`](./gateway/rclwebd.md), [security](./security.md) |
 | `sdk/**` | [Architecture](./architecture.md), [R2WP](./protocol/r2wp.md) |
-| `conformance/**`, `benchmarks/**`, `evidence/**` | [Validation](./validation.md), [support matrix](./support-matrix.md), [evidence contracts](../evidence/README.md) |
-| `deploy/**` | [Security](./security.md), [compatibility](./compatibility.md) |
+| `conformance/**` | [Validation](./validation.md), [support matrix](./support-matrix.md), [corpus README](../conformance/cdr/README.md) |
 | `studio/**` | [Studio prototype](./prototypes/studio-ui.md), [design system](../.agents/docs/DESIGN.md) |
 
 ## Change discipline
 
-- Shared contract changes update their normative document, machine-readable fixtures, and every consuming implementation in one review unit.
+- Shared contract changes update their normative document, machine-readable fixtures, and the consuming implementation in one review unit.
 - Measured claims link to reproducible evidence carrying environment, commands, raw data, and revision identity.
-- Durable decisions live in the [ADR register](./adr/README.md). Open choices stay in the [kickoff decision register](../tasks/plan.md#13-kickoff-decision-register).
+- Durable decisions live in the [ADR register](./adr/README.md). Open choices stay in the [kickoff decision register](../tasks/plan.md#kickoff-decision-register).
 - The [PCR map](../.agents/docs/README.md) routes contributors to the relevant context.
 - Run `just check`, `just test`, and `just build` before submitting changes.

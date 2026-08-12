@@ -6,11 +6,11 @@
       "name": "moonspan",
     },
     "sdk/typescript": {
-      "name": "@moonspan/sdk",
+      "name": "@rclweb/sdk",
       "version": "0.0.0",
     },
   },
   "packages": {
-    "@moonspan/sdk": ["@moonspan/sdk@workspace:sdk/typescript"],
+    "@rclweb/sdk": ["@rclweb/sdk@workspace:sdk/typescript"],
   }
 }

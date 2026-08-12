@@ -43,7 +43,7 @@ Bind each `rclwebd` process to exactly one ROS adapter support row.
 - Readiness endpoints surface `adapter_profile_mismatch` when configuration and artifact identity diverge; the process stays outside ready until the profile matches.
 - R2WP `SessionReady` is emitted by a ready gateway and carries the validated profile, including `gateway_instance_id` and `support_row_id`.
 - R2WP resume matching includes gateway instance and support row; M0-03 freezes the exact resume-mismatch code.
-- This decision is reflected in [R2WP](../protocol/r2wp.md), [`rclwebd`](../gateway/rclwebd.md), [`rclmbt`](../runtime/rclmbt.md), [architecture](../architecture.md), [architecture rationale](../../.agents/docs/architecture.md), [compatibility](../compatibility.md), [support matrix](../support-matrix.md), [security](../security.md), [validation](../validation.md), and the [implementation plan](../../tasks/plan.md).
+- This decision is reflected in [R2WP](../protocol/r2wp.md), [`rclwebd`](../gateway/rclwebd.md), [the core runtime](../runtime/core.md), [architecture](../architecture.md), [architecture rationale](../../.agents/docs/architecture.md), [compatibility](../compatibility.md), [support matrix](../support-matrix.md), [security](../security.md), [validation](../validation.md), and the [implementation plan](../../tasks/plan.md).
 
 ## Revisit triggers
 

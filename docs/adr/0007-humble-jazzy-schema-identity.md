@@ -41,7 +41,7 @@ Lock the first-phase schema identity and acquisition strategy on ROS 2 Humble Ha
 - Gateway channel setup and browser type registries key schema state by `(scheme, value)` plus type name, encoding, and schema generation.
 - Humble custom-type deployments include complete recursive bundles; open attempts that lack the bundle surface `schema_unavailable`.
 - M0-04 freezes canonical bundle layout, ordering, hashing, and cross-language fixtures for `moonspan-schema-v1`.
-- This decision is reflected in [compatibility](../compatibility.md), [R2WP](../protocol/r2wp.md), [`rclmbt`](../runtime/rclmbt.md), [`rclwebd`](../gateway/rclwebd.md), [support matrix](../support-matrix.md), [validation](../validation.md), and the [implementation plan](../../tasks/plan.md).
+- This decision is reflected in [compatibility](../compatibility.md), [R2WP](../protocol/r2wp.md), [the core runtime](../runtime/core.md), [`rclwebd`](../gateway/rclwebd.md), [support matrix](../support-matrix.md), [validation](../validation.md), and the [implementation plan](../../tasks/plan.md).
 
 ## Revisit triggers
 

@@ -1,16 +1,16 @@
 # Project intent
 
-Moonspan gives browser applications typed, secure access to ROS 2 through a versioned protocol, a browser runtime, an edge gateway, and a TypeScript SDK.
+rclweb gives browser applications typed, secure access to ROS 2 through a versioned protocol (R2WP), a single Rust core that runs natively at the edge and as Wasm in the browser, and a TypeScript SDK.
 
 ## Mainline
 
-The mainline follows this order:
+The mainline follows the restructure plan ([ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md)):
 
-1. Freeze contracts, fixtures, supported profiles, tooling, and evidence formats.
-2. Deliver graph and publish/subscribe through `rclmbt`, `rclwebd`, and the SDK.
-3. Complete ROS semantics, dynamic types, QoS, recording, and topology support.
-4. Qualify identity, policy, compatibility, deployment, and operations.
-5. Publish a stable SDK and release package.
+1. R0: stop-loss — one implementation per side, one gated support row, a declared protocol subset.
+2. R1: walking skeleton — a browser page subscribes to a live ROS 2 topic end-to-end.
+3. R2: data-plane hardening — publish, QoS, budgets, adversarial fixtures, performance baseline.
+4. R3: ROS semantics, generated types, second row, WebTransport.
+5. R4: identity, policy, deployment, evidence, and a stable SDK release.
 
 ## Users
 
@@ -24,14 +24,18 @@ The mainline follows this order:
 
 ## Product contracts
 
-- `rclmbt` owns deterministic browser-side ROS state and CDR behavior.
+- The `rclweb` core owns deterministic ROS state, protocol codecs, and CDR behavior — one codebase for gateway and browser.
 - R2WP carries CDR and control data over bounded, observable transports.
 - `rclwebd` owns ROS attachment, identity, policy, scheduling, schema, audit, and operations at the edge.
 - Supported profiles carry conformance, performance, security, and deployment evidence.
 - The SDK exposes the reusable public application contract.
 
+## Non-goals and posture
+
+- No JSON transcoding on the sample path; CDR stays end to end.
+- No client library reinvention: the browser core is an R2WP protocol client with rcl-shaped semantics, and the gateway binds the serialized-only rcl surface directly (owner constraint in ADR 0010).
+- Contracts harden after they carry traffic; breadth (rows, transports, evidence harnesses) follows the walking skeleton, not the other way around.
+
 ## Post-release work
 
 The common Studio prototype starts at U0 after the mainline release and exercises the public SDK through a reusable robotics UI. The N3 sandbox is a separate experiment that measures selected upstream ROS packages in Wasm.
-
-Mainline work improves ROS semantics, bounded data flow, secure edge attachment, compatibility, evidence, SDK quality, operations, or release quality. Studio demonstrates those released contracts as an application.

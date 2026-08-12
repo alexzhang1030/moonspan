@@ -1,6 +1,8 @@
 /**
- * Browser SDK public entry.
+ * rclweb browser SDK public entry.
  *
- * The public module surface stays empty until M1 SDK work lands.
+ * The SDK is the TypeScript host around the `rclweb` core wasm artifact:
+ * Worker lifecycle, transport, buffers, and the public typed API. The module
+ * surface stays empty until the R1 walking skeleton lands.
  */
 export {};

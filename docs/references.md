@@ -1,6 +1,6 @@
 # Technical references
 
-These sources support Moonspan's architecture and ADRs. Project requirements live in the [documentation map](./README.md), protocol contract, support matrix, and accepted decisions.
+These sources support rclweb's architecture and ADRs. Project requirements live in the [documentation map](./README.md), protocol contract, support matrix, and accepted decisions.
 
 ## ROS 2
 
@@ -35,13 +35,13 @@ These sources support Moonspan's architecture and ADRs. Project requirements liv
 - [RFC 6455 WebSocket](https://www.rfc-editor.org/rfc/rfc6455.html)
 - [W3C WebTransport API](https://www.w3.org/TR/webtransport/)
 - [IETF WebTransport over HTTP/3](https://datatracker.ietf.org/doc/draft-ietf-webtrans-http3/)
-- [Moonspan R2WP contract](../protocol/r2wp-v0.md)
+- [rclweb R2WP contract](../protocol/r2wp-v0.md)
 - [R2WP encoding decision](./adr/0009-r2wp-v0-wire-encoding.md)
 
 ## Browser and Wasm platform
 
-- [MoonBit FFI](https://docs.moonbitlang.com/en/latest/language/ffi.html)
-- [MoonBit toolchain](https://docs.moonbitlang.com/en/latest/toolchain/moon/commands.html)
+- [Rust and WebAssembly (wasm-bindgen)](https://rustwasm.github.io/docs/wasm-bindgen/)
+- [Rust wasm32-unknown-unknown platform support](https://doc.rust-lang.org/rustc/platform-support/wasm32-unknown-unknown.html)
 - [WebTransport](https://developer.mozilla.org/en-US/docs/Web/API/WebTransport_API)
 - [Transferable objects](https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API/Transferable_objects)
 - [Cross-origin isolation](https://developer.mozilla.org/en-US/docs/Web/API/WorkerGlobalScope/crossOriginIsolated)
@@ -55,9 +55,6 @@ These sources support Moonspan's architecture and ADRs. Project requirements liv
 - [Rust releases](https://blog.rust-lang.org/releases/)
 - [rustup](https://rust-lang.github.io/rustup/)
 - [Cargo workspaces](https://doc.rust-lang.org/cargo/reference/workspaces.html)
-- [MoonBit installation](https://www.moonbitlang.com/download/)
-- [MoonBit module configuration](https://docs.moonbitlang.com/en/latest/toolchain/moon/module.html)
-- [MoonBit package configuration](https://docs.moonbitlang.com/en/latest/toolchain/moon/package.html)
 - [Bun installation](https://bun.com/docs/installation)
 - [Bun workspaces](https://bun.com/docs/install/workspaces)
 - [just manual](https://just.systems/man/en/)

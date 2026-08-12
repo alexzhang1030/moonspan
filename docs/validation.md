@@ -1,28 +1,27 @@
 # Validation and delivery gates
 
-Moonspan turns design targets into release authority through reproducible conformance, performance, security, and operations evidence. Support rows begin as **Qualification targets** and become **Qualified** through reviewed reports.
+rclweb turns design targets into release authority through reproducible conformance, performance, security, and operations evidence. Support rows begin as **Qualification targets** and become **Qualified** through reviewed reports.
 
 ## Native evidence levels
 
 | Level | Evidence | Gate |
 |---|---|---|
-| N1 Wire-native | CDR, schemas, graph, QoS, and ROS time agree across Phase 1 rows | M1 |
-| N2 Runtime-native | Browser runtime conformance and real ROS operations pass | M2 |
+| N1 Wire-native | CDR, schemas, graph, QoS, and ROS time agree for the gated rows | R2 |
+| N2 Runtime-native | Browser runtime conformance and real ROS operations pass | R3 |
 | N3 Package-native | Selected ROS packages build and run in Wasm with measured limits | X0 |
 
-## First mainline slice
+## Walking skeleton slice (R1)
 
 ```text
-ROS PointCloud2 publisher
-  -> serialized ROS adapter
-  -> rclwebd scheduler
-  -> R2WP transport
-  -> browser Workers
-  -> rclmbt field projection
-  -> headless SDK checksum and report
+ROS talker
+  -> serialized rcl surface in rclwebd
+  -> R2WP over binary WebSocket
+  -> browser I/O Worker
+  -> rclweb core (wasm) decode with borrowed views
+  -> typed SDK event in a demo page
 ```
 
-This slice tests CDR, the Wasm host boundary, both transports, backpressure, schema identity, large-message memory, and typed SDK delivery.
+R1 gates on this slice running live in CI, with recorded wasm artifact size, poll latency, and copy counters. R2 extends it to the PointCloud2 large-message path, backpressure, and the performance baseline against Foxglove bridge and rosbridge.
 
 ## Mainline targets
 
@@ -56,20 +55,21 @@ Each accepted claim records:
 - artifact location and integrity;
 - reviewer, gate, decision, and known limits.
 
-Checked-in scripts derive reports from raw artifacts. The closed machine-readable report contract is [evidence/README.md](../evidence/README.md) with schema [qualification-report-v1.json](../evidence/schema/qualification-report-v1.json) and checker `bun run evidence:check`.
+The machine-readable qualification-report contract from the pre-restructure evidence harness is parked at tag `pre-restructure` and returns in R4, when real gate reports exist to validate ([ADR 0010](./adr/0010-restructure-single-rust-core.md)).
 
 ## Foundation CI
 
-[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) installs the pinned toolchains and runs the root check, test, and build commands. M0-02 closes after a hosted run and its uploaded artifacts receive review. ROS support-row qualification and U0 Studio use later evidence lanes.
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) installs the pinned toolchains and runs the root check, test, and build commands, including the `rclweb` wasm32 build. R1 adds the docker-compose end-to-end lane against a real ROS 2 talker.
 
 ## Delivery gates
 
 | Gate | Required evidence | Decision |
 |---|---|---|
-| M0 Foundation | Decisions, profiles, toolchains, CI, R2WP, CDR corpus, and evidence schema | Contract baseline approval |
-| M1 Core data path | N1 agreement, graph, publish/subscribe, transports, buffers, and headless PointCloud2 | Core architecture approval |
-| M2 ROS semantics | N2 semantics, dynamic types, QoS, recording, and multi-domain behavior | Semantic capability approval |
-| M3 Production release | Identity, policy, SROS2, audit, compatibility, deployment, soak, faults, SDK, and release artifacts | Mainline release approval |
+| R0 Stop-loss | Shrunk repository green on the root command surface | Restructure baseline |
+| R1 Walking skeleton | Live end-to-end subscribe in CI, corpus-passing CDR port, wasm size and poll latency, copy counters | Core architecture approval |
+| R2 Data-plane hardening | Publish, QoS subset, budgets, reconnect, adversarial fixtures, fuzzing, performance baseline | Data-plane approval |
+| R3 Semantics and breadth | N2 subset, generated types, second row, WebTransport, versioned adapter ABI | Semantic capability approval |
+| R4 Productionization | Identity, policy, SROS2, audit, compatibility, deployment, evidence harness, SDK, and release artifacts | Release approval |
 | U0 Studio | Released SDK integration, workflows, rendering, media, accessibility, and command safety | Prototype acceptance |
 
 ## Qualification scenarios
@@ -80,7 +80,7 @@ Checked-in scripts derive reports from raw artifacts. The closed machine-readabl
 - adapter profile mismatch and readiness behavior;
 - stable deployment resume and replacement deployment session creation;
 - oversized data, rate pressure, command concurrency, cache pressure, and audit outage;
-- Humble and Jazzy with Fast DDS, Cyclone DDS, and Zenoh (H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN) on each declared CPU architecture;
+- the gated support rows (J-FT in Phase 1; H-FT from R3; remaining rows in R4) on each declared CPU architecture;
 - multi-domain isolation within a row and independent composition across rows;
 - browser capability tiers and deployment profiles;
 - install, upgrade, rollback, credential rotation, and recovery.

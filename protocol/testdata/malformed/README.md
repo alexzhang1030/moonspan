@@ -1,6 +1,6 @@
 # R2WP v0 malformed fixtures
 
-This corpus verifies receiver rejection behavior and validation precedence. [`scripts/protocol-malformed-fixtures.ts`](../../../scripts/protocol-malformed-fixtures.ts) owns generation and checking.
+This corpus verifies receiver rejection behavior and validation precedence. The fixtures are frozen data consumed by the `rclweb` core test suite; their generator was retired at tag `pre-restructure`, and R2 reintroduces a single small generator for the v0.1 normative subset.
 
 ## Layout
 
@@ -16,7 +16,5 @@ Expected outcomes are fixed oracles bound to [`protocol/registry/r2wp-v0.json`](
 ## Commands
 
 ```bash
-bun run protocol-malformed-fixtures:write
-bun run protocol-malformed-fixtures:check
-bun test scripts/protocol-malformed-fixtures.test.ts
+cargo test --locked -p rclweb
 ```

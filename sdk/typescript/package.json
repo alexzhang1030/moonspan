@@ -1,5 +1,5 @@
 {
-  "name": "@moonspan/sdk",
+  "name": "@rclweb/sdk",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,13 +7,8 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "check": "bun build ./src/index.ts ./src/protocol/cbor.ts ./src/protocol/bootstrap.ts ./src/protocol/extension.ts ./src/protocol/control.ts ./src/protocol/frame.ts --target=browser --outdir=./dist",
+    "check": "bun build ./src/index.ts --target=browser --outdir=./dist",
     "test": "bun test",
-    "test:cbor": "bun test ./src/protocol/cbor.test.ts",
-    "test:bootstrap": "bun test ./src/protocol/bootstrap.test.ts",
-    "test:extension": "bun test ./src/protocol/extension.test.ts",
-    "test:control": "bun test ./src/protocol/control.test.ts",
-    "test:frame": "bun test ./src/protocol/frame.test.ts",
-    "build": "bun build ./src/index.ts ./src/protocol/cbor.ts ./src/protocol/bootstrap.ts ./src/protocol/extension.ts ./src/protocol/control.ts ./src/protocol/frame.ts --target=browser --outdir=./dist"
+    "build": "bun build ./src/index.ts --target=browser --outdir=./dist"
   }
 }

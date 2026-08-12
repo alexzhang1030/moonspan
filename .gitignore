@@ -21,17 +21,11 @@ coverage/
 playwright-report/
 test-results/
 
-# Rust and MoonBit
+# Rust
 target/
-_build/
-.mooncakes/
 
 # Logs and temporary artifacts
 *.log
 tmp/
 temp/
 artifacts/
-
-# MoonBit package introspection dumps (moon info)
-pkg.generated.mbti
-**/pkg.generated.mbti

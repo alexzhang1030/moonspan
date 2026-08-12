@@ -15,7 +15,7 @@ import {
 const tempRoots: string[] = [];
 
 async function fixtureRoot(files: Record<string, string>): Promise<string> {
-  const root = await mkdtemp(path.join(tmpdir(), "moonspan-docs-"));
+  const root = await mkdtemp(path.join(tmpdir(), "rclweb-docs-"));
   tempRoots.push(root);
   for (const [rel, body] of Object.entries(files)) {
     const abs = path.join(root, rel);

@@ -1,6 +1,6 @@
 # R2WP protocol
 
-R2WP is Moonspan's versioned binary transport for ROS 2 data and control. Wire version 0 is frozen and implemented in TypeScript, Rust, and MoonBit.
+R2WP is rclweb's versioned binary transport for ROS 2 data and control. Wire version 0 has one implementation — the `rclweb` core crate, linked natively by the gateway and compiled to wasm32 for the browser. The [v0.1 normative-scope declaration](../../protocol/r2wp-v0.md#normative-scope-after-the-restructure-v01-subset) marks which sections are normative now and which are parked until their phases re-freeze them.
 
 ## Sources of truth
 
@@ -11,9 +11,9 @@ R2WP is Moonspan's versioned binary transport for ROS 2 data and control. Wire v
 | Control schema | [`protocol/schema/control-v0.cddl`](../../protocol/schema/control-v0.cddl) |
 | Encoding decision | [ADR 0009](../adr/0009-r2wp-v0-wire-encoding.md) |
 | Versioning model | [ADR 0005](../adr/0005-r2wp-wire-versioning.md) |
-| Fixtures | [`protocol/testdata/`](../../protocol/testdata/README.md) |
-| Agreement result | [`protocol/testdata/agreement/`](../../protocol/testdata/agreement/README.md) |
-| Completion note | [M0-03](../milestones/m0-03-r2wp-foundation.md) |
+| Fixtures (single oracle) | [`protocol/testdata/`](../../protocol/testdata/README.md) |
+| Restructure decision | [ADR 0010](../adr/0010-restructure-single-rust-core.md) |
+| Historical completion note | [M0-03](../milestones/m0-03-r2wp-foundation.md) |
 
 This page explains the design. The normative contract owns byte layout, limits, validation order, registries, error codes, and transport rules.
 
@@ -86,20 +86,14 @@ R2WP runs over TLS-protected WebTransport or WebSocket endpoints. Application ch
 
 [Security](../security.md) owns the trust and policy model.
 
-## Implementations and checks
+## Implementation and checks
 
-| Implementation | Source |
-|---|---|
-| TypeScript codecs | [`sdk/typescript/src/protocol/`](../../sdk/typescript/src/protocol/) |
-| Rust parser | [`rclwebd/src/protocol/`](../../rclwebd/src/protocol/) |
-| MoonBit parser | [`rclmbt/protocol/`](../../rclmbt/protocol/) |
+The single implementation is the `rclweb` core crate ([`rclweb/src/protocol/`](../../rclweb/src/protocol/)). Frozen fixtures under [`protocol/testdata/`](../../protocol/testdata/README.md) are the conformance oracle, consumed directly by the crate's test suite. The pre-restructure TypeScript and MoonBit implementations and the three-language agreement apparatus live at tag `pre-restructure` ([ADR 0010](../adr/0010-restructure-single-rust-core.md)).
 
 ```bash
 bun run protocol-check
-bun run protocol-fixtures:check
-bun run protocol-agree
-cargo test --locked -p rclwebd
-moon test --frozen --target wasm rclmbt/protocol
+cargo test --locked -p rclweb
+cargo build --locked -p rclweb --target wasm32-unknown-unknown
 ```
 
-M0-04 extends coverage with the ROS-generated CDR corpus. Later phases add live transport, semantic, compatibility, security, and performance qualification.
+The ROS-generated CDR corpus extends coverage on the sample path. Later phases add live transport, semantic, compatibility, security, and performance qualification.

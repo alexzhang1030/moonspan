@@ -1,6 +1,6 @@
 # Common Studio prototype
 
-Studio is Moonspan's post-mainline UI side project. It demonstrates the released TypeScript SDK through a reusable browser workspace for ROS operation, diagnosis, visualization, and replay.
+Studio is rclweb's post-mainline UI side project. It demonstrates the released TypeScript SDK through a reusable browser workspace for ROS operation, diagnosis, visualization, and replay.
 
 ## Entry gate
 
@@ -18,7 +18,7 @@ Studio includes:
 - command workflows driven by released policy capabilities;
 - browser rendering, media, accessibility, and performance evidence.
 
-Studio owns presentation, interaction, workspace state, panels, and visual behavior. R2WP, `rclmbt`, `rclwebd`, the SDK, policy schemas, and conformance suites remain mainline contracts.
+Studio owns presentation, interaction, workspace state, panels, and visual behavior. R2WP, the `rclweb` core, `rclwebd`, the SDK, policy schemas, and conformance suites remain mainline contracts.
 
 ## Interaction model
 
@@ -35,7 +35,7 @@ Studio owns presentation, interaction, workspace state, panels, and visual behav
 Main thread
   layout, input, accessibility, workspace, commands
        |
-       +-- SDK and rclmbt Worker
+       +-- SDK and rclweb core Worker
        +-- I/O Worker
        +-- render Worker
        +-- codec Worker
