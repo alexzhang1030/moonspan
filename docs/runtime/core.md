@@ -2,11 +2,12 @@
 
 `rclweb` is the Rust core of the project: R2WP protocol codecs, CDR, and deterministic session/channel/ROS state. One codebase serves both sides of the wire — `rclwebd` links it natively, and the browser runtime is the same crate compiled to `wasm32-unknown-unknown` inside a TypeScript Worker host.
 
-The R2WP v0 parsers are complete (moved from the pre-restructure gateway). The CDR core (`rclweb/src/cdr/`, R1-01) is complete against the frozen [CDR contract](./cdr.md). The walking-skeleton session/channel state machine (`rclweb/src/session/`, R1-02) is complete for the v0.1 subset (bootstrap, fresh authenticate/ready, channel open/ready/close, topic data direction, heartbeat/error). Host poll ABI and gateway transport remain later R1 work. See the [plan](../../tasks/plan.md) and [ADR 0010](../adr/0010-restructure-single-rust-core.md).
+The R2WP v0 parsers are complete (moved from the pre-restructure gateway). The CDR core (`rclweb/src/cdr/`, R1-01) is complete against the frozen [CDR contract](./cdr.md). The walking-skeleton session/channel state machine (`rclweb/src/session/`, R1-02) is complete for the v0.1 subset (bootstrap, fresh authenticate/ready, channel open/ready/close, topic data direction, heartbeat/error). The sender-side encoders (`rclweb/src/protocol/encode.rs`, R1-03) cover deterministic CBOR, bootstrap records, extension TLVs, and selected frames — including an in-place frame-header writer for the one-copy sample path; the parsers are the oracle and every valid committed fixture re-encodes byte-identically. Host poll ABI remains R1-04. See the [plan](../../tasks/plan.md) and [ADR 0010](../adr/0010-restructure-single-rust-core.md).
 
 ## Responsibilities
 
 - R2WP framing, deterministic CBOR, control parsing, and validation order
+- R2WP encoding (bootstrap, control frames, TLVs, data-frame headers) proven by round-trips against the parsers
 - CDR encoding, decoding, validation, and field projection (R1 port of the frozen [CDR contract](./cdr.md))
 - Session and channel state for the v0.1 normative subset
 - Graph, QoS, clocks, and operation state (later phases)

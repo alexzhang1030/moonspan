@@ -24,6 +24,7 @@ The restructure plan governs sequencing: R0 stop-loss, R1 walking skeleton, R2 d
 | Historical M1-01 outcome | [Completion note](./milestones/m1-01-cdr-core.md) |
 | R1-01 Rust CDR port | [Completion note](./milestones/r1-01-cdr-rust-port.md) |
 | R1-02 session/channel state machine | [Completion note](./milestones/r1-02-session-channel-state.md) |
+| R1-03 gateway WebSocket + rcl attachment | [Completion note](./milestones/r1-03-gateway-ws-rcl.md) |
 | Plan and current work | [Implementation plan](../tasks/plan.md), [execution checklist](../tasks/todo.md) |
 | Post-mainline Studio work | [Studio prototype](./prototypes/studio-ui.md), [design system](../.agents/docs/DESIGN.md) |
 
