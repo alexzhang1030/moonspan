@@ -29,7 +29,7 @@ The project was restructured and renamed from moonspan to rclweb ([ADR 0010](../
 | Area | Context |
 |---|---|
 | `protocol/**` | [Architecture](./architecture.md), [R2WP](../../docs/protocol/r2wp.md), [normative subset](../../protocol/r2wp-v0.md#normative-scope-after-the-restructure-v01-subset) |
-| `rclweb/**` | [Architecture](./architecture.md), [technology stack](./technology-stack.md), [`rclweb` core](../../docs/runtime/core.md), [CDR contract](../../docs/runtime/cdr.md), [generated types](../../docs/runtime/generated-types.md) |
+| `rclweb/**` | [Architecture](./architecture.md), [technology stack](./technology-stack.md), [`rclweb` core](../../docs/runtime/core.md), [CDR contract](../../docs/runtime/cdr.md), [R1-02 session SM](../../docs/milestones/r1-02-session-channel-state.md), [generated types](../../docs/runtime/generated-types.md) |
 | `rclwebd/**` | [Architecture](./architecture.md), [`rclwebd`](../../docs/gateway/rclwebd.md), [security](../../docs/security.md) |
 | `sdk/**` | [Intent](./intent.md), [architecture](../../docs/architecture.md) |
 | `conformance/**` | [Validation](./validation.md), [corpus README](../../conformance/cdr/README.md), [support matrix](../../docs/support-matrix.md) |
