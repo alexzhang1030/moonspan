@@ -23,6 +23,7 @@ This directory contains the technical documentation for Moonspan. Each document 
 | Supported ROS profiles | [Support matrix](./support-matrix.md) |
 | Evidence and release gates | [Validation](./validation.md), [evidence contracts](../evidence/README.md) |
 | Architecture decisions | [ADR register](./adr/README.md) |
+| Proposed restructure (pending rulings) | [Architecture restructure proposal](./proposals/architecture-restructure.md) |
 | M0-03 outcome | [Completion note](./milestones/m0-03-r2wp-foundation.md) |
 | M1-01 outcome | [Completion note](./milestones/m1-01-cdr-core.md) |
 | Plan and current work | [Implementation plan](../tasks/plan.md), [execution checklist](../tasks/todo.md) |
