@@ -68,6 +68,10 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
                     leaseId: event.leaseId,
                     data: event.stringData,
                   });
+                } else {
+                  // Undelivered sample: release the lease at the drop site so
+                  // the engine can reclaim the retained slab.
+                  host?.releaseLease(event.leaseId);
                 }
                 break;
               case "error":

@@ -29,7 +29,7 @@ batches into `poll`. Sample payloads are borrowed views under an explicit
 |---|---|
 | Poll ABI | Hand-written `extern "C"` exports + flat `RCLB`/`RCLR` batches. Rejected full `wasm-bindgen` for R1 to keep the artifact small and the boundary explicit; size and poll latency remain R-D1 reopen inputs. |
 | Worker ↔ main format | Application messages only (`connected`, `subscribed`, `sample{data}`, `releaseLease`, …). Opaque binary stays in the Worker. |
-| Buffer lease | Each sample carries a `lease_id`. The host must `ReleaseLease` before the engine reclaims the retained inbound slab; `released_buffers` in the poll result lists reclaimable ids. |
+| Buffer lease | Each sample carries a `lease_id`. The host must `ReleaseLease` before the engine reclaims the retained inbound slab; `released_buffers` in the poll result lists reclaimable ids. Samples the SDK does not deliver to a handler are released at the drop site (Worker non-String samples, no-handler races), so undelivered samples cannot pin retained slabs. |
 | String path | Core decodes `std_msgs/msg/String` into `string_data` on the app event so the SDK delivers a typed `{ data }` without CDR parsing. |
 
 ## Delivered scope

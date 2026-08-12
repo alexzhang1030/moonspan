@@ -512,15 +512,14 @@ impl ClientEngine {
             },
         );
 
-        // Owned snapshot for the native PollOutcome API; wasm hosts should
-        // prefer [`Self::lease_payload_view`] into the retained slab. The SDK
-        // String path delivers `string_data` (no extra controllable copy).
+        // Hosts read the CDR payload through [`Self::lease_payload_view`]
+        // into the retained slab. The SDK String path delivers `string_data`
+        // (no extra controllable copy).
         outcome.events.push(AppEvent::Sample {
             channel_id: frame.channel_id,
             lease_id,
             sequence: frame.sequence,
             source_time_ns: frame.source_time_ns,
-            payload: payload.to_vec(),
             string_data,
         });
         self.telemetry.samples_emitted = self.telemetry.samples_emitted.saturating_add(1);

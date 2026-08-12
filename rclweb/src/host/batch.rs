@@ -373,7 +373,6 @@ fn encode_app_event(
             lease_id,
             sequence,
             source_time_ns,
-            payload: _,
             string_data,
         } => {
             out.extend_from_slice(&[APP_SAMPLE, 0, 0, 0]);
