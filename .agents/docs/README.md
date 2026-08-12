@@ -25,7 +25,7 @@ The project was restructured and renamed from moonspan to rclweb ([ADR 0010](../
 | Architecture decisions | [ADR register](../../docs/adr/README.md) |
 | Local WebTransport TLS (cert-hash, 14-day rotate) | [ADR 0011](../../docs/adr/0011-local-dev-webtransport-tls.md) |
 | J-FT runtime image and operations endpoints | [Deploy](../../docs/deploy.md), [R4-02](../../docs/milestones/r4-02-deployment-observability.md) |
-| Qualification-report harness | [Evidence](../../docs/evidence/README.md), [R4-03](../../docs/milestones/r4-03-evidence-harness.md) |
+| Evidence report index | [Evidence](../../docs/evidence/README.md), [R4-03](../../docs/milestones/r4-03-evidence-harness.md) |
 | Restructure rulings and plan | [Restructure proposal](../../docs/proposals/architecture-restructure.md) |
 | Delivery sequence | [Implementation plan](../../tasks/plan.md) |
 | Current execution state | [Execution checklist](../../tasks/todo.md) |
@@ -60,7 +60,7 @@ The project was restructured and renamed from moonspan to rclweb ([ADR 0010](../
 | `justfile` (`fmt`, `clippy`, `lint-rust`, `doctor`, `setup`) | Same; `just check` remains the foundation gate |
 | `scripts/build-wasm.ts`, `sdk/typescript/wasm/rclweb.wasm`, `docs/evidence/r1-04-wasm-size.json` | Fat-LTO wasm ship; `release-wasm` inherits native release ([gotchas](./gotchas.md#release-wasm-inherits-native-release-settings)) |
 | `scripts/perf-baseline/**`, `scripts/measure-perf-baseline.ts` | [R2-04 Foxglove/rosbridge baseline](../../docs/milestones/r2-04-perf-baseline.md) |
-| `scripts/evidence-*.ts`, `docs/evidence/schema/**`, `docs/evidence/reports/**` | [R4-03 evidence harness](../../docs/milestones/r4-03-evidence-harness.md); raw `docs/evidence/*.json` are artifacts, not reports ([gotchas](./gotchas.md#raw-evidence-json-is-not-a-qualification-report)) |
+| `scripts/evidence-check.ts`, `docs/evidence/reports/**` | [R4-03 evidence index](../../docs/milestones/r4-03-evidence-harness.md); raw `docs/evidence/*.json` are measurements ([gotchas](./gotchas.md#raw-evidence-json-is-not-a-qualification-report)) |
 | `conformance/**` | [Validation](./validation.md), [corpus README](../../conformance/cdr/README.md), [support matrix](../../docs/support-matrix.md) |
 | `studio/**` | [Prototype scope](../../docs/prototypes/studio-ui.md), [DESIGN.md](./DESIGN.md) |
 

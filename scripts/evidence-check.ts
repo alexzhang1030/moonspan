@@ -1,33 +1,22 @@
 #!/usr/bin/env bun
 /**
- * Qualification report v1 filesystem checker and CLI (R4-03 recycle of M0-05a).
+ * Thin qualification-report index (R4-03).
  *
- * Model: evidence-model.ts. Runtime validation: evidence-contract.ts.
- * Schema generation: evidence-schema.ts.
- * This module owns schema write/check, corpus closure, artifact integrity, CLI.
- *
- * Closed fixtures live under docs/evidence/testdata/valid/. Real gate reports
- * live under docs/evidence/reports/ and must reference committed artifacts.
+ * Reports under docs/evidence/reports/ name a gate, point at committed
+ * measurement files, and record a review decision. The checker verifies
+ * those files exist and that sha256 still matches. It does not enforce
+ * the pre-restructure closed M0-05a ceremony (sorted maps, generated
+ * JSON Schema, synthetic fixtures, media types, invocation bounds).
  */
 import { createHash } from "node:crypto";
-import { lstat, readFile, readdir, writeFile } from "node:fs/promises";
+import { lstat, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
-import {
-  ARTIFACT_MAX_BYTES,
-  REPORT_MAX_BYTES,
-  REPORTS_DIR_REL,
-  SCHEMA_MAX_BYTES,
-  SCHEMA_REL,
-  VALID_DIR_REL,
-  asciiCompare,
-  resolveUnderRoot,
-  stableJsonPretty,
-} from "./evidence-model.ts";
-import { validateReportDocument } from "./evidence-contract.ts";
-import {
-  buildQualificationReportSchema,
-  schemaCanonicalBytes,
-} from "./evidence-schema.ts";
+
+export const REPORTS_DIR_REL = "docs/evidence/reports";
+export const GATES = ["R0", "R1", "R2", "R3", "R4", "U0", "X0"] as const;
+export const SUPPORT_ROWS = ["H-FT", "H-CY", "H-ZN", "J-FT", "J-CY", "J-ZN"] as const;
+export const DECISIONS = ["pending", "accept", "reject", "provisional"] as const;
+export const SHA256_RE = /^[0-9a-f]{64}$/;
 
 export type EvidenceCheckResult = {
   ok: boolean;
@@ -36,384 +25,201 @@ export type EvidenceCheckResult = {
   reports: number;
 };
 
-export type Mode = "check" | "write";
-
-// Re-export the stable test-facing API (model + contract + schema).
-export {
-  ARTIFACT_MAX_BYTES,
-  ARTIFACT_ROLES,
-  DECISIONS,
-  EVIDENCE_LEVELS,
-  GATES,
-  GATE_EVIDENCE_LEVELS,
-  LEVELS_REQUIRING_SUPPORT_ROW,
-  MEDIA_TYPE_MAX_LENGTH,
-  PATH_MAX_LENGTH,
-  PATH_RELATIVE_PATTERN,
-  PLATFORMS,
-  REPORT_ID,
-  REPORT_MAX_BYTES,
-  REPORTS_DIR_REL,
-  SAFE_NUMBER_MAX,
-  SAFE_NUMBER_MIN,
-  SCHEMA_MAX_BYTES,
-  SCHEMA_REL,
-  SCHEMA_VERSION,
-  SUPPORT_ROWS,
-  VALID_DIR_REL,
-  asciiCompare,
-  isValidCalendarDate,
-  resolveUnderRoot,
-  stableJsonPretty,
-} from "./evidence-model.ts";
-export { validateReportDocument } from "./evidence-contract.ts";
-export { buildQualificationReportSchema, schemaCanonicalBytes } from "./evidence-schema.ts";
-
-export function parseCliMode(args: string[]): { mode: Mode } | { error: string } {
-  if (args.length === 0) return { mode: "check" };
-  if (args.length !== 1) {
-    return { error: "usage: evidence-check.ts [--check|--write]" };
-  }
-  if (args[0] === "--check") return { mode: "check" };
-  if (args[0] === "--write") return { mode: "write" };
-  return { error: `unknown mode ${args[0]}` };
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export function sha256Hex(bytes: Uint8Array | string): string {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
-function push(diags: string[], message: string): void {
-  diags.push(message);
-}
-
-/** Reject symlinks in every ancestor from root through the relative path. */
-export async function ensureRealPathChain(
+export function resolveUnderRoot(
   root: string,
   rel: string,
-  opts: { mustExist: boolean; expect: "file" | "directory" | "either" },
-): Promise<{ ok: true; abs: string } | { ok: false; error: string }> {
-  const resolved = resolveUnderRoot(root, rel === "" ? "." : rel);
-  // "." is special: validate root itself
-  let abs: string;
-  if (rel === "" || rel === ".") {
-    abs = path.resolve(root);
-  } else {
-    if (!resolved.ok) return resolved;
-    abs = resolved.abs;
+): { ok: true; abs: string } | { ok: false; error: string } {
+  if (typeof rel !== "string" || rel.length === 0) {
+    return { ok: false, error: "empty path rejected" };
   }
-
-  try {
-    const rootSt = await lstat(path.resolve(root));
-    if (rootSt.isSymbolicLink()) return { ok: false, error: "root is a symlink" };
-    if (!rootSt.isDirectory()) return { ok: false, error: "root is not a directory" };
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    return { ok: false, error: `root lstat failed: ${msg}` };
+  if (path.isAbsolute(rel) || rel.includes("\0") || rel.includes("\\")) {
+    return { ok: false, error: `unsafe path: ${rel}` };
   }
-
-  if (rel !== "" && rel !== ".") {
-    const segments = rel.split("/").filter(Boolean);
-    let cursor = path.resolve(root);
-    for (let i = 0; i < segments.length; i++) {
-      cursor = path.join(cursor, segments[i]!);
-      try {
-        const st = await lstat(cursor);
-        if (st.isSymbolicLink()) {
-          return { ok: false, error: `symlink rejected at ${segments.slice(0, i + 1).join("/")}` };
-        }
-        const isLast = i === segments.length - 1;
-        if (!isLast && !st.isDirectory()) {
-          return { ok: false, error: `ancestor is not a directory: ${segments.slice(0, i + 1).join("/")}` };
-        }
-        if (isLast) {
-          if (opts.expect === "file" && !st.isFile()) {
-            return { ok: false, error: "path must be a regular file" };
-          }
-          if (opts.expect === "directory" && !st.isDirectory()) {
-            return { ok: false, error: "path must be a directory" };
-          }
-        }
-      } catch (error) {
-        if (!opts.mustExist && i === segments.length - 1) {
-          // leaf may be missing when writing schema
-          return { ok: true, abs };
-        }
-        const msg = error instanceof Error ? error.message : String(error);
-        return { ok: false, error: `path lstat failed: ${msg}` };
-      }
-    }
+  const segments = rel.split("/");
+  if (segments.some((part) => part === "" || part === "." || part === "..")) {
+    return { ok: false, error: `path escapes or is noncanonical: ${rel}` };
+  }
+  const abs = path.resolve(root, rel);
+  const rootResolved = path.resolve(root);
+  if (abs !== rootResolved && !abs.startsWith(rootResolved + path.sep)) {
+    return { ok: false, error: `path escapes root: ${rel}` };
   }
   return { ok: true, abs };
 }
 
-async function readUtf8Strict(
-  abs: string,
-  maxBytes: number,
-  label: string,
-  diags: string[],
-): Promise<string | null> {
-  try {
-    const st = await lstat(abs);
-    if (st.isSymbolicLink()) {
-      push(diags, `${label}: symlink rejected`);
-      return null;
-    }
-    if (!st.isFile()) {
-      push(diags, `${label}: must be a regular file`);
-      return null;
-    }
-    if (st.size > maxBytes) {
-      push(diags, `${label}: size ${st.size} exceeds max ${maxBytes}`);
-      return null;
-    }
-    const bytes = await readFile(abs);
-    try {
-      return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-    } catch {
-      push(diags, `${label}: invalid UTF-8`);
-      return null;
-    }
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    push(diags, `${label}: read failed: ${msg}`);
-    return null;
-  }
-}
-
-async function readRegularFileBytes(
-  abs: string,
-  maxBytes: number,
-  label: string,
-  diags: string[],
-): Promise<Uint8Array | null> {
-  try {
-    const st = await lstat(abs);
-    if (st.isSymbolicLink()) {
-      push(diags, `${label}: symlink rejected`);
-      return null;
-    }
-    if (!st.isFile()) {
-      push(diags, `${label}: must be a regular file`);
-      return null;
-    }
-    if (st.size > maxBytes) {
-      push(diags, `${label}: size ${st.size} exceeds max ${maxBytes}`);
-      return null;
-    }
-    return new Uint8Array(await readFile(abs));
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    push(diags, `${label}: read failed: ${msg}`);
-    return null;
-  }
-}
-
-export async function writeSchema(root: string): Promise<void> {
-  const text = schemaCanonicalBytes();
-  const parentRel = path.dirname(SCHEMA_REL);
-  const parentChain = await ensureRealPathChain(root, parentRel, {
-    mustExist: true,
-    expect: "directory",
-  });
-  if (!parentChain.ok) throw new Error(`schema write: ${parentChain.error}`);
-  const target = path.join(root, SCHEMA_REL);
-  try {
-    const st = await lstat(target);
-    if (st.isSymbolicLink()) throw new Error("schema write: target is a symlink");
-    if (st.isDirectory()) throw new Error("schema write: target is a directory");
-    if (!st.isFile()) throw new Error("schema write: target is not a regular file");
-  } catch (error) {
-    const err = error as NodeJS.ErrnoException;
-    if (err?.code === "ENOENT") {
-      // creatable leaf
-    } else if (error instanceof Error && error.message.startsWith("schema write:")) {
-      throw error;
-    } else {
-      const msg = error instanceof Error ? error.message : String(error);
-      throw new Error(`schema write: target lstat failed: ${msg}`);
-    }
-  }
-  await writeFile(target, text, "utf8");
-}
-
-export async function checkSchema(root: string): Promise<string[]> {
+export function validateReportDocument(value: unknown, pathLabel = "report"): string[] {
   const diags: string[] = [];
-  const chain = await ensureRealPathChain(root, SCHEMA_REL, {
-    mustExist: true,
-    expect: "file",
-  });
-  if (!chain.ok) {
-    push(diags, `schema: ${chain.error}`);
+  if (!isPlainObject(value)) {
+    diags.push(`${pathLabel}: JSON root must be an object`);
     return diags;
   }
-  const text = await readUtf8Strict(chain.abs, SCHEMA_MAX_BYTES, "schema", diags);
-  if (text === null) return diags;
-  const expected = schemaCanonicalBytes();
-  if (text !== expected) {
-    push(diags, "schema: committed bytes differ from generated contract schema");
+  if (typeof value.gate !== "string" || !(GATES as readonly string[]).includes(value.gate)) {
+    diags.push(`${pathLabel}.gate: must be one of ${GATES.join(", ")}`);
   }
-  return diags;
-}
-
-export async function validateReportFile(
-  root: string,
-  reportRel: string,
-  options: { verifyArtifacts?: boolean } = {},
-): Promise<string[]> {
-  const diags: string[] = [];
-  const verifyArtifacts = options.verifyArtifacts !== false;
-  const chain = await ensureRealPathChain(root, reportRel, {
-    mustExist: true,
-    expect: "file",
-  });
-  if (!chain.ok) {
-    push(diags, `report ${reportRel}: ${chain.error}`);
+  if (value.support_row !== undefined) {
+    if (
+      typeof value.support_row !== "string" ||
+      !(SUPPORT_ROWS as readonly string[]).includes(value.support_row)
+    ) {
+      diags.push(`${pathLabel}.support_row: unknown row`);
+    }
+  }
+  if (!isPlainObject(value.review)) {
+    diags.push(`${pathLabel}.review: must be an object`);
+  } else {
+    const decision = value.review.decision;
+    if (typeof decision !== "string" || !(DECISIONS as readonly string[]).includes(decision)) {
+      diags.push(`${pathLabel}.review.decision: must be pending, accept, reject, or provisional`);
+    } else if (decision === "pending") {
+      if (value.review.reviewer !== undefined) {
+        diags.push(`${pathLabel}.review.reviewer: omit until a human decides`);
+      }
+    } else if (typeof value.review.reviewer !== "string" || value.review.reviewer.length === 0) {
+      diags.push(`${pathLabel}.review.reviewer: required for ${decision}`);
+    }
+  }
+  if (!Array.isArray(value.artifacts) || value.artifacts.length < 1) {
+    diags.push(`${pathLabel}.artifacts: requires at least one entry`);
     return diags;
   }
-  const text = await readUtf8Strict(chain.abs, REPORT_MAX_BYTES, `report ${reportRel}`, diags);
-  if (text === null) return diags;
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(text);
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    push(diags, `report ${reportRel}: malformed JSON: ${msg}`);
-    return diags;
-  }
-  if (stableJsonPretty(parsed) !== text) {
-    push(diags, `report ${reportRel}: must be canonical pretty JSON with trailing newline`);
-  }
-  diags.push(...validateReportDocument(parsed, `report ${reportRel}`));
-  if (!verifyArtifacts || typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    return diags;
-  }
-  const report = parsed as Record<string, unknown>;
-  if (!Array.isArray(report.artifacts)) return diags;
-  for (const [i, art] of report.artifacts.entries()) {
-    if (typeof art !== "object" || art === null || Array.isArray(art)) continue;
-    const item = art as Record<string, unknown>;
-    if (typeof item.path !== "string") continue;
-    const label = `report ${reportRel}.artifacts[${i}]`;
-    const artChain = await ensureRealPathChain(root, item.path, {
-      mustExist: true,
-      expect: "file",
-    });
-    if (!artChain.ok) {
-      push(diags, `${label}: ${artChain.error}`);
+  for (const [i, art] of value.artifacts.entries()) {
+    const p = `${pathLabel}.artifacts[${i}]`;
+    if (!isPlainObject(art)) {
+      diags.push(`${p}: must be an object`);
       continue;
     }
-    const artBytes = await readRegularFileBytes(
-      artChain.abs,
-      ARTIFACT_MAX_BYTES,
-      `${label} file`,
-      diags,
-    );
-    if (!artBytes) continue;
-    if (typeof item.byte_length === "number" && artBytes.byteLength !== item.byte_length) {
-      push(
-        diags,
-        `${label}: byte_length ${item.byte_length} does not match file size ${artBytes.byteLength}`,
-      );
+    if (typeof art.path !== "string") {
+      diags.push(`${p}.path: must be a string`);
+    } else {
+      const resolved = resolveUnderRoot("/virtual-root", art.path);
+      if (!resolved.ok) diags.push(`${p}.path: ${resolved.error}`);
     }
-    if (typeof item.sha256 === "string") {
-      const digest = sha256Hex(artBytes);
-      if (digest !== item.sha256) push(diags, `${label}: sha256 mismatch`);
+    if (typeof art.sha256 !== "string" || !SHA256_RE.test(art.sha256)) {
+      diags.push(`${p}.sha256: requires 64 lowercase hex`);
     }
   }
   return diags;
 }
 
-async function collectClosedJsonReports(
-  root: string,
-  dirRel: string,
-  label: string,
-  diags: string[],
-): Promise<string[]> {
-  const chain = await ensureRealPathChain(root, dirRel, {
-    mustExist: true,
-    expect: "directory",
-  });
-  if (!chain.ok) {
-    push(diags, `${label}: ${chain.error}`);
-    return [];
+async function validateReportFile(root: string, reportRel: string): Promise<string[]> {
+  const diags: string[] = [];
+  const resolved = resolveUnderRoot(root, reportRel);
+  if (!resolved.ok) {
+    diags.push(`report ${reportRel}: ${resolved.error}`);
+    return diags;
   }
-  const names: string[] = [];
+  let st;
   try {
-    const entries = await readdir(chain.abs, { withFileTypes: true });
-    const sorted = entries.map((e) => e.name).sort(asciiCompare);
-    for (const name of sorted) {
-      const childAbs = path.join(chain.abs, name);
-      const st = await lstat(childAbs);
-      if (st.isSymbolicLink()) {
-        push(diags, `${label}: symlink entry rejected: ${name}`);
-        continue;
-      }
-      if (st.isDirectory()) {
-        push(diags, `${label}: unexpected directory: ${name}`);
-        continue;
-      }
-      if (!st.isFile()) {
-        push(diags, `${label}: unexpected entry type: ${name}`);
-        continue;
-      }
-      if (!name.endsWith(".json")) {
-        push(diags, `${label}: unexpected non-report file: ${name}`);
-        continue;
-      }
-      names.push(name);
-    }
-    if (names.length === 0) {
-      push(diags, `${label}: requires at least one report JSON`);
-    }
-    for (const name of names) {
-      diags.push(...(await validateReportFile(root, `${dirRel}/${name}`)));
-    }
+    st = await lstat(resolved.abs);
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    push(diags, `${label}: read failed: ${msg}`);
+    diags.push(`report ${reportRel}: read failed: ${msg}`);
+    return diags;
   }
-  return names;
+  if (st.isSymbolicLink() || !st.isFile()) {
+    diags.push(`report ${reportRel}: must be a regular file`);
+    return diags;
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(await readFile(resolved.abs, "utf8"));
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    diags.push(`report ${reportRel}: malformed JSON: ${msg}`);
+    return diags;
+  }
+  diags.push(...validateReportDocument(parsed, `report ${reportRel}`));
+  if (!isPlainObject(parsed) || !Array.isArray(parsed.artifacts)) return diags;
+  for (const [i, art] of parsed.artifacts.entries()) {
+    if (!isPlainObject(art) || typeof art.path !== "string") continue;
+    const label = `report ${reportRel}.artifacts[${i}]`;
+    const artResolved = resolveUnderRoot(root, art.path);
+    if (!artResolved.ok) {
+      diags.push(`${label}: ${artResolved.error}`);
+      continue;
+    }
+    try {
+      const artSt = await lstat(artResolved.abs);
+      if (artSt.isSymbolicLink() || !artSt.isFile()) {
+        diags.push(`${label}: artifact must be a regular file`);
+        continue;
+      }
+      const bytes = new Uint8Array(await readFile(artResolved.abs));
+      if (typeof art.sha256 === "string" && sha256Hex(bytes) !== art.sha256) {
+        diags.push(`${label}: sha256 mismatch`);
+      }
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      diags.push(`${label}: read failed: ${msg}`);
+    }
+  }
+  return diags;
 }
 
 export async function checkEvidence(root: string = process.cwd()): Promise<EvidenceCheckResult> {
   const diags: string[] = [];
-  diags.push(...(await checkSchema(root)));
-
-  const fixtureNames = await collectClosedJsonReports(root, VALID_DIR_REL, "valid corpus", diags);
-  const gateNames = await collectClosedJsonReports(root, REPORTS_DIR_REL, "gate reports", diags);
-  const reports = fixtureNames.length + gateNames.length;
-
-  diags.sort(asciiCompare);
+  const dirResolved = resolveUnderRoot(root, REPORTS_DIR_REL);
+  if (!dirResolved.ok) {
+    return {
+      ok: false,
+      diagnostics: [`gate reports: ${dirResolved.error}`],
+      summary: "status=fail diagnostics=1",
+      reports: 0,
+    };
+  }
+  let names: string[] = [];
+  try {
+    const entries = await readdir(dirResolved.abs, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        diags.push(`gate reports: unexpected directory: ${entry.name}`);
+        continue;
+      }
+      if (!entry.isFile() || !entry.name.endsWith(".json")) {
+        diags.push(`gate reports: unexpected file: ${entry.name}`);
+        continue;
+      }
+      names.push(entry.name);
+    }
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    diags.push(`gate reports: read failed: ${msg}`);
+  }
+  names.sort();
+  if (names.length === 0) {
+    diags.push("gate reports: requires at least one report JSON");
+  }
+  for (const name of names) {
+    diags.push(...(await validateReportFile(root, `${REPORTS_DIR_REL}/${name}`)));
+  }
+  diags.sort();
   const ok = diags.length === 0;
   return {
     ok,
     diagnostics: diags,
     summary: ok
-      ? `status=ok fixtures=${fixtureNames.length} gate_reports=${gateNames.length} schema=${SCHEMA_REL}`
+      ? `status=ok reports=${names.length}`
       : `status=fail diagnostics=${diags.length}`,
-    reports,
+    reports: names.length,
   };
 }
 
 async function main(): Promise<void> {
-  const parsed = parseCliMode(process.argv.slice(2));
-  if ("error" in parsed) {
-    console.error(parsed.error);
+  const args = process.argv.slice(2);
+  if (args.length > 0 && args[0] !== "--check") {
+    console.error("usage: evidence-check.ts [--check]");
     process.exitCode = 1;
     return;
   }
   const root = path.resolve(import.meta.dir, "..");
-  if (parsed.mode === "write") {
-    await writeSchema(root);
-    const result = await checkEvidence(root);
-    if (!result.ok) {
-      for (const d of result.diagnostics) console.error(d);
-      process.exitCode = 1;
-    }
-    console.log(`status=ok mode=write ${result.summary}`);
-    return;
-  }
   const result = await checkEvidence(root);
   if (!result.ok) {
     for (const d of result.diagnostics) console.error(d);

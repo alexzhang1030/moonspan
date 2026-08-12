@@ -55,7 +55,7 @@ Each accepted claim records:
 - artifact location and integrity;
 - reviewer, gate, decision, and known limits.
 
-The machine-readable qualification-report contract lives under [`docs/evidence/`](./evidence/README.md) (`rclweb-qualification-report-v1`). It recycles the pre-restructure M0-05a shape (tag `pre-restructure`) with R0–R4 gates. Raw measurements stay as sibling JSON; reports under [`docs/evidence/reports/`](./evidence/reports/) wrap them. `just evidence-check` is part of `just check`. Committed reports are `pending` until a human reviewer accepts them ([R4-03](./milestones/r4-03-evidence-harness.md)).
+The machine-readable report index lives under [`docs/evidence/reports/`](./evidence/reports/). Each report names a gate, points at raw `docs/evidence/*.json` with a sha256, and records `review.decision`. `just evidence-check` verifies those pointers still match; it does not recycle the closed pre-restructure M0-05a ceremony. Committed reports are `pending` until a human reviewer accepts them ([R4-03](./milestones/r4-03-evidence-harness.md)).
 
 ## Foundation CI
 

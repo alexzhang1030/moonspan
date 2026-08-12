@@ -1,101 +1,17 @@
 {
-  "schema_version": 1,
-  "report_id": "rclweb-qualification-report-v1",
   "gate": "R3",
-  "evidence_level": "N1",
-  "identity": {
-    "code_revision": "9165170bfb8d07b763fbabcf0a5ad326fc57a3fa",
-    "fixture_manifests": {
-      "cdr": "319cb1c55da8a236054ba625f3fdbd43e239bd13c74c523d7912618c02b9fa7f",
-      "r2wp": "f96c862f8ff601cd507d2efa55a07fcaaea806af0373f1005e6669d626324d12"
-    },
-    "package_versions": {
-      "bun": "1.3.14",
-      "just": "1.50.0",
-      "rustc": "1.97.1"
-    },
-    "image_digests": {
-      "ros-humble-ros-base-jammy": "sha256:7bea3d9aa2483d3ca34c8e30d921b79273b0913bd7dc64bebf51d082b5d107e4"
-    },
-    "environment": {
-      "environment_id": "github-actions-e2e-ros-talker-h-ft",
-      "platform": "linux/amd64",
-      "toolchain": {
-        "bun": "1.3.14",
-        "rustc": "1.97.1"
-      },
-      "attributes": {
-        "ci_run": "31612296338",
-        "compose": "docker/compose.r3-03-h-ft-e2e.yml"
-      }
-    }
-  },
-  "provenance": {
-    "adapter_profile": "serialized-adapter-v1",
-    "domain_ids": [
-      0
-    ],
-    "support_row_id": "H-FT"
-  },
-  "invocation": {
-    "commands": [
-      "just e2e-h-ft",
-      "just check"
-    ],
-    "workload": "R3-03 H-FT live Humble talker subscribe: digest-pinned compose regenerates FFI, links --features ros, SDK receives /chatter std_msgs/msg/String samples.",
-    "budgets": {
-      "controllable_copies": 2,
-      "samples_received": 3
-    },
-    "duration_seconds": 1.085,
-    "sample_count": 3,
-    "warmup_count": 0,
-    "variance": "single CI run 31612296338; three samples on loopback"
-  },
+  "support_row": "H-FT",
   "artifacts": [
     {
-      "role": "raw",
       "path": "docs/evidence/r3-03-h-ft-e2e.json",
-      "sha256": "31277ba2826589b7648bed4b2b368ff6fe3b39266e869efe87de82fbaee2ace1",
-      "byte_length": 1349,
-      "media_type": "application/json",
-      "retention_policy": "repository-committed"
+      "sha256": "31277ba2826589b7648bed4b2b368ff6fe3b39266e869efe87de82fbaee2ace1"
     },
     {
-      "role": "raw",
       "path": "docs/evidence/r3-03-h-ft-row.json",
-      "sha256": "1d5b65f12e065e076bffcece4b7f2caf9e55d0389060844372e10e2e94015e14",
-      "byte_length": 1331,
-      "media_type": "application/json",
-      "retention_policy": "repository-committed"
+      "sha256": "1d5b65f12e065e076bffcece4b7f2caf9e55d0389060844372e10e2e94015e14"
     }
   ],
-  "measurements": {
-    "timestamps": {
-      "finished_at": "2026-08-12T15:31:03Z",
-      "started_at": "2026-08-12T15:31:02Z"
-    },
-    "queues": {
-      "sequence_gap": 0
-    },
-    "resources": {
-      "bytes_copied_into_engine": 995,
-      "copies_into_engine": 8
-    },
-    "errors": [],
-    "dispositions": [
-      {
-        "name": "delivered",
-        "count": 3
-      }
-    ]
-  },
   "review": {
-    "decision": "pending",
-    "known_limits": [
-      "H-FT is delivery-gated for protocol plus live Humble talker e2e; this report does not make the row Qualified.",
-      "WebTransport local-dev TLS bring-up is tracked in r3-03-local-dev-tls.json and is not claimed by this live-subscribe report.",
-      "Remaining Phase 1 rows (H-CY, H-ZN, J-CY, J-ZN) have no live gateway e2e lane in this slice."
-    ]
+    "decision": "pending"
   }
 }

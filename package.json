@@ -21,7 +21,6 @@
     "cdr-tail-slack:check": "bun run scripts/cdr-tail-slack.ts --check",
     "generated-types:write": "bun run scripts/generated-types.ts --write",
     "generated-types:check": "bun run scripts/generated-types.ts --check",
-    "evidence:write": "bun run scripts/evidence-check.ts --write",
     "evidence:check": "bun run scripts/evidence-check.ts --check",
     "toolchain-check": "bun run scripts/toolchain-check.ts",
     "check": "bun run docs:check && bun run protocol-check && bun run cdr-corpus:check && bun run cdr-tail-slack:check && bun run generated-types:check && bun run evidence:check",

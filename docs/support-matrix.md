@@ -32,7 +32,7 @@ One gateway process binds one row and may host multiple domain IDs. `support_row
 
 ## Qualification reports
 
-Machine-readable reports live under [`docs/evidence/reports/`](./evidence/reports/) and must pass `just evidence-check` ([contract](./evidence/README.md), [R4-03](./milestones/r4-03-evidence-harness.md)). Raw measurements stay as sibling JSON under [`docs/evidence/`](./evidence/). A row becomes **Qualified** only after human `review.decision = accept`.
+Machine-readable reports live under [`docs/evidence/reports/`](./evidence/reports/) and must pass `just evidence-check` ([evidence](./evidence/README.md), [R4-03](./milestones/r4-03-evidence-harness.md)). Raw measurements stay as sibling JSON under [`docs/evidence/`](./evidence/). A row becomes **Qualified** only after human `review.decision = accept`.
 
 | Row | Delivery evidence | Qualification report |
 |---|---|---|
@@ -90,7 +90,7 @@ Studio graphics and media profiles begin at U0.
 
 ## Promotion
 
-A report records the release, environment, row and adapter identity, gateway and domain provenance, readiness, browser and buffer path, transport and network, semantic results, resource measurements, raw evidence, known limits, and reviewer. The machine-readable shape is [`rclweb-qualification-report-v1`](./evidence/README.md).
+A report records the release, environment, row and adapter identity, gateway and domain provenance, readiness, browser and buffer path, transport and network, semantic results, resource measurements, raw evidence, known limits, and reviewer. The machine-readable index is a thin file under [`docs/evidence/reports/`](./evidence/README.md); the rest of that list is for human review, not CI.
 
 A row becomes **Qualified** when its reports pass [validation](./validation.md) and human review accepts the row for a named release revision.
 

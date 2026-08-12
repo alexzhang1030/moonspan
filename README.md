@@ -55,7 +55,7 @@ just build
 | `just ros-test` | Gateway tests against real rcl (sourced Jazzy env) |
 | `just ros-test-pixi` | Same, using optional RoboStack Jazzy via pixi (not CI evidence) |
 | `just protocol-check` | Validate the R2WP registry JSON and control CDDL |
-| `just evidence-check` | Validate qualification-report schema, fixtures, and gate-report integrity |
+| `just evidence-check` | Verify gate reports still point at committed measurements |
 | `just cdr-corpus-check` | Verify the committed ROS CDR corpus |
 
 ## Status

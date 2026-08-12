@@ -1,86 +1,13 @@
 {
-  "schema_version": 1,
-  "report_id": "rclweb-qualification-report-v1",
   "gate": "R2",
-  "evidence_level": "N1",
-  "identity": {
-    "code_revision": "f5229cf5b2118bb8962d4061e669df207e3ec82d",
-    "fixture_manifests": {
-      "cdr": "319cb1c55da8a236054ba625f3fdbd43e239bd13c74c523d7912618c02b9fa7f",
-      "r2wp": "f96c862f8ff601cd507d2efa55a07fcaaea806af0373f1005e6669d626324d12"
-    },
-    "package_versions": {
-      "bun": "1.3.14",
-      "just": "1.50.0",
-      "rustc": "1.97.1"
-    },
-    "image_digests": {},
-    "environment": {
-      "environment_id": "r2-04-perf-baseline-linux-amd64",
-      "platform": "linux/amd64",
-      "toolchain": {
-        "bun": "1.3.14",
-        "rustc": "1.97.1"
-      },
-      "attributes": {
-        "docker_available": "false",
-        "host_class": "developer-workstation"
-      }
-    }
-  },
-  "provenance": {
-    "support_row_id": "J-FT"
-  },
-  "invocation": {
-    "commands": [
-      "just perf-baseline"
-    ],
-    "workload": "R2-04 host + protocol-cost baseline: PointCloud2 ~1 MiB at 10 Hz, ten image topics, thousand small topics. Live Foxglove/rosbridge e2e skipped (docker unavailable).",
-    "budgets": {
-      "controllable_copies": 2,
-      "payload_bytes": 1048572
-    },
-    "duration_seconds": 3,
-    "sample_count": 30,
-    "warmup_count": 2,
-    "variance": "host writeDrain/encodeHostBatch p50/p99; live bridges status skipped"
-  },
+  "support_row": "J-FT",
   "artifacts": [
     {
-      "role": "raw",
       "path": "docs/evidence/r2-04-perf-baseline.json",
-      "sha256": "4db430eb9b36919f959ceee7befbe5800e959ff2bf704ac1d49c71a609c064b9",
-      "byte_length": 15362,
-      "media_type": "application/json",
-      "retention_policy": "repository-committed"
+      "sha256": "4db430eb9b36919f959ceee7befbe5800e959ff2bf704ac1d49c71a609c064b9"
     }
   ],
-  "measurements": {
-    "timestamps": {
-      "recorded_at": "2026-08-12T11:34:37Z"
-    },
-    "resources": {
-      "engine_copy_probe_bytes": 1048572,
-      "wasm_bytes": 312460
-    },
-    "errors": [],
-    "dispositions": [
-      {
-        "name": "measured",
-        "count": 1
-      },
-      {
-        "name": "skipped_live_bridges",
-        "count": 1
-      }
-    ]
-  },
   "review": {
-    "decision": "pending",
-    "known_limits": [
-      "Live Foxglove bridge and rosbridge e2e numbers were skipped (docker_unavailable).",
-      "Host wasm bytes 312460 predates the later release-wasm strip inherit (376519).",
-      "D-05 (benchmark artifact retention and publication) remains open; this report is repository-committed only."
-    ]
+    "decision": "pending"
   }
 }

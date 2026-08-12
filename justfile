@@ -122,15 +122,10 @@ cdr-tail-slack-write: toolchain-check
 generated-types-check: toolchain-check
     cd "{{root}}" && bun run generated-types:check
 
-# Qualification-report schema identity, fixtures, and gate-report integrity (R4-03).
+# Qualification-report index: artifact sha256 + review disposition (R4-03).
 [group('quality')]
 evidence-check: toolchain-check
     cd "{{root}}" && bun run evidence:check
-
-# Regenerate the public qualification-report JSON Schema from contract constants.
-[group('quality')]
-evidence-write: toolchain-check
-    cd "{{root}}" && bun run evidence:write
 
 # Regenerate generated-types metadata under rclweb/generated/metadata/.
 [group('quality')]
