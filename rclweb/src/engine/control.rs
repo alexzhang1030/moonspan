@@ -4,11 +4,21 @@
 //! client engine and gateway stay on one contract. Every outbound control frame
 //! is self-parsed and recorded through [`crate::Session`] before it leaves the
 //! engine.
+//!
+//! Schema identity: Phase 1 corpus roots resolve through
+//! [`crate::types::schema_identity_for_type`] (RIHS on J-FT). `std_msgs/msg/String`
+//! and other non-roots keep [`DEMO_SCHEMA_HASH`] until a broader registry lands.
+//! Schema *exchange* (SchemaRequest/Response) stays lightly parked; the registry
+//! is for local lookup before channel activation.
 
 use crate::protocol::cbor::CborValue;
+use crate::types::{SCHEME_REP2011_RIHS, schema_identity_for_type};
 use std::borrow::Cow;
 
-/// Demo schema hash used until R3 dual-scheme identity lands.
+/// Demo schema hash for non-corpus types (e.g. `std_msgs/msg/String`).
+///
+/// Corpus Phase 1 roots use real RIHS / moonspan identities from the embedded
+/// registry instead — see [`resolve_open_schema_identity`].
 pub const DEMO_SCHEMA_HASH: &str =
     "RIHS01_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
@@ -20,6 +30,18 @@ fn bytes_val(bytes: &[u8]) -> CborValue<'static> {
 
 fn text_val(text: &str) -> CborValue<'static> {
     CborValue::Text(Cow::Owned(text.to_owned()))
+}
+
+/// Scheme + value for OpenChannel on support row J-FT.
+///
+/// Phase 1 roots → `rep2011-rihs` identity from the frozen registry.
+/// Everything else (including `std_msgs/msg/String`) → demo RIHS.
+#[must_use]
+pub fn resolve_open_schema_identity(type_name: &str) -> (String, String) {
+    match schema_identity_for_type(type_name, SCHEME_REP2011_RIHS) {
+        Ok(Some((scheme, value))) => (scheme, value),
+        _ => (SCHEME_REP2011_RIHS.to_owned(), DEMO_SCHEMA_HASH.to_owned()),
+    }
 }
 
 /// Authenticate (kind 1). v0.1 accepts every credential.
@@ -53,6 +75,7 @@ pub fn open_topic(
     domain_id: u8,
 ) -> CborValue<'static> {
     let depth = u64::from(qos_depth.max(1));
+    let (scheme, value) = resolve_open_schema_identity(type_name);
     CborValue::Map(vec![
         (1, CborValue::Unsigned(8)),
         (2, bytes_val(correlation)),
@@ -62,10 +85,7 @@ pub fn open_topic(
         (4, text_val(type_name)),
         (
             3,
-            CborValue::Map(vec![
-                (1, text_val("rep2011-rihs")),
-                (2, text_val(DEMO_SCHEMA_HASH)),
-            ]),
+            CborValue::Map(vec![(1, text_val(&scheme)), (2, text_val(&value))]),
         ),
         (5, CborValue::Unsigned(1)),
         (6, CborValue::Unsigned(0)),
@@ -137,6 +157,7 @@ pub fn open_action(
     let operation_kind = if client { 4 } else { 5 };
     let depth = u64::from(DEFAULT_QOS_DEPTH);
     let qos = reliable_keep_last_qos(depth);
+    let (scheme, value) = resolve_open_schema_identity(type_name);
     CborValue::Map(vec![
         (1, CborValue::Unsigned(8)),
         (2, bytes_val(correlation)),
@@ -146,10 +167,7 @@ pub fn open_action(
         (4, text_val(type_name)),
         (
             3,
-            CborValue::Map(vec![
-                (1, text_val("rep2011-rihs")),
-                (2, text_val(DEMO_SCHEMA_HASH)),
-            ]),
+            CborValue::Map(vec![(1, text_val(&scheme)), (2, text_val(&value))]),
         ),
         (5, CborValue::Unsigned(1)),
         (6, CborValue::Unsigned(0)),

@@ -41,6 +41,7 @@ use crate::protocol::{
     parse_bootstrap, parse_frame,
 };
 use crate::session::{ChannelState, Role, Session, SessionEffects, SessionPhase};
+use crate::types::{CdrRepresentation, WIRE_ERROR_SCHEMA_UNAVAILABLE, lookup_phase1_root_for_open};
 use bytes::Bytes;
 use std::collections::HashMap;
 
@@ -365,6 +366,9 @@ impl ClientEngine {
                 } else {
                     PendingKind::ServiceServer
                 };
+                if self.emit_schema_unavailable_if_needed(type_name, *channel_id, kind, outcome) {
+                    return;
+                }
                 let msg = open_service(
                     correlation,
                     *channel_id,
@@ -428,6 +432,9 @@ impl ClientEngine {
                 } else {
                     PendingKind::ActionServer
                 };
+                if self.emit_schema_unavailable_if_needed(type_name, *channel_id, kind, outcome) {
+                    return;
+                }
                 let msg = open_action(
                     correlation,
                     *channel_id,
@@ -557,6 +564,9 @@ impl ClientEngine {
         kind: PendingKind,
         outcome: &mut PollOutcome,
     ) {
+        if self.emit_schema_unavailable_if_needed(type_name, channel_id, kind, outcome) {
+            return;
+        }
         let depth = if qos_depth == 0 {
             control::DEFAULT_QOS_DEPTH
         } else {
@@ -585,6 +595,58 @@ impl ClientEngine {
                 qos_reliability,
             },
         );
+    }
+
+    /// Phase 1 roots: registry lookup before activation (J-FT + CDR_LE).
+    /// Missing material → schema_unavailable (wire code 10). Non-roots skip.
+    fn emit_schema_unavailable_if_needed(
+        &self,
+        type_name: &str,
+        channel_id: u32,
+        kind: PendingKind,
+        outcome: &mut PollOutcome,
+    ) -> bool {
+        match lookup_phase1_root_for_open(type_name, "J-FT", CdrRepresentation::Le) {
+            Ok(_) => false,
+            Err(err) => {
+                let code = err
+                    .code
+                    .wire_error_code()
+                    .unwrap_or(WIRE_ERROR_SCHEMA_UNAVAILABLE);
+                let message = err.to_string();
+                match kind {
+                    PendingKind::Subscribe => {
+                        outcome.events.push(AppEvent::SubscribeFailed {
+                            channel_id,
+                            code,
+                            message,
+                        });
+                    }
+                    PendingKind::Publish => {
+                        outcome.events.push(AppEvent::PublishFailed {
+                            channel_id,
+                            code,
+                            message,
+                        });
+                    }
+                    PendingKind::ServiceClient | PendingKind::ServiceServer => {
+                        outcome.events.push(AppEvent::ServiceFailed {
+                            channel_id,
+                            code,
+                            message,
+                        });
+                    }
+                    PendingKind::ActionClient | PendingKind::ActionServer => {
+                        outcome.events.push(AppEvent::ActionFailed {
+                            channel_id,
+                            code,
+                            message,
+                        });
+                    }
+                }
+                true
+            }
+        }
     }
 
     fn send_sample(&mut self, channel_id: u32, string_data: &str, outcome: &mut PollOutcome) {
