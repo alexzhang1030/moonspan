@@ -17,3 +17,15 @@ Spread-pushing a byte array into a `number[]` (`out.push(...bytes)`) throws a Ra
 ## Reconnect is a fresh session, not SessionResume
 
 v0.1 parks SessionResume (capability 1). R2-01 reconnect means: close the transport, allocate a new client engine, re-run ClientHello → Authenticate → SessionReady, then re-open channels. The SDK `reconnect()` / `ConnectOptions.reconnect` path implements that; do not invent resume tokens or expect `gateway_instance_id` alone to restore channel state.
+
+## GraphSnapshot follows SessionReady on the gateway
+
+After Authenticate succeeds, `rclwebd` pushes SessionReady and then GraphSnapshot (generation 1, zero correlation) before any OpenChannel. Clients that only drain SessionReady will see GraphSnapshot as the next control frame and mis-attribute ChannelReady. Topic OpenChannel success also emits GraphDelta (generation N+1) when the mock/backend graph gains an endpoint. Drain both before expecting samples.
+
+## ROS_RELIABLE on Service/Action frames
+
+R3-01 reliable operation streams (SERVICE_REQUEST/RESPONSE, ACTION_GOAL/CANCEL/RESULT) carry `FLAG_ROS_RELIABLE`. Frame step 7 still rejects that flag on media/recording/asset/control opcodes; the malformed fixture `frame-step7-ros-reliable-opcode` uses MEDIA_CHUNK for that check (not SERVICE_REQUEST).
+
+## Service/action poll events carry payload views
+
+App events 13–14 and 17–20 include `lease_id` plus `payload_ptr`/`payload_len` (same lease model as Sample). The abbreviated command layouts omit those ptr fields; without them the wasm host cannot copy request/response bodies. TS must release the lease after `IoHost.copyPayload`.

@@ -20,6 +20,15 @@ export const CMD_UNSUBSCRIBE = 4;
 export const CMD_CLOSE = 5;
 export const CMD_PUBLISH = 6;
 export const CMD_SEND_SAMPLE = 7;
+export const CMD_OPEN_SERVICE = 8;
+export const CMD_CALL_SERVICE = 9;
+export const CMD_SEND_SERVICE_RESPONSE = 10;
+export const CMD_OPEN_ACTION = 11;
+export const CMD_SEND_ACTION_GOAL = 12;
+export const CMD_CANCEL_ACTION = 13;
+export const CMD_SEND_ACTION_FEEDBACK = 14;
+export const CMD_SEND_ACTION_RESULT = 15;
+export const CMD_SEND_ACTION_STATUS = 16;
 
 export const APP_BOOTSTRAP_COMPLETE = 1;
 export const APP_SESSION_READY = 2;
@@ -31,6 +40,19 @@ export const APP_ERROR = 7;
 export const APP_CLOSED = 8;
 export const APP_PUBLISHED = 9;
 export const APP_PUBLISH_FAILED = 10;
+export const APP_SERVICE_READY = 11;
+export const APP_SERVICE_FAILED = 12;
+export const APP_SERVICE_REQUEST = 13;
+export const APP_SERVICE_RESPONSE = 14;
+export const APP_ACTION_READY = 15;
+export const APP_ACTION_FAILED = 16;
+export const APP_ACTION_GOAL = 17;
+export const APP_ACTION_FEEDBACK = 18;
+export const APP_ACTION_RESULT = 19;
+export const APP_ACTION_STATUS = 20;
+export const APP_GRAPH_SNAPSHOT = 21;
+export const APP_GRAPH_DELTA = 22;
+export const APP_OPERATION_CANCELLED = 23;
 
 export type HostCommand =
   | { type: "start"; transferableArrayBuffer: boolean }
@@ -61,6 +83,61 @@ export type HostCommand =
       domainId: number;
     }
   | { type: "sendSample"; channelId: number; stringData: string }
+  | {
+      type: "openService";
+      correlation: Uint8Array;
+      channelId: number;
+      name: string;
+      typeName: string;
+      domainId: number;
+      client: boolean;
+    }
+  | {
+      type: "callService";
+      channelId: number;
+      operationId: Uint8Array;
+      request: Uint8Array;
+    }
+  | {
+      type: "sendServiceResponse";
+      channelId: number;
+      operationId: Uint8Array;
+      response: Uint8Array;
+    }
+  | {
+      type: "openAction";
+      correlation: Uint8Array;
+      channelId: number;
+      name: string;
+      typeName: string;
+      domainId: number;
+      client: boolean;
+    }
+  | {
+      type: "sendActionGoal";
+      channelId: number;
+      operationId: Uint8Array;
+      goal: Uint8Array;
+    }
+  | { type: "cancelAction"; channelId: number; operationId: Uint8Array }
+  | {
+      type: "sendActionFeedback";
+      channelId: number;
+      operationId: Uint8Array;
+      feedback: Uint8Array;
+    }
+  | {
+      type: "sendActionResult";
+      channelId: number;
+      operationId: Uint8Array;
+      result: Uint8Array;
+    }
+  | {
+      type: "sendActionStatus";
+      channelId: number;
+      operationId: Uint8Array;
+      status: Uint8Array;
+    }
   | { type: "unsubscribe"; correlation: Uint8Array; channelId: number }
   | { type: "close" };
 
@@ -110,7 +187,100 @@ export type AppEvent =
     }
   | { type: "heartbeat"; counter: bigint }
   | { type: "error"; code: number; message: string }
-  | { type: "closed"; phase: number };
+  | { type: "closed"; phase: number }
+  | {
+      type: "serviceReady";
+      channelId: number;
+      name: string;
+      typeName: string;
+      client: boolean;
+    }
+  | {
+      type: "serviceFailed";
+      channelId: number;
+      code: number;
+      message: string;
+    }
+  | {
+      type: "serviceRequest";
+      channelId: number;
+      operationId: Uint8Array;
+      leaseId: number;
+      sequence: bigint;
+      payloadPtr: number;
+      payloadLen: number;
+    }
+  | {
+      type: "serviceResponse";
+      channelId: number;
+      operationId: Uint8Array;
+      leaseId: number;
+      sequence: bigint;
+      payloadPtr: number;
+      payloadLen: number;
+    }
+  | {
+      type: "actionReady";
+      channelId: number;
+      name: string;
+      typeName: string;
+      client: boolean;
+    }
+  | {
+      type: "actionFailed";
+      channelId: number;
+      code: number;
+      message: string;
+    }
+  | {
+      type: "actionGoal";
+      channelId: number;
+      operationId: Uint8Array;
+      leaseId: number;
+      sequence: bigint;
+      payloadPtr: number;
+      payloadLen: number;
+    }
+  | {
+      type: "actionFeedback";
+      channelId: number;
+      operationId: Uint8Array;
+      leaseId: number;
+      sequence: bigint;
+      payloadPtr: number;
+      payloadLen: number;
+    }
+  | {
+      type: "actionResult";
+      channelId: number;
+      operationId: Uint8Array;
+      leaseId: number;
+      sequence: bigint;
+      payloadPtr: number;
+      payloadLen: number;
+    }
+  | {
+      type: "actionStatus";
+      channelId: number;
+      operationId: Uint8Array;
+      leaseId: number;
+      sequence: bigint;
+      payloadPtr: number;
+      payloadLen: number;
+    }
+  | {
+      type: "graphSnapshot";
+      generation: bigint;
+      nodesJson: string;
+      endpointsJson: string;
+    }
+  | { type: "graphDelta"; generation: bigint }
+  | {
+      type: "operationCancelled";
+      channelId: number;
+      code: number;
+      message: string;
+    };
 
 export type PollResult = {
   outbound: Array<{ bufferId: number; bytes: Uint8Array }>;
@@ -172,6 +342,8 @@ type PreparedCommand = {
   topic?: Uint8Array;
   typeName?: Uint8Array;
   stringData?: Uint8Array;
+  name?: Uint8Array;
+  payload?: Uint8Array;
 };
 
 function prepareCommand(command: HostCommand): PreparedCommand {
@@ -191,6 +363,25 @@ function prepareCommand(command: HostCommand): PreparedCommand {
       };
     case "sendSample":
       return { cmd: command, stringData: te.encode(command.stringData) };
+    case "openService":
+    case "openAction":
+      return {
+        cmd: command,
+        name: te.encode(command.name),
+        typeName: te.encode(command.typeName),
+      };
+    case "callService":
+      return { cmd: command, payload: command.request };
+    case "sendServiceResponse":
+      return { cmd: command, payload: command.response };
+    case "sendActionGoal":
+      return { cmd: command, payload: command.goal };
+    case "sendActionFeedback":
+      return { cmd: command, payload: command.feedback };
+    case "sendActionResult":
+      return { cmd: command, payload: command.result };
+    case "sendActionStatus":
+      return { cmd: command, payload: command.status };
     default:
       return { cmd: command };
   }
@@ -207,11 +398,44 @@ function commandEncodedSize(prepared: PreparedCommand): number {
       return 4 + 16 + 4 + 4 + 2 + prepared.topic!.length + 2 + prepared.typeName!.length;
     case "sendSample":
       return 4 + 4 + 4 + prepared.stringData!.length;
+    case "openService":
+    case "openAction":
+      return 4 + 16 + 4 + 4 + 2 + prepared.name!.length + 2 + prepared.typeName!.length;
+    case "callService":
+    case "sendServiceResponse":
+    case "sendActionGoal":
+    case "sendActionFeedback":
+    case "sendActionResult":
+    case "sendActionStatus":
+      return 4 + 4 + 16 + 4 + prepared.payload!.length;
+    case "cancelAction":
+      return 4 + 4 + 16;
     case "unsubscribe":
       return 4 + 16 + 4;
     case "close":
       return 4;
   }
+}
+
+function writeOpidPayload(
+  out: Uint8Array,
+  offset: number,
+  cmdId: number,
+  channelId: number,
+  operationId: Uint8Array,
+  payload: Uint8Array,
+): number {
+  out[offset++] = cmdId;
+  out[offset++] = 0;
+  out[offset++] = 0;
+  out[offset++] = 0;
+  offset = writeU32Into(out, offset, channelId >>> 0);
+  out.set(operationId.subarray(0, 16), offset);
+  for (let i = operationId.length; i < 16; i++) out[offset + i] = 0;
+  offset += 16;
+  offset = writeU32Into(out, offset, payload.length);
+  out.set(payload, offset);
+  return offset + payload.length;
 }
 
 function writeCommand(out: Uint8Array, offset: number, prepared: PreparedCommand): number {
@@ -272,6 +496,92 @@ function writeCommand(out: Uint8Array, offset: number, prepared: PreparedCommand
       out.set(prepared.stringData!, offset);
       return offset + prepared.stringData!.length;
     }
+    case "openService":
+    case "openAction": {
+      out[offset++] =
+        command.type === "openService" ? CMD_OPEN_SERVICE : CMD_OPEN_ACTION;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      out.set(command.correlation.subarray(0, 16), offset);
+      for (let i = command.correlation.length; i < 16; i++) out[offset + i] = 0;
+      offset += 16;
+      offset = writeU32Into(out, offset, command.channelId >>> 0);
+      out[offset++] = command.client ? 1 : 0;
+      out[offset++] = command.domainId & 0xff;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      offset = writeU16Into(out, offset, prepared.name!.length);
+      out.set(prepared.name!, offset);
+      offset += prepared.name!.length;
+      offset = writeU16Into(out, offset, prepared.typeName!.length);
+      out.set(prepared.typeName!, offset);
+      return offset + prepared.typeName!.length;
+    }
+    case "callService":
+      return writeOpidPayload(
+        out,
+        offset,
+        CMD_CALL_SERVICE,
+        command.channelId,
+        command.operationId,
+        prepared.payload!,
+      );
+    case "sendServiceResponse":
+      return writeOpidPayload(
+        out,
+        offset,
+        CMD_SEND_SERVICE_RESPONSE,
+        command.channelId,
+        command.operationId,
+        prepared.payload!,
+      );
+    case "sendActionGoal":
+      return writeOpidPayload(
+        out,
+        offset,
+        CMD_SEND_ACTION_GOAL,
+        command.channelId,
+        command.operationId,
+        prepared.payload!,
+      );
+    case "cancelAction": {
+      out[offset++] = CMD_CANCEL_ACTION;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      offset = writeU32Into(out, offset, command.channelId >>> 0);
+      out.set(command.operationId.subarray(0, 16), offset);
+      for (let i = command.operationId.length; i < 16; i++) out[offset + i] = 0;
+      return offset + 16;
+    }
+    case "sendActionFeedback":
+      return writeOpidPayload(
+        out,
+        offset,
+        CMD_SEND_ACTION_FEEDBACK,
+        command.channelId,
+        command.operationId,
+        prepared.payload!,
+      );
+    case "sendActionResult":
+      return writeOpidPayload(
+        out,
+        offset,
+        CMD_SEND_ACTION_RESULT,
+        command.channelId,
+        command.operationId,
+        prepared.payload!,
+      );
+    case "sendActionStatus":
+      return writeOpidPayload(
+        out,
+        offset,
+        CMD_SEND_ACTION_STATUS,
+        command.channelId,
+        command.operationId,
+        prepared.payload!,
+      );
     case "unsubscribe": {
       out[offset++] = CMD_UNSUBSCRIBE;
       out[offset++] = 0;
@@ -634,6 +944,112 @@ export function decodePollResult(bytes: Uint8Array): PollResult {
         const phase = bytes[offset]!;
         offset += 4;
         events.push({ type: "closed", phase });
+        break;
+      }
+      case APP_SERVICE_READY:
+      case APP_ACTION_READY: {
+        const channelId = readU32(bytes, offset);
+        offset += 4;
+        const client = bytes[offset]! !== 0;
+        offset += 4;
+        const nameLen = readU16(bytes, offset);
+        offset += 2;
+        const name = td.decode(bytes.subarray(offset, offset + nameLen));
+        offset += nameLen;
+        const typeLen = readU16(bytes, offset);
+        offset += 2;
+        const typeName = td.decode(bytes.subarray(offset, offset + typeLen));
+        offset += typeLen;
+        events.push({
+          type: kind === APP_SERVICE_READY ? "serviceReady" : "actionReady",
+          channelId,
+          name,
+          typeName,
+          client,
+        });
+        break;
+      }
+      case APP_SERVICE_FAILED:
+      case APP_ACTION_FAILED:
+      case APP_OPERATION_CANCELLED: {
+        const channelId = readU32(bytes, offset);
+        offset += 4;
+        const code = bytes[offset]!;
+        offset += 4;
+        const msgLen = readU16(bytes, offset);
+        offset += 2;
+        const message = td.decode(bytes.subarray(offset, offset + msgLen));
+        offset += msgLen;
+        const type =
+          kind === APP_SERVICE_FAILED
+            ? "serviceFailed"
+            : kind === APP_ACTION_FAILED
+              ? "actionFailed"
+              : "operationCancelled";
+        events.push({ type, channelId, code, message });
+        break;
+      }
+      case APP_SERVICE_REQUEST:
+      case APP_SERVICE_RESPONSE:
+      case APP_ACTION_GOAL:
+      case APP_ACTION_FEEDBACK:
+      case APP_ACTION_RESULT:
+      case APP_ACTION_STATUS: {
+        const channelId = readU32(bytes, offset);
+        offset += 4;
+        const operationId = bytes.subarray(offset, offset + 16).slice();
+        offset += 16;
+        const leaseId = readU32(bytes, offset);
+        offset += 4;
+        const sequence = readU64(bytes, offset);
+        offset += 8;
+        const payloadPtr = readU32(bytes, offset);
+        offset += 4;
+        const payloadLen = readU32(bytes, offset);
+        offset += 4;
+        const type =
+          kind === APP_SERVICE_REQUEST
+            ? "serviceRequest"
+            : kind === APP_SERVICE_RESPONSE
+              ? "serviceResponse"
+              : kind === APP_ACTION_GOAL
+                ? "actionGoal"
+                : kind === APP_ACTION_FEEDBACK
+                  ? "actionFeedback"
+                  : kind === APP_ACTION_RESULT
+                    ? "actionResult"
+                    : "actionStatus";
+        events.push({
+          type,
+          channelId,
+          operationId,
+          leaseId,
+          sequence,
+          payloadPtr,
+          payloadLen,
+        });
+        break;
+      }
+      case APP_GRAPH_SNAPSHOT: {
+        const generation = readU64(bytes, offset);
+        offset += 8;
+        const nodesLen = readU32(bytes, offset);
+        offset += 4;
+        const nodesJson = td.decode(bytes.subarray(offset, offset + nodesLen));
+        offset += nodesLen;
+        const endpointsLen = readU32(bytes, offset);
+        offset += 4;
+        const endpointsJson = td.decode(
+          bytes.subarray(offset, offset + endpointsLen),
+        );
+        offset += endpointsLen;
+        events.push({ type: "graphSnapshot", generation, nodesJson, endpointsJson });
+        break;
+      }
+      case APP_GRAPH_DELTA: {
+        const generation = readU64(bytes, offset);
+        offset += 8;
+        events.push({ type: "graphDelta", generation });
         break;
       }
       default:

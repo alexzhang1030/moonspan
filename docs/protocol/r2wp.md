@@ -1,6 +1,6 @@
 # R2WP protocol
 
-R2WP is rclweb's versioned binary transport for ROS 2 data and control. Wire version 0 has one implementation — the `rclweb` core crate, linked natively by the gateway and compiled to wasm32 for the browser. The [v0.1 normative-scope declaration](../../protocol/r2wp-v0.md#normative-scope-after-the-restructure-v01-subset) marks which sections are normative now and which are parked until their phases re-freeze them.
+R2WP is rclweb's versioned binary transport for ROS 2 data and control. Wire version 0 has one implementation — the `rclweb` core crate, linked natively by the gateway and compiled to wasm32 for the browser. The [v0.1 normative-scope declaration](../../protocol/r2wp-v0.md#normative-scope-after-the-restructure-v01-subset) marks which sections are normative now (including the [R3-01](../milestones/r3-01-services-actions-graph.md) graph/service/action re-freeze) and which remain parked until their phases re-freeze them.
 
 ## Sources of truth
 

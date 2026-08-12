@@ -34,7 +34,7 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified. Phase details live in
 
 ## R3: Semantics and breadth
 
-- [ ] R3-01 Services, actions, parameters, graph; re-freeze parked sections.
+- [x] R3-01 Services, actions, parameters, graph; re-freeze parked sections.
 - [ ] R3-02 Generated types and dual-scheme schema registry.
 - [ ] R3-03 Second row (H-FT); WebTransport.
 - [ ] R3-04 Versioned adapter ABI; dynamic typesupport.

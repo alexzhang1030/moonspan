@@ -9,9 +9,19 @@
 import { IoHost } from "./host.ts";
 import type { AppEvent } from "./wasm/abi.ts";
 import type {
+  ActionClient,
+  ActionFeedbackHandler,
+  ActionServer,
+  ActionServerHandlers,
+  ActionStatusHandler,
   ConnectOptions,
+  GraphHandler,
+  GraphView,
   QosOptions,
   SampleLease,
+  ServiceClient,
+  ServiceServer,
+  ServiceServerHandler,
   StdMsgsString,
   SubscriptionHandler,
 } from "./types.ts";
@@ -19,12 +29,24 @@ import { DEFAULT_QOS_DEPTH, STD_MSGS_STRING } from "./types.ts";
 import type { MainToWorker, WorkerToMain } from "./worker/messages.ts";
 
 export type {
+  ActionClient,
+  ActionFeedbackHandler,
+  ActionServer,
+  ActionServerHandlers,
+  ActionStatusHandler,
   ConnectOptions,
+  GraphEndpoint,
+  GraphHandler,
+  GraphNode,
+  GraphView,
   QosOptions,
   SampleLease,
+  ServiceClient,
+  ServiceServer,
+  ServiceServerHandler,
   StdMsgsString,
   SubscriptionHandler,
-};
+} from "./types.ts";
 export { DEFAULT_QOS_DEPTH, STD_MSGS_STRING };
 
 function defaultWasmUrl(): string {
@@ -67,6 +89,23 @@ export type RclwebSession = {
     typeName?: string,
     qos?: QosOptions,
   ): Promise<Publisher>;
+  createServiceClient(name: string, typeName?: string): Promise<ServiceClient>;
+  createServiceServer(
+    name: string,
+    typeName: string | undefined,
+    handler: ServiceServerHandler,
+  ): Promise<ServiceServer>;
+  createActionClient(name: string, typeName?: string): Promise<ActionClient>;
+  createActionServer(
+    name: string,
+    typeName: string | undefined,
+    handlers?: ActionServerHandlers,
+  ): Promise<ActionServer>;
+  onGraph(handler: GraphHandler): void;
+  /** Thin wrapper: `node/get_parameters` service call with raw CDR request bytes. */
+  getParameters(node: string, requestCdr?: Uint8Array): Promise<Uint8Array>;
+  setParameters(node: string, requestCdr?: Uint8Array): Promise<Uint8Array>;
+  listParameters(node: string, requestCdr?: Uint8Array): Promise<Uint8Array>;
 };
 
 export type RclwebClient = {
@@ -119,6 +158,42 @@ class InlineClient implements RclwebClient {
       qos: QosOptions;
     }
   >();
+  #pendingServices = new Map<
+    number,
+    {
+      resolve: (value: ServiceClient | ServiceServer) => void;
+      reject: (err: Error) => void;
+      name: string;
+      typeName: string;
+      client: boolean;
+      handler?: ServiceServerHandler;
+    }
+  >();
+  #pendingActions = new Map<
+    number,
+    {
+      resolve: (value: ActionClient | ActionServer) => void;
+      reject: (err: Error) => void;
+      name: string;
+      typeName: string;
+      client: boolean;
+      handlers?: ActionServerHandlers;
+    }
+  >();
+  #pendingCalls = new Map<
+    string,
+    { resolve: (bytes: Uint8Array) => void; reject: (err: Error) => void }
+  >();
+  #pendingActionResults = new Map<
+    string,
+    { resolve: (bytes: Uint8Array) => void; reject: (err: Error) => void }
+  >();
+  #serviceHandlers = new Map<number, ServiceServerHandler>();
+  #actionFeedback = new Map<number, ActionFeedbackHandler>();
+  #actionStatus = new Map<number, ActionStatusHandler>();
+  #actionServerHandlers = new Map<number, ActionServerHandlers>();
+  #graphHandler: GraphHandler | null = null;
+  #graph: GraphView = { generation: 0, nodes: [], endpoints: [] };
   #connectWaiters: Array<() => void> = [];
   #reconnectAttempts = 0;
 
@@ -188,6 +263,24 @@ class InlineClient implements RclwebClient {
         this.#subscribe(topic, typeName, qos),
       publish: (topic, typeName = STD_MSGS_STRING, qos = {}) =>
         this.#publish(topic, typeName, qos),
+      createServiceClient: (name, typeName = "") =>
+        this.#createServiceClient(name, typeName),
+      createServiceServer: (name, typeName = "", handler) =>
+        this.#createServiceServer(name, typeName, handler),
+      createActionClient: (name, typeName = "") =>
+        this.#createActionClient(name, typeName),
+      createActionServer: (name, typeName = "", handlers = {}) =>
+        this.#createActionServer(name, typeName, handlers),
+      onGraph: (handler) => {
+        this.#graphHandler = handler;
+        if (this.#graph.generation > 0) handler(this.#graph);
+      },
+      getParameters: (node, requestCdr = new Uint8Array()) =>
+        this.#paramService(node, "get_parameters", "rcl_interfaces/srv/GetParameters", requestCdr),
+      setParameters: (node, requestCdr = new Uint8Array()) =>
+        this.#paramService(node, "set_parameters", "rcl_interfaces/srv/SetParameters", requestCdr),
+      listParameters: (node, requestCdr = new Uint8Array()) =>
+        this.#paramService(node, "list_parameters", "rcl_interfaces/srv/ListParameters", requestCdr),
     };
   }
 
@@ -354,6 +447,226 @@ class InlineClient implements RclwebClient {
         handler({ data: event.stringData }, lease);
         break;
       }
+      case "serviceReady": {
+        const pending = this.#pendingServices.get(event.channelId);
+        if (!pending) break;
+        this.#pendingServices.delete(event.channelId);
+        const channelId = event.channelId;
+        if (pending.client) {
+          const client: ServiceClient = {
+            name: event.name,
+            typeName: event.typeName,
+            channelId,
+            call: (request) => this.#callService(channelId, request),
+            close: async () => {
+              this.#host.unsubscribe(corrTag(0xc5), channelId);
+              this.#host.flushSync();
+            },
+          };
+          pending.resolve(client);
+        } else {
+          if (pending.handler) {
+            this.#serviceHandlers.set(channelId, pending.handler);
+          }
+          const server: ServiceServer = {
+            name: event.name,
+            typeName: event.typeName,
+            channelId,
+            close: async () => {
+              this.#serviceHandlers.delete(channelId);
+              this.#host.unsubscribe(corrTag(0xc6), channelId);
+              this.#host.flushSync();
+            },
+          };
+          pending.resolve(server);
+        }
+        break;
+      }
+      case "serviceFailed": {
+        const pending = this.#pendingServices.get(event.channelId);
+        if (!pending) break;
+        this.#pendingServices.delete(event.channelId);
+        pending.reject(
+          new Error(`service failed (${event.code}): ${event.message}`),
+        );
+        break;
+      }
+      case "serviceResponse": {
+        const key = opidKey(event.channelId, event.operationId);
+        const pending = this.#pendingCalls.get(key);
+        const bytes = this.#host.copyPayload(event.payloadPtr, event.payloadLen);
+        this.#host.releaseLease(event.leaseId);
+        this.#host.flushSync();
+        if (pending) {
+          this.#pendingCalls.delete(key);
+          pending.resolve(bytes);
+        }
+        break;
+      }
+      case "serviceRequest": {
+        const handler = this.#serviceHandlers.get(event.channelId);
+        const bytes = this.#host.copyPayload(event.payloadPtr, event.payloadLen);
+        this.#host.releaseLease(event.leaseId);
+        this.#host.flushSync();
+        if (!handler) break;
+        const opid = event.operationId.slice();
+        void Promise.resolve(handler(bytes, opid)).then((response) => {
+          this.#host.sendServiceResponse(event.channelId, opid, response);
+          this.#host.flushSync();
+        });
+        break;
+      }
+      case "actionReady": {
+        const pending = this.#pendingActions.get(event.channelId);
+        if (!pending) break;
+        this.#pendingActions.delete(event.channelId);
+        const channelId = event.channelId;
+        if (pending.client) {
+          const client: ActionClient = {
+            name: event.name,
+            typeName: event.typeName,
+            channelId,
+            sendGoal: (goal) => this.#sendActionGoal(channelId, goal),
+            cancel: (opid) => {
+              this.#host.cancelAction(channelId, opid);
+              this.#host.flushSync();
+            },
+            onFeedback: (handler) => {
+              this.#actionFeedback.set(channelId, handler);
+            },
+            onStatus: (handler) => {
+              this.#actionStatus.set(channelId, handler);
+            },
+            close: async () => {
+              this.#actionFeedback.delete(channelId);
+              this.#actionStatus.delete(channelId);
+              this.#host.unsubscribe(corrTag(0xc7), channelId);
+              this.#host.flushSync();
+            },
+          };
+          pending.resolve(client);
+        } else {
+          if (pending.handlers) {
+            this.#actionServerHandlers.set(channelId, pending.handlers);
+          }
+          const server: ActionServer = {
+            name: event.name,
+            typeName: event.typeName,
+            channelId,
+            sendFeedback: (opid, feedback) => {
+              this.#host.sendActionFeedback(channelId, opid, feedback);
+              this.#host.flushSync();
+            },
+            sendResult: (opid, result) => {
+              this.#host.sendActionResult(channelId, opid, result);
+              this.#host.flushSync();
+            },
+            sendStatus: (opid, status) => {
+              this.#host.sendActionStatus(channelId, opid, status);
+              this.#host.flushSync();
+            },
+            close: async () => {
+              this.#actionServerHandlers.delete(channelId);
+              this.#host.unsubscribe(corrTag(0xc8), channelId);
+              this.#host.flushSync();
+            },
+          };
+          pending.resolve(server);
+        }
+        break;
+      }
+      case "actionFailed": {
+        const pending = this.#pendingActions.get(event.channelId);
+        if (!pending) break;
+        this.#pendingActions.delete(event.channelId);
+        pending.reject(
+          new Error(`action failed (${event.code}): ${event.message}`),
+        );
+        break;
+      }
+      case "actionGoal": {
+        const handlers = this.#actionServerHandlers.get(event.channelId);
+        const bytes = this.#host.copyPayload(event.payloadPtr, event.payloadLen);
+        this.#host.releaseLease(event.leaseId);
+        this.#host.flushSync();
+        if (handlers?.onGoal) {
+          void handlers.onGoal(bytes, event.operationId.slice());
+        }
+        break;
+      }
+      case "actionFeedback": {
+        const handler = this.#actionFeedback.get(event.channelId);
+        const bytes = this.#host.copyPayload(event.payloadPtr, event.payloadLen);
+        this.#host.releaseLease(event.leaseId);
+        this.#host.flushSync();
+        handler?.(bytes, event.operationId.slice());
+        break;
+      }
+      case "actionResult": {
+        const key = opidKey(event.channelId, event.operationId);
+        const pending = this.#pendingActionResults.get(key);
+        const bytes = this.#host.copyPayload(event.payloadPtr, event.payloadLen);
+        this.#host.releaseLease(event.leaseId);
+        this.#host.flushSync();
+        if (pending) {
+          this.#pendingActionResults.delete(key);
+          pending.resolve(bytes);
+        }
+        break;
+      }
+      case "actionStatus": {
+        const handler = this.#actionStatus.get(event.channelId);
+        const bytes = this.#host.copyPayload(event.payloadPtr, event.payloadLen);
+        this.#host.releaseLease(event.leaseId);
+        this.#host.flushSync();
+        handler?.(bytes, event.operationId.slice());
+        break;
+      }
+      case "graphSnapshot": {
+        let nodes: GraphView["nodes"] = [];
+        let endpoints: GraphView["endpoints"] = [];
+        try {
+          nodes = JSON.parse(event.nodesJson) as GraphView["nodes"];
+          endpoints = JSON.parse(event.endpointsJson) as GraphView["endpoints"];
+        } catch {
+          // keep empty on malformed JSON from the engine
+        }
+        this.#graph = {
+          generation: Number(event.generation),
+          nodes,
+          endpoints,
+        };
+        this.#graphHandler?.(this.#graph);
+        break;
+      }
+      case "graphDelta": {
+        this.#graph = {
+          ...this.#graph,
+          generation: Number(event.generation),
+        };
+        this.#graphHandler?.(this.#graph);
+        break;
+      }
+      case "operationCancelled": {
+        // Reject in-flight service/action ops on this channel.
+        for (const [key, pending] of this.#pendingCalls) {
+          if (key.startsWith(`${event.channelId}:`)) {
+            pending.reject(
+              new Error(`operation cancelled (${event.code}): ${event.message}`),
+            );
+            this.#pendingCalls.delete(key);
+          }
+        }
+        for (const [key, pending] of this.#pendingActionResults) {
+          if (key.startsWith(`${event.channelId}:`)) {
+            pending.reject(
+              new Error(`operation cancelled (${event.code}): ${event.message}`),
+            );
+            this.#pendingActionResults.delete(key);
+          }
+        }
+        break;
+      }
       default:
         break;
     }
@@ -412,6 +725,149 @@ class InlineClient implements RclwebClient {
       this.#host.flushSync();
     });
   }
+
+  #createServiceClient(name: string, typeName: string): Promise<ServiceClient> {
+    const channelId = this.#nextChannel++;
+    return new Promise((resolve, reject) => {
+      this.#pendingServices.set(channelId, {
+        resolve: (v) => resolve(v as ServiceClient),
+        reject,
+        name,
+        typeName,
+        client: true,
+      });
+      this.#host.openService({
+        correlation: corrTag(0xe0 + (channelId & 0x0f)),
+        channelId,
+        name,
+        typeName,
+        client: true,
+      });
+      this.#host.flushSync();
+    });
+  }
+
+  #createServiceServer(
+    name: string,
+    typeName: string,
+    handler: ServiceServerHandler,
+  ): Promise<ServiceServer> {
+    const channelId = this.#nextChannel++;
+    return new Promise((resolve, reject) => {
+      this.#pendingServices.set(channelId, {
+        resolve: (v) => resolve(v as ServiceServer),
+        reject,
+        name,
+        typeName,
+        client: false,
+        handler,
+      });
+      this.#host.openService({
+        correlation: corrTag(0xe1 + (channelId & 0x0f)),
+        channelId,
+        name,
+        typeName,
+        client: false,
+      });
+      this.#host.flushSync();
+    });
+  }
+
+  #callService(channelId: number, request: Uint8Array): Promise<Uint8Array> {
+    const operationId = crypto.getRandomValues(new Uint8Array(16));
+    const key = opidKey(channelId, operationId);
+    return new Promise((resolve, reject) => {
+      this.#pendingCalls.set(key, { resolve, reject });
+      this.#host.callService(channelId, operationId, request);
+      this.#host.flushSync();
+    });
+  }
+
+  #createActionClient(name: string, typeName: string): Promise<ActionClient> {
+    const channelId = this.#nextChannel++;
+    return new Promise((resolve, reject) => {
+      this.#pendingActions.set(channelId, {
+        resolve: (v) => resolve(v as ActionClient),
+        reject,
+        name,
+        typeName,
+        client: true,
+      });
+      this.#host.openAction({
+        correlation: corrTag(0xe2 + (channelId & 0x0f)),
+        channelId,
+        name,
+        typeName,
+        client: true,
+      });
+      this.#host.flushSync();
+    });
+  }
+
+  #createActionServer(
+    name: string,
+    typeName: string,
+    handlers: ActionServerHandlers,
+  ): Promise<ActionServer> {
+    const channelId = this.#nextChannel++;
+    return new Promise((resolve, reject) => {
+      this.#pendingActions.set(channelId, {
+        resolve: (v) => resolve(v as ActionServer),
+        reject,
+        name,
+        typeName,
+        client: false,
+        handlers,
+      });
+      this.#host.openAction({
+        correlation: corrTag(0xe3 + (channelId & 0x0f)),
+        channelId,
+        name,
+        typeName,
+        client: false,
+      });
+      this.#host.flushSync();
+    });
+  }
+
+  #sendActionGoal(
+    channelId: number,
+    goal: Uint8Array,
+  ): { operationId: Uint8Array; result: Promise<Uint8Array> } {
+    const operationId = crypto.getRandomValues(new Uint8Array(16));
+    const key = opidKey(channelId, operationId);
+    const result = new Promise<Uint8Array>((resolve, reject) => {
+      this.#pendingActionResults.set(key, { resolve, reject });
+    });
+    this.#host.sendActionGoal(channelId, operationId, goal);
+    this.#host.flushSync();
+    return { operationId, result };
+  }
+
+  async #paramService(
+    node: string,
+    suffix: string,
+    typeName: string,
+    requestCdr: Uint8Array,
+  ): Promise<Uint8Array> {
+    const name = node.endsWith("/")
+      ? `${node}${suffix}`
+      : `${node}/${suffix}`;
+    const client = await this.#createServiceClient(name, typeName);
+    try {
+      return await client.call(requestCdr);
+    } finally {
+      await client.close();
+    }
+  }
+}
+
+function opidKey(channelId: number, operationId: Uint8Array): string {
+  let hex = `${channelId}:`;
+  for (let i = 0; i < operationId.length; i++) {
+    hex += operationId[i]!.toString(16).padStart(2, "0");
+  }
+  return hex;
 }
 
 class WorkerClient implements RclwebClient {
@@ -429,6 +885,30 @@ class WorkerClient implements RclwebClient {
         this.#subscribe(topic, typeName, qos),
       publish: (topic, typeName = STD_MSGS_STRING, qos = {}) =>
         this.#publish(topic, typeName, qos),
+      createServiceClient: async () => {
+        throw new Error("createServiceClient requires inline host (options.inline)");
+      },
+      createServiceServer: async () => {
+        throw new Error("createServiceServer requires inline host (options.inline)");
+      },
+      createActionClient: async () => {
+        throw new Error("createActionClient requires inline host (options.inline)");
+      },
+      createActionServer: async () => {
+        throw new Error("createActionServer requires inline host (options.inline)");
+      },
+      onGraph: () => {
+        throw new Error("onGraph requires inline host (options.inline)");
+      },
+      getParameters: async () => {
+        throw new Error("getParameters requires inline host (options.inline)");
+      },
+      setParameters: async () => {
+        throw new Error("setParameters requires inline host (options.inline)");
+      },
+      listParameters: async () => {
+        throw new Error("listParameters requires inline host (options.inline)");
+      },
     };
     worker.onmessage = (ev: MessageEvent<WorkerToMain>) => {
       this.#onWorker(ev.data);

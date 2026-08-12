@@ -1,4 +1,4 @@
-//! Synchronous session and channel state machine for the R2WP v0.1 subset.
+//! Synchronous session and channel state machine for the R2WP normative subset.
 //!
 //! Host-agnostic and pure: callers parse bootstrap/frames with [`crate::protocol`]
 //! first, then ingest or record-send through [`Session`]. The client connection
@@ -15,7 +15,8 @@
 //!   `ChannelReady` before emitting samples).
 //!
 //! Fresh ready path only: Authenticate → SessionReady. SessionResume kinds are
-//! protocol violations without capability `1` (parked for v0.1).
+//! protocol violations without capability `1` (parked). R3-01 adds Service /
+//! Action opcodes (with `OPERATION_ID`) and GraphSnapshot / GraphDelta effects.
 
 mod channel;
 mod state;
@@ -27,8 +28,8 @@ mod tests;
 pub use channel::{ChannelEntry, ChannelResult, ChannelState, ChannelTable, OperationKind};
 pub use state::{Role, SessionPhase};
 pub use transition::{
-    FIELD_CHANNEL_ID, FIELD_CHANNEL_RESULT, FIELD_CORRELATION_ID, FIELD_OPERATION_KIND,
-    SessionEffects,
+    FIELD_BASE_GENERATION, FIELD_CHANNEL_ID, FIELD_CHANNEL_RESULT, FIELD_CORRELATION_ID,
+    FIELD_ERROR_SCOPE, FIELD_GRAPH_GENERATION, FIELD_OPERATION_KIND, SessionEffects,
 };
 
 use crate::protocol::bootstrap::BootstrapRecord;
@@ -72,6 +73,18 @@ impl Session {
     #[must_use]
     pub fn selected_wire_version(&self) -> Option<u8> {
         self.inner.selected_wire_version
+    }
+
+    /// Last accepted graph generation, if any GraphSnapshot/Delta has landed.
+    #[must_use]
+    pub fn graph_generation(&self) -> Option<u64> {
+        self.inner.graph_generation
+    }
+
+    /// Operation kind recorded for `id`, when the channel exists.
+    #[must_use]
+    pub fn channel_kind(&self, id: u32) -> Option<OperationKind> {
+        self.inner.channels.get(id).map(|e| e.operation_kind)
     }
 
     /// Apply a bootstrap record received from the peer.

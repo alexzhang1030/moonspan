@@ -50,8 +50,10 @@ just build
 
 ## Status
 
-R0 and R1 are complete: the walking skeleton reaches a live ROS talker in CI
-(`just e2e` / `e2e-ros-talker` job) and a committed demo under
+R0–R2 are complete and R3-01 lands services, actions, parameters, and graph
+on the wire (MockBackend-proven; live ROS service/action typesupport waits on
+R3-04). The walking skeleton still reaches a live ROS talker in CI
+(`just e2e` / `e2e-ros-talker` job) with a committed demo under
 `examples/subscribe-chatter`. Phases and gates live in the
 [plan](./tasks/plan.md); current state lives in the
 [checklist](./tasks/todo.md).

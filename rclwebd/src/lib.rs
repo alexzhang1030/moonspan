@@ -21,7 +21,10 @@ pub mod ros;
 pub mod telemetry;
 pub mod ws;
 
-pub use backend::{BackendError, ChannelSpec, EntityId, RosBackend, SubscriptionSample};
+pub use backend::{
+    ActionInbound, BackendError, ChannelSpec, EntityId, GraphEndpointInfo, GraphNodeInfo,
+    GraphView, RosBackend, ServiceRequest, SubscriptionSample,
+};
 pub use budgets::{Disposition, DispositionCounters, SampleWriteQueue};
 pub use config::GatewayConfig;
 pub use connection::{Transport, TransportError, run_connection};

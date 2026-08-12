@@ -410,3 +410,158 @@ fn auth_error_fails_session_with_correlation() {
     assert!(fx.auth_correlation_matched);
     assert_eq!(s.phase(), SessionPhase::Failed);
 }
+
+fn service_request(channel_id: u32, opid: [u8; 16]) -> DecodedFrame<'static> {
+    use crate::protocol::extension::{OPERATION_ID_EXTENSION_TYPE, R2wpExtension};
+    use crate::protocol::frame::{FLAG_ROS_RELIABLE, OPCODE_SERVICE_REQUEST};
+    // Leak the opid so DecodedFrame can borrow a 'static slice for the extension value.
+    let leaked: &'static [u8; 16] = Box::leak(Box::new(opid));
+    DecodedFrame {
+        version: 0,
+        opcode: OPCODE_SERVICE_REQUEST,
+        flags: FLAG_ROS_RELIABLE,
+        channel_id,
+        sequence: 1,
+        source_time_ns: 0,
+        payload_len: 0,
+        extension_len: 20,
+        priority: 2,
+        clock_id: 0,
+        extensions: vec![R2wpExtension {
+            type_id: OPERATION_ID_EXTENSION_TYPE,
+            critical: true,
+            value: leaked,
+        }],
+        payload: FramePayload::Application(&[]),
+    }
+}
+
+fn graph_snapshot(generation: u64) -> DecodedFrame<'static> {
+    use super::FIELD_GRAPH_GENERATION;
+    use crate::protocol::control::CONTROL_KIND_GRAPH_SNAPSHOT;
+    let mut fields = BTreeMap::new();
+    fields.insert(FIELD_CORRELATION_ID, corr(0));
+    fields.insert(FIELD_GRAPH_GENERATION, CborValue::Unsigned(generation));
+    control_frame(CONTROL_KIND_GRAPH_SNAPSHOT, fields)
+}
+
+fn graph_delta(base: u64, generation: u64) -> DecodedFrame<'static> {
+    use super::{FIELD_BASE_GENERATION, FIELD_GRAPH_GENERATION};
+    use crate::protocol::control::CONTROL_KIND_GRAPH_DELTA;
+    let mut fields = BTreeMap::new();
+    fields.insert(FIELD_CORRELATION_ID, corr(0));
+    fields.insert(FIELD_BASE_GENERATION, CborValue::Unsigned(base));
+    fields.insert(FIELD_GRAPH_GENERATION, CborValue::Unsigned(generation));
+    control_frame(CONTROL_KIND_GRAPH_DELTA, fields)
+}
+
+#[test]
+fn service_client_request_response_direction() {
+    use crate::protocol::extension::{OPERATION_ID_EXTENSION_TYPE, R2wpExtension};
+    use crate::protocol::frame::{FLAG_ROS_RELIABLE, OPCODE_SERVICE_RESPONSE};
+
+    let mut s = Session::new(Role::Server);
+    server_through_ready(&mut s);
+    s.ingest_frame(&open_channel(1, OperationKind::ServiceClient, 2))
+        .unwrap();
+    s.record_send_frame(&channel_ready(1, ChannelResult::Allow, 2))
+        .unwrap();
+
+    let opid = [7u8; 16];
+    s.ingest_frame(&service_request(1, opid)).unwrap();
+
+    let leaked: &'static [u8; 16] = Box::leak(Box::new(opid));
+    let response = DecodedFrame {
+        version: 0,
+        opcode: OPCODE_SERVICE_RESPONSE,
+        flags: FLAG_ROS_RELIABLE,
+        channel_id: 1,
+        sequence: 1,
+        source_time_ns: 0,
+        payload_len: 0,
+        extension_len: 20,
+        priority: 2,
+        clock_id: 0,
+        extensions: vec![R2wpExtension {
+            type_id: OPERATION_ID_EXTENSION_TYPE,
+            critical: true,
+            value: leaked,
+        }],
+        payload: FramePayload::Application(&[]),
+    };
+    s.record_send_frame(&response).unwrap();
+
+    // Wrong direction: server must not send SERVICE_REQUEST on SERVICE_CLIENT.
+    let err = s
+        .record_send_frame(&service_request(1, [8u8; 16]))
+        .unwrap_err();
+    assert_eq!(err.reason, "service_action_wrong_direction");
+}
+
+#[test]
+fn service_request_requires_operation_id() {
+    use crate::protocol::frame::{FLAG_ROS_RELIABLE, OPCODE_SERVICE_REQUEST};
+
+    let mut s = Session::new(Role::Server);
+    server_through_ready(&mut s);
+    s.ingest_frame(&open_channel(1, OperationKind::ServiceClient, 2))
+        .unwrap();
+    s.record_send_frame(&channel_ready(1, ChannelResult::Allow, 2))
+        .unwrap();
+    let bare = DecodedFrame {
+        version: 0,
+        opcode: OPCODE_SERVICE_REQUEST,
+        flags: FLAG_ROS_RELIABLE,
+        channel_id: 1,
+        sequence: 1,
+        source_time_ns: 0,
+        payload_len: 0,
+        extension_len: 0,
+        priority: 2,
+        clock_id: 0,
+        extensions: vec![],
+        payload: FramePayload::Application(&[]),
+    };
+    let err = s.ingest_frame(&bare).unwrap_err();
+    assert_eq!(err.reason, "missing_operation_id");
+}
+
+#[test]
+fn graph_snapshot_then_delta() {
+    let mut c = Session::new(Role::Client);
+    client_through_ready(&mut c);
+    let fx = c.ingest_frame(&graph_snapshot(1)).unwrap();
+    assert_eq!(fx.graph_snapshot, Some(1));
+    assert_eq!(c.graph_generation(), Some(1));
+
+    let fx = c.ingest_frame(&graph_delta(1, 2)).unwrap();
+    assert_eq!(fx.graph_delta, Some(2));
+    assert_eq!(c.graph_generation(), Some(2));
+
+    let err = c.ingest_frame(&graph_delta(1, 2)).unwrap_err();
+    assert_eq!(err.reason, "graph_delta_base_mismatch");
+}
+
+#[test]
+fn operation_scoped_error_cancels_without_failing_session() {
+    use super::FIELD_ERROR_SCOPE;
+
+    let mut s = Session::new(Role::Server);
+    server_through_ready(&mut s);
+    s.ingest_frame(&open_channel(1, OperationKind::ServiceClient, 2))
+        .unwrap();
+    s.record_send_frame(&channel_ready(1, ChannelResult::Allow, 2))
+        .unwrap();
+
+    let mut fields = BTreeMap::new();
+    fields.insert(FIELD_CORRELATION_ID, corr(0));
+    fields.insert(FIELD_CHANNEL_ID, CborValue::Unsigned(1));
+    fields.insert(FIELD_ERROR_SCOPE, CborValue::Unsigned(2)); // operation
+    fields.insert(48, CborValue::Unsigned(15)); // cancelled
+    let err_frame = control_frame(CONTROL_KIND_ERROR, fields);
+    let fx = s.record_send_frame(&err_frame).unwrap();
+    assert_eq!(fx.operation_cancelled, Some(1));
+    assert!(!fx.session_error);
+    assert_eq!(s.phase(), SessionPhase::Ready);
+    assert_eq!(s.channel_state(1), ChannelState::Active);
+}

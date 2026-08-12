@@ -30,6 +30,8 @@ The restructure plan governs sequencing: R0 stop-loss, R1 walking skeleton, R2 d
 | R2-01 data-plane hardening | [Completion note](./milestones/r2-01-data-plane-hardening.md) |
 | R2-02 large-message path | [Completion note](./milestones/r2-02-large-message-path.md) |
 | R2-03 fixtures + fuzzing | [Completion note](./milestones/r2-03-fixtures-fuzzing.md) |
+| R2-04 performance baseline | [Completion note](./milestones/r2-04-perf-baseline.md) |
+| R3-01 services, actions, parameters, graph | [Completion note](./milestones/r3-01-services-actions-graph.md) |
 | Plan and current work | [Implementation plan](../tasks/plan.md), [execution checklist](../tasks/todo.md) |
 | Post-mainline Studio work | [Studio prototype](./prototypes/studio-ui.md), [design system](../.agents/docs/DESIGN.md) |
 

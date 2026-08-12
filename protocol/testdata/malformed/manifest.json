@@ -1515,10 +1515,10 @@
       "path": "malformed/frame-step7-ros-reliable-opcode.bin",
       "representation": "binary",
       "byte_length": 33,
-      "sha256": "af299f330674c172fcfba6beeceae10a7ac21d1bb81ad74d29208b216a259e37",
+      "sha256": "7509ec376fb6f99e75aae1ccd289f511df85e9e115da8ec9d6bbf0fe08fb2ea3",
       "source": {
         "$type": "hex",
-        "hex": "000300010000000100000000000000000000000000000000000000010000020001"
+        "hex": "000a00010000000100000000000000000000000000000000000000010000020001"
       },
       "decoder_context": {},
       "expected": {

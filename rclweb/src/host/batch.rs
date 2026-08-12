@@ -29,6 +29,16 @@
 //! - `6` Publish `{ correlation:[u8;16], channel_id:u32, qos:u8, domain:u8, depth:u16,
 //!                  topic_len:u16, topic..., type_len:u16, type... }`
 //! - `7` SendSample `{ channel_id:u32, string_len:u32, string... }`
+//! - `8` OpenService `{ correlation[16], channel_id:u32, client:u8, domain:u8, pad:u16,
+//!                     name_len:u16, name..., type_len:u16, type... }`
+//! - `9` CallService `{ channel_id:u32, operation_id[16], req_len:u32, req... }`
+//! - `10` SendServiceResponse `{ channel_id:u32, operation_id[16], resp_len:u32, resp... }`
+//! - `11` OpenAction `{ same as OpenService }`
+//! - `12` SendActionGoal `{ channel_id, opid[16], len:u32, bytes... }`
+//! - `13` CancelAction `{ channel_id, opid[16] }`
+//! - `14` SendActionFeedback `{ channel_id, opid[16], len:u32, bytes... }`
+//! - `15` SendActionResult `{ channel_id, opid[16], len:u32, bytes... }`
+//! - `16` SendActionStatus `{ channel_id, opid[16], len:u32, bytes... }`
 //!
 //! ## Outbound result (engine → host)
 //!
@@ -59,6 +69,19 @@
 //! - `9` Published `{ channel_id:u32, qos_reliability:u8, pad:u8*3,
 //!                    topic_len:u16, topic..., type_len:u16, type... }`
 //! - `10` PublishFailed `{ channel_id:u32, code:u8, pad:u8*3, msg_len:u16, msg... }`
+//! - `11` ServiceReady `{ channel_id, client:u8, pad*3, name_len, name, type_len, type }`
+//! - `12` ServiceFailed `{ channel_id, code, pad*3, msg_len, msg }`
+//! - `13` ServiceRequest `{ channel_id, opid[16], lease_id, sequence:u64, payload_ptr, payload_len }`
+//! - `14` ServiceResponse `{ same }`
+//! - `15` ActionReady `{ like ServiceReady }`
+//! - `16` ActionFailed `{ like ServiceFailed }`
+//! - `17` ActionGoal `{ like ServiceRequest }`
+//! - `18` ActionFeedback
+//! - `19` ActionResult
+//! - `20` ActionStatus
+//! - `21` GraphSnapshot `{ generation:u64, nodes_len:u32, nodes_utf8..., endpoints_len:u32, endpoints_utf8... }`
+//! - `22` GraphDelta `{ generation:u64 }`
+//! - `23` OperationCancelled `{ channel_id, code, pad*3, msg_len, msg }`
 
 pub const BATCH_MAGIC: u32 = 0x5243_4C42; // RCLB
 pub const RESULT_MAGIC: u32 = 0x5243_4C52; // RCLR
@@ -78,6 +101,15 @@ pub const CMD_UNSUBSCRIBE: u8 = 4;
 pub const CMD_CLOSE: u8 = 5;
 pub const CMD_PUBLISH: u8 = 6;
 pub const CMD_SEND_SAMPLE: u8 = 7;
+pub const CMD_OPEN_SERVICE: u8 = 8;
+pub const CMD_CALL_SERVICE: u8 = 9;
+pub const CMD_SEND_SERVICE_RESPONSE: u8 = 10;
+pub const CMD_OPEN_ACTION: u8 = 11;
+pub const CMD_SEND_ACTION_GOAL: u8 = 12;
+pub const CMD_CANCEL_ACTION: u8 = 13;
+pub const CMD_SEND_ACTION_FEEDBACK: u8 = 14;
+pub const CMD_SEND_ACTION_RESULT: u8 = 15;
+pub const CMD_SEND_ACTION_STATUS: u8 = 16;
 
 pub const APP_BOOTSTRAP_COMPLETE: u8 = 1;
 pub const APP_SESSION_READY: u8 = 2;
@@ -89,6 +121,19 @@ pub const APP_ERROR: u8 = 7;
 pub const APP_CLOSED: u8 = 8;
 pub const APP_PUBLISHED: u8 = 9;
 pub const APP_PUBLISH_FAILED: u8 = 10;
+pub const APP_SERVICE_READY: u8 = 11;
+pub const APP_SERVICE_FAILED: u8 = 12;
+pub const APP_SERVICE_REQUEST: u8 = 13;
+pub const APP_SERVICE_RESPONSE: u8 = 14;
+pub const APP_ACTION_READY: u8 = 15;
+pub const APP_ACTION_FAILED: u8 = 16;
+pub const APP_ACTION_GOAL: u8 = 17;
+pub const APP_ACTION_FEEDBACK: u8 = 18;
+pub const APP_ACTION_RESULT: u8 = 19;
+pub const APP_ACTION_STATUS: u8 = 20;
+pub const APP_GRAPH_SNAPSHOT: u8 = 21;
+pub const APP_GRAPH_DELTA: u8 = 22;
+pub const APP_OPERATION_CANCELLED: u8 = 23;
 
 use crate::engine::{
     AppCommand, AppEvent, HostEvent, OutboundMessage, PollOutcome, ReleasedBuffer,
@@ -333,6 +378,118 @@ fn decode_command(bytes: &[u8], offset: &mut usize, cmd: u8) -> Result<AppComman
                 string_data,
             })
         }
+        CMD_OPEN_SERVICE | CMD_OPEN_ACTION => {
+            if *offset + 16 + 4 + 4 + 2 > bytes.len() {
+                return Err(BatchError::Truncated);
+            }
+            let mut correlation = [0u8; 16];
+            correlation.copy_from_slice(&bytes[*offset..*offset + 16]);
+            *offset += 16;
+            let channel_id = read_u32(bytes, *offset);
+            *offset += 4;
+            let client = bytes[*offset] != 0;
+            let domain_id = bytes[*offset + 1];
+            *offset += 4; // client, domain, pad:u16
+            let name_len = read_u16(bytes, *offset) as usize;
+            *offset += 2;
+            if *offset + name_len + 2 > bytes.len() {
+                return Err(BatchError::Truncated);
+            }
+            let name = std::str::from_utf8(&bytes[*offset..*offset + name_len])
+                .map_err(|_| BatchError::BadKind)?
+                .to_owned();
+            *offset += name_len;
+            let type_len = read_u16(bytes, *offset) as usize;
+            *offset += 2;
+            if *offset + type_len > bytes.len() {
+                return Err(BatchError::Truncated);
+            }
+            let type_name = std::str::from_utf8(&bytes[*offset..*offset + type_len])
+                .map_err(|_| BatchError::BadKind)?
+                .to_owned();
+            *offset += type_len;
+            if cmd == CMD_OPEN_SERVICE {
+                Ok(AppCommand::OpenService {
+                    correlation,
+                    channel_id,
+                    name,
+                    type_name,
+                    domain_id,
+                    client,
+                })
+            } else {
+                Ok(AppCommand::OpenAction {
+                    correlation,
+                    channel_id,
+                    name,
+                    type_name,
+                    domain_id,
+                    client,
+                })
+            }
+        }
+        CMD_CALL_SERVICE => {
+            let (channel_id, operation_id, payload) = decode_opid_payload(bytes, offset)?;
+            Ok(AppCommand::CallService {
+                channel_id,
+                operation_id,
+                request: payload,
+            })
+        }
+        CMD_SEND_SERVICE_RESPONSE => {
+            let (channel_id, operation_id, payload) = decode_opid_payload(bytes, offset)?;
+            Ok(AppCommand::SendServiceResponse {
+                channel_id,
+                operation_id,
+                response: payload,
+            })
+        }
+        CMD_SEND_ACTION_GOAL => {
+            let (channel_id, operation_id, payload) = decode_opid_payload(bytes, offset)?;
+            Ok(AppCommand::SendActionGoal {
+                channel_id,
+                operation_id,
+                goal: payload,
+            })
+        }
+        CMD_CANCEL_ACTION => {
+            if *offset + 4 + 16 > bytes.len() {
+                return Err(BatchError::Truncated);
+            }
+            let channel_id = read_u32(bytes, *offset);
+            *offset += 4;
+            let mut operation_id = [0u8; 16];
+            operation_id.copy_from_slice(&bytes[*offset..*offset + 16]);
+            *offset += 16;
+            Ok(AppCommand::CancelAction {
+                channel_id,
+                operation_id,
+            })
+        }
+        CMD_SEND_ACTION_FEEDBACK => {
+            let (channel_id, operation_id, payload) = decode_opid_payload(bytes, offset)?;
+            Ok(AppCommand::SendActionFeedback {
+                channel_id,
+                operation_id,
+                feedback: payload,
+            })
+        }
+        CMD_SEND_ACTION_RESULT => {
+            let (channel_id, operation_id, payload) = decode_opid_payload(bytes, offset)?;
+            Ok(AppCommand::SendActionResult {
+                channel_id,
+                operation_id,
+                result: payload,
+            })
+        }
+        CMD_SEND_ACTION_STATUS => {
+            let (channel_id, operation_id, payload) = decode_opid_payload(bytes, offset)?;
+            Ok(AppCommand::SendActionStatus {
+                channel_id,
+                operation_id,
+                status: payload,
+            })
+        }
         CMD_UNSUBSCRIBE => {
             if *offset + 16 + 4 > bytes.len() {
                 return Err(BatchError::Truncated);
@@ -350,6 +507,28 @@ fn decode_command(bytes: &[u8], offset: &mut usize, cmd: u8) -> Result<AppComman
         CMD_CLOSE => Ok(AppCommand::Close),
         _ => Err(BatchError::BadKind),
     }
+}
+
+fn decode_opid_payload(
+    bytes: &[u8],
+    offset: &mut usize,
+) -> Result<(u32, [u8; 16], Vec<u8>), BatchError> {
+    if *offset + 4 + 16 + 4 > bytes.len() {
+        return Err(BatchError::Truncated);
+    }
+    let channel_id = read_u32(bytes, *offset);
+    *offset += 4;
+    let mut operation_id = [0u8; 16];
+    operation_id.copy_from_slice(&bytes[*offset..*offset + 16]);
+    *offset += 16;
+    let len = read_u32(bytes, *offset) as usize;
+    *offset += 4;
+    if *offset + len > bytes.len() {
+        return Err(BatchError::Truncated);
+    }
+    let payload = bytes[*offset..*offset + len].to_vec();
+    *offset += len;
+    Ok((channel_id, operation_id, payload))
 }
 
 /// Encode a poll outcome for the host. `payload_view` maps a sample lease to
@@ -503,7 +682,199 @@ fn encode_app_event(
             out.extend_from_slice(&[APP_CLOSED, 0, 0, 0]);
             out.extend_from_slice(&[phase_to_u8(*phase), 0, 0, 0]);
         }
+        AppEvent::ServiceReady {
+            channel_id,
+            name,
+            type_name,
+            client,
+        } => {
+            out.extend_from_slice(&[APP_SERVICE_READY, 0, 0, 0]);
+            write_u32(out, *channel_id);
+            out.extend_from_slice(&[u8::from(*client), 0, 0, 0]);
+            write_u16(out, name.len() as u16);
+            out.extend_from_slice(name.as_bytes());
+            write_u16(out, type_name.len() as u16);
+            out.extend_from_slice(type_name.as_bytes());
+        }
+        AppEvent::ServiceFailed {
+            channel_id,
+            code,
+            message,
+        } => {
+            out.extend_from_slice(&[APP_SERVICE_FAILED, 0, 0, 0]);
+            write_u32(out, *channel_id);
+            out.extend_from_slice(&[*code, 0, 0, 0]);
+            write_u16(out, message.len() as u16);
+            out.extend_from_slice(message.as_bytes());
+        }
+        AppEvent::ServiceRequest {
+            channel_id,
+            operation_id,
+            lease_id,
+            sequence,
+        } => {
+            encode_leased_opid_event(
+                out,
+                APP_SERVICE_REQUEST,
+                *channel_id,
+                operation_id,
+                *lease_id,
+                *sequence,
+                payload_view,
+            );
+        }
+        AppEvent::ServiceResponse {
+            channel_id,
+            operation_id,
+            lease_id,
+            sequence,
+        } => {
+            encode_leased_opid_event(
+                out,
+                APP_SERVICE_RESPONSE,
+                *channel_id,
+                operation_id,
+                *lease_id,
+                *sequence,
+                payload_view,
+            );
+        }
+        AppEvent::ActionReady {
+            channel_id,
+            name,
+            type_name,
+            client,
+        } => {
+            out.extend_from_slice(&[APP_ACTION_READY, 0, 0, 0]);
+            write_u32(out, *channel_id);
+            out.extend_from_slice(&[u8::from(*client), 0, 0, 0]);
+            write_u16(out, name.len() as u16);
+            out.extend_from_slice(name.as_bytes());
+            write_u16(out, type_name.len() as u16);
+            out.extend_from_slice(type_name.as_bytes());
+        }
+        AppEvent::ActionFailed {
+            channel_id,
+            code,
+            message,
+        } => {
+            out.extend_from_slice(&[APP_ACTION_FAILED, 0, 0, 0]);
+            write_u32(out, *channel_id);
+            out.extend_from_slice(&[*code, 0, 0, 0]);
+            write_u16(out, message.len() as u16);
+            out.extend_from_slice(message.as_bytes());
+        }
+        AppEvent::ActionGoal {
+            channel_id,
+            operation_id,
+            lease_id,
+            sequence,
+        } => {
+            encode_leased_opid_event(
+                out,
+                APP_ACTION_GOAL,
+                *channel_id,
+                operation_id,
+                *lease_id,
+                *sequence,
+                payload_view,
+            );
+        }
+        AppEvent::ActionFeedback {
+            channel_id,
+            operation_id,
+            lease_id,
+            sequence,
+        } => {
+            encode_leased_opid_event(
+                out,
+                APP_ACTION_FEEDBACK,
+                *channel_id,
+                operation_id,
+                *lease_id,
+                *sequence,
+                payload_view,
+            );
+        }
+        AppEvent::ActionResult {
+            channel_id,
+            operation_id,
+            lease_id,
+            sequence,
+        } => {
+            encode_leased_opid_event(
+                out,
+                APP_ACTION_RESULT,
+                *channel_id,
+                operation_id,
+                *lease_id,
+                *sequence,
+                payload_view,
+            );
+        }
+        AppEvent::ActionStatus {
+            channel_id,
+            operation_id,
+            lease_id,
+            sequence,
+        } => {
+            encode_leased_opid_event(
+                out,
+                APP_ACTION_STATUS,
+                *channel_id,
+                operation_id,
+                *lease_id,
+                *sequence,
+                payload_view,
+            );
+        }
+        AppEvent::GraphSnapshot {
+            generation,
+            nodes_json,
+            endpoints_json,
+        } => {
+            out.extend_from_slice(&[APP_GRAPH_SNAPSHOT, 0, 0, 0]);
+            write_u64(out, *generation);
+            write_u32(out, nodes_json.len() as u32);
+            out.extend_from_slice(nodes_json.as_bytes());
+            write_u32(out, endpoints_json.len() as u32);
+            out.extend_from_slice(endpoints_json.as_bytes());
+        }
+        AppEvent::GraphDelta { generation } => {
+            out.extend_from_slice(&[APP_GRAPH_DELTA, 0, 0, 0]);
+            write_u64(out, *generation);
+        }
+        AppEvent::OperationCancelled {
+            channel_id,
+            code,
+            message,
+        } => {
+            out.extend_from_slice(&[APP_OPERATION_CANCELLED, 0, 0, 0]);
+            write_u32(out, *channel_id);
+            out.extend_from_slice(&[*code, 0, 0, 0]);
+            write_u16(out, message.len() as u16);
+            out.extend_from_slice(message.as_bytes());
+        }
     }
+}
+
+fn encode_leased_opid_event(
+    out: &mut Vec<u8>,
+    kind: u8,
+    channel_id: u32,
+    operation_id: &[u8; 16],
+    lease_id: u32,
+    sequence: u64,
+    payload_view: &mut impl FnMut(u32) -> (u32, u32),
+) {
+    out.extend_from_slice(&[kind, 0, 0, 0]);
+    write_u32(out, channel_id);
+    out.extend_from_slice(operation_id);
+    write_u32(out, lease_id);
+    write_u64(out, sequence);
+    let (ptr, len) = payload_view(lease_id);
+    write_u32(out, ptr);
+    write_u32(out, len);
 }
 
 fn phase_to_u8(phase: SessionPhase) -> u8 {
@@ -620,6 +991,118 @@ fn encode_command(out: &mut Vec<u8>, cmd: &AppCommand) {
             write_u32(out, string_data.len() as u32);
             out.extend_from_slice(string_data.as_bytes());
         }
+        AppCommand::OpenService {
+            correlation,
+            channel_id,
+            name,
+            type_name,
+            domain_id,
+            client,
+        } => {
+            encode_open_service_or_action(
+                out,
+                CMD_OPEN_SERVICE,
+                correlation,
+                *channel_id,
+                *client,
+                *domain_id,
+                name,
+                type_name,
+            );
+        }
+        AppCommand::OpenAction {
+            correlation,
+            channel_id,
+            name,
+            type_name,
+            domain_id,
+            client,
+        } => {
+            encode_open_service_or_action(
+                out,
+                CMD_OPEN_ACTION,
+                correlation,
+                *channel_id,
+                *client,
+                *domain_id,
+                name,
+                type_name,
+            );
+        }
+        AppCommand::CallService {
+            channel_id,
+            operation_id,
+            request,
+        } => {
+            encode_opid_payload(out, CMD_CALL_SERVICE, *channel_id, operation_id, request);
+        }
+        AppCommand::SendServiceResponse {
+            channel_id,
+            operation_id,
+            response,
+        } => {
+            encode_opid_payload(
+                out,
+                CMD_SEND_SERVICE_RESPONSE,
+                *channel_id,
+                operation_id,
+                response,
+            );
+        }
+        AppCommand::SendActionGoal {
+            channel_id,
+            operation_id,
+            goal,
+        } => {
+            encode_opid_payload(out, CMD_SEND_ACTION_GOAL, *channel_id, operation_id, goal);
+        }
+        AppCommand::CancelAction {
+            channel_id,
+            operation_id,
+        } => {
+            out.extend_from_slice(&[CMD_CANCEL_ACTION, 0, 0, 0]);
+            write_u32(out, *channel_id);
+            out.extend_from_slice(operation_id);
+        }
+        AppCommand::SendActionFeedback {
+            channel_id,
+            operation_id,
+            feedback,
+        } => {
+            encode_opid_payload(
+                out,
+                CMD_SEND_ACTION_FEEDBACK,
+                *channel_id,
+                operation_id,
+                feedback,
+            );
+        }
+        AppCommand::SendActionResult {
+            channel_id,
+            operation_id,
+            result,
+        } => {
+            encode_opid_payload(
+                out,
+                CMD_SEND_ACTION_RESULT,
+                *channel_id,
+                operation_id,
+                result,
+            );
+        }
+        AppCommand::SendActionStatus {
+            channel_id,
+            operation_id,
+            status,
+        } => {
+            encode_opid_payload(
+                out,
+                CMD_SEND_ACTION_STATUS,
+                *channel_id,
+                operation_id,
+                status,
+            );
+        }
         AppCommand::Unsubscribe {
             correlation,
             channel_id,
@@ -632,6 +1115,41 @@ fn encode_command(out: &mut Vec<u8>, cmd: &AppCommand) {
             out.extend_from_slice(&[CMD_CLOSE, 0, 0, 0]);
         }
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn encode_open_service_or_action(
+    out: &mut Vec<u8>,
+    cmd: u8,
+    correlation: &[u8; 16],
+    channel_id: u32,
+    client: bool,
+    domain_id: u8,
+    name: &str,
+    type_name: &str,
+) {
+    out.extend_from_slice(&[cmd, 0, 0, 0]);
+    out.extend_from_slice(correlation);
+    write_u32(out, channel_id);
+    out.extend_from_slice(&[u8::from(client), domain_id, 0, 0]);
+    write_u16(out, name.len() as u16);
+    out.extend_from_slice(name.as_bytes());
+    write_u16(out, type_name.len() as u16);
+    out.extend_from_slice(type_name.as_bytes());
+}
+
+fn encode_opid_payload(
+    out: &mut Vec<u8>,
+    cmd: u8,
+    channel_id: u32,
+    operation_id: &[u8; 16],
+    payload: &[u8],
+) {
+    out.extend_from_slice(&[cmd, 0, 0, 0]);
+    write_u32(out, channel_id);
+    out.extend_from_slice(operation_id);
+    write_u32(out, payload.len() as u32);
+    out.extend_from_slice(payload);
 }
 
 pub fn read_u16(bytes: &[u8], offset: usize) -> u16 {
@@ -707,6 +1225,79 @@ mod tests {
                 assert_eq!(bytes, b"hello");
             }
             _ => panic!("expected ws bytes"),
+        }
+    }
+
+    #[test]
+    fn service_and_action_commands_round_trip() {
+        let corr = [0xABu8; 16];
+        let opid = [0x11u8; 16];
+        let events = vec![
+            HostEvent::Command(AppCommand::OpenService {
+                correlation: corr,
+                channel_id: 3,
+                name: "/add".into(),
+                type_name: "example_interfaces/srv/AddTwoInts".into(),
+                domain_id: 0,
+                client: true,
+            }),
+            HostEvent::Command(AppCommand::CallService {
+                channel_id: 3,
+                operation_id: opid,
+                request: b"req".to_vec(),
+            }),
+            HostEvent::Command(AppCommand::OpenAction {
+                correlation: corr,
+                channel_id: 4,
+                name: "/fib".into(),
+                type_name: "example_interfaces/action/Fibonacci".into(),
+                domain_id: 0,
+                client: false,
+            }),
+            HostEvent::Command(AppCommand::CancelAction {
+                channel_id: 4,
+                operation_id: opid,
+            }),
+        ];
+        let encoded = encode_host_batch_inline(&events);
+        let decoded = decode_host_batch(&encoded, |_, _, _| Err(BatchError::BadKind)).unwrap();
+        assert_eq!(decoded.len(), 4);
+        match &decoded[0] {
+            HostEvent::Command(AppCommand::OpenService {
+                channel_id,
+                client,
+                name,
+                ..
+            }) => {
+                assert_eq!(*channel_id, 3);
+                assert!(*client);
+                assert_eq!(name, "/add");
+            }
+            _ => panic!("expected OpenService"),
+        }
+        match &decoded[1] {
+            HostEvent::Command(AppCommand::CallService {
+                channel_id,
+                operation_id,
+                request,
+            }) => {
+                assert_eq!(*channel_id, 3);
+                assert_eq!(*operation_id, opid);
+                assert_eq!(request, b"req");
+            }
+            _ => panic!("expected CallService"),
+        }
+        match &decoded[2] {
+            HostEvent::Command(AppCommand::OpenAction { client, .. }) => {
+                assert!(!*client);
+            }
+            _ => panic!("expected OpenAction"),
+        }
+        match &decoded[3] {
+            HostEvent::Command(AppCommand::CancelAction { channel_id, .. }) => {
+                assert_eq!(*channel_id, 4);
+            }
+            _ => panic!("expected CancelAction"),
         }
     }
 }

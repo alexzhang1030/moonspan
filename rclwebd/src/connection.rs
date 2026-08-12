@@ -8,7 +8,10 @@
 //! machine before it is sent, so a message builder that drifts from the
 //! contract fails at the source instead of on the peer.
 
-use crate::backend::{ChannelSpec, EntityId, RosBackend, SubscriptionSample};
+use crate::backend::{
+    ActionInbound, ChannelSpec, EntityId, GraphEndpointInfo, RosBackend, ServiceRequest,
+    SubscriptionSample,
+};
 use crate::budgets::SampleWriteQueue;
 use crate::config::{GatewayConfig, SUPPORT_ROW_ID, new_session_id};
 use crate::control;
@@ -18,13 +21,16 @@ use rclweb::protocol::control::{
     CONTROL_KIND_AUTHENTICATE, CONTROL_KIND_CLOSE_CHANNEL, CONTROL_KIND_ERROR,
     CONTROL_KIND_HEARTBEAT, CONTROL_KIND_OPEN_CHANNEL,
 };
+use rclweb::protocol::extension::{OPERATION_ID_EXTENSION_TYPE, R2wpExtension};
 use rclweb::protocol::frame::{FLAG_RETAINED, FLAG_ROS_RELIABLE};
 use rclweb::session::OperationKind;
 use rclweb::{
     BootstrapErrorRecord, BootstrapRecord, CborValue, ControlMessage, FrameHeader, FrameOptions,
-    FramePayload, OPCODE_CONTROL_CBOR, OPCODE_ROS_SAMPLE, ProtocolError, Role, ServerHello,
-    Session, encode_bootstrap_error, encode_control_frame, encode_server_hello, parse_bootstrap,
-    parse_frame, write_frame_header,
+    FramePayload, OPCODE_ACTION_CANCEL, OPCODE_ACTION_FEEDBACK, OPCODE_ACTION_GOAL,
+    OPCODE_ACTION_RESULT, OPCODE_ACTION_STATUS, OPCODE_CONTROL_CBOR, OPCODE_ROS_SAMPLE,
+    OPCODE_SERVICE_REQUEST, OPCODE_SERVICE_RESPONSE, ProtocolError, Role, ServerHello, Session,
+    encode_bootstrap_error, encode_control_frame, encode_extension_area, encode_frame,
+    encode_server_hello, parse_bootstrap, parse_frame, write_frame_header,
 };
 use std::collections::HashMap;
 use tokio::sync::mpsc;
@@ -62,6 +68,10 @@ struct ChannelRuntime {
     priority: u8,
     seq_out: u64,
     seq_in: u64,
+    /// Per-(operation_id) outbound sequences for service/action responses.
+    op_seq_out: HashMap<[u8; 16], u64>,
+    /// Per-(operation_id) inbound sequences for service/action requests.
+    op_seq_in: HashMap<[u8; 16], u64>,
 }
 
 struct ConnState<'a> {
@@ -73,6 +83,7 @@ struct ConnState<'a> {
     control_seq_in: u64,
     heartbeat_counter: u64,
     channels: HashMap<u32, ChannelRuntime>,
+    graph_generation: Option<u64>,
 }
 
 #[derive(Default)]
@@ -103,6 +114,17 @@ fn wire_error_code(err: &ProtocolError) -> u8 {
     }
 }
 
+fn frame_operation_id(frame: &rclweb::DecodedFrame<'_>) -> Option<[u8; 16]> {
+    for ext in &frame.extensions {
+        if ext.type_id == OPERATION_ID_EXTENSION_TYPE && ext.value.len() == 16 {
+            let mut id = [0u8; 16];
+            id.copy_from_slice(ext.value);
+            return Some(id);
+        }
+    }
+    None
+}
+
 impl<'a> ConnState<'a> {
     fn new(config: &'a GatewayConfig) -> Self {
         Self {
@@ -114,6 +136,7 @@ impl<'a> ConnState<'a> {
             control_seq_in: 0,
             heartbeat_counter: 0,
             channels: HashMap::new(),
+            graph_generation: None,
         }
     }
 
@@ -134,6 +157,48 @@ impl<'a> ConnState<'a> {
             return false;
         }
         self.control_seq_out += 1;
+        outcome.outbound.push(Bytes::from(bytes));
+        true
+    }
+
+    /// Encode, self-parse, record, and queue one outbound application frame
+    /// (service/action) with an optional `OPERATION_ID` extension.
+    fn push_app_frame(
+        &mut self,
+        outcome: &mut Outcome,
+        header: &FrameHeader,
+        operation_id: Option<[u8; 16]>,
+        payload: &[u8],
+    ) -> bool {
+        let extension_area = if let Some(opid) = operation_id {
+            let ext = R2wpExtension {
+                type_id: OPERATION_ID_EXTENSION_TYPE,
+                critical: true,
+                value: &opid,
+            };
+            match encode_extension_area(&[ext]) {
+                Ok(area) => area,
+                Err(_) => {
+                    outcome.close = true;
+                    return false;
+                }
+            }
+        } else {
+            Vec::new()
+        };
+        let Ok(bytes) = encode_frame(header, &extension_area, payload) else {
+            outcome.close = true;
+            return false;
+        };
+        let recorded = match parse_frame(&bytes, Some(&self.frame_options)) {
+            Ok(frame) => self.session.record_send_frame(&frame).is_ok(),
+            Err(_) => false,
+        };
+        debug_assert!(recorded, "outbound app frame failed self-parse");
+        if !recorded {
+            outcome.close = true;
+            return false;
+        }
         outcome.outbound.push(Bytes::from(bytes));
         true
     }
@@ -165,6 +230,8 @@ impl<'a> ConnState<'a> {
         bytes: &[u8],
         backend: &B,
         sample_tx: &mpsc::Sender<SubscriptionSample>,
+        service_tx: &mpsc::Sender<ServiceRequest>,
+        action_tx: &mpsc::Sender<ActionInbound>,
     ) -> Outcome {
         let mut outcome = Outcome::default();
         if self.session.phase().is_terminal() {
@@ -175,8 +242,15 @@ impl<'a> ConnState<'a> {
             self.handle_bootstrap(bytes, &mut outcome);
             return outcome;
         }
-        self.handle_frame(bytes, backend, sample_tx, &mut outcome)
-            .await;
+        self.handle_frame(
+            bytes,
+            backend,
+            sample_tx,
+            service_tx,
+            action_tx,
+            &mut outcome,
+        )
+        .await;
         outcome
     }
 
@@ -225,6 +299,8 @@ impl<'a> ConnState<'a> {
         bytes: &[u8],
         backend: &B,
         sample_tx: &mpsc::Sender<SubscriptionSample>,
+        service_tx: &mpsc::Sender<ServiceRequest>,
+        action_tx: &mpsc::Sender<ActionInbound>,
         outcome: &mut Outcome,
     ) {
         let frame = match parse_frame(bytes, Some(&self.frame_options)) {
@@ -256,11 +332,23 @@ impl<'a> ConnState<'a> {
                     outcome.close = true;
                     return;
                 };
-                self.handle_control(msg, &effects, backend, sample_tx, outcome)
-                    .await;
+                self.handle_control(
+                    msg, &effects, backend, sample_tx, service_tx, action_tx, outcome,
+                )
+                .await;
             }
             OPCODE_ROS_SAMPLE => {
                 self.handle_publish_sample(&frame, backend, outcome).await;
+            }
+            OPCODE_SERVICE_REQUEST | OPCODE_SERVICE_RESPONSE => {
+                self.handle_service_frame(&frame, backend, outcome).await;
+            }
+            OPCODE_ACTION_GOAL
+            | OPCODE_ACTION_CANCEL
+            | OPCODE_ACTION_FEEDBACK
+            | OPCODE_ACTION_RESULT
+            | OPCODE_ACTION_STATUS => {
+                self.handle_action_frame(&frame, backend, outcome).await;
             }
             _ => {
                 // The session state machine rejects other opcodes in v0.1.
@@ -268,12 +356,59 @@ impl<'a> ConnState<'a> {
         }
     }
 
+    async fn push_graph_snapshot<B: RosBackend>(
+        &mut self,
+        backend: &B,
+        outcome: &mut Outcome,
+        generation: u64,
+    ) {
+        let view = match backend.graph_view().await {
+            Ok(view) => view,
+            Err(err) => {
+                let message = control::session_error(err.code, &err.message);
+                self.push_control(outcome, &message);
+                outcome.close = true;
+                return;
+            }
+        };
+        let snap =
+            control::graph_snapshot(self.config, &control::ZERO_CORRELATION, generation, &view);
+        if self.push_control(outcome, &snap) {
+            self.graph_generation = Some(generation);
+        }
+    }
+
+    async fn push_graph_delta_for_endpoint(
+        &mut self,
+        outcome: &mut Outcome,
+        endpoint: &GraphEndpointInfo,
+    ) {
+        let Some(base) = self.graph_generation else {
+            return;
+        };
+        let generation = base.saturating_add(1);
+        let ops = vec![control::graph_delta_add_endpoint(endpoint)];
+        let delta = control::graph_delta(
+            self.config,
+            &control::ZERO_CORRELATION,
+            base,
+            generation,
+            ops,
+        );
+        if self.push_control(outcome, &delta) {
+            self.graph_generation = Some(generation);
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
     async fn handle_control<B: RosBackend>(
         &mut self,
         msg: &ControlMessage<'_>,
         effects: &rclweb::SessionEffects,
         backend: &B,
         sample_tx: &mpsc::Sender<SubscriptionSample>,
+        service_tx: &mpsc::Sender<ServiceRequest>,
+        action_tx: &mpsc::Sender<ActionInbound>,
         outcome: &mut Outcome,
     ) {
         match msg.kind {
@@ -292,12 +427,17 @@ impl<'a> ConnState<'a> {
                     &session_id,
                     "anonymous",
                 );
-                self.push_control(outcome, &ready);
+                if !self.push_control(outcome, &ready) {
+                    return;
+                }
+                self.push_graph_snapshot(backend, outcome, 1).await;
             }
             CONTROL_KIND_OPEN_CHANNEL => {
                 if let Some(channel_id) = effects.channel_opened {
-                    self.open_channel(channel_id, msg, backend, sample_tx, outcome)
-                        .await;
+                    self.open_channel(
+                        channel_id, msg, backend, sample_tx, service_tx, action_tx, outcome,
+                    )
+                    .await;
                 }
             }
             CONTROL_KIND_CLOSE_CHANNEL => {
@@ -319,12 +459,15 @@ impl<'a> ConnState<'a> {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     async fn open_channel<B: RosBackend>(
         &mut self,
         channel_id: u32,
         msg: &ControlMessage<'_>,
         backend: &B,
         sample_tx: &mpsc::Sender<SubscriptionSample>,
+        service_tx: &mpsc::Sender<ServiceRequest>,
+        action_tx: &mpsc::Sender<ActionInbound>,
         outcome: &mut Outcome,
     ) {
         let correlation = field_bytes(msg, 2).unwrap_or(&control::ZERO_CORRELATION);
@@ -332,6 +475,10 @@ impl<'a> ConnState<'a> {
         let kind = match field_uint(msg, 30) {
             Some(0) => OperationKind::TopicSubscribe,
             Some(1) => OperationKind::TopicPublish,
+            Some(2) => OperationKind::ServiceClient,
+            Some(3) => OperationKind::ServiceServer,
+            Some(4) => OperationKind::ActionClient,
+            Some(5) => OperationKind::ActionServer,
             _ => {
                 // The session state machine already rejected other kinds.
                 outcome.close = true;
@@ -366,8 +513,8 @@ impl<'a> ConnState<'a> {
         let effective = resolve_effective(&requested);
         let spec = ChannelSpec {
             channel_id,
-            topic,
-            type_name,
+            topic: topic.clone(),
+            type_name: type_name.clone(),
             qos: effective,
         };
         let created = match kind {
@@ -375,33 +522,75 @@ impl<'a> ConnState<'a> {
                 backend.create_subscription(&spec, sample_tx.clone()).await
             }
             OperationKind::TopicPublish => backend.create_publisher(&spec).await,
+            OperationKind::ServiceClient => backend.create_client(&spec).await,
+            OperationKind::ServiceServer => backend.create_service(&spec, service_tx.clone()).await,
+            OperationKind::ActionClient => backend.create_action_client(&spec).await,
+            OperationKind::ActionServer => {
+                backend.create_action_server(&spec, action_tx.clone()).await
+            }
         };
         match created {
             Ok(entity) => {
+                let reliable = match kind {
+                    OperationKind::ServiceClient
+                    | OperationKind::ServiceServer
+                    | OperationKind::ActionClient
+                    | OperationKind::ActionServer => true,
+                    _ => effective.reliable,
+                };
                 self.channels.insert(
                     channel_id,
                     ChannelRuntime {
                         kind,
                         entity,
-                        reliable: effective.reliable,
+                        reliable,
                         transient_local: effective.transient_local,
                         priority,
                         seq_out: 0,
                         seq_in: 0,
+                        op_seq_out: HashMap::new(),
+                        op_seq_in: HashMap::new(),
                     },
                 );
-                let reply = control::channel_ready_allow(
-                    self.config,
-                    &correlation,
-                    channel_id,
-                    priority,
-                    &effective,
-                );
+                let reply = match kind {
+                    OperationKind::ServiceClient | OperationKind::ServiceServer => {
+                        control::channel_ready_service_allow(
+                            self.config,
+                            &correlation,
+                            channel_id,
+                            priority,
+                        )
+                    }
+                    OperationKind::ActionClient | OperationKind::ActionServer => {
+                        control::channel_ready_action_allow(
+                            self.config,
+                            &correlation,
+                            channel_id,
+                            priority,
+                        )
+                    }
+                    _ => control::channel_ready_allow(
+                        self.config,
+                        &correlation,
+                        channel_id,
+                        priority,
+                        &effective,
+                    ),
+                };
                 if !self.push_control(outcome, &reply) {
-                    // Builder failure: release the entity we just created.
                     if let Some(runtime) = self.channels.remove(&channel_id) {
                         backend.destroy(runtime.entity).await;
                     }
+                    return;
+                }
+                // Prefer emitting a GraphDelta when the mock graph gains an endpoint.
+                if let Ok(view) = backend.graph_view().await
+                    && let Some(endpoint) = view
+                        .endpoints
+                        .iter()
+                        .find(|ep| ep.name == topic && ep.type_name == type_name)
+                {
+                    self.push_graph_delta_for_endpoint(outcome, endpoint).await;
                 }
             }
             Err(err) => {
@@ -466,6 +655,192 @@ impl<'a> ConnState<'a> {
         }
     }
 
+    fn next_op_seq_out(runtime: &mut ChannelRuntime, opid: [u8; 16]) -> u64 {
+        let entry = runtime.op_seq_out.entry(opid).or_insert(0);
+        let seq = *entry;
+        *entry = seq.saturating_add(1);
+        seq
+    }
+
+    fn admit_op_seq_in(
+        runtime: &mut ChannelRuntime,
+        opid: [u8; 16],
+        sequence: u64,
+    ) -> Result<(), ()> {
+        let entry = runtime.op_seq_in.entry(opid).or_insert(0);
+        if sequence != *entry {
+            return Err(());
+        }
+        *entry = sequence.saturating_add(1);
+        Ok(())
+    }
+
+    async fn handle_service_frame<B: RosBackend>(
+        &mut self,
+        frame: &rclweb::DecodedFrame<'_>,
+        backend: &B,
+        outcome: &mut Outcome,
+    ) {
+        let Some(runtime) = self.channels.get_mut(&frame.channel_id) else {
+            outcome.close = true;
+            return;
+        };
+        let Some(opid) = frame_operation_id(frame) else {
+            let err = ProtocolError::protocol_violation("missing_operation_id", 0, 25);
+            self.fail_session(outcome, &err);
+            return;
+        };
+        if Self::admit_op_seq_in(runtime, opid, frame.sequence).is_err() {
+            let err = ProtocolError::protocol_violation("reliable_sequence_mismatch", 8, 25);
+            self.fail_session(outcome, &err);
+            return;
+        }
+        let FramePayload::Application(payload) = &frame.payload else {
+            outcome.close = true;
+            return;
+        };
+        let entity = runtime.entity;
+        let channel_id = frame.channel_id;
+        let kind = runtime.kind;
+        let priority = runtime.priority;
+
+        match (kind, frame.opcode) {
+            (OperationKind::ServiceClient, OPCODE_SERVICE_REQUEST) => {
+                match backend.call(entity, opid, payload.to_vec()).await {
+                    Ok(response) => {
+                        let Some(runtime) = self.channels.get_mut(&channel_id) else {
+                            return;
+                        };
+                        let seq = Self::next_op_seq_out(runtime, opid);
+                        let header = FrameHeader {
+                            version: 0,
+                            opcode: OPCODE_SERVICE_RESPONSE,
+                            flags: FLAG_ROS_RELIABLE,
+                            channel_id,
+                            sequence: seq,
+                            source_time_ns: 0,
+                            priority,
+                            clock_id: 0,
+                        };
+                        self.push_app_frame(outcome, &header, Some(opid), &response);
+                    }
+                    Err(err) => {
+                        let reply = control::channel_error(channel_id, err.code, &err.message);
+                        self.push_control(outcome, &reply);
+                    }
+                }
+            }
+            (OperationKind::ServiceServer, OPCODE_SERVICE_RESPONSE) => {
+                if let Err(err) = backend
+                    .send_service_response(entity, opid, payload.to_vec())
+                    .await
+                {
+                    let reply = control::channel_error(channel_id, err.code, &err.message);
+                    self.push_control(outcome, &reply);
+                }
+            }
+            _ => {
+                // Direction mismatches are rejected by the session SM first.
+            }
+        }
+    }
+
+    async fn handle_action_frame<B: RosBackend>(
+        &mut self,
+        frame: &rclweb::DecodedFrame<'_>,
+        backend: &B,
+        outcome: &mut Outcome,
+    ) {
+        let Some(runtime) = self.channels.get_mut(&frame.channel_id) else {
+            outcome.close = true;
+            return;
+        };
+        let Some(opid) = frame_operation_id(frame) else {
+            let err = ProtocolError::protocol_violation("missing_operation_id", 0, 25);
+            self.fail_session(outcome, &err);
+            return;
+        };
+        // ACTION_STATUS may use the all-zero stream id; still track sequences.
+        if Self::admit_op_seq_in(runtime, opid, frame.sequence).is_err() {
+            let err = ProtocolError::protocol_violation("reliable_sequence_mismatch", 8, 25);
+            self.fail_session(outcome, &err);
+            return;
+        }
+        let FramePayload::Application(payload) = &frame.payload else {
+            outcome.close = true;
+            return;
+        };
+        let entity = runtime.entity;
+        let channel_id = frame.channel_id;
+        let kind = runtime.kind;
+        let priority = runtime.priority;
+
+        match (kind, frame.opcode) {
+            (OperationKind::ActionClient, OPCODE_ACTION_GOAL) => {
+                match backend
+                    .send_action_goal(entity, opid, payload.to_vec())
+                    .await
+                {
+                    Ok(result) => {
+                        let Some(runtime) = self.channels.get_mut(&channel_id) else {
+                            return;
+                        };
+                        let seq = Self::next_op_seq_out(runtime, opid);
+                        let header = FrameHeader {
+                            version: 0,
+                            opcode: OPCODE_ACTION_RESULT,
+                            flags: FLAG_ROS_RELIABLE,
+                            channel_id,
+                            sequence: seq,
+                            source_time_ns: 0,
+                            priority,
+                            clock_id: 0,
+                        };
+                        self.push_app_frame(outcome, &header, Some(opid), &result);
+                    }
+                    Err(err) => {
+                        let reply = control::channel_error(channel_id, err.code, &err.message);
+                        self.push_control(outcome, &reply);
+                    }
+                }
+            }
+            (OperationKind::ActionClient, OPCODE_ACTION_CANCEL) => {
+                if let Err(err) = backend.cancel_action(entity, opid, payload.to_vec()).await {
+                    let reply = control::channel_error(channel_id, err.code, &err.message);
+                    self.push_control(outcome, &reply);
+                }
+            }
+            (OperationKind::ActionServer, OPCODE_ACTION_FEEDBACK) => {
+                if let Err(err) = backend
+                    .send_action_feedback(entity, opid, payload.to_vec())
+                    .await
+                {
+                    let reply = control::channel_error(channel_id, err.code, &err.message);
+                    self.push_control(outcome, &reply);
+                }
+            }
+            (OperationKind::ActionServer, OPCODE_ACTION_RESULT) => {
+                if let Err(err) = backend
+                    .send_action_result(entity, opid, payload.to_vec())
+                    .await
+                {
+                    let reply = control::channel_error(channel_id, err.code, &err.message);
+                    self.push_control(outcome, &reply);
+                }
+            }
+            (OperationKind::ActionServer, OPCODE_ACTION_STATUS) => {
+                if let Err(err) = backend
+                    .send_action_status(entity, opid, payload.to_vec())
+                    .await
+                {
+                    let reply = control::channel_error(channel_id, err.code, &err.message);
+                    self.push_control(outcome, &reply);
+                }
+            }
+            _ => {}
+        }
+    }
+
     /// Fill the reserved header prefix of a subscription sample in place.
     fn frame_sample(&mut self, sample: SubscriptionSample) -> Option<Bytes> {
         let runtime = self.channels.get_mut(&sample.channel_id)?;
@@ -527,6 +902,63 @@ impl<'a> ConnState<'a> {
         }
     }
 
+    /// Frame an inbound service request for a ServiceServer channel.
+    fn push_service_request(&mut self, outcome: &mut Outcome, request: ServiceRequest) {
+        let Some(runtime) = self.channels.get_mut(&request.channel_id) else {
+            return;
+        };
+        if runtime.kind != OperationKind::ServiceServer {
+            return;
+        }
+        let priority = runtime.priority;
+        let channel_id = request.channel_id;
+        let opid = request.operation_id;
+        let seq = Self::next_op_seq_out(runtime, opid);
+        let payload = request.payload().to_vec();
+        let header = FrameHeader {
+            version: 0,
+            opcode: OPCODE_SERVICE_REQUEST,
+            flags: FLAG_ROS_RELIABLE,
+            channel_id,
+            sequence: seq,
+            source_time_ns: 0,
+            priority,
+            clock_id: 0,
+        };
+        self.push_app_frame(outcome, &header, Some(opid), &payload);
+    }
+
+    /// Frame an inbound action goal/cancel for an ActionServer channel.
+    fn push_action_inbound(&mut self, outcome: &mut Outcome, inbound: ActionInbound) {
+        let channel_id = inbound.channel_id();
+        let Some(runtime) = self.channels.get_mut(&channel_id) else {
+            return;
+        };
+        if runtime.kind != OperationKind::ActionServer {
+            return;
+        }
+        let priority = runtime.priority;
+        let opid = inbound.operation_id();
+        let seq = Self::next_op_seq_out(runtime, opid);
+        let opcode = match &inbound {
+            ActionInbound::Goal { .. } => OPCODE_ACTION_GOAL,
+            ActionInbound::Cancel { .. } => OPCODE_ACTION_CANCEL,
+        };
+        let payload_start = crate::backend::SAMPLE_HEADER_PREFIX;
+        let payload = inbound.frame_buf()[payload_start..].to_vec();
+        let header = FrameHeader {
+            version: 0,
+            opcode,
+            flags: FLAG_ROS_RELIABLE,
+            channel_id,
+            sequence: seq,
+            source_time_ns: 0,
+            priority,
+            clock_id: 0,
+        };
+        self.push_app_frame(outcome, &header, Some(opid), &payload);
+    }
+
     async fn teardown<B: RosBackend>(&mut self, backend: &B) {
         for (_, runtime) in self.channels.drain() {
             backend.destroy(runtime.entity).await;
@@ -563,8 +995,10 @@ pub async fn run_connection<T: Transport, B: RosBackend>(
 ) {
     // Deep enough that ROS take rarely blocks on try_send; the write queue is
     // the budgeted latest-wins surface (sample_queue_depth / max_bytes).
-    let (sample_tx, mut sample_rx) =
-        mpsc::channel::<SubscriptionSample>(config.sample_queue_depth.max(1));
+    let depth = config.sample_queue_depth.max(1);
+    let (sample_tx, mut sample_rx) = mpsc::channel::<SubscriptionSample>(depth);
+    let (service_tx, mut service_rx) = mpsc::channel::<ServiceRequest>(depth);
+    let (action_tx, mut action_rx) = mpsc::channel::<ActionInbound>(depth);
     let mut write_queue =
         SampleWriteQueue::new(config.sample_queue_depth, config.sample_queue_max_bytes);
     let mut conn = ConnState::new(config);
@@ -574,7 +1008,9 @@ pub async fn run_connection<T: Transport, B: RosBackend>(
                 let Some(Ok(bytes)) = inbound else {
                     break;
                 };
-                let outcome = conn.handle_inbound(&bytes, backend, &sample_tx).await;
+                let outcome = conn
+                    .handle_inbound(&bytes, backend, &sample_tx, &service_tx, &action_tx)
+                    .await;
                 let mut send_failed = false;
                 for message in outcome.outbound {
                     if transport.send(message).await.is_err() {
@@ -601,6 +1037,40 @@ pub async fn run_connection<T: Transport, B: RosBackend>(
                     .await
                     .is_err()
                 {
+                    break;
+                }
+            }
+            request = service_rx.recv() => {
+                let Some(request) = request else {
+                    break;
+                };
+                let mut outcome = Outcome::default();
+                conn.push_service_request(&mut outcome, request);
+                let mut send_failed = false;
+                for message in outcome.outbound {
+                    if transport.send(message).await.is_err() {
+                        send_failed = true;
+                        break;
+                    }
+                }
+                if outcome.close || send_failed {
+                    break;
+                }
+            }
+            inbound = action_rx.recv() => {
+                let Some(inbound) = inbound else {
+                    break;
+                };
+                let mut outcome = Outcome::default();
+                conn.push_action_inbound(&mut outcome, inbound);
+                let mut send_failed = false;
+                for message in outcome.outbound {
+                    if transport.send(message).await.is_err() {
+                        send_failed = true;
+                        break;
+                    }
+                }
+                if outcome.close || send_failed {
                     break;
                 }
             }
