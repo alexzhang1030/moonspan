@@ -8,7 +8,7 @@ use crate::protocol::cbor::CborValue;
 use crate::protocol::encode::{
     FrameHeader, encode_control_frame, encode_server_hello, write_frame_header,
 };
-use crate::protocol::frame::{FRAME_HEADER_LENGTH, OPCODE_ROS_SAMPLE};
+use crate::protocol::frame::{FRAME_HEADER_LENGTH, FramePayload, OPCODE_ROS_SAMPLE, parse_frame};
 use crate::session::SessionPhase;
 use std::borrow::Cow;
 
@@ -184,6 +184,7 @@ fn scripted_peer_reaches_subscribed_and_sample() {
         topic: "/chatter".into(),
         type_name: STD_MSGS_STRING.into(),
         qos_reliability: 1,
+        qos_depth: 5,
         domain_id: 0,
     })]);
     assert_eq!(sub.outbound.len(), 1);
@@ -232,6 +233,63 @@ fn scripted_peer_reaches_subscribed_and_sample() {
     );
     // Lease backing store should be gone after release + sweep.
     assert!(engine.lease_buffer_id(lease_id).is_none());
+}
+
+#[test]
+fn scripted_peer_publish_sends_ros_sample() {
+    let mut engine = ClientEngine::new();
+    let _ = engine.poll(&[HostEvent::Command(AppCommand::Start {
+        transferable_arraybuffer: true,
+    })]);
+    let _ = feed(&mut engine, server_hello_bytes());
+    let auth_corr = corr(0xA1);
+    let _ = engine.poll(&[HostEvent::Command(AppCommand::Authenticate {
+        correlation: auth_corr,
+        scheme: "token".into(),
+        token: b"anonymous".to_vec(),
+    })]);
+    let _ = feed(&mut engine, session_ready_bytes(0, &auth_corr));
+
+    let pub_corr = corr(0xC3);
+    let opened = engine.poll(&[HostEvent::Command(AppCommand::Publish {
+        correlation: pub_corr,
+        channel_id: 3,
+        topic: "/chatter".into(),
+        type_name: STD_MSGS_STRING.into(),
+        qos_reliability: 1,
+        qos_depth: 5,
+        domain_id: 0,
+    })]);
+    assert_eq!(opened.outbound.len(), 1);
+
+    let ready = feed(&mut engine, channel_ready_allow_bytes(1, &pub_corr, 3));
+    assert!(ready.events.iter().any(|e| matches!(
+        e,
+        AppEvent::Published {
+            channel_id: 3,
+            topic,
+            type_name,
+            qos_reliability: 1,
+        } if topic == "/chatter" && type_name == STD_MSGS_STRING
+    )));
+
+    let sent = engine.poll(&[HostEvent::Command(AppCommand::SendSample {
+        channel_id: 3,
+        string_data: "hello from client".into(),
+    })]);
+    assert_eq!(sent.outbound.len(), 1);
+    assert_eq!(engine.telemetry().samples_sent, 1);
+    let frame = parse_frame(&sent.outbound[0].bytes, None).expect("sample frame");
+    assert_eq!(frame.opcode, OPCODE_ROS_SAMPLE);
+    assert_eq!(frame.channel_id, 3);
+    assert_eq!(frame.sequence, 0);
+    let FramePayload::Application(payload) = &frame.payload else {
+        panic!("expected application payload");
+    };
+    assert_eq!(
+        ClientEngine::decode_std_msgs_string(payload).unwrap(),
+        "hello from client"
+    );
 }
 
 #[test]

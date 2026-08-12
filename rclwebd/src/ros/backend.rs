@@ -347,9 +347,10 @@ impl Worker {
                             self.take.as_slice(),
                             Some(&crate::telemetry::PROCESS_TELEMETRY),
                         );
-                        // Bounded pre-sequence admission: a full or closed
-                        // connection queue drops here (R2 owns dispositions
-                        // and counters).
+                        // Bounded pre-sequence handoff into the connection
+                        // write queue. R2-01 owns latest-wins / disposition
+                        // accounting on that queue; a full mpsc here only
+                        // drops when the connection task is stuck.
                         let _ = entry.sink.try_send(sample);
                     }
                     Ok(false) => break,

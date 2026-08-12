@@ -18,6 +18,8 @@ export const CMD_AUTHENTICATE = 2;
 export const CMD_SUBSCRIBE = 3;
 export const CMD_UNSUBSCRIBE = 4;
 export const CMD_CLOSE = 5;
+export const CMD_PUBLISH = 6;
+export const CMD_SEND_SAMPLE = 7;
 
 export const APP_BOOTSTRAP_COMPLETE = 1;
 export const APP_SESSION_READY = 2;
@@ -27,6 +29,8 @@ export const APP_SAMPLE = 5;
 export const APP_HEARTBEAT = 6;
 export const APP_ERROR = 7;
 export const APP_CLOSED = 8;
+export const APP_PUBLISHED = 9;
+export const APP_PUBLISH_FAILED = 10;
 
 export type HostCommand =
   | { type: "start"; transferableArrayBuffer: boolean }
@@ -43,8 +47,20 @@ export type HostCommand =
       topic: string;
       typeName: string;
       qosReliability: number;
+      qosDepth: number;
       domainId: number;
     }
+  | {
+      type: "publish";
+      correlation: Uint8Array;
+      channelId: number;
+      topic: string;
+      typeName: string;
+      qosReliability: number;
+      qosDepth: number;
+      domainId: number;
+    }
+  | { type: "sendSample"; channelId: number; stringData: string }
   | { type: "unsubscribe"; correlation: Uint8Array; channelId: number }
   | { type: "close" };
 
@@ -65,6 +81,19 @@ export type AppEvent =
   | { type: "subscribed"; channelId: number; topic: string; typeName: string }
   | {
       type: "subscribeFailed";
+      channelId: number;
+      code: number;
+      message: string;
+    }
+  | {
+      type: "published";
+      channelId: number;
+      topic: string;
+      typeName: string;
+      qosReliability: number;
+    }
+  | {
+      type: "publishFailed";
       channelId: number;
       code: number;
       message: string;
@@ -160,13 +189,36 @@ function encodeCommand(out: number[], command: HostCommand): void {
       out.push(CMD_SUBSCRIBE, 0, 0, 0);
       for (let i = 0; i < 16; i++) out.push(command.correlation[i] ?? 0);
       writeU32(out, command.channelId >>> 0);
-      out.push(command.qosReliability & 0xff, command.domainId & 0xff, 0, 0);
+      out.push(command.qosReliability & 0xff, command.domainId & 0xff);
+      writeU16(out, command.qosDepth & 0xffff);
       const topic = te.encode(command.topic);
       writeU16(out, topic.length);
       for (let i = 0; i < topic.length; i++) out.push(topic[i]!);
       const typeName = te.encode(command.typeName);
       writeU16(out, typeName.length);
       for (let i = 0; i < typeName.length; i++) out.push(typeName[i]!);
+      break;
+    }
+    case "publish": {
+      out.push(CMD_PUBLISH, 0, 0, 0);
+      for (let i = 0; i < 16; i++) out.push(command.correlation[i] ?? 0);
+      writeU32(out, command.channelId >>> 0);
+      out.push(command.qosReliability & 0xff, command.domainId & 0xff);
+      writeU16(out, command.qosDepth & 0xffff);
+      const topic = te.encode(command.topic);
+      writeU16(out, topic.length);
+      for (let i = 0; i < topic.length; i++) out.push(topic[i]!);
+      const typeName = te.encode(command.typeName);
+      writeU16(out, typeName.length);
+      for (let i = 0; i < typeName.length; i++) out.push(typeName[i]!);
+      break;
+    }
+    case "sendSample": {
+      out.push(CMD_SEND_SAMPLE, 0, 0, 0);
+      writeU32(out, command.channelId >>> 0);
+      const data = te.encode(command.stringData);
+      writeU32(out, data.length);
+      for (let i = 0; i < data.length; i++) out.push(data[i]!);
       break;
     }
     case "unsubscribe": {
@@ -308,6 +360,40 @@ export function decodePollResult(bytes: Uint8Array): PollResult {
         events.push({ type: "subscribeFailed", channelId, code, message });
         break;
       }
+      case APP_PUBLISHED: {
+        const channelId = readU32(bytes, offset);
+        offset += 4;
+        const qosReliability = bytes[offset]!;
+        offset += 4;
+        const topicLen = readU16(bytes, offset);
+        offset += 2;
+        const topic = td.decode(bytes.subarray(offset, offset + topicLen));
+        offset += topicLen;
+        const typeLen = readU16(bytes, offset);
+        offset += 2;
+        const typeName = td.decode(bytes.subarray(offset, offset + typeLen));
+        offset += typeLen;
+        events.push({
+          type: "published",
+          channelId,
+          topic,
+          typeName,
+          qosReliability,
+        });
+        break;
+      }
+      case APP_PUBLISH_FAILED: {
+        const channelId = readU32(bytes, offset);
+        offset += 4;
+        const code = bytes[offset]!;
+        offset += 4;
+        const msgLen = readU16(bytes, offset);
+        offset += 2;
+        const message = td.decode(bytes.subarray(offset, offset + msgLen));
+        offset += msgLen;
+        events.push({ type: "publishFailed", channelId, code, message });
+        break;
+      }
       case APP_SAMPLE: {
         const channelId = readU32(bytes, offset);
         offset += 4;
@@ -401,6 +487,7 @@ export type EngineTelemetrySnapshot = {
   pollNanosTotal: number;
   samplesEmitted: number;
   leasesReleased: number;
+  samplesSent: number;
 };
 
 export async function loadWasm(wasmBytes: ArrayBuffer): Promise<WasmExports> {
@@ -428,7 +515,7 @@ export function readTelemetry(
   wasm: WasmExports,
   handle: number,
 ): EngineTelemetrySnapshot {
-  const ptr = wasm.rclweb_alloc(48);
+  const ptr = wasm.rclweb_alloc(56);
   if (ptr === 0) {
     throw new Error("rclweb_alloc failed for telemetry");
   }
@@ -437,7 +524,7 @@ export function readTelemetry(
     if (rc !== 0) {
       throw new Error(`rclweb_telemetry failed with code ${rc}`);
     }
-    const view = new DataView(wasm.memory.buffer, ptr, 48);
+    const view = new DataView(wasm.memory.buffer, ptr, 56);
     return {
       copiesIntoEngine: Number(view.getBigUint64(0, true)),
       bytesCopiedIntoEngine: Number(view.getBigUint64(8, true)),
@@ -445,9 +532,10 @@ export function readTelemetry(
       pollNanosTotal: Number(view.getBigUint64(24, true)),
       samplesEmitted: Number(view.getBigUint64(32, true)),
       leasesReleased: Number(view.getBigUint64(40, true)),
+      samplesSent: Number(view.getBigUint64(48, true)),
     };
   } finally {
-    wasm.rclweb_free(ptr, 48);
+    wasm.rclweb_free(ptr, 56);
   }
 }
 

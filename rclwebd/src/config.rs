@@ -28,9 +28,11 @@ pub struct GatewayConfig {
     pub max_session_bytes: u64,
     pub max_message_bytes: u32,
     pub max_control_payload_bytes: u32,
-    /// Per-connection sample queue depth (pre-sequence admission; R2 owns
-    /// budget dispositions).
+    /// Per-connection sample write-queue depth (max framed samples waiting
+    /// for WebSocket write). Best-effort uses latest-wins when full.
     pub sample_queue_depth: usize,
+    /// Per-connection byte budget for the sample write queue.
+    pub sample_queue_max_bytes: usize,
 }
 
 impl Default for GatewayConfig {
@@ -45,6 +47,7 @@ impl Default for GatewayConfig {
             max_message_bytes: MAX_MESSAGE_BYTES_CEILING,
             max_control_payload_bytes: MAX_CONTROL_PAYLOAD_BYTES_CEILING,
             sample_queue_depth: 256,
+            sample_queue_max_bytes: 4 * 1024 * 1024,
         }
     }
 }

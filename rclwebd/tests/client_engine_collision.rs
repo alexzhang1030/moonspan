@@ -138,6 +138,7 @@ async fn client_engine_collides_with_gateway_subscribe_path() {
         topic: "/chatter".into(),
         type_name: STD_MSGS_STRING.into(),
         qos_reliability: 1,
+        qos_depth: 5,
         domain_id: 0,
     })]);
     for msg in sub.outbound {
@@ -188,6 +189,105 @@ async fn client_engine_collides_with_gateway_subscribe_path() {
 
     // Both state machines agree the channel is active and samples parse.
     assert_eq!(engine.channel_state(7), rclweb::ChannelState::Active);
+}
+
+#[tokio::test]
+async fn client_engine_collides_with_gateway_publish_path() {
+    use futures_util::SinkExt;
+    use tokio_tungstenite::tungstenite::Message;
+
+    let (addr, backend) = start_gateway().await;
+    let (mut ws, _) = tokio_tungstenite::connect_async(format!("ws://{addr}/ws"))
+        .await
+        .expect("connect");
+
+    let mut engine = ClientEngine::new();
+    let start = engine.poll(&[HostEvent::Command(AppCommand::Start {
+        transferable_arraybuffer: true,
+    })]);
+    for msg in start.outbound {
+        ws.send(Message::Binary(bytes::Bytes::from(msg.bytes)))
+            .await
+            .expect("send hello");
+    }
+
+    let _ = pump_until(&mut engine, &mut ws, |e| {
+        matches!(e, AppEvent::BootstrapComplete { .. })
+    })
+    .await;
+
+    let auth_corr = corr(0xA1);
+    let auth = engine.poll(&[HostEvent::Command(AppCommand::Authenticate {
+        correlation: auth_corr,
+        scheme: "token".into(),
+        token: b"anonymous".to_vec(),
+    })]);
+    for msg in auth.outbound {
+        ws.send(Message::Binary(bytes::Bytes::from(msg.bytes)))
+            .await
+            .expect("send auth");
+    }
+    let _ = pump_until(&mut engine, &mut ws, |e| {
+        matches!(e, AppEvent::SessionReady { .. })
+    })
+    .await;
+
+    let pub_corr = corr(0xD4);
+    let opened = engine.poll(&[HostEvent::Command(AppCommand::Publish {
+        correlation: pub_corr,
+        channel_id: 9,
+        topic: "/cmd".into(),
+        type_name: STD_MSGS_STRING.into(),
+        qos_reliability: 1,
+        qos_depth: 5,
+        domain_id: 0,
+    })]);
+    for msg in opened.outbound {
+        ws.send(Message::Binary(bytes::Bytes::from(msg.bytes)))
+            .await
+            .expect("send open publish");
+    }
+    let published = pump_until(&mut engine, &mut ws, |e| {
+        matches!(e, AppEvent::Published { channel_id: 9, .. })
+    })
+    .await;
+    assert!(matches!(
+        published,
+        AppEvent::Published {
+            channel_id: 9,
+            ref topic,
+            ..
+        } if topic == "/cmd"
+    ));
+
+    let sent = engine.poll(&[HostEvent::Command(AppCommand::SendSample {
+        channel_id: 9,
+        string_data: "from-engine".into(),
+    })]);
+    assert_eq!(sent.outbound.len(), 1);
+    for msg in sent.outbound {
+        ws.send(Message::Binary(bytes::Bytes::from(msg.bytes)))
+            .await
+            .expect("send sample");
+    }
+
+    let expected = ClientEngine::encode_std_msgs_string("from-engine").unwrap();
+    tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            {
+                let published_payloads = backend.published.lock().unwrap();
+                if published_payloads
+                    .iter()
+                    .any(|(_, payload)| payload == &expected)
+                {
+                    return;
+                }
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("gateway should forward the engine publish payload");
 }
 
 #[tokio::test]

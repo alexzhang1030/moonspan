@@ -9,3 +9,7 @@ The engine reclaims a retained inbound slab only when every lease on it is relea
 ## encodeHostBatch spread-push ceiling
 
 Spread-pushing a byte array into a `number[]` (`out.push(...bytes)`) throws a RangeError on large frames — every element becomes a call argument, and hundreds of KB (expected for R2-02 large messages) exceeds the engine's argument/call-stack limit. `encodeHostBatch` in `sdk/typescript/src/wasm/abi.ts` therefore pushes bytes in explicit loops. The per-byte `number[]` builder is acceptable for R1 control traffic plus small samples; the preallocated two-pass `Uint8Array` encoder rewrite is queued for the R2-02 large-message work.
+
+## Reconnect is a fresh session, not SessionResume
+
+v0.1 parks SessionResume (capability 1). R2-01 reconnect means: close the transport, allocate a new client engine, re-run ClientHello → Authenticate → SessionReady, then re-open channels. The SDK `reconnect()` / `ConnectOptions.reconnect` path implements that; do not invent resume tokens or expect `gateway_instance_id` alone to restore channel state.

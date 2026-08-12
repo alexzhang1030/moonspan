@@ -33,7 +33,13 @@ pub fn authenticate(correlation: &[u8; 16], scheme: &str, token: &[u8]) -> CborV
     ])
 }
 
+/// Default KEEP_LAST depth when the SDK omits an explicit depth (R2-01 subset).
+pub const DEFAULT_QOS_DEPTH: u32 = 5;
+
 /// OpenChannel (kind 8) for a topic subscribe or publish on support row J-FT.
+///
+/// QoS subset for R2-01: `qos_reliability` (1 RELIABLE / 2 BEST_EFFORT) and
+/// `qos_depth` (KEEP_LAST depth). Other QoS members stay SYSTEM_DEFAULT.
 #[must_use]
 #[allow(clippy::too_many_arguments)]
 pub fn open_topic(
@@ -43,8 +49,10 @@ pub fn open_topic(
     topic: &str,
     type_name: &str,
     qos_reliability: u64,
+    qos_depth: u32,
     domain_id: u8,
 ) -> CborValue<'static> {
+    let depth = u64::from(qos_depth.max(1));
     CborValue::Map(vec![
         (1, CborValue::Unsigned(8)),
         (2, bytes_val(correlation)),
@@ -67,7 +75,7 @@ pub fn open_topic(
                 (1, CborValue::Unsigned(qos_reliability)),
                 (2, CborValue::Unsigned(0)),
                 (3, CborValue::Unsigned(1)),
-                (4, CborValue::Unsigned(5)),
+                (4, CborValue::Unsigned(depth)),
             ]),
         ),
         (32, CborValue::Unsigned(2)),

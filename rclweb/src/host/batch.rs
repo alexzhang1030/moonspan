@@ -22,10 +22,13 @@
 //! Command kinds (`cmd:u8` after the event header):
 //! - `1` Start `{ transferable_arraybuffer:u8 }`
 //! - `2` Authenticate `{ correlation:[u8;16], scheme_len:u16, scheme..., token_len:u16, token... }`
-//! - `3` Subscribe `{ correlation:[u8;16], channel_id:u32, qos:u8, domain:u8, pad:u16,
+//! - `3` Subscribe `{ correlation:[u8;16], channel_id:u32, qos:u8, domain:u8, depth:u16,
 //!                    topic_len:u16, topic..., type_len:u16, type... }`
 //! - `4` Unsubscribe `{ correlation:[u8;16], channel_id:u32 }`
 //! - `5` Close
+//! - `6` Publish `{ correlation:[u8;16], channel_id:u32, qos:u8, domain:u8, depth:u16,
+//!                  topic_len:u16, topic..., type_len:u16, type... }`
+//! - `7` SendSample `{ channel_id:u32, string_len:u32, string... }`
 //!
 //! ## Outbound result (engine → host)
 //!
@@ -53,6 +56,9 @@
 //! - `6` Heartbeat `{ counter:u64 }`
 //! - `7` Error `{ code:u8, pad:u8*3, msg_len:u16, msg... }`
 //! - `8` Closed `{ phase:u8 }`
+//! - `9` Published `{ channel_id:u32, qos_reliability:u8, pad:u8*3,
+//!                    topic_len:u16, topic..., type_len:u16, type... }`
+//! - `10` PublishFailed `{ channel_id:u32, code:u8, pad:u8*3, msg_len:u16, msg... }`
 
 pub const BATCH_MAGIC: u32 = 0x5243_4C42; // RCLB
 pub const RESULT_MAGIC: u32 = 0x5243_4C52; // RCLR
@@ -70,6 +76,8 @@ pub const CMD_AUTHENTICATE: u8 = 2;
 pub const CMD_SUBSCRIBE: u8 = 3;
 pub const CMD_UNSUBSCRIBE: u8 = 4;
 pub const CMD_CLOSE: u8 = 5;
+pub const CMD_PUBLISH: u8 = 6;
+pub const CMD_SEND_SAMPLE: u8 = 7;
 
 pub const APP_BOOTSTRAP_COMPLETE: u8 = 1;
 pub const APP_SESSION_READY: u8 = 2;
@@ -79,6 +87,8 @@ pub const APP_SAMPLE: u8 = 5;
 pub const APP_HEARTBEAT: u8 = 6;
 pub const APP_ERROR: u8 = 7;
 pub const APP_CLOSED: u8 = 8;
+pub const APP_PUBLISHED: u8 = 9;
+pub const APP_PUBLISH_FAILED: u8 = 10;
 
 use crate::engine::{
     AppCommand, AppEvent, HostEvent, OutboundMessage, PollOutcome, ReleasedBuffer,
@@ -232,6 +242,7 @@ fn decode_command(bytes: &[u8], offset: &mut usize, cmd: u8) -> Result<AppComman
             *offset += 4;
             let qos_reliability = bytes[*offset];
             let domain_id = bytes[*offset + 1];
+            let qos_depth = u32::from(read_u16(bytes, *offset + 2));
             *offset += 4;
             let topic_len = read_u16(bytes, *offset) as usize;
             *offset += 2;
@@ -257,7 +268,69 @@ fn decode_command(bytes: &[u8], offset: &mut usize, cmd: u8) -> Result<AppComman
                 topic,
                 type_name,
                 qos_reliability,
+                qos_depth,
                 domain_id,
+            })
+        }
+        CMD_PUBLISH => {
+            if *offset + 16 + 4 + 4 + 2 > bytes.len() {
+                return Err(BatchError::Truncated);
+            }
+            let mut correlation = [0u8; 16];
+            correlation.copy_from_slice(&bytes[*offset..*offset + 16]);
+            *offset += 16;
+            let channel_id = read_u32(bytes, *offset);
+            *offset += 4;
+            let qos_reliability = bytes[*offset];
+            let domain_id = bytes[*offset + 1];
+            let qos_depth = u32::from(read_u16(bytes, *offset + 2));
+            *offset += 4;
+            let topic_len = read_u16(bytes, *offset) as usize;
+            *offset += 2;
+            if *offset + topic_len + 2 > bytes.len() {
+                return Err(BatchError::Truncated);
+            }
+            let topic = std::str::from_utf8(&bytes[*offset..*offset + topic_len])
+                .map_err(|_| BatchError::BadKind)?
+                .to_owned();
+            *offset += topic_len;
+            let type_len = read_u16(bytes, *offset) as usize;
+            *offset += 2;
+            if *offset + type_len > bytes.len() {
+                return Err(BatchError::Truncated);
+            }
+            let type_name = std::str::from_utf8(&bytes[*offset..*offset + type_len])
+                .map_err(|_| BatchError::BadKind)?
+                .to_owned();
+            *offset += type_len;
+            Ok(AppCommand::Publish {
+                correlation,
+                channel_id,
+                topic,
+                type_name,
+                qos_reliability,
+                qos_depth,
+                domain_id,
+            })
+        }
+        CMD_SEND_SAMPLE => {
+            if *offset + 4 + 4 > bytes.len() {
+                return Err(BatchError::Truncated);
+            }
+            let channel_id = read_u32(bytes, *offset);
+            *offset += 4;
+            let string_len = read_u32(bytes, *offset) as usize;
+            *offset += 4;
+            if *offset + string_len > bytes.len() {
+                return Err(BatchError::Truncated);
+            }
+            let string_data = std::str::from_utf8(&bytes[*offset..*offset + string_len])
+                .map_err(|_| BatchError::BadKind)?
+                .to_owned();
+            *offset += string_len;
+            Ok(AppCommand::SendSample {
+                channel_id,
+                string_data,
             })
         }
         CMD_UNSUBSCRIBE => {
@@ -363,6 +436,31 @@ fn encode_app_event(
             message,
         } => {
             out.extend_from_slice(&[APP_SUBSCRIBE_FAILED, 0, 0, 0]);
+            write_u32(out, *channel_id);
+            out.extend_from_slice(&[*code, 0, 0, 0]);
+            write_u16(out, message.len() as u16);
+            out.extend_from_slice(message.as_bytes());
+        }
+        AppEvent::Published {
+            channel_id,
+            topic,
+            type_name,
+            qos_reliability,
+        } => {
+            out.extend_from_slice(&[APP_PUBLISHED, 0, 0, 0]);
+            write_u32(out, *channel_id);
+            out.extend_from_slice(&[*qos_reliability, 0, 0, 0]);
+            write_u16(out, topic.len() as u16);
+            out.extend_from_slice(topic.as_bytes());
+            write_u16(out, type_name.len() as u16);
+            out.extend_from_slice(type_name.as_bytes());
+        }
+        AppEvent::PublishFailed {
+            channel_id,
+            code,
+            message,
+        } => {
+            out.extend_from_slice(&[APP_PUBLISH_FAILED, 0, 0, 0]);
             write_u32(out, *channel_id);
             out.extend_from_slice(&[*code, 0, 0, 0]);
             write_u16(out, message.len() as u16);
@@ -479,16 +577,48 @@ fn encode_command(out: &mut Vec<u8>, cmd: &AppCommand) {
             topic,
             type_name,
             qos_reliability,
+            qos_depth,
             domain_id,
         } => {
             out.extend_from_slice(&[CMD_SUBSCRIBE, 0, 0, 0]);
             out.extend_from_slice(correlation);
             write_u32(out, *channel_id);
-            out.extend_from_slice(&[*qos_reliability, *domain_id, 0, 0]);
+            let depth = (*qos_depth).min(u32::from(u16::MAX)) as u16;
+            out.extend_from_slice(&[*qos_reliability, *domain_id]);
+            write_u16(out, depth);
             write_u16(out, topic.len() as u16);
             out.extend_from_slice(topic.as_bytes());
             write_u16(out, type_name.len() as u16);
             out.extend_from_slice(type_name.as_bytes());
+        }
+        AppCommand::Publish {
+            correlation,
+            channel_id,
+            topic,
+            type_name,
+            qos_reliability,
+            qos_depth,
+            domain_id,
+        } => {
+            out.extend_from_slice(&[CMD_PUBLISH, 0, 0, 0]);
+            out.extend_from_slice(correlation);
+            write_u32(out, *channel_id);
+            let depth = (*qos_depth).min(u32::from(u16::MAX)) as u16;
+            out.extend_from_slice(&[*qos_reliability, *domain_id]);
+            write_u16(out, depth);
+            write_u16(out, topic.len() as u16);
+            out.extend_from_slice(topic.as_bytes());
+            write_u16(out, type_name.len() as u16);
+            out.extend_from_slice(type_name.as_bytes());
+        }
+        AppCommand::SendSample {
+            channel_id,
+            string_data,
+        } => {
+            out.extend_from_slice(&[CMD_SEND_SAMPLE, 0, 0, 0]);
+            write_u32(out, *channel_id);
+            write_u32(out, string_data.len() as u32);
+            out.extend_from_slice(string_data.as_bytes());
         }
         AppCommand::Unsubscribe {
             correlation,

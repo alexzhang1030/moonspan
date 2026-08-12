@@ -30,6 +30,7 @@ export class IoHost {
   #pending: HostEventInput[] = [];
   #flushScheduled = false;
   #lastTelemetry: EngineTelemetrySnapshot | null = null;
+  #suppressCloseHandler = false;
 
   private constructor(wasm: WasmExports, handle: number, callbacks: HostCallbacks) {
     this.#wasm = wasm;
@@ -80,7 +81,9 @@ export class IoHost {
     });
     ws.addEventListener("close", () => {
       this.#closed = true;
-      this.#callbacks.onClosed();
+      if (!this.#suppressCloseHandler) {
+        this.#callbacks.onClosed();
+      }
     });
   }
 
@@ -115,6 +118,7 @@ export class IoHost {
     topic: string;
     typeName: string;
     qosReliability?: number;
+    qosDepth?: number;
     domainId?: number;
   }): void {
     this.#enqueue({
@@ -126,8 +130,40 @@ export class IoHost {
         topic: args.topic,
         typeName: args.typeName,
         qosReliability: args.qosReliability ?? 1,
+        qosDepth: args.qosDepth ?? 5,
         domainId: args.domainId ?? 0,
       },
+    });
+  }
+
+  publish(args: {
+    correlation: Uint8Array;
+    channelId: number;
+    topic: string;
+    typeName: string;
+    qosReliability?: number;
+    qosDepth?: number;
+    domainId?: number;
+  }): void {
+    this.#enqueue({
+      type: "command",
+      command: {
+        type: "publish",
+        correlation: args.correlation,
+        channelId: args.channelId,
+        topic: args.topic,
+        typeName: args.typeName,
+        qosReliability: args.qosReliability ?? 1,
+        qosDepth: args.qosDepth ?? 5,
+        domainId: args.domainId ?? 0,
+      },
+    });
+  }
+
+  sendSample(channelId: number, stringData: string): void {
+    this.#enqueue({
+      type: "command",
+      command: { type: "sendSample", channelId, stringData },
     });
   }
 
@@ -136,6 +172,31 @@ export class IoHost {
       type: "command",
       command: { type: "unsubscribe", correlation, channelId },
     });
+  }
+
+  /**
+   * Replace the engine and reopen the WebSocket (fresh session reconnect).
+   * Caller must re-issue subscribe/publish after sessionReady.
+   */
+  async reconnect(url: string): Promise<void> {
+    this.#suppressCloseHandler = true;
+    try {
+      this.#ws?.close();
+      this.#ws = null;
+      this.#closed = false;
+      this.#pending = [];
+      if (this.#handle !== 0) {
+        this.#wasm.rclweb_engine_free(this.#handle);
+      }
+      this.#handle = this.#wasm.rclweb_engine_new();
+      if (this.#handle === 0) {
+        throw new Error("rclweb_engine_new failed on reconnect");
+      }
+      this.#started = false;
+      this.connect(url);
+    } finally {
+      this.#suppressCloseHandler = false;
+    }
   }
 
   releaseLease(leaseId: number): void {
