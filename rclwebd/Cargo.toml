@@ -5,5 +5,22 @@ edition.workspace = true
 rust-version.workspace = true
 publish = false
 
+[features]
+# Serialized-only rcl attachment (links a ROS 2 Jazzy installation; see
+# docs/gateway/rclwebd.md for the environment contract).
+ros = []
+
 [dependencies]
+axum = { version = "0.8.9", features = ["ws"] }
+bytes = "1.12.1"
 rclweb = { path = "../rclweb" }
+tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros", "net", "sync", "time", "signal"] }
+
+[dev-dependencies]
+futures-util = { version = "0.3.34", default-features = false, features = ["sink", "std"] }
+tokio-tungstenite = "0.30.0"
+
+[[bin]]
+name = "rclwebd"
+path = "src/main.rs"
+required-features = ["ros"]
