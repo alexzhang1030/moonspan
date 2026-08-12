@@ -15,7 +15,7 @@ rclweb keeps the language count at the minimum the platform forces: Rust for eve
 | JavaScript tooling | Bun ([ADR 0002](../../docs/adr/0002-use-bun-for-javascript-tooling.md)) | Workspaces, installation, scripts, tests, builds, lockfile |
 | Repository commands | just | One root command surface |
 
-MoonBit was the pre-restructure browser runtime language, chosen for Wasm convenience. It was retired because the poll boundary (ADR 0004) is a narrow buffer interface where authoring ergonomics matter least, while the gateway/browser split is where a second language compounds cost. The sole reopen condition is R1 evidence on wasm artifact size or poll latency.
+MoonBit was the pre-restructure browser runtime language, chosen for Wasm convenience. It was retired because the poll boundary (ADR 0004) is a narrow buffer interface where authoring ergonomics matter least, while the gateway/browser split is where a second language compounds cost. The sole reopen condition is R1 evidence on wasm artifact size or poll latency. R1-04 records size under [`docs/evidence/r1-04-wasm-size.json`](../../docs/evidence/r1-04-wasm-size.json); poll latency lands with R1-05.
 
 ## Toolchain pins
 
@@ -38,9 +38,10 @@ just build
 
 | Path | Tooling and role |
 |---|---|
-| `rclweb/` | Cargo crate: the core (native + wasm32) |
+| `rclweb/` | Cargo crate: the core (native + wasm32); `cdylib` exports the hand-written poll ABI |
 | `rclwebd/` | Cargo crate: the gateway |
-| `sdk/typescript/` | Bun workspace and browser SDK |
+| `sdk/typescript/` | Bun workspace and browser SDK (I/O Worker + public API around the wasm artifact) |
+| `sdk/typescript/wasm/` | Staged `rclweb.wasm` from `scripts/build-wasm.ts` (fat LTO) |
 | `protocol/` | Normative contracts, registries, schemas, and frozen fixtures |
 | `conformance/` | CDR corpus and qualification workloads |
 | `studio/` | U0 workspace added after release |

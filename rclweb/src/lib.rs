@@ -3,13 +3,14 @@
 //! One codebase serves both sides of the wire: the gateway (`rclwebd`) links
 //! this crate natively, and the browser runtime is this crate compiled to
 //! `wasm32`. R2WP v0 framing, deterministic CBOR, control parsing, the CDR
-//! codecs (R1-01), and the session/channel state machine (R1-02) live here.
-//! Host poll ABI and gateway transport land in later R1 tasks
-//! (see `docs/proposals/architecture-restructure.md`).
+//! codecs (R1-01), the session/channel state machine (R1-02), the client
+//! connection engine, and the host poll ABI (R1-04) live here.
 
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 
 pub mod cdr;
+pub mod engine;
+pub mod host;
 pub mod protocol;
 pub mod session;
 
@@ -18,6 +19,15 @@ pub use cdr::{
     CdrWriter, DEFAULT_MAX_NESTING_DEPTH, DEFAULT_MAX_STREAM_BYTES,
     DEFAULT_MAX_TEMPORARY_ALLOCATION, HEADER_LENGTH, MIN_MAX_NESTING_DEPTH, MIN_MAX_STREAM_BYTES,
     REPRESENTATION_CDR_BE, REPRESENTATION_CDR_LE, WRITER_INITIAL_SIZE_HINT,
+};
+pub use engine::{
+    AppCommand, AppEvent, ClientEngine, DEMO_SCHEMA_HASH, EngineTelemetry, HostEvent,
+    MAX_HOST_EVENTS_PER_POLL, MAX_OUTBOUND_PER_POLL, OutboundMessage, PollOutcome, ReleasedBuffer,
+    STD_MSGS_STRING, ZERO_CORRELATION, authenticate, close_channel, heartbeat, open_topic,
+};
+pub use host::{
+    BATCH_MAGIC, BatchError, LAYOUT_VERSION, RESULT_MAGIC, decode_host_batch,
+    encode_host_batch_inline, encode_poll_result,
 };
 pub use protocol::{
     BOOTSTRAP_PAYLOAD_MAX_BYTES, BOOTSTRAP_PREFIX_LENGTH, BootstrapErrorRecord, BootstrapRecord,

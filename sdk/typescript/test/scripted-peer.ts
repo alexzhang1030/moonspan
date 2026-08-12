@@ -1,0 +1,38 @@
+/**
+ * Load committed scripted-peer byte fixtures for SDK tests.
+ * Fixtures are produced by `scripts/fixture-gen` (same encoders as the core).
+ */
+
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
+type FixtureSet = {
+  serverHello: string;
+  sessionReady: string;
+  channelReady: string;
+  sample: string;
+  authCorrelationHex: string;
+  subCorrelationHex: string;
+};
+
+function hexToBytes(hex: string): Uint8Array {
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i++) {
+    out[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  }
+  return out;
+}
+
+const fixturesPath = path.join(import.meta.dir, "fixtures", "scripted-peer.json");
+
+export function scriptedPeerFixtures() {
+  const cached = JSON.parse(readFileSync(fixturesPath, "utf8")) as FixtureSet;
+  return {
+    serverHello: hexToBytes(cached.serverHello),
+    sessionReady: hexToBytes(cached.sessionReady),
+    channelReady: hexToBytes(cached.channelReady),
+    sample: hexToBytes(cached.sample),
+    authCorrelation: hexToBytes(cached.authCorrelationHex),
+    subCorrelation: hexToBytes(cached.subCorrelationHex),
+  };
+}

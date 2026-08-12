@@ -1,8 +1,9 @@
 //! Synchronous session and channel state machine for the R2WP v0.1 subset.
 //!
 //! Host-agnostic and pure: callers parse bootstrap/frames with [`crate::protocol`]
-//! first, then ingest or record-send through [`Session`]. Poll ABI, transports,
-//! and rcl FFI remain out of scope (R1-03 / R1-04).
+//! first, then ingest or record-send through [`Session`]. The client connection
+//! engine ([`crate::engine`]) and wasm poll ABI ([`crate::host`]) sit above this
+//! module (R1-04).
 //!
 //! ## Model
 //!

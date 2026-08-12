@@ -37,7 +37,7 @@ One gateway process may expose multiple domain IDs within its support row. Fleet
 ## Design rules
 
 - CDR stays on the binary data path; the gateway never parses sample bodies.
-- Browser APIs remain in JavaScript Workers; the core crosses the boundary through bounded poll batches (ADR 0004, unchanged).
+- Browser APIs remain in JavaScript Workers; the core crosses the boundary through bounded poll batches (ADR 0004; R1-04 hand-written ABI + I/O Worker).
 - The copy budget is two controllable payload copies end to end, with telemetry counters ([performance plan](../../docs/proposals/architecture-restructure.md#performance-plan)).
 - Queue, buffer, timeout, retry, and memory budgets are explicit; best-effort channels drop at the edge with stable dispositions.
 - Fixtures are the single conformance oracle; there is no cross-implementation agreement apparatus.

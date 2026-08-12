@@ -112,3 +112,32 @@ jobs:
       - name: just build
         shell: bash
         run: just build
+
+  e2e:
+    name: e2e-ros-talker
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    needs: foundation
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Build and run R1 e2e compose (Jazzy talker → SDK)
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f docker/compose.r1-e2e.yml build
+          docker compose -f docker/compose.r1-e2e.yml run --rm e2e
+
+      - name: Upload R1 evidence artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r1-evidence
+          path: |
+            docs/evidence/r1-04-wasm-size.json
+            docs/evidence/r1-05-poll-latency.json
+            docs/evidence/r1-05-e2e.json
+          if-no-files-found: warn

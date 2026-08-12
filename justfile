@@ -74,12 +74,30 @@ ros-test: toolchain-check
     cargo test --locked -p rclwebd --features ros
     cargo clippy --locked -p rclwebd --features ros --all-targets -- -D warnings
 
-# Cargo native build, rclweb wasm32 build, and SDK build.
+# Cargo native build, rclweb wasm32 (fat LTO) staged into the SDK, and SDK build.
 [group('quality')]
 build: toolchain-check
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{root}}"
     cargo build --locked --workspace
-    cargo build --locked -p rclweb --target wasm32-unknown-unknown
+    bun run scripts/build-wasm.ts
     bun run --filter @rclweb/sdk build
+
+# Measure wasm poll latency and refresh size evidence (R-D1 reopen inputs).
+[group('quality')]
+poll-latency: toolchain-check
+    cd "{{root}}" && bun run scripts/measure-poll-latency.ts
+
+# Live ROS talker → rclwebd → SDK subscribe via docker compose (R1-05).
+[group('quality')]
+e2e: toolchain-check
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{root}}"
+    if ! command -v docker >/dev/null 2>&1; then
+        echo "error: docker is required for just e2e" >&2
+        exit 1
+    fi
+    docker compose -f docker/compose.r1-e2e.yml build
+    docker compose -f docker/compose.r1-e2e.yml run --rm e2e

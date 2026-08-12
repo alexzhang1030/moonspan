@@ -18,12 +18,12 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified. Phase details live in
 - [x] R1-01 Port the CDR core to Rust against the frozen contract; pass the committed corpus.
 - [x] R1-02 Session/channel state machine for the v0.1 subset.
 - [x] R1-03 Gateway WebSocket endpoint and serialized-only rcl FFI attachment.
-- [ ] R1-04 Wasm host boundary, I/O Worker, SDK subscribe path.
-- [ ] R1-05 End-to-end CI evidence, demo, wasm size and poll latency, copy counters.
+- [x] R1-04 Wasm host boundary, I/O Worker, SDK subscribe path.
+- [x] R1-05 End-to-end CI evidence, demo, wasm size and poll latency, copy counters.
 
 ### R1 gate
 
-- [ ] Live sample flows in CI; demo reviewed; copy budget holds.
+- [~] Live sample flows in CI; demo ready for human review; copy budget counters recorded.
 
 ## R2: Data-plane hardening
 

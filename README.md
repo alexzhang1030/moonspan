@@ -8,7 +8,7 @@ The project was restructured from the earlier three-language architecture (tag `
 
 | Path | Role |
 |---|---|
-| `rclweb/` | Rust core: R2WP protocol, CDR codecs, session/channel state (native + wasm32) |
+| `rclweb/` | Rust core: R2WP protocol, CDR codecs, session/channel state, client engine + poll ABI (native + wasm32) |
 | `rclwebd/` | Rust edge gateway: transport endpoints, serialized rcl attachment, policy |
 | `sdk/typescript/` | Browser SDK: Worker host, buffers, public typed API around the core wasm artifact |
 | `protocol/` | Normative R2WP contract, registry, schema, and frozen fixtures |
@@ -42,13 +42,19 @@ just build
 | `just toolchain-check` | Verify pinned tools |
 | `just check` | Docs, protocol, and corpus checks; Rust fmt/clippy; SDK typecheck |
 | `just test` | Bun and Cargo test suites |
-| `just build` | Native build, `rclweb` wasm32 build, and SDK build |
+| `just build` | Native build, fat-LTO `rclweb` wasm staged into the SDK, and SDK build |
+| `just poll-latency` | Record wasm poll latency + size evidence (R-D1) |
+| `just e2e` | Docker compose: ROS talker → rclwebd → SDK subscribe |
 | `just protocol-check` | Validate the R2WP registry JSON and control CDDL |
 | `just cdr-corpus-check` | Verify the committed ROS CDR corpus |
 
 ## Status
 
-Executing the restructure plan: R0 (stop-loss and renames) is this change; R1 delivers the walking skeleton — a browser page subscribing to a live ROS 2 topic end-to-end on one support row over binary WebSocket. Phases and gates live in the [plan](./tasks/plan.md); current state lives in the [checklist](./tasks/todo.md).
+R0 and R1 are complete: the walking skeleton reaches a live ROS talker in CI
+(`just e2e` / `e2e-ros-talker` job) and a committed demo under
+`examples/subscribe-chatter`. Phases and gates live in the
+[plan](./tasks/plan.md); current state lives in the
+[checklist](./tasks/todo.md).
 
 ## Start here
 

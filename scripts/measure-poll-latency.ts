@@ -1,0 +1,97 @@
+#!/usr/bin/env bun
+/**
+ * Measure ClientEngine / wasm poll latency (R-D1 reopen input) and refresh
+ * the wasm size record. Writes docs/evidence/r1-05-poll-latency.json.
+ */
+import { mkdirSync, writeFileSync, readFileSync, statSync } from "node:fs";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { loadWasm, pollEngine, readTelemetry } from "../sdk/typescript/src/wasm/abi.ts";
+
+const root = path.resolve(import.meta.dir, "..");
+const evidenceDir = path.join(root, "docs", "evidence");
+mkdirSync(evidenceDir, { recursive: true });
+
+const build = spawnSync("bun", ["run", "scripts/build-wasm.ts"], {
+  cwd: root,
+  stdio: "inherit",
+});
+if (build.status !== 0) {
+  process.exit(build.status ?? 1);
+}
+
+const wasmPath = path.join(root, "sdk/typescript/wasm/rclweb.wasm");
+const wasmBytes = readFileSync(wasmPath);
+const wasm = await loadWasm(
+  wasmBytes.buffer.slice(
+    wasmBytes.byteOffset,
+    wasmBytes.byteOffset + wasmBytes.byteLength,
+  ),
+);
+const handle = wasm.rclweb_engine_new();
+
+const warmup = 50;
+const iters = 500;
+const samples: number[] = [];
+
+pollEngine(wasm, handle, [
+  {
+    type: "command",
+    command: { type: "start", transferableArrayBuffer: true },
+  },
+]);
+
+for (let i = 0; i < warmup + iters; i++) {
+  const t0 = performance.now();
+  pollEngine(wasm, handle, [{ type: "timer", nowMs: BigInt(i + 1) }]);
+  const dtMs = performance.now() - t0;
+  if (i >= warmup) samples.push(dtMs);
+}
+
+samples.sort((a, b) => a - b);
+const percentile = (p: number) => {
+  const idx = Math.min(
+    samples.length - 1,
+    Math.max(0, Math.ceil((p / 100) * samples.length) - 1),
+  );
+  return samples[idx]!;
+};
+const mean = samples.reduce((a, b) => a + b, 0) / samples.length;
+const telemetry = readTelemetry(wasm, handle);
+wasm.rclweb_engine_free(handle);
+
+const size = statSync(wasmPath).size;
+const record = {
+  task: "R1-05",
+  kind: "poll-latency",
+  recordedAt: new Date().toISOString(),
+  wasm: {
+    artifact: "sdk/typescript/wasm/rclweb.wasm",
+    profile: "release-wasm",
+    bytes: size,
+    kib: Math.round((size / 1024) * 10) / 10,
+  },
+  workload: {
+    description: "wasm pollEngine timer turns after Start",
+    warmup,
+    iterations: iters,
+  },
+  latencyMs: {
+    mean: Number(mean.toFixed(4)),
+    p50: Number(percentile(50).toFixed(4)),
+    p95: Number(percentile(95).toFixed(4)),
+    p99: Number(percentile(99).toFixed(4)),
+    min: Number(samples[0]!.toFixed(4)),
+    max: Number(samples[samples.length - 1]!.toFixed(4)),
+  },
+  engineTelemetry: telemetry,
+  note: "R-D1 reopen input. Absolute envelope is review-gated; this records the baseline.",
+};
+
+writeFileSync(
+  path.join(evidenceDir, "r1-05-poll-latency.json"),
+  `${JSON.stringify(record, null, 2)}\n`,
+);
+console.log(
+  `poll latency p50=${record.latencyMs.p50}ms p99=${record.latencyMs.p99}ms; wasm=${record.wasm.kib} KiB`,
+);
