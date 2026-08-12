@@ -10,10 +10,10 @@ The R2WP v0 parsers are complete (moved from the pre-restructure gateway). The C
 - R2WP encoding (bootstrap, control frames, TLVs, data-frame headers) proven by round-trips against the parsers
 - CDR encoding, decoding, validation, and field projection (R1 port of the frozen [CDR contract](./cdr.md))
 - Session and channel state for the v0.1 normative subset
-- Client connection engine (`Role::Client`) producing/consuming the walking-skeleton control and sample path
+- Client connection engine (`Role::Client`) producing/consuming the walking-skeleton control and sample path, including the R2-01 publish/`SendSample` direction
 - Host poll ABI: bounded event batches in, outbound work / app events / released buffers / next deadline out
-- Graph, QoS, clocks, and operation state (later phases)
-- Structured errors and telemetry events, including copy counters (R1-05)
+- QoS subset on OpenChannel (reliability + KEEP_LAST depth); full QoS / graph / clocks remain later phases
+- Structured errors and telemetry events, including copy counters (R1-05) and outbound `samples_sent` (R2-01)
 
 ## Wasm host boundary
 

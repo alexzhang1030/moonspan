@@ -89,6 +89,14 @@ async fn subscribe_channel_streams_samples() {
     assert_eq!(uint(&qos, 3), 1, "keep last");
     assert_eq!(uint(&qos, 4), 5, "depth from request");
     assert_eq!(uint(&qos, 7), 1, "concrete liveliness");
+    let CborValue::Map(budgets) = fields.get(&12).expect("effective budgets") else {
+        panic!("expected budgets map");
+    };
+    let budgets: BTreeMap<u64, CborValue<'_>> =
+        budgets.iter().map(|(k, v)| (*k, v.clone())).collect();
+    assert!(uint(&budgets, 1) >= 1, "max_samples");
+    assert!(uint(&budgets, 2) >= 1, "max_bytes");
+    assert!(uint(&budgets, 3) >= 1, "max_message_bytes");
     assert_eq!(client.session.channel_state(7), ChannelState::Active);
     assert_eq!(backend.created.lock().unwrap()[0].topic, "/chatter");
 
@@ -281,4 +289,57 @@ async fn ready_required_control_before_ready_yields_error_27() {
     assert_eq!(uint(&fields, 48), 27, "session_not_ready");
     assert_eq!(uint(&fields, 49), 0, "session scope");
     client.expect_closed().await;
+}
+
+#[tokio::test]
+async fn fresh_session_reconnect_reopens_subscribe() {
+    let (addr, backend) = start_gateway().await;
+
+    // First session.
+    {
+        let mut client = TestClient::connect(&addr).await;
+        ready_session(&mut client).await;
+        client
+            .send_control(&TestClient::open_topic_msg(
+                &corr(0xB2),
+                7,
+                0,
+                "/chatter",
+                "std_msgs/msg/String",
+                1,
+            ))
+            .await;
+        let (bytes, _) = client.recv_ingested().await.expect("channel ready");
+        let (kind, fields) = control_fields(&bytes);
+        assert_eq!(kind, 9);
+        assert_eq!(uint(&fields, 33), 0);
+        // Drop the client (transport close) — gateway tears down entities.
+    }
+
+    tokio::time::timeout(std::time::Duration::from_secs(5), async {
+        while backend.live_subscriptions() != 0 {
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .expect("first session subscription destroyed");
+
+    // Fresh reconnect: new ClientHello / Auth / OpenChannel.
+    let mut client = TestClient::connect(&addr).await;
+    ready_session(&mut client).await;
+    client
+        .send_control(&TestClient::open_topic_msg(
+            &corr(0xB3),
+            7,
+            0,
+            "/chatter",
+            "std_msgs/msg/String",
+            1,
+        ))
+        .await;
+    let (bytes, _) = client.recv_ingested().await.expect("channel ready again");
+    let (kind, fields) = control_fields(&bytes);
+    assert_eq!(kind, 9);
+    assert_eq!(uint(&fields, 33), 0);
+    assert_eq!(backend.live_subscriptions(), 1);
 }

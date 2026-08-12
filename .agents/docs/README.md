@@ -30,10 +30,10 @@ The project was restructured and renamed from moonspan to rclweb ([ADR 0010](../
 | Area | Context |
 |---|---|
 | `protocol/**` | [Architecture](./architecture.md), [R2WP](../../docs/protocol/r2wp.md), [normative subset](../../protocol/r2wp-v0.md#normative-scope-after-the-restructure-v01-subset) |
-| `rclweb/**` | [Architecture](./architecture.md), [technology stack](./technology-stack.md), [`rclweb` core](../../docs/runtime/core.md), [CDR contract](../../docs/runtime/cdr.md), [R1-02 session SM](../../docs/milestones/r1-02-session-channel-state.md), [R1-04 poll ABI](../../docs/milestones/r1-04-wasm-host-sdk.md), [generated types](../../docs/runtime/generated-types.md) |
-| `rclwebd/**` | [Architecture](./architecture.md), [`rclwebd`](../../docs/gateway/rclwebd.md), [R1-03 WS + rcl](../../docs/milestones/r1-03-gateway-ws-rcl.md), [security](../../docs/security.md) |
+| `rclweb/**` | [Architecture](./architecture.md), [technology stack](./technology-stack.md), [`rclweb` core](../../docs/runtime/core.md), [CDR contract](../../docs/runtime/cdr.md), [R1-02 session SM](../../docs/milestones/r1-02-session-channel-state.md), [R1-04 poll ABI](../../docs/milestones/r1-04-wasm-host-sdk.md), [R2-01 publish/QoS](../../docs/milestones/r2-01-data-plane-hardening.md), [generated types](../../docs/runtime/generated-types.md) |
+| `rclwebd/**` | [Architecture](./architecture.md), [`rclwebd`](../../docs/gateway/rclwebd.md), [R1-03 WS + rcl](../../docs/milestones/r1-03-gateway-ws-rcl.md), [R2-01 budgets/dispositions](../../docs/milestones/r2-01-data-plane-hardening.md), [security](../../docs/security.md) |
 | `rclwebd/src/ros/**` | Vendored bindings + `ros` feature gating: [technology stack](./technology-stack.md), [R1-03 notes](../../docs/milestones/r1-03-gateway-ws-rcl.md#behavioral-notes) |
-| `sdk/**` | [Intent](./intent.md), [architecture](../../docs/architecture.md), [R1-04 SDK host](../../docs/milestones/r1-04-wasm-host-sdk.md), [R1-05 e2e](../../docs/milestones/r1-05-e2e-evidence.md) |
+| `sdk/**` | [Intent](./intent.md), [architecture](../../docs/architecture.md), [R1-04 SDK host](../../docs/milestones/r1-04-wasm-host-sdk.md), [R1-05 e2e](../../docs/milestones/r1-05-e2e-evidence.md), [R2-01 publish/reconnect](../../docs/milestones/r2-01-data-plane-hardening.md) |
 | `examples/**` | [R1-05 e2e + demo](../../docs/milestones/r1-05-e2e-evidence.md) |
 | `docker/**` | [R1-05 compose lane](../../docs/milestones/r1-05-e2e-evidence.md) |
 | `conformance/**` | [Validation](./validation.md), [corpus README](../../conformance/cdr/README.md), [support matrix](../../docs/support-matrix.md) |

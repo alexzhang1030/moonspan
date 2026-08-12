@@ -2,7 +2,7 @@
 
 `rclwebd` is rclweb's controlled edge boundary between browser sessions and ROS 2 domains. It links the shared [`rclweb` core](../runtime/core.md) for R2WP parsing/encoding and owns transport, scheduling, sessions, schemas, policy, audit, telemetry, and recovery. ROS attachment goes through a narrow serialized-only rcl FFI surface (static typesupport links in R1; a versioned adapter ABI with dynamic typesupport in R3).
 
-R1-03 delivered the binary WebSocket endpoint (tokio/axum, `GET /ws` + `GET /healthz`) and serialized subscribe/publish over the rcl FFI for the walking skeleton ([milestone note](../milestones/r1-03-gateway-ws-rcl.md)). R2 hardens the data plane. R3 adds the remaining ROS semantics. R4 qualifies identity, policy, compatibility, deployment, and operations.
+R1-03 delivered the binary WebSocket endpoint (tokio/axum, `GET /ws` + `GET /healthz`) and serialized subscribe/publish over the rcl FFI for the walking skeleton ([milestone note](../milestones/r1-03-gateway-ws-rcl.md)). R2-01 hardens the data plane: effective budgets on ChannelReady/SessionReady, best-effort latest-wins write-queue admission with stable disposition counters on `/telemetryz`, and fresh-session reconnect ([milestone note](../milestones/r2-01-data-plane-hardening.md)). R2-02+ continues large messages, adversarial fixtures, and baselines. R3 adds the remaining ROS semantics. R4 qualifies identity, policy, compatibility, deployment, and operations.
 
 ## R1 environment contract
 

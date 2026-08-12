@@ -146,3 +146,42 @@ test("scripted peer: sample with no handler still releases its lease", async () 
 
   await client.close();
 });
+
+test("scripted peer: publish → ChannelReady → SendSample outbound", async () => {
+  const fixtures = scriptedPeerFixtures();
+  const wasmBytes = readFileSync(wasmPath);
+  const client = await connectOfflineForTests(
+    wasmBytes.buffer.slice(
+      wasmBytes.byteOffset,
+      wasmBytes.byteOffset + wasmBytes.byteLength,
+    ),
+  );
+
+  const host = client.host;
+  host.startOffline();
+  host.flushSync();
+  host.ingestBytes(fixtures.serverHello);
+  host.flushSync();
+  host.flushSync();
+  host.ingestBytes(fixtures.sessionReady);
+  host.flushSync();
+
+  const pubPromise = client.session.publish("/chatter", STD_MSGS_STRING, {
+    reliability: 1,
+    depth: 5,
+  });
+  // Capture OpenChannel outbound before ChannelReady.
+  host.flushSync();
+  host.ingestBytes(fixtures.channelReady);
+  host.flushSync();
+  const publisher = await pubPromise;
+  expect(publisher.channelId).toBe(1);
+  expect(publisher.topic).toBe("/chatter");
+
+  await publisher.publish({ data: "hello-publish" });
+  const telemetry = client.telemetry();
+  expect(telemetry).not.toBeNull();
+  expect(telemetry!.samplesSent).toBe(1);
+
+  await client.close();
+});

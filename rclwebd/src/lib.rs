@@ -11,6 +11,7 @@
 #![deny(unsafe_code)]
 
 pub mod backend;
+pub mod budgets;
 pub mod config;
 pub mod connection;
 pub mod control;
@@ -21,6 +22,7 @@ pub mod telemetry;
 pub mod ws;
 
 pub use backend::{BackendError, ChannelSpec, EntityId, RosBackend, SubscriptionSample};
+pub use budgets::{Disposition, DispositionCounters, SampleWriteQueue};
 pub use config::GatewayConfig;
 pub use connection::{Transport, TransportError, run_connection};
 pub use telemetry::{GatewayTelemetry, GatewayTelemetrySnapshot, PROCESS_TELEMETRY};

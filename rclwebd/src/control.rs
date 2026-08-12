@@ -4,6 +4,7 @@
 //! connection re-parses every outbound control frame with the core parser
 //! before sending, so a builder that drifts from the contract fails loudly.
 
+use crate::budgets::effective_budgets_map;
 use crate::config::{
     GatewayConfig, MAX_CHANNELS_CEILING, MAX_CONTROL_PAYLOAD_BYTES_CEILING,
     MAX_MESSAGE_BYTES_CEILING, MAX_SESSION_BYTES_CEILING, RMW_IDENTIFIER, ROS_DISTRO,
@@ -145,7 +146,14 @@ pub fn session_ready(
             10,
             CborValue::Array(vec![CborValue::Unsigned(u64::from(config.domain_id))]),
         ),
-        (12, CborValue::Map(Vec::new())),
+        (
+            12,
+            effective_budgets_map(
+                u64::from(config.max_channels),
+                config.max_session_bytes,
+                u64::from(config.max_message_bytes),
+            ),
+        ),
         (13, text_value(&config.policy_revision)),
         (18, text_value(ROS_DISTRO)),
         (19, text_value(RMW_IDENTIFIER)),
@@ -170,7 +178,14 @@ pub fn channel_ready_allow(
         (2, bytes_value(correlation)),
         (29, CborValue::Unsigned(u64::from(channel_id))),
         (33, CborValue::Unsigned(0)),
-        (12, CborValue::Map(Vec::new())),
+        (
+            12,
+            effective_budgets_map(
+                config.sample_queue_depth as u64,
+                config.sample_queue_max_bytes as u64,
+                u64::from(config.max_message_bytes),
+            ),
+        ),
         (59, CborValue::Unsigned(u64::from(effective_priority))),
         (57, effective_qos.to_wire()),
         (9, CborValue::Unsigned(u64::from(config.domain_id))),

@@ -12,7 +12,8 @@ mod types;
 mod tests;
 
 pub use control::{
-    DEMO_SCHEMA_HASH, ZERO_CORRELATION, authenticate, close_channel, heartbeat, open_topic,
+    DEFAULT_QOS_DEPTH, DEMO_SCHEMA_HASH, ZERO_CORRELATION, authenticate, close_channel, heartbeat,
+    open_topic,
 };
 pub use types::{
     AppCommand, AppEvent, EngineTelemetry, HostEvent, MAX_HOST_EVENTS_PER_POLL,
@@ -29,18 +30,41 @@ use crate::protocol::control::{
     CONTROL_KIND_SESSION_READY,
 };
 use crate::protocol::frame::{
-    DecodedFrame, FrameOptions, FramePayload, OPCODE_CONTROL_CBOR, OPCODE_ROS_SAMPLE,
+    DecodedFrame, FLAG_ROS_RELIABLE, FrameOptions, FramePayload, OPCODE_CONTROL_CBOR,
+    OPCODE_ROS_SAMPLE,
 };
-use crate::protocol::{encode_client_hello, encode_control_frame, parse_bootstrap, parse_frame};
+use crate::protocol::{
+    FrameHeader, encode_client_hello, encode_control_frame, encode_frame, parse_bootstrap,
+    parse_frame,
+};
 use crate::session::{ChannelState, Role, Session, SessionEffects, SessionPhase};
 use std::collections::HashMap;
 
 const HEARTBEAT_INTERVAL_MS: u64 = 15_000;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PendingKind {
+    Subscribe,
+    Publish,
+}
+
 #[derive(Debug)]
-struct PendingSubscribe {
+struct PendingOpen {
+    kind: PendingKind,
     topic: String,
     type_name: String,
+    /// Client-requested reliability (may differ from effective until ChannelReady).
+    qos_reliability: u8,
+}
+
+#[derive(Debug)]
+struct ActivePublish {
+    #[allow(dead_code)]
+    topic: String,
+    #[allow(dead_code)]
+    type_name: String,
+    reliable: bool,
+    seq_out: u64,
 }
 
 #[derive(Debug)]
@@ -71,8 +95,9 @@ pub struct ClientEngine {
     next_lease_id: u32,
     retained: HashMap<u32, RetainedBuffer>,
     leases: HashMap<u32, Lease>,
-    pending_subscribes: HashMap<u32, PendingSubscribe>,
-    active_subscribes: HashMap<u32, PendingSubscribe>,
+    pending_opens: HashMap<u32, PendingOpen>,
+    active_subscribes: HashMap<u32, PendingOpen>,
+    active_publishes: HashMap<u32, ActivePublish>,
     started: bool,
     closed: bool,
     last_timer_ms: Option<u64>,
@@ -99,8 +124,9 @@ impl ClientEngine {
             next_lease_id: 1,
             retained: HashMap::new(),
             leases: HashMap::new(),
-            pending_subscribes: HashMap::new(),
+            pending_opens: HashMap::new(),
             active_subscribes: HashMap::new(),
+            active_publishes: HashMap::new(),
             started: false,
             closed: false,
             last_timer_ms: None,
@@ -239,28 +265,49 @@ impl ClientEngine {
                 topic,
                 type_name,
                 qos_reliability,
+                qos_depth,
                 domain_id,
             } => {
-                let msg = open_topic(
+                self.open_channel_cmd(
                     correlation,
                     *channel_id,
                     0,
                     topic,
                     type_name,
-                    u64::from(*qos_reliability),
+                    *qos_reliability,
+                    *qos_depth,
                     *domain_id,
+                    PendingKind::Subscribe,
+                    outcome,
                 );
-                if !self.push_control(&msg, outcome) {
-                    self.fail(outcome, 1, "open_channel_encode_failed");
-                    return;
-                }
-                self.pending_subscribes.insert(
+            }
+            AppCommand::Publish {
+                correlation,
+                channel_id,
+                topic,
+                type_name,
+                qos_reliability,
+                qos_depth,
+                domain_id,
+            } => {
+                self.open_channel_cmd(
+                    correlation,
                     *channel_id,
-                    PendingSubscribe {
-                        topic: topic.clone(),
-                        type_name: type_name.clone(),
-                    },
+                    1,
+                    topic,
+                    type_name,
+                    *qos_reliability,
+                    *qos_depth,
+                    *domain_id,
+                    PendingKind::Publish,
+                    outcome,
                 );
+            }
+            AppCommand::SendSample {
+                channel_id,
+                string_data,
+            } => {
+                self.send_sample(*channel_id, string_data, outcome);
             }
             AppCommand::Unsubscribe {
                 correlation,
@@ -271,8 +318,9 @@ impl ClientEngine {
                     self.fail(outcome, 1, "close_channel_encode_failed");
                     return;
                 }
-                self.pending_subscribes.remove(channel_id);
+                self.pending_opens.remove(channel_id);
                 self.active_subscribes.remove(channel_id);
+                self.active_publishes.remove(channel_id);
             }
             AppCommand::Close => {
                 self.closed = true;
@@ -281,6 +329,112 @@ impl ClientEngine {
                 });
             }
         }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn open_channel_cmd(
+        &mut self,
+        correlation: &[u8; 16],
+        channel_id: u32,
+        operation_kind: u64,
+        topic: &str,
+        type_name: &str,
+        qos_reliability: u8,
+        qos_depth: u32,
+        domain_id: u8,
+        kind: PendingKind,
+        outcome: &mut PollOutcome,
+    ) {
+        let depth = if qos_depth == 0 {
+            control::DEFAULT_QOS_DEPTH
+        } else {
+            qos_depth
+        };
+        let msg = open_topic(
+            correlation,
+            channel_id,
+            operation_kind,
+            topic,
+            type_name,
+            u64::from(qos_reliability),
+            depth,
+            domain_id,
+        );
+        if !self.push_control(&msg, outcome) {
+            self.fail(outcome, 1, "open_channel_encode_failed");
+            return;
+        }
+        self.pending_opens.insert(
+            channel_id,
+            PendingOpen {
+                kind,
+                topic: topic.to_owned(),
+                type_name: type_name.to_owned(),
+                qos_reliability,
+            },
+        );
+    }
+
+    fn send_sample(&mut self, channel_id: u32, string_data: &str, outcome: &mut PollOutcome) {
+        let Some(pub_ch) = self.active_publishes.get_mut(&channel_id) else {
+            outcome.events.push(AppEvent::PublishFailed {
+                channel_id,
+                code: 25,
+                message: "publish_channel_not_ready".to_owned(),
+            });
+            return;
+        };
+        let Ok(payload) = Self::encode_std_msgs_string(string_data) else {
+            outcome.events.push(AppEvent::PublishFailed {
+                channel_id,
+                code: 1,
+                message: "cdr_encode_failed".to_owned(),
+            });
+            return;
+        };
+        let flags = if pub_ch.reliable {
+            FLAG_ROS_RELIABLE
+        } else {
+            0
+        };
+        let sequence = pub_ch.seq_out;
+        let header = FrameHeader {
+            version: 0,
+            opcode: OPCODE_ROS_SAMPLE,
+            flags,
+            channel_id,
+            sequence,
+            source_time_ns: 0,
+            priority: 2,
+            clock_id: 0,
+        };
+        let Ok(bytes) = encode_frame(&header, &[], &payload) else {
+            outcome.events.push(AppEvent::PublishFailed {
+                channel_id,
+                code: 1,
+                message: "sample_frame_encode_failed".to_owned(),
+            });
+            return;
+        };
+        let Ok(frame) = parse_frame(&bytes, Some(&self.frame_options)) else {
+            outcome.events.push(AppEvent::PublishFailed {
+                channel_id,
+                code: 1,
+                message: "sample_frame_parse_failed".to_owned(),
+            });
+            return;
+        };
+        if self.session.record_send_frame(&frame).is_err() {
+            outcome.events.push(AppEvent::PublishFailed {
+                channel_id,
+                code: 25,
+                message: "sample_frame_record_failed".to_owned(),
+            });
+            return;
+        }
+        pub_ch.seq_out = pub_ch.seq_out.saturating_add(1);
+        self.push_outbound(bytes, outcome);
+        self.telemetry.samples_sent = self.telemetry.samples_sent.saturating_add(1);
     }
 
     fn handle_ws_bytes(&mut self, buffer_id: u32, bytes: &[u8], outcome: &mut PollOutcome) {
@@ -426,28 +580,68 @@ impl ClientEngine {
                     .unwrap_or(0);
                 let result = field_uint(fields, 33).unwrap_or(3);
                 if result == 0 || result == 2 {
-                    if let Some(pending) = self.pending_subscribes.remove(&channel_id) {
-                        outcome.events.push(AppEvent::Subscribed {
-                            channel_id,
-                            topic: pending.topic.clone(),
-                            type_name: pending.type_name.clone(),
-                        });
-                        self.active_subscribes.insert(channel_id, pending);
-                    } else {
-                        outcome.events.push(AppEvent::Subscribed {
-                            channel_id,
-                            topic: String::new(),
-                            type_name: String::new(),
-                        });
+                    let pending = self.pending_opens.remove(&channel_id);
+                    let (kind, topic, type_name, requested_rel) = match pending {
+                        Some(p) => (p.kind, p.topic, p.type_name, p.qos_reliability),
+                        None => (PendingKind::Subscribe, String::new(), String::new(), 1u8),
+                    };
+                    let effective_rel =
+                        field_effective_reliability(fields).unwrap_or(requested_rel);
+                    match kind {
+                        PendingKind::Subscribe => {
+                            outcome.events.push(AppEvent::Subscribed {
+                                channel_id,
+                                topic: topic.clone(),
+                                type_name: type_name.clone(),
+                            });
+                            self.active_subscribes.insert(
+                                channel_id,
+                                PendingOpen {
+                                    kind,
+                                    topic,
+                                    type_name,
+                                    qos_reliability: effective_rel,
+                                },
+                            );
+                        }
+                        PendingKind::Publish => {
+                            outcome.events.push(AppEvent::Published {
+                                channel_id,
+                                topic: topic.clone(),
+                                type_name: type_name.clone(),
+                                qos_reliability: effective_rel,
+                            });
+                            self.active_publishes.insert(
+                                channel_id,
+                                ActivePublish {
+                                    topic,
+                                    type_name,
+                                    reliable: effective_rel != 2,
+                                    seq_out: 0,
+                                },
+                            );
+                        }
                     }
                 } else {
                     let (code, message) = channel_ready_error_body(fields);
-                    self.pending_subscribes.remove(&channel_id);
-                    outcome.events.push(AppEvent::SubscribeFailed {
-                        channel_id,
-                        code,
-                        message,
-                    });
+                    let pending = self.pending_opens.remove(&channel_id);
+                    let kind = pending.map(|p| p.kind).unwrap_or(PendingKind::Subscribe);
+                    match kind {
+                        PendingKind::Subscribe => {
+                            outcome.events.push(AppEvent::SubscribeFailed {
+                                channel_id,
+                                code,
+                                message,
+                            });
+                        }
+                        PendingKind::Publish => {
+                            outcome.events.push(AppEvent::PublishFailed {
+                                channel_id,
+                                code,
+                                message,
+                            });
+                        }
+                    }
                 }
             }
             CONTROL_KIND_HEARTBEAT => {
@@ -679,6 +873,23 @@ fn field_domain(fields: &std::collections::BTreeMap<u64, CborValue<'_>>) -> Opti
         Some(CborValue::Unsigned(v)) if *v <= u64::from(u8::MAX) => Some(*v as u8),
         _ => None,
     }
+}
+
+fn field_effective_reliability(
+    fields: &std::collections::BTreeMap<u64, CborValue<'_>>,
+) -> Option<u8> {
+    let CborValue::Map(entries) = fields.get(&57)? else {
+        return None;
+    };
+    for (k, v) in entries {
+        if *k == 1
+            && let CborValue::Unsigned(n) = v
+            && *n <= u64::from(u8::MAX)
+        {
+            return Some(*n as u8);
+        }
+    }
+    None
 }
 
 fn channel_ready_error_body(

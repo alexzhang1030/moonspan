@@ -50,10 +50,28 @@ pub enum AppCommand {
         channel_id: u32,
         topic: String,
         type_name: String,
+        /// Wire reliability: 1 RELIABLE, 2 BEST_EFFORT (0 = system default → gateway).
         qos_reliability: u8,
+        /// KEEP_LAST history depth (R2-01 QoS subset).
+        qos_depth: u32,
         domain_id: u8,
     },
-    /// Close an open channel.
+    /// Open a TOPIC_PUBLISH channel (symmetric to [`Self::Subscribe`]).
+    Publish {
+        correlation: [u8; 16],
+        channel_id: u32,
+        topic: String,
+        type_name: String,
+        qos_reliability: u8,
+        qos_depth: u32,
+        domain_id: u8,
+    },
+    /// Send one `std_msgs/msg/String` sample on a ready publish channel.
+    SendSample {
+        channel_id: u32,
+        string_data: String,
+    },
+    /// Close an open channel (subscribe or publish).
     Unsubscribe {
         correlation: [u8; 16],
         channel_id: u32,
@@ -73,14 +91,28 @@ pub enum AppEvent {
         domain_id: u8,
         gateway_instance_id: String,
     },
-    /// ChannelReady allow|limited.
+    /// ChannelReady allow|limited for a subscribe channel.
     Subscribed {
         channel_id: u32,
         topic: String,
         type_name: String,
     },
-    /// ChannelReady deny|error, or open rejected.
+    /// ChannelReady deny|error, or open rejected (subscribe).
     SubscribeFailed {
+        channel_id: u32,
+        code: u8,
+        message: String,
+    },
+    /// ChannelReady allow|limited for a publish channel.
+    Published {
+        channel_id: u32,
+        topic: String,
+        type_name: String,
+        /// Effective reliability from ChannelReady (1 RELIABLE, 2 BEST_EFFORT).
+        qos_reliability: u8,
+    },
+    /// ChannelReady deny|error, or open rejected (publish).
+    PublishFailed {
         channel_id: u32,
         code: u8,
         message: String,
@@ -153,4 +185,6 @@ pub struct EngineTelemetry {
     pub samples_emitted: u64,
     /// Leases explicitly released by the host.
     pub leases_released: u64,
+    /// Outbound ROS_SAMPLE frames produced by [`AppCommand::SendSample`].
+    pub samples_sent: u64,
 }

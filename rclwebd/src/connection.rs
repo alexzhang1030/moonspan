@@ -9,6 +9,7 @@
 //! contract fails at the source instead of on the peer.
 
 use crate::backend::{ChannelSpec, EntityId, RosBackend, SubscriptionSample};
+use crate::budgets::SampleWriteQueue;
 use crate::config::{GatewayConfig, SUPPORT_ROW_ID, new_session_id};
 use crate::control;
 use crate::qos::{RequestedQos, resolve_effective};
@@ -444,9 +445,13 @@ impl<'a> ConnState<'a> {
             runtime.seq_in += 1;
         } else if frame.sequence >= runtime.seq_in {
             // Best-effort: gaps admit (sequence_gap disposition).
+            if frame.sequence > runtime.seq_in {
+                crate::telemetry::PROCESS_TELEMETRY.add_sequence_gap(1);
+            }
             runtime.seq_in = frame.sequence + 1;
         } else {
             // Stale sequence disposition: drop without error.
+            crate::telemetry::PROCESS_TELEMETRY.add_stale_sequence(1);
             return;
         }
         let FramePayload::Application(payload) = &frame.payload else {
@@ -489,6 +494,39 @@ impl<'a> ConnState<'a> {
         Some(Bytes::from(frame_buf))
     }
 
+    /// Admit a subscription sample into the write queue with budget policy.
+    fn admit_sample(&mut self, sample: SubscriptionSample, queue: &mut SampleWriteQueue) {
+        let Some(runtime) = self.channels.get(&sample.channel_id) else {
+            return;
+        };
+        if runtime.kind != OperationKind::TopicSubscribe {
+            return;
+        }
+        let reliable = runtime.reliable;
+        let channel_id = sample.channel_id;
+        let frame_len = sample.frame_buf.len();
+        if reliable {
+            if !queue.try_reserve_reliable(frame_len) {
+                crate::telemetry::PROCESS_TELEMETRY.add_reliable_queue_drop(1);
+                return;
+            }
+            let Some(frame) = self.frame_sample(sample) else {
+                return;
+            };
+            queue.push_reliable(channel_id, frame);
+        } else {
+            let Some(frame) = self.frame_sample(sample) else {
+                return;
+            };
+            let before_gap = queue.dispositions.sequence_gap;
+            queue.admit_best_effort(channel_id, frame);
+            let gap_delta = queue.dispositions.sequence_gap.saturating_sub(before_gap);
+            if gap_delta > 0 {
+                crate::telemetry::PROCESS_TELEMETRY.add_sequence_gap(gap_delta);
+            }
+        }
+    }
+
     async fn teardown<B: RosBackend>(&mut self, backend: &B) {
         for (_, runtime) in self.channels.drain() {
             backend.destroy(runtime.entity).await;
@@ -523,8 +561,12 @@ pub async fn run_connection<T: Transport, B: RosBackend>(
     backend: &B,
     config: &GatewayConfig,
 ) {
+    // Deep enough that ROS take rarely blocks on try_send; the write queue is
+    // the budgeted latest-wins surface (sample_queue_depth / max_bytes).
     let (sample_tx, mut sample_rx) =
         mpsc::channel::<SubscriptionSample>(config.sample_queue_depth.max(1));
+    let mut write_queue =
+        SampleWriteQueue::new(config.sample_queue_depth, config.sample_queue_max_bytes);
     let mut conn = ConnState::new(config);
     loop {
         tokio::select! {
@@ -543,13 +585,21 @@ pub async fn run_connection<T: Transport, B: RosBackend>(
                 if outcome.close || send_failed {
                     break;
                 }
+                if flush_write_queue(&mut transport, &mut write_queue)
+                    .await
+                    .is_err()
+                {
+                    break;
+                }
             }
             sample = sample_rx.recv() => {
                 let Some(sample) = sample else {
                     break;
                 };
-                if let Some(frame) = conn.frame_sample(sample)
-                    && transport.send(frame).await.is_err()
+                conn.admit_sample(sample, &mut write_queue);
+                if flush_write_queue(&mut transport, &mut write_queue)
+                    .await
+                    .is_err()
                 {
                     break;
                 }
@@ -558,4 +608,18 @@ pub async fn run_connection<T: Transport, B: RosBackend>(
     }
     transport.close().await;
     conn.teardown(backend).await;
+}
+
+async fn flush_write_queue<T: Transport>(
+    transport: &mut T,
+    write_queue: &mut SampleWriteQueue,
+) -> Result<(), ()> {
+    while let Some(frame) = write_queue.pop_front() {
+        if transport.send(frame).await.is_err() {
+            return Err(());
+        }
+        write_queue.record_delivered();
+        crate::telemetry::PROCESS_TELEMETRY.add_delivered(1);
+    }
+    Ok(())
 }
