@@ -2,7 +2,7 @@
 
 `rclweb` is the Rust core of the project: R2WP protocol codecs, CDR, and deterministic session/channel/ROS state. One codebase serves both sides of the wire — `rclwebd` links it natively, and the browser runtime is the same crate compiled to `wasm32-unknown-unknown` inside a TypeScript Worker host.
 
-The R2WP v0 parsers are complete (moved from the pre-restructure gateway). The CDR core and the walking-skeleton state machine land in R1; see the [plan](../../tasks/plan.md) and [ADR 0010](../adr/0010-restructure-single-rust-core.md).
+The R2WP v0 parsers are complete (moved from the pre-restructure gateway). The CDR core (`rclweb/src/cdr/`, R1-01) is complete against the frozen [CDR contract](./cdr.md); the walking-skeleton state machine lands next in R1. See the [plan](../../tasks/plan.md) and [ADR 0010](../adr/0010-restructure-single-rust-core.md).
 
 ## Responsibilities
 

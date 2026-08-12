@@ -22,6 +22,7 @@ The restructure plan governs sequencing: R0 stop-loss, R1 walking skeleton, R2 d
 | Architecture decisions | [ADR register](./adr/README.md) |
 | Historical M0-03 outcome | [Completion note](./milestones/m0-03-r2wp-foundation.md) |
 | Historical M1-01 outcome | [Completion note](./milestones/m1-01-cdr-core.md) |
+| R1-01 Rust CDR port | [Completion note](./milestones/r1-01-cdr-rust-port.md) |
 | Plan and current work | [Implementation plan](../tasks/plan.md), [execution checklist](../tasks/todo.md) |
 | Post-mainline Studio work | [Studio prototype](./prototypes/studio-ui.md), [design system](../.agents/docs/DESIGN.md) |
 

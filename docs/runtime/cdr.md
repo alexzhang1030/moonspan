@@ -1,6 +1,6 @@
 # CDR core contract
 
-Authoritative behavioral contract for rclweb CDR. It was frozen and proven by the retired MoonBit implementation (`cdr_mbt`, tag `pre-restructure`); per [ADR 0010](../adr/0010-restructure-single-rust-core.md) the Rust port inside the [`rclweb` core](./core.md) must pass this contract against the committed corpus as its R1-01 gate. Batch identifiers (M1-01x) are historical proof labels. Generated types and the schema registry ([generated types](./generated-types.md)) and the Wasm host poll boundary consume this surface.
+Authoritative behavioral contract for rclweb CDR. It was frozen and proven by the retired MoonBit implementation (`cdr_mbt`, tag `pre-restructure`); per [ADR 0010](../adr/0010-restructure-single-rust-core.md) the Rust port inside the [`rclweb` core](./core.md) must pass this contract against the committed corpus as its R1-01 gate. The Rust port lives at [`rclweb/src/cdr/`](../../rclweb/src/cdr/) with the corpus and adversarial gate under [`rclweb/tests/`](../../rclweb/tests/) (`cdr_corpus.rs`, `cdr_adversarial.rs`). Batch identifiers (M1-01x) are historical proof labels. Generated types and the schema registry ([generated types](./generated-types.md)) and the Wasm host poll boundary consume this surface.
 
 ## Purpose
 

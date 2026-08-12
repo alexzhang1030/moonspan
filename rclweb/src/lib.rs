@@ -8,8 +8,15 @@
 
 #![forbid(unsafe_code)]
 
+pub mod cdr;
 pub mod protocol;
 
+pub use cdr::{
+    BODY_ORIGIN, CdrEndian, CdrError, CdrErrorCode, CdrHeader, CdrLimits, CdrNesting, CdrReader,
+    CdrWriter, DEFAULT_MAX_NESTING_DEPTH, DEFAULT_MAX_STREAM_BYTES,
+    DEFAULT_MAX_TEMPORARY_ALLOCATION, HEADER_LENGTH, MIN_MAX_NESTING_DEPTH, MIN_MAX_STREAM_BYTES,
+    REPRESENTATION_CDR_BE, REPRESENTATION_CDR_LE, WRITER_INITIAL_SIZE_HINT,
+};
 pub use protocol::{
     BOOTSTRAP_PAYLOAD_MAX_BYTES, BOOTSTRAP_PREFIX_LENGTH, BootstrapErrorRecord, BootstrapRecord,
     BufferCapabilities, CONTROL_KIND_NAMES, CONTROL_PAYLOAD_MAX_BYTES, CborError, CborValue,
