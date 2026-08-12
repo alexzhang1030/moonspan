@@ -16,7 +16,6 @@
     "cdr-corpus:write": "bun run scripts/cdr-corpus.ts --write",
     "cdr-corpus:check": "bun run scripts/cdr-corpus.ts --check",
     "cdr-corpus:reproduce": "bun run scripts/cdr-corpus.ts --reproduce",
-    "cdr-corpus": "bun run cdr-corpus:check",
     "cdr-tail-slack:write": "bun run scripts/cdr-tail-slack.ts --write",
     "cdr-tail-slack:check": "bun run scripts/cdr-tail-slack.ts --check",
     "generated-types:write": "bun run scripts/generated-types.ts --write",

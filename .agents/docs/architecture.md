@@ -31,7 +31,7 @@ One gateway process may expose multiple domain IDs within its support row. Fleet
 | `rclweb` core | Protocol codecs, CDR ([core contract](../../docs/runtime/cdr.md)), session/channel state (R1-02), type registry, ROS state, QoS, and host poll contract |
 | Browser SDK | Public API, Worker lifecycle, buffer transfer, telemetry, and reconnect behavior — no protocol parsing |
 | `rclwebd` | ROS attachment (versioned serialized adapter ABI + dlopen typesupport), sessions, schema cache, scheduling, policy, audit, and operations |
-| Conformance system | Fixtures (single oracle), corpus, workloads, environment identity, and reports |
+| Conformance system | Fixtures (single oracle), corpus, workloads, environment identity, and the support matrix |
 | Studio | Post-release workspace, panels, rendering, media, and command presentation |
 
 ## Design rules

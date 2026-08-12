@@ -6,7 +6,7 @@
 import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { loadWasm, pollEngine, readTelemetry } from "../sdk/typescript/src/wasm/abi.ts";
+import { loadWasm, pollEngine } from "../sdk/typescript/src/wasm/abi.ts";
 
 const root = path.resolve(import.meta.dir, "..");
 
@@ -54,38 +54,9 @@ const percentile = (p: number) => {
   );
   return samples[idx]!;
 };
-const mean = samples.reduce((a, b) => a + b, 0) / samples.length;
-const telemetry = readTelemetry(wasm, handle);
 wasm.rclweb_engine_free(handle);
 
-const size = statSync(wasmPath).size;
-const record = {
-  task: "R1-05",
-  kind: "poll-latency",
-  recordedAt: new Date().toISOString(),
-  wasm: {
-    artifact: "sdk/typescript/wasm/rclweb.wasm",
-    profile: "release-wasm",
-    bytes: size,
-    kib: Math.round((size / 1024) * 10) / 10,
-  },
-  workload: {
-    description: "wasm pollEngine timer turns after Start",
-    warmup,
-    iterations: iters,
-  },
-  latencyMs: {
-    mean: Number(mean.toFixed(4)),
-    p50: Number(percentile(50).toFixed(4)),
-    p95: Number(percentile(95).toFixed(4)),
-    p99: Number(percentile(99).toFixed(4)),
-    min: Number(samples[0]!.toFixed(4)),
-    max: Number(samples[samples.length - 1]!.toFixed(4)),
-  },
-  engineTelemetry: telemetry,
-  note: "R-D1 reopen input. Absolute envelope is review-gated; this records the baseline.",
-};
-
-console.log(
-  `poll latency p50=${record.latencyMs.p50}ms p99=${record.latencyMs.p99}ms; wasm=${record.wasm.kib} KiB`,
-);
+const kib = Math.round((statSync(wasmPath).size / 1024) * 10) / 10;
+const p50 = Number(percentile(50).toFixed(4));
+const p99 = Number(percentile(99).toFixed(4));
+console.log(`poll latency p50=${p50}ms p99=${p99}ms; wasm=${kib} KiB`);

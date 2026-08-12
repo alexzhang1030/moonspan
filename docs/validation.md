@@ -1,6 +1,6 @@
 # Validation and delivery gates
 
-rclweb turns design targets into release authority through reproducible conformance, performance, security, and operations evidence. Support rows begin as **Qualification targets** and become **Qualified** through reviewed reports.
+rclweb turns design targets into release authority through reproducible conformance, performance, security, and operations evidence. Support rows begin as **Qualification targets** and become **Qualified** when a human updates the [support matrix](./support-matrix.md).
 
 ## Native evidence levels
 
@@ -50,7 +50,7 @@ Each accepted claim records:
 - code, fixture, package, image, and environment identity;
 - support row, gateway, domain, and adapter provenance;
 - command, workload, budgets, duration, samples, warm-up, and variance;
-- raw machine-readable output and generated report;
+- stdout from the reproducing command (not committed);
 - timestamps, queues, resources, errors, and stable dispositions;
 - artifact location and integrity;
 - reviewer, gate, decision, and known limits.

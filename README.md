@@ -45,7 +45,7 @@ just build
 | `just check` | Docs, protocol, and corpus checks; Rust fmt/clippy; SDK typecheck |
 | `just test` | Bun and Cargo test suites |
 | `just build` | Native build, fat-LTO `rclweb` wasm staged into the SDK, and SDK build |
-| `just poll-latency` | Record wasm poll latency + size evidence (R-D1) |
+| `just poll-latency` | Print wasm poll latency + size (R-D1) |
 | `just e2e` | Docker compose: Jazzy talker → rclwebd (J-FT) → SDK subscribe |
 | `just e2e-h-ft` | Docker compose: Humble talker → rclwebd (H-FT) → SDK subscribe |
 | `just image-rclwebd` | Docker: J-FT runtime image (`rclwebd:j-ft`) |

@@ -25,8 +25,6 @@ const SKIP_DIR_NAMES = new Set([
   "build",
   "out",
   "coverage",
-  "reports",
-  "report",
   "tmp",
   "temp",
   ".turbo",

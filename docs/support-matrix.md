@@ -17,10 +17,10 @@ Status: design baseline. Every row remains a **Qualification target** until its 
 
 | Row | ROS | RMW | Host | CPU | Status |
 |---|---|---|---|---|---|
-| H-FT | Humble Hawksbill | `rmw_fastrtps_cpp` | Ubuntu 22.04 | `amd64`, `arm64` | Delivery-gated (protocol + corpus + live Humble talker e2e); Qualification report pending review |
+| H-FT | Humble Hawksbill | `rmw_fastrtps_cpp` | Ubuntu 22.04 | `amd64`, `arm64` | Delivery-gated (protocol + corpus + live Humble talker e2e); Qualification pending review |
 | H-CY | Humble Hawksbill | `rmw_cyclonedds_cpp` | Ubuntu 22.04 | `amd64`, `arm64` | Qualification target |
 | H-ZN | Humble Hawksbill | `rmw_zenoh_cpp` | Ubuntu 22.04 | `amd64`, `arm64` | Qualification target |
-| J-FT | Jazzy Jalisco | `rmw_fastrtps_cpp` | Ubuntu 24.04 | `amd64`, `arm64` | Delivery-gated (protocol + corpus + live Jazzy talker e2e); Qualification report pending review |
+| J-FT | Jazzy Jalisco | `rmw_fastrtps_cpp` | Ubuntu 24.04 | `amd64`, `arm64` | Delivery-gated (protocol + corpus + live Jazzy talker e2e); Qualification pending review |
 | J-CY | Jazzy Jalisco | `rmw_cyclonedds_cpp` | Ubuntu 24.04 | `amd64`, `arm64` | Qualification target |
 | J-ZN | Jazzy Jalisco | `rmw_zenoh_cpp` | Ubuntu 24.04 | `amd64`, `arm64` | Qualification target |
 
@@ -32,7 +32,7 @@ One gateway process binds one row and may host multiple domain IDs. `support_row
 
 ## Qualification
 
-Live gates are the delivery evidence. A row becomes **Qualified** only after a human updates this matrix. There is no report-index CI job and no committed measurement JSON ([R4-03](./milestones/r4-03-support-matrix.md)).
+Live gates are the delivery evidence. A row becomes **Qualified** only after a human updates this matrix. There is no evidence-check job and no committed measurement JSON ([R4-03](./milestones/r4-03-support-matrix.md)).
 
 | Row | Delivery evidence | Status |
 |---|---|---|

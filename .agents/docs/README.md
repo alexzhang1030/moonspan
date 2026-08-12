@@ -61,7 +61,7 @@ The project was restructured and renamed from moonspan to rclweb ([ADR 0010](../
 | `scripts/perf-baseline/**`, `scripts/measure-perf-baseline.ts` | [R2-04 Foxglove/rosbridge baseline](../../docs/milestones/r2-04-perf-baseline.md) |
 | Support matrix / qualification | Human matrix edit; no committed measurement JSON ([R4-03](../../docs/milestones/r4-03-support-matrix.md), [gotchas](./gotchas.md#do-not-commit-measurement-json)) |
 | `conformance/**` | [Validation](./validation.md), [corpus README](../../conformance/cdr/README.md), [support matrix](../../docs/support-matrix.md) |
-| `studio/**` | [Prototype scope](../../docs/prototypes/studio-ui.md), [DESIGN.md](./DESIGN.md) |
+| `studio/` (reserved until U0; not in the tree) | [Prototype scope](../../docs/prototypes/studio-ui.md), [DESIGN.md](./DESIGN.md), [ADR 0003](../../docs/adr/0003-monorepo-ownership.md) |
 
 ## Design record check
 

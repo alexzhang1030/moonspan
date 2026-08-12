@@ -26,7 +26,7 @@ Each accepted claim records:
 - environment, support row, gateway, domain, and adapter identity;
 - code and fixture revision;
 - invocation, workload, budgets, duration, and sample count;
-- raw machine-readable output and derived report;
+- stdout from the reproducing command (not committed);
 - errors, variance, reviewer, and gate disposition.
 
 Historical evidence stays in git history. Promotion to **Qualified** is a human edit of the [support matrix](../../docs/support-matrix.md), not a CI stamp and not a committed JSON pile.
