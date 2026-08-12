@@ -1,4 +1,4 @@
-# rustfmt 1.97 (edition 2024). Same indent as vue-vet.
+# rustfmt 1.97 (edition 2024), 2-space indent.
 # Vendored bindgen output is rustfmt::skip (see generate-rcl-bindings.sh).
 style_edition = "2024"
 tab_spaces = 2

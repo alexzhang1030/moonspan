@@ -17,7 +17,7 @@ The compiler pin is `rust-toolchain.toml` (**1.97.1** plus `wasm32-unknown-unkno
 
 | File | Role |
 |---|---|
-| `rustfmt.toml` | rustfmt 2024, max heuristics, 2-space indent (vue-vet) |
+| `rustfmt.toml` | rustfmt 2024, max heuristics, 2-space indent |
 | `clippy.toml` | line-count threshold 200; Clippy may suggest breaking changes |
 | `[workspace.lints]` | `unsafe_code = "deny"`, rustc/clippy `all` denied |
 | `[workspace.dependencies]` | shared crate versions; members use `*.workspace = true` |

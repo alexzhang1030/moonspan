@@ -38,21 +38,21 @@ Pixi is not in that pin set. `pixi.toml` is an optional local Jazzy prefix for `
 
 ## Rust workspace infrastructure
 
-Layout follows the owner's [vue-vet](https://github.com/alexzhang1030/vue-vet) Rust workspace, scaled to this repo. Keep the rclweb pins and wasm ship profile; do not copy Vue/npm/Codecov/CodSpeed pieces.
+Committed rustfmt/clippy knobs, workspace lints, shared crate versions, and named `just` recipes. Keep the 1.97.1 + wasm32 pin and the fat-LTO wasm ship profile.
 
 | File / key | Choice | Why |
 |---|---|---|
-| `rust-toolchain.toml` | 1.97.1 + `wasm32-unknown-unknown` + rustfmt/clippy | Existing pin; vue-vet is 1.97.0 without wasm |
-| `rustfmt.toml` | edition 2024, `tab_spaces = 2`, max heuristics, field-init shorthand, reorder modules | Same rustfmt surface as vue-vet, including 2-space indent. rustc's 4-space default is not a project constraint; bindgen output is `rustfmt::skip` so regenerate does not fight the formatter |
-| `clippy.toml` | `too-many-lines-threshold = 200`, `avoid-breaking-exported-api = false` | Matches vue-vet; Clippy may suggest public-API breaks |
+| `rust-toolchain.toml` | 1.97.1 + `wasm32-unknown-unknown` + rustfmt/clippy | Existing pin |
+| `rustfmt.toml` | edition 2024, `tab_spaces = 2`, max heuristics, field-init shorthand, reorder modules | 2-space indent is the project format. Bindgen output is `rustfmt::skip` so regenerate does not fight the formatter |
+| `clippy.toml` | `too-many-lines-threshold = 200`, `avoid-breaking-exported-api = false` | Clippy may suggest public-API breaks |
 | `[workspace.lints.rust]` | `unsafe_code = "deny"`, `warnings = "deny"` | Same force as `just clippy -- -D warnings`. **deny not forbid**: `forbid` cannot be overridden, and the host poll ABI plus rcl FFI modules need `#![allow(unsafe_code)]` |
 | `[workspace.lints.clippy]` | `all` and `cargo` deny; `multiple_crate_versions` allow | Floor matching current CI. Direct `sha2` 0.10 plus a 0.11 transitive is a reviewed duplicate, not a reason to weaken `cargo` |
-| Clippy pedantic / nursery / restriction | Off | vue-vet denies those groups (`unwrap_used`, `panic`, `indexing_slicing`, `print_stderr`, …). Turning them on here would fail `just check` across tests and the daemon; enable in a dedicated pass with allow-list rationale |
+| Clippy pedantic / nursery / restriction | Off | `unwrap_used`, `panic`, `indexing_slicing`, `print_stderr` would fail `just check` across tests and the daemon; enable in a dedicated pass with allow-list rationale |
 | `[workspace.dependencies]` | Shared crate versions; members use `*.workspace = true` | One place to bump serde/tokio/bytes |
 | `[profile.release]` | thin LTO, `codegen-units = 1`, `strip = "symbols"` | Native gateway binaries. `release-wasm` inherits this then overrides to fat LTO / `panic = abort` / `opt-level = z` and **keeps `strip = "symbols"` explicit** so a later native-strip change cannot silently move R-D1. Inheriting strip dropped staged `rclweb.wasm` from 593631 bytes to 376519 ([evidence](../../docs/evidence/r1-04-wasm-size.json); [gotcha](./gotchas.md#release-wasm-inherits-native-release-settings)) |
-| `just fmt` / `fmt-check` / `clippy` / `lint-rust` / `fix-rust` / `doctor` / `setup` | Named recipes | vue-vet names. `just check` stays the full foundation gate (docs, protocol, corpus, fmt, clippy, SDK) — it is not vue-vet's `cargo check` |
+| `just fmt` / `fmt-check` / `clippy` / `lint-rust` / `fix-rust` / `doctor` / `setup` | Named recipes | Faster rust-only loops. `just check` stays the full foundation gate (docs, protocol, corpus, fmt, clippy, SDK) |
 | `.gitattributes` | `* text=auto eol=lf` | LF in the repo |
-| `.pre-commit-config.yaml` | Optional prek 0.4.9; hygiene + `just fmt-check` | Not a toolchain pin and not part of `just check`. vue-vet also runs clippy and tests in hooks; that is too heavy here (Bun + protocol + corpus belong in CI) |
+| `.pre-commit-config.yaml` | Optional prek 0.4.9; hygiene + `just fmt-check` | Not a toolchain pin and not part of `just check`. Clippy and tests stay in CI |
 
 `fuzz/` stays outside the workspace (cargo-fuzz). Vendored `rclwebd/src/ros/ffi/bindings.rs` is `rustfmt::skip` so regenerate does not fight the formatter; `scripts/generate-rcl-bindings.sh` emits that attribute.
 

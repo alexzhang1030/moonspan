@@ -1,5 +1,5 @@
-# Optional local hooks (prek 0.4.9, same pin as vue-vet). Not part of
-# `just check`; CI remains the gate. Install with `just install-hooks`.
+# Optional local hooks (prek 0.4.9). Not part of `just check`; CI remains
+# the gate. Install with `just install-hooks`.
 minimum_prek_version: "0.4.9"
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
