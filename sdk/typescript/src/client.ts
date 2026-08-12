@@ -175,7 +175,13 @@ class InlineClient implements RclwebClient {
       }
       case "sample": {
         const handler = this.#handlers.get(event.channelId);
-        if (!handler || event.stringData == null) break;
+        if (!handler || event.stringData == null) {
+          // Undelivered sample: release at the drop site. Plain enqueue (no
+          // flushSync) — we are inside the host's event loop and the enqueue
+          // already schedules a microtask flush.
+          this.#host.releaseLease(event.leaseId);
+          break;
+        }
         const leaseId = event.leaseId;
         const lease: SampleLease = {
           leaseId,
@@ -320,7 +326,15 @@ class WorkerClient implements RclwebClient {
       }
       case "sample": {
         const handler = this.#handlers.get(msg.channelId);
-        if (!handler) break;
+        if (!handler) {
+          // Undelivered sample: release at the drop site so the Worker-side
+          // engine can reclaim the retained slab.
+          this.#worker.postMessage({
+            type: "releaseLease",
+            leaseId: msg.leaseId,
+          } satisfies MainToWorker);
+          break;
+        }
         const leaseId = msg.leaseId;
         handler(
           { data: msg.data },

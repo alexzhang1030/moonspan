@@ -104,3 +104,45 @@ test("scripted peer: connect → subscribe → String sample + lease release", a
 
   await client.close();
 });
+
+test("scripted peer: sample with no handler still releases its lease", async () => {
+  const fixtures = scriptedPeerFixtures();
+  const wasmBytes = readFileSync(wasmPath);
+  const client = await connectOfflineForTests(
+    wasmBytes.buffer.slice(
+      wasmBytes.byteOffset,
+      wasmBytes.byteOffset + wasmBytes.byteLength,
+    ),
+  );
+
+  const host = client.host;
+  host.startOffline();
+  host.flushSync();
+
+  host.ingestBytes(fixtures.serverHello);
+  host.flushSync();
+  host.flushSync();
+
+  host.ingestBytes(fixtures.sessionReady);
+  host.flushSync();
+
+  const subPromise = client.session.subscribe("/chatter", STD_MSGS_STRING);
+  host.ingestBytes(fixtures.channelReady);
+  host.flushSync();
+  const sub = await subPromise;
+  expect(sub.channelId).toBe(1);
+
+  // Deliberately no onMessage handler: the no-handler drop path must release
+  // the lease (subscribed + first sample can share one poll flush).
+  host.ingestBytes(fixtures.sample);
+  host.flushSync();
+  // The drop-site release is enqueued (not flushSync'd); drain it.
+  host.flushSync();
+
+  const telemetry = client.telemetry();
+  expect(telemetry).not.toBeNull();
+  expect(telemetry!.samplesEmitted).toBeGreaterThan(0);
+  expect(telemetry!.leasesReleased).toBe(telemetry!.samplesEmitted);
+
+  await client.close();
+});
