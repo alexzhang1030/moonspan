@@ -61,8 +61,8 @@ just build
 
 R0–R3 are complete through R3-04. R4-01 first slice (Authenticate off by
 default, opt-in `oidc`), R4-02 first slice (operations endpoints + J-FT /
-H-FT runtime images), and R4-03 first slice (support matrix pointing at
-committed measurements; no evidence-check CI job) are in progress. The
+H-FT runtime images), and R4-03 first slice (support matrix against live
+gates; no committed measurement JSON) are in progress. The
 walking skeleton reaches a live ROS talker in CI (`just e2e` /
 `e2e-ros-talker`, and Humble via `just e2e-h-ft` /
 `e2e-ros-talker-h-ft`) with a committed demo under

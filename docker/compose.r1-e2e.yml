@@ -13,6 +13,3 @@ services:
       RCLWEB_TELEMETRY_URL: "http://127.0.0.1:8794/telemetryz"
       RCLWEB_MIN_SAMPLES: "3"
       RCLWEB_TIMEOUT_MS: "60000"
-      RCLWEB_EVIDENCE_DIR: "/workspace/docs/evidence"
-    volumes:
-      - ../docs/evidence:/workspace/docs/evidence

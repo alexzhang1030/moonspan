@@ -15,7 +15,7 @@ rclweb keeps the language count at the minimum the platform forces: Rust for eve
 | JavaScript tooling | Bun ([ADR 0002](../../docs/adr/0002-use-bun-for-javascript-tooling.md)) | Workspaces, installation, scripts, tests, builds, lockfile |
 | Repository commands | just | One root command surface |
 
-MoonBit was the pre-restructure browser runtime language, chosen for Wasm convenience. It was retired because the poll boundary (ADR 0004) is a narrow buffer interface where authoring ergonomics matter least, while the gateway/browser split is where a second language compounds cost. The sole reopen condition is R1 evidence on wasm artifact size or poll latency. R1-04 records size under [`docs/evidence/r1-04-wasm-size.json`](../../docs/evidence/r1-04-wasm-size.json); poll latency lands with R1-05.
+MoonBit was the pre-restructure browser runtime language, chosen for Wasm convenience. It was retired because the poll boundary (ADR 0004) is a narrow buffer interface where authoring ergonomics matter least, while the gateway/browser split is where a second language compounds cost. The sole reopen condition is R1 evidence on wasm artifact size or poll latency. `just build` prints staged wasm size; `just poll-latency` prints p50/p99.
 
 ## Toolchain pins
 
@@ -49,7 +49,7 @@ Committed rustfmt/clippy knobs, workspace lints, shared crate versions, and name
 | `[workspace.lints.clippy]` | `all` and `cargo` deny; `multiple_crate_versions` allow | Floor matching current CI. Direct `sha2` 0.10 plus a 0.11 transitive is a reviewed duplicate, not a reason to weaken `cargo` |
 | Clippy pedantic / nursery / restriction | Off | `unwrap_used`, `panic`, `indexing_slicing`, `print_stderr` would fail `just check` across tests and the daemon; enable in a dedicated pass with allow-list rationale |
 | `[workspace.dependencies]` | Shared crate versions; members use `*.workspace = true` | One place to bump serde/tokio/bytes |
-| `[profile.release]` | thin LTO, `codegen-units = 1`, `strip = "symbols"` | Native gateway binaries. `release-wasm` inherits this then overrides to fat LTO / `panic = abort` / `opt-level = z` and **keeps `strip = "symbols"` explicit** so a later native-strip change cannot silently move R-D1. Inheriting strip dropped staged `rclweb.wasm` from 593631 bytes to 376519 ([evidence](../../docs/evidence/r1-04-wasm-size.json); [gotcha](./gotchas.md#release-wasm-inherits-native-release-settings)) |
+| `[profile.release]` | thin LTO, `codegen-units = 1`, `strip = "symbols"` | Native gateway binaries. `release-wasm` inherits this then overrides to fat LTO / `panic = abort` / `opt-level = z` and **keeps `strip = "symbols"` explicit** so a later native-strip change cannot silently move R-D1. Inheriting strip dropped staged `rclweb.wasm` from 593631 bytes to 376519 ([gotcha](./gotchas.md#release-wasm-inherits-native-release-settings)) |
 | `just fmt` / `fmt-check` / `clippy` / `lint-rust` / `fix-rust` / `doctor` / `setup` | Named recipes | Faster rust-only loops. `just check` stays the full foundation gate (docs, protocol, corpus, fmt, clippy, SDK) |
 | `.gitattributes` | `* text=auto eol=lf` | LF in the repo |
 

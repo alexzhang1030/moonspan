@@ -26,7 +26,7 @@ digest-pinned compose lane `docker/compose.r3-03-h-ft-e2e.yml` (CI job
 | Engine / SDK | `AppCommand::Start { webtransport }` + `ConnectOptions.transport` / `serverCertificateHashes` / optional `/local-dev/tls` fetch |
 | WT accept | Behind `--features webtransport` (`wtransport`); length-prefixed bi-stream ↔ `connection::run`; stub without feature |
 
-Evidence: [`r3-03-h-ft-row.json`](../evidence/r3-03-h-ft-row.json), [`r3-03-local-dev-tls.json`](../evidence/r3-03-local-dev-tls.json), [`r3-03-h-ft-e2e.json`](../evidence/r3-03-h-ft-e2e.json) (written by the live compose lane).
+Evidence: `just test` (H-FT protocol + local-dev TLS) and `just e2e-h-ft` (live Humble talker).
 
 ## Acceptance evidence
 

@@ -47,4 +47,4 @@ bun run scripts/build-wasm.ts
 cargo build --locked -p rclweb --target wasm32-unknown-unknown --profile release-wasm
 ```
 
-R1 records wasm artifact size and poll latency under [`docs/evidence/`](../evidence/) — the [R-D1 reopen inputs](../proposals/architecture-restructure.md#rulings). Copy counters live on the client engine (`EngineTelemetry`) and gateway (`/telemetryz`). R2-02 adds large-message evidence under [`docs/evidence/r2-02-large-message.json`](../evidence/r2-02-large-message.json). [Validation](../validation.md) owns phase evidence and release gates.
+R1 records wasm artifact size (`just build` prints the staged byte count) and poll latency (`just poll-latency`) as [R-D1 reopen inputs](../proposals/architecture-restructure.md#rulings). Copy counters live on the client engine (`EngineTelemetry`) and gateway (`/telemetryz`). R2-02 large-message numbers are `just large-message`. [Validation](../validation.md) owns phase evidence and release gates.

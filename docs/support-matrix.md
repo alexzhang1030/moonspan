@@ -28,16 +28,16 @@ Fast DDS (`rmw_fastrtps_cpp`) is the reference and default row for each ROS dist
 
 One gateway process binds one row and may host multiple domain IDs. `support_row_id` is fixed for the running artifact. `gateway_instance_id` identifies the deployment across eligible restart and upgrade paths. Applications use independent sessions across rows.
 
-**H-FT delivery gate (R3-03):** SessionReady / OpenChannel row identity and `moonspan-schema-v1` OpenChannel are proven on the mock gateway in `just test` and the corpus ([evidence](./evidence/r3-03-h-ft-row.json)). Live Humble rcl attachment is proven by the digest-pinned compose lane ([compose](../docker/compose.r3-03-h-ft-e2e.yml), CI `e2e-ros-talker-h-ft`, [evidence](./evidence/r3-03-h-ft-e2e.json), [milestone](./milestones/r3-03-h-ft-webtransport.md)): the image regenerates FFI against Humble headers, links `--features ros` with `ROS_PREFIX=/opt/ros/humble`, sets `RCLWEBD_SUPPORT_ROW=H-FT`, and runs talker → gateway → SDK. Default committed bindings remain Jazzy for host `just ros-test`.
+**H-FT delivery gate (R3-03):** SessionReady / OpenChannel row identity and `moonspan-schema-v1` OpenChannel are proven on the mock gateway in `just test` and the corpus. Live Humble rcl attachment is proven by the digest-pinned compose lane ([compose](../docker/compose.r3-03-h-ft-e2e.yml), CI `e2e-ros-talker-h-ft`, [milestone](./milestones/r3-03-h-ft-webtransport.md)): the image regenerates FFI against Humble headers, links `--features ros` with `ROS_PREFIX=/opt/ros/humble`, sets `RCLWEBD_SUPPORT_ROW=H-FT`, and runs talker → gateway → SDK. Default committed bindings remain Jazzy for host `just ros-test`.
 
 ## Qualification
 
-Committed measurements live under [`docs/evidence/`](./evidence/). A row becomes **Qualified** only after a human updates this matrix. There is no report-index CI job ([R4-03](./milestones/r4-03-evidence-harness.md)).
+Live gates are the delivery evidence. A row becomes **Qualified** only after a human updates this matrix. There is no report-index CI job and no committed measurement JSON ([R4-03](./milestones/r4-03-evidence-harness.md)).
 
 | Row | Delivery evidence | Status |
 |---|---|---|
-| J-FT | Live Jazzy talker e2e (`just e2e`); [`r1-04-wasm-size.json`](./evidence/r1-04-wasm-size.json), [`r1-05-poll-latency.json`](./evidence/r1-05-poll-latency.json), [`r2-04-perf-baseline.json`](./evidence/r2-04-perf-baseline.json) | Delivery-gated; Qualification pending review |
-| H-FT | Live Humble talker e2e (`just e2e-h-ft`); [`r3-03-h-ft-e2e.json`](./evidence/r3-03-h-ft-e2e.json), [`r3-03-h-ft-row.json`](./evidence/r3-03-h-ft-row.json) | Delivery-gated; Qualification pending review |
+| J-FT | Live Jazzy talker e2e (`just e2e` / CI `e2e-ros-talker`); `just check` / `just test` / `just build` | Delivery-gated; Qualification pending review |
+| H-FT | Live Humble talker e2e (`just e2e-h-ft` / CI `e2e-ros-talker-h-ft`); H-FT protocol tests in `just test` | Delivery-gated; Qualification pending review |
 | H-CY, H-ZN, J-CY, J-ZN | Corpus committed; no live gateway e2e lane yet | Qualification target |
 
 Live Cyclone DDS and Zenoh gateway lanes are R4-03 follow-up work. Do not treat a green corpus or a green e2e job as **Qualified**.

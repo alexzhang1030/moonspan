@@ -16,9 +16,5 @@ services:
       RCLWEB_TELEMETRY_URL: "http://127.0.0.1:8794/telemetryz"
       RCLWEB_SUPPORT_ROW: "H-FT"
       RCLWEB_TASK: "R3-03"
-      RCLWEB_EVIDENCE_FILE: "r3-03-h-ft-e2e.json"
       RCLWEB_MIN_SAMPLES: "3"
       RCLWEB_TIMEOUT_MS: "60000"
-      RCLWEB_EVIDENCE_DIR: "/workspace/docs/evidence"
-    volumes:
-      - ../docs/evidence:/workspace/docs/evidence

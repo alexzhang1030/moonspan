@@ -1,7 +1,7 @@
 /**
  * Headless live-subscribe harness: connect (inline) → subscribe /chatter → assert samples.
- * Default evidence path is R1-05 / J-FT; H-FT live e2e overrides via env
- * (`RCLWEB_SUPPORT_ROW`, `RCLWEB_EVIDENCE_FILE`, `RCLWEB_TASK`).
+ * Gate is process exit 0. Optional JSON dump: set `RCLWEB_EVIDENCE_DIR`.
+ * H-FT live e2e overrides via `RCLWEB_SUPPORT_ROW` / `RCLWEB_TASK`.
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -16,11 +16,9 @@ const telemetryUrl =
 const minSamples = Number(process.env.RCLWEB_MIN_SAMPLES ?? "3");
 const timeoutMs = Number(process.env.RCLWEB_TIMEOUT_MS ?? "30000");
 const supportRow = process.env.RCLWEB_SUPPORT_ROW ?? "J-FT";
-const evidenceFile = process.env.RCLWEB_EVIDENCE_FILE ?? "r1-05-e2e.json";
+const evidenceFile = process.env.RCLWEB_EVIDENCE_FILE ?? "e2e.json";
 const task = process.env.RCLWEB_TASK ?? "R1-05";
-const evidenceDir =
-  process.env.RCLWEB_EVIDENCE_DIR ??
-  path.resolve(import.meta.dir, "../../docs/evidence");
+const evidenceDir = process.env.RCLWEB_EVIDENCE_DIR;
 
 const repoRoot = path.resolve(import.meta.dir, "../..");
 const defaultWasm = path.join(repoRoot, "sdk/typescript/wasm/rclweb.wasm");
@@ -117,12 +115,16 @@ async function main(): Promise<void> {
     },
   };
 
-  mkdirSync(evidenceDir, { recursive: true });
-  const outPath = path.join(evidenceDir, evidenceFile);
-  writeFileSync(outPath, `${JSON.stringify(evidence, null, 2)}\n`);
-  console.log(
-    `e2e ok (${supportRow}): ${samples.length} samples; evidence → ${outPath}`,
-  );
+  if (evidenceDir) {
+    mkdirSync(evidenceDir, { recursive: true });
+    const outPath = path.join(evidenceDir, evidenceFile);
+    writeFileSync(outPath, `${JSON.stringify(evidence, null, 2)}\n`);
+    console.log(
+      `e2e ok (${supportRow}): ${samples.length} samples; wrote ${outPath}`,
+    );
+  } else {
+    console.log(`e2e ok (${supportRow}): ${samples.length} samples`);
+  }
   if (
     engineTelemetry &&
     engineTelemetry.copiesIntoEngine > 0 &&

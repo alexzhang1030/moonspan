@@ -1,9 +1,9 @@
 # R2-04: Performance baseline versus Foxglove bridge and rosbridge
 
-Status: Complete (host + protocol-cost evidence committed; live three-way
+Status: Complete (host + protocol-cost baseline; live three-way
 compose lane shipped and evidence-gated). R1 gate demo review remains `[~]`
 and is out of scope for this note. D-05 (benchmark retention/publication)
-stays open — evidence is committed under `docs/evidence/` only.
+stays open. Measurement scripts print to stdout; they do not commit JSON.
 
 ## Outcome
 
@@ -24,8 +24,7 @@ D-05 publication policy.
 | Surface | Location |
 |---|---|
 | Workload + measure modules | [`scripts/perf-baseline/`](../../scripts/perf-baseline/) |
-| Evidence script | [`scripts/measure-perf-baseline.ts`](../../scripts/measure-perf-baseline.ts) (`just perf-baseline`) |
-| Host evidence | [`docs/evidence/r2-04-perf-baseline.json`](../evidence/r2-04-perf-baseline.json) |
+| Evidence script | [`scripts/measure-perf-baseline.ts`](../../scripts/measure-perf-baseline.ts) (`just perf-baseline`; stdout) |
 | Live compose lane | [`docker/compose.r2-04-perf.yml`](../../docker/compose.r2-04-perf.yml) (`just perf-baseline-live`) |
 | Live client | [`scripts/perf-baseline/live-measure.ts`](../../scripts/perf-baseline/live-measure.ts) |
 
@@ -58,5 +57,5 @@ just perf-baseline-live
 ## Ownership after completion
 
 R3 owns services/actions/parameters/graph and WebTransport. R2 gate still needs
-the adversarial suite (R2-03) plus this baseline's committed evidence; PointCloud2
+the adversarial suite (R2-03) plus this baseline; PointCloud2
 at target rate is covered by R2-02 + this host path.

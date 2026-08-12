@@ -41,10 +41,7 @@ COPY . /workspace
 RUN bun install --frozen-lockfile \
   && . /opt/ros/jazzy/setup.sh \
   && cargo build --locked -p rclwebd --features ros --release \
-  && bun run scripts/build-wasm.ts \
-  && bun run scripts/measure-poll-latency.ts \
-  && mkdir -p /opt/rclweb/evidence \
-  && cp docs/evidence/r1-04-wasm-size.json docs/evidence/r1-05-poll-latency.json /opt/rclweb/evidence/
+  && bun run scripts/build-wasm.ts
 
 COPY docker/r1-e2e-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

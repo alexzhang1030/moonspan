@@ -1,44 +1,26 @@
 /**
  * Live three-way bridge comparison is docker + ROS gated.
  * Compose is opt-in via `just perf-baseline-live`; this module only records
- * whether live evidence is present and whether Docker could run it.
+ * whether Docker could run it. Live numbers print from that compose; they
+ * are not merged from a committed JSON file.
  */
 
-import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
-import path from "node:path";
 
 export type LivePathStatus = {
-  status: "measured" | "skipped";
+  status: "skipped";
   reason: string;
   composeFile: string;
   command: string;
-  evidencePath: string;
-  evidencePresent: boolean;
   dockerAvailable: boolean;
   note: string;
 };
 
-export function probeLiveComparison(root: string): LivePathStatus {
+export function probeLiveComparison(): LivePathStatus {
   const composeFile = "docker/compose.r2-04-perf.yml";
   const command = "just perf-baseline-live";
-  const evidencePath = "docs/evidence/r2-04-perf-live.json";
-  const evidencePresent = existsSync(path.join(root, evidencePath));
   const dockerAvailable =
     spawnSync("docker", ["version"], { encoding: "utf8" }).status === 0;
-
-  if (evidencePresent) {
-    return {
-      status: "measured",
-      reason: "live_evidence_present",
-      composeFile,
-      command,
-      evidencePath,
-      evidencePresent,
-      dockerAvailable,
-      note: "Attached existing r2-04-perf-live.json from the docker compose lane.",
-    };
-  }
 
   if (!dockerAvailable) {
     return {
@@ -46,21 +28,17 @@ export function probeLiveComparison(root: string): LivePathStatus {
       reason: "docker_unavailable",
       composeFile,
       command,
-      evidencePath,
-      evidencePresent,
       dockerAvailable,
-      note: "Host + protocol-cost paths still form the committed baseline. Install Docker and run `just perf-baseline-live` to fill live Foxglove/rosbridge/rclwebd e2e numbers.",
+      note: "Host + protocol-cost paths still form the baseline. Live Foxglove/rosbridge/rclwebd numbers: `just perf-baseline-live`.",
     };
   }
 
   return {
     status: "skipped",
-    reason: "live_not_run",
+    reason: "live_is_separate_compose",
     composeFile,
     command,
-    evidencePath,
-    evidencePresent,
     dockerAvailable,
-    note: "Docker is available but live evidence is absent. Run `just perf-baseline-live` (heavy image) to produce r2-04-perf-live.json, then re-run `just perf-baseline`.",
+    note: "Live three-way comparison is `just perf-baseline-live` (prints to stdout). This host script does not merge a JSON file.",
   };
 }

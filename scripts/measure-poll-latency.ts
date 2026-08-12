@@ -1,16 +1,14 @@
 #!/usr/bin/env bun
 /**
- * Measure ClientEngine / wasm poll latency (R-D1 reopen input) and refresh
- * the wasm size record. Writes docs/evidence/r1-05-poll-latency.json.
+ * Measure ClientEngine / wasm poll latency (R-D1 reopen input).
+ * Prints to stdout. Does not write into the repo.
  */
-import { mkdirSync, writeFileSync, readFileSync, statSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { loadWasm, pollEngine, readTelemetry } from "../sdk/typescript/src/wasm/abi.ts";
 
 const root = path.resolve(import.meta.dir, "..");
-const evidenceDir = path.join(root, "docs", "evidence");
-mkdirSync(evidenceDir, { recursive: true });
 
 const build = spawnSync("bun", ["run", "scripts/build-wasm.ts"], {
   cwd: root,
@@ -88,10 +86,6 @@ const record = {
   note: "R-D1 reopen input. Absolute envelope is review-gated; this records the baseline.",
 };
 
-writeFileSync(
-  path.join(evidenceDir, "r1-05-poll-latency.json"),
-  `${JSON.stringify(record, null, 2)}\n`,
-);
 console.log(
   `poll latency p50=${record.latencyMs.p50}ms p99=${record.latencyMs.p99}ms; wasm=${record.wasm.kib} KiB`,
 );

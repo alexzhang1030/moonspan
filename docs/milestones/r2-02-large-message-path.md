@@ -16,7 +16,7 @@ this item.
 | `encodeHostBatch` | Two-pass preallocated `Uint8Array` — no `push(...bytes)` / per-byte `number[]` (fixes the gotchas RangeError on ~1 MiB frames) |
 | Transferable AB | Existing main path; large frames (≥64 KiB) use external-ptr poll (one controllable copy into engine) |
 | SAB ring | Host-side `SharedArrayBufferRingStrategy` with reproducible measure/compare; COOP/COEP gate recorded in evidence |
-| Measurement | [`docs/evidence/r2-02-large-message.json`](../evidence/r2-02-large-message.json) — ~1 MiB @ 10 Hz direction (30 frames), encode + both strategies + retain-copy probe |
+| Measurement | `just large-message` — ~1 MiB @ 10 Hz direction (30 frames), encode + both strategies + retain-copy probe (stdout) |
 
 Constraints preserved: single Rust core, TS SDK does not parse R2WP, no
 third-party rcl binding, no `Instant` on wasm, no permessage-deflate, J-FT row,

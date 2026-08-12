@@ -1,27 +1,24 @@
 # R1-05: End-to-end CI evidence, demo, poll latency, copy counters
 
 Status: Complete. A docker-compose (single Jazzy container) lane runs a real
-ROS 2 talker through `rclwebd` into the `@rclweb/sdk` inline host, records
-wasm poll latency and size, and exposes gateway + engine copy counters. The
-committed demo under `examples/subscribe-chatter` exercises the same subscribe
-path from a browser page.
+ROS 2 talker through `rclwebd` into the `@rclweb/sdk` inline host and exposes
+gateway + engine copy counters. Wasm size and poll latency print from
+`just build` / `just poll-latency`. The committed demo under
+`examples/subscribe-chatter` exercises the same subscribe path from a browser
+page.
 
 ## Outcome
 
-Live `/chatter` samples reach a typed SDK handler in CI. Evidence files under
-[`docs/evidence/`](../evidence/) capture:
-
-| File | Content |
-|---|---|
-| `r1-04-wasm-size.json` | Fat-LTO wasm artifact size (R-D1) |
-| `r1-05-poll-latency.json` | Wasm `poll` p50/p95/p99 (R-D1) |
-
-The e2e harness writes `r1-05-e2e.json` into `docs/evidence/` on a live run (default filename, overridable with `RCLWEB_EVIDENCE_FILE`). That file is local/CI output, not a committed measurement. The live gate is the compose job succeeding.
+Live `/chatter` samples reach a typed SDK handler in CI. Wasm size and poll
+latency are R-D1 reopen inputs: `just build` stages `rclweb.wasm` and prints
+size; `just poll-latency` prints p50/p99. Neither writes into the repo.
 
 Copy budget (two controllable copies) is evidenced structurally and with
 counters: gateway `payload_copies` via `/telemetryz`, browser
 `copiesIntoEngine` via engine telemetry. Application delivery uses
 `string_data` / leases (zero additional controllable copies).
+
+The live gate is the compose job succeeding (`just e2e` / CI `e2e-ros-talker`).
 
 ## Delivered scope
 

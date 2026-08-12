@@ -83,11 +83,11 @@ Foundation CI installs Bun with SHA-pinned `oven-sh/setup-bun` (`.bun-version`) 
 
 ## release-wasm inherits native release settings
 
-`[profile.release-wasm] inherits = "release"`. Adding `strip`, `lto`, or panic settings to native release also applies to the wasm ship profile unless that key is set again on `release-wasm`. Putting `strip = "symbols"` on native release dropped staged `rclweb.wasm` from 593631 bytes to 376519. Keep fat LTO, `panic = abort`, `opt-level = "z"`, and `strip` explicit on `release-wasm`. Reproduce with `just build` and [`docs/evidence/r1-04-wasm-size.json`](../../docs/evidence/r1-04-wasm-size.json).
+`[profile.release-wasm] inherits = "release"`. Adding `strip`, `lto`, or panic settings to native release also applies to the wasm ship profile unless that key is set again on `release-wasm`. Putting `strip = "symbols"` on native release dropped staged `rclweb.wasm` from 593631 bytes to 376519. Keep fat LTO, `panic = abort`, `opt-level = "z"`, and `strip` explicit on `release-wasm`. Reproduce with `just build` (it prints the staged size).
 
-## Do not add an evidence-check CI job
+## Do not commit measurement JSON
 
-`docs/evidence/*.json` are measurements. Git versions them. `just build` rewrites `recordedAt` on the wasm-size file, so a sha256 wrapper over those files fails for a timestamp. Qualification is a human edit of the [support matrix](../../docs/support-matrix.md). The owner cut `evidence-check` and the report-index JSON; do not bring back the closed pre-restructure M0-05a ceremony either. [R4-03](../../docs/milestones/r4-03-evidence-harness.md).
+The owner deleted `docs/evidence/*.json`. Nothing in CI read those files. `just build` used to rewrite `recordedAt` on a wasm-size file, dirtying the tree. Qualification is a human edit of the [support matrix](../../docs/support-matrix.md). Measurement recipes (`just poll-latency`, `just large-message`, `just perf-baseline`) print to stdout; optional dump is `RCLWEB_EVIDENCE_DIR`. Do not add an evidence-check job, and do not bring back the closed pre-restructure M0-05a ceremony. [R4-03](../../docs/milestones/r4-03-evidence-harness.md).
 
 ## Do not wrap cargo tests in a Docker mock lane
 

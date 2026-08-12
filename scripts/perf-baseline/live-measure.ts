@@ -14,9 +14,7 @@ import path from "node:path";
 import { connect, STD_MSGS_STRING } from "@rclweb/sdk";
 import { summarize } from "./stats.ts";
 
-const evidenceDir =
-  process.env.RCLWEB_EVIDENCE_DIR ??
-  path.resolve(import.meta.dir, "../../docs/evidence");
+const evidenceDir = process.env.RCLWEB_EVIDENCE_DIR;
 const topic = process.env.RCLWEB_PERF_TOPIC ?? "/bench/stamp";
 const minSamples = Number(process.env.RCLWEB_PERF_SAMPLES ?? "50");
 const timeoutMs = Number(process.env.RCLWEB_PERF_TIMEOUT_MS ?? "60000");
@@ -254,17 +252,19 @@ const evidence = {
   workload:
     "Stamped std_msgs/String @ ~10 Hz on loopback; latency = Date.now() - wall-clock millis in msg.data (same machine clock).",
   pointCloud2Live:
-    "Not measured in this lane; see host path + protocol-cost models in r2-04-perf-baseline.json.",
+    "Not measured in this lane; see host path + protocol-cost models (`just perf-baseline`).",
   paths: results,
   revision: {
     githubSha: process.env.GITHUB_SHA ?? null,
   },
 };
 
-mkdirSync(evidenceDir, { recursive: true });
-const outPath = path.join(evidenceDir, "r2-04-perf-live.json");
-writeFileSync(outPath, `${JSON.stringify(evidence, null, 2)}\n`);
-console.log(`live evidence → ${outPath}`);
+if (evidenceDir) {
+  mkdirSync(evidenceDir, { recursive: true });
+  const outPath = path.join(evidenceDir, "r2-04-perf-live.json");
+  writeFileSync(outPath, `${JSON.stringify(evidence, null, 2)}\n`);
+  console.log(`wrote ${outPath}`);
+}
 console.log(JSON.stringify(results, null, 2));
 
 if (results.every((r) => r.status === "failed")) {
