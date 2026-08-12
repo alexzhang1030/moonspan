@@ -1,0 +1,16 @@
+# J-FT gateway deployment shape (R4-02).
+# Host network so rclwebd attaches to the robot's ROS domain.
+# This is not the e2e harness (see compose.r1-e2e.yml).
+services:
+  rclwebd:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.rclwebd
+    image: rclwebd:j-ft
+    network_mode: host
+    environment:
+      RCLWEBD_BIND: "0.0.0.0:8794"
+      RCLWEBD_SUPPORT_ROW: "J-FT"
+      RCLWEBD_GATEWAY_INSTANCE_ID: "rclwebd-local"
+      ROS_DOMAIN_ID: "0"
+      RMW_IMPLEMENTATION: "rmw_fastrtps_cpp"

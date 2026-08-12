@@ -36,6 +36,7 @@ The restructure plan governs sequencing: R0 stop-loss, R1 walking skeleton, R2 d
 | R3-03 H-FT row + WebTransport | [Completion note](./milestones/r3-03-h-ft-webtransport.md) |
 | R3-04 adapter ABI + dynamic typesupport | [Completion note](./milestones/r3-04-adapter-abi-typesupport.md) |
 | R4-01 OIDC / SROS2 / audit (in progress) | [Milestone note](./milestones/r4-01-oidc-sros2-audit.md) |
+| R4-02 deployment + observability (in progress) | [Milestone note](./milestones/r4-02-deployment-observability.md), [deploy](./deploy.md) |
 | Plan and current work | [Implementation plan](../tasks/plan.md), [execution checklist](../tasks/todo.md) |
 | Post-mainline Studio work | [Studio prototype](./prototypes/studio-ui.md), [design system](../.agents/docs/DESIGN.md) |
 
@@ -46,7 +47,7 @@ The restructure plan governs sequencing: R0 stop-loss, R1 walking skeleton, R2 d
 | Root tooling | [Technology stack](../.agents/docs/technology-stack.md), [repository README](../README.md), [CONTRIBUTING.md](../CONTRIBUTING.md) |
 | `protocol/**` | [R2WP](./protocol/r2wp.md), [normative contract](../protocol/r2wp-v0.md), [fixtures](../protocol/testdata/README.md) |
 | `rclweb/**` | [`rclweb` core](./runtime/core.md), [CDR contract](./runtime/cdr.md), [architecture](./architecture.md) |
-| `rclwebd/**` | [`rclwebd`](./gateway/rclwebd.md), [security](./security.md) |
+| `rclwebd/**` | [`rclwebd`](./gateway/rclwebd.md), [security](./security.md), [deploy](./deploy.md) |
 | `sdk/**` | [Architecture](./architecture.md), [R2WP](./protocol/r2wp.md) |
 | `conformance/**` | [Validation](./validation.md), [support matrix](./support-matrix.md), [corpus README](../conformance/cdr/README.md) |
 | `studio/**` | [Studio prototype](./prototypes/studio-ui.md), [design system](../.agents/docs/DESIGN.md) |

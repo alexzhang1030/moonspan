@@ -40,7 +40,7 @@ The support matrix pins the Phase 1 browser reference. M3 assigns broader browse
 
 - WebTransport uses reliable streams and datagrams according to [R2WP channel mapping](./protocol/r2wp.md#channel-mapping).
 - Binary WebSocket carries the same semantic frames through one scheduled connection.
-- Proxy, TLS, origin, timeout, frame-size, and browser-isolation settings belong to the deployment profile.
+- Proxy, TLS, origin, timeout, frame-size, and browser-isolation settings belong to the deployment profile ([deploy](./deploy.md)).
 - Network evidence covers loopback, reference LAN, constrained bandwidth, latency, loss, reordering, roaming, sleep and wake, and path changes.
 
 ## External endpoints

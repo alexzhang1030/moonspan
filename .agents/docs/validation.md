@@ -10,7 +10,7 @@ Detailed workloads and evidence requirements live in [validation](../../docs/val
 2. R1 proves the walking skeleton: corpus-passing Rust CDR port, live end-to-end subscribe in CI, wasm artifact size and poll latency, copy counters.
 3. R2 proves the hardened data plane: publish, QoS subset, budgets, reconnect ([R2-01](../../docs/milestones/r2-01-data-plane-hardening.md)), large-message path on both buffer strategies ([R2-02](../../docs/milestones/r2-02-large-message-path.md)), adversarial fixtures + fuzzing ([R2-03](../../docs/milestones/r2-03-fixtures-fuzzing.md)), and the performance baseline against Foxglove bridge and rosbridge ([R2-04](../../docs/milestones/r2-04-perf-baseline.md)).
 4. R3 proves ROS semantics, generated types, the second row, and the second transport.
-5. R4 proves identity, policy, security, compatibility, deployment, operations, and release reproducibility; the evidence harness returns here with real reports to validate.
+5. R4 proves identity, policy, security, compatibility, deployment, operations, and release reproducibility; the evidence harness returns here with real reports to validate. R4-01 is Authenticate off-by-default / opt-in `oidc`. R4-02 is operations endpoints plus the J-FT runtime image ([deploy](../../docs/deploy.md)).
 6. U0 proves the Studio integration on the released SDK.
 
 Phase 1 gates row J-FT. Breadth returns through the support matrix (H-FT in R3, remaining rows in R4). Studio begins after R4.

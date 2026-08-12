@@ -1,0 +1,53 @@
+# J-FT (Jazzy + Fast DDS) runtime image for rclwebd.
+# Digest-pinned base matches the CDR corpus / R1-05 e2e Jazzy pin.
+# Builder compiles only the gateway; the runtime has no Rust/Bun toolchain.
+ARG ROS_IMAGE=docker.io/library/ros:jazzy-ros-base-noble@sha256:da725acf8b0f9f30c683e33ffbdcd6482d077af96d6fdc7688c5f4f280b7d923
+FROM ${ROS_IMAGE} AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    curl \
+    pkg-config \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY rust-toolchain.toml /tmp/rust-toolchain.toml
+ENV CARGO_NET_RETRY=8
+RUN curl --retry 8 --retry-all-errors --retry-delay 2 --connect-timeout 20 \
+      --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+      --default-toolchain "$(awk -F'"' '/^[[:space:]]*channel[[:space:]]*=/{print $2; exit}' /tmp/rust-toolchain.toml)" \
+      --profile minimal
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+WORKDIR /src
+COPY . /src
+ENV ROS_PREFIX=/opt/ros/jazzy
+ENV AMENT_PREFIX_PATH=/opt/ros/jazzy
+RUN . /opt/ros/jazzy/setup.sh \
+  && cargo build --locked -p rclwebd --features ros --release
+
+FROM ${ROS_IMAGE}
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends curl \
+  && rm -rf /var/lib/apt/lists/* \
+  && useradd --system --uid 10001 --create-home --home-dir /var/lib/rclweb rclweb
+
+COPY --from=builder /src/target/release/rclwebd /usr/local/bin/rclwebd
+COPY docker/rclwebd-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh /usr/local/bin/rclwebd
+
+ENV RCLWEBD_BIND=0.0.0.0:8794 \
+    RCLWEBD_SUPPORT_ROW=J-FT \
+    ROS_DOMAIN_ID=0 \
+    RMW_IMPLEMENTATION=rmw_fastrtps_cpp \
+    ROS_PREFIX=/opt/ros/jazzy
+
+USER rclweb
+EXPOSE 8794
+HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:8794/readyz || exit 1
+ENTRYPOINT ["/entrypoint.sh"]

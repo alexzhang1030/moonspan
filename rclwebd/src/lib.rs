@@ -18,6 +18,7 @@ pub mod config;
 pub mod connection;
 pub mod control;
 pub mod local_dev_tls;
+pub mod ops;
 pub mod qos;
 #[cfg(feature = "ros")]
 pub mod ros;
@@ -36,8 +37,9 @@ pub use config::{
 };
 pub use connection::{Transport, TransportError, run_connection};
 pub use local_dev_tls::{LocalDevTls, TlsAdvertisement};
+pub use ops::OpsState;
 pub use telemetry::{GatewayTelemetry, GatewayTelemetrySnapshot, PROCESS_TELEMETRY};
-pub use ws::{router, serve};
+pub use ws::{router, serve, serve_with_os_signals};
 
 #[cfg(test)]
 mod tests {

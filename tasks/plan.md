@@ -76,7 +76,7 @@ Gate: N2 subset demonstrated; conformance green on two rows and two transports.
 | ID | State | Deliverable |
 |---|---|---|
 | R4-01 | Active | OIDC identity, SROS2/ACL, audit — first slice: Authenticate off-by-default / opt-in `oidc` + audit JSON; tenant/keystore remain D-04 |
-| R4-02 | Queued | Deployment packaging and observability |
+| R4-02 | Active | Deployment packaging and observability — first slice: `/livez` `/readyz` `/configz` `/metrics` `POST /drain`, J-FT runtime image; PKI/H-FT image/orchestrators remain follow-ups |
 | R4-03 | Queued | Evidence harness returns (recycling the pre-restructure report contract) validating real gate reports; support matrix expansion to remaining rows |
 | R4-04 | Queued | SDK stabilization, docs, examples, and release |
 

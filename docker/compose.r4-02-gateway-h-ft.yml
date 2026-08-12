@@ -1,0 +1,17 @@
+# H-FT gateway deployment shape (R4-02).
+# Host network so rclwebd attaches to the robot's ROS domain.
+# This is not the e2e harness (see compose.r3-03-h-ft-e2e.yml).
+services:
+  rclwebd:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.rclwebd-h-ft
+    image: rclwebd:h-ft
+    network_mode: host
+    environment:
+      RCLWEBD_BIND: "0.0.0.0:8794"
+      RCLWEBD_SUPPORT_ROW: "H-FT"
+      RCLWEBD_GATEWAY_INSTANCE_ID: "rclwebd-local-h-ft"
+      ROS_DOMAIN_ID: "0"
+      ROS_PREFIX: "/opt/ros/humble"
+      RMW_IMPLEMENTATION: "rmw_fastrtps_cpp"

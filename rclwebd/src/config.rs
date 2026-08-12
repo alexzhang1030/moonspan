@@ -69,6 +69,7 @@ pub enum ActiveTransport {
 
 /// Gateway configuration. Authenticate is off by default (R1–R3 accept-all).
 /// `oidc` is opt-in; the production tenant and SROS2 keystore remain D-04.
+/// Operations endpoints and drain timeout are R4-02.
 #[derive(Debug, Clone)]
 pub struct GatewayConfig {
   pub gateway_instance_id: String,
@@ -102,6 +103,12 @@ pub struct GatewayConfig {
   pub auth_mode: crate::auth::AuthMode,
   /// Required when [`Self::auth_mode`] is `Oidc`.
   pub oidc: Option<crate::auth::OidcSettings>,
+  /// Seconds to wait for live sessions after drain (SIGTERM / ctrl_c).
+  pub drain_timeout_secs: u64,
+  /// When true, HTTP responses include COOP/COEP/CORP (browser isolation).
+  pub isolation_headers: bool,
+  /// Allowed CORS origins for HTTP ops and `/local-dev/tls`. Empty = none.
+  pub cors_origins: Vec<String>,
 }
 
 impl Default for GatewayConfig {
@@ -123,6 +130,9 @@ impl Default for GatewayConfig {
       webtransport_bind: "127.0.0.1:4433".to_owned(),
       auth_mode: crate::auth::AuthMode::Off,
       oidc: None,
+      drain_timeout_secs: 15,
+      isolation_headers: false,
+      cors_origins: Vec::new(),
     }
   }
 }

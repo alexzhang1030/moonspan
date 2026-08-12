@@ -44,6 +44,7 @@ One gateway process may expose multiple domain IDs within its support row. Fleet
 - Service/action channels use `OPERATION_ID` streams; graph state arrives as GraphSnapshot/Delta after SessionReady ([R3-01](../../docs/milestones/r3-01-services-actions-graph.md)).
 - Fixtures are the single conformance oracle; there is no cross-implementation agreement apparatus.
 - Security-sensitive work records effective policy, audit identity, and failure behavior.
+- Process operations (`/livez`, `/readyz`, `/configz`, `/metrics`, `POST /drain`) and the J-FT runtime image are the R4-02 deploy surface ([deploy](../../docs/deploy.md)); `/healthz` stays liveness.
 - Platform expansion enters through the [support matrix](../../docs/support-matrix.md) and [validation gates](../../docs/validation.md) after the walking skeleton proves the path.
 
 The walking skeleton (R1) establishes the application contract under live traffic. Studio begins after release and validates that contract through a broad integration example.

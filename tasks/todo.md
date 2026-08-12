@@ -42,7 +42,7 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified. Phase details live in
 ## R4: Productionization
 
 - [~] R4-01 OIDC, SROS2/ACL, audit (Authenticate off-by-default / opt-in `oidc` + audit; ACL/SROS2 enclave still open).
-- [ ] R4-02 Deployment and observability.
+- [~] R4-02 Deployment and observability (ops endpoints + J-FT runtime image; PKI/H-FT image/orchestrators still open).
 - [ ] R4-03 Evidence harness returns; support matrix expansion.
 - [ ] R4-04 SDK stabilization and release.
 
