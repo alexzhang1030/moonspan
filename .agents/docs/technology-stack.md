@@ -34,6 +34,8 @@ just test
 just build
 ```
 
+Pixi is not in that pin set. `pixi.toml` is an optional local Jazzy prefix for `just ros-test` on machines without apt ROS or Docker; see [Optional local ROS prefix](#optional-local-ros-prefix).
+
 ## Workspace ownership
 
 | Path | Tooling and role |
@@ -49,6 +51,14 @@ just build
 ## ROS profile
 
 Phase 1 gates J-FT (Jazzy + Fast DDS). Corpus data for all six rows (H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN) stays committed; H-FT returns in R3 and the rest in R4 through the [support matrix](../../docs/support-matrix.md). Humble uses `moonspan-schema-v1` bundle identity and Jazzy uses `rep2011-rihs` (frozen historical identifiers — committed hashes depend on them).
+
+## Optional local ROS prefix
+
+`just check` / `just test` / `just build` stay ROS-free. Live rcl tests (`just ros-test`) need a Jazzy prefix matching the committed bindings (typically `source /opt/ros/jazzy/setup.bash`).
+
+For machines where apt ROS or Docker is too heavy, `pixi.toml` installs a RoboStack Jazzy prefix (`just ros-test-pixi` / `pixi run just ros-test`). That path is optional: pixi is not a toolchain pin, not checked by `just toolchain-check`, and not CI evidence. Digest-pinned Docker compose (`just e2e` / `just e2e-h-ft`) remains the talker → gateway → SDK gate. This env is J-FT only; H-FT still needs Humble (the existing Docker image or a second prefix).
+
+RoboStack Jazzy is a conda-forge rebuild, not Ubuntu's `/opt/ros/jazzy`. A green `ros-test-pixi` does not substitute for the Ubuntu Jazzy e2e lane.
 
 ## Decision lifecycle
 

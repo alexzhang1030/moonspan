@@ -24,6 +24,9 @@ test-results/
 # Rust
 target/
 
+# Optional RoboStack prefix (pixi)
+.pixi/
+
 # Logs and temporary artifacts
 *.log
 tmp/

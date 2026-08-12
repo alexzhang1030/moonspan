@@ -41,6 +41,7 @@ service `call_with_pump`. Action servers are polled on the wait-set timeout
 ```bash
 just check && just test && just build
 source /opt/ros/jazzy/setup.bash && just ros-test
+just ros-test-pixi  # optional RoboStack Jazzy; not CI evidence
 just e2e          # J-FT talker (must not regress)
 just e2e-h-ft     # H-FT talker (must not regress; regenerates FFI in-image)
 ```
