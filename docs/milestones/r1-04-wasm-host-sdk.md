@@ -55,7 +55,7 @@ bun test sdk/typescript/test
 just check && just test && just build
 ```
 
-Recorded wasm size (release-wasm, fat LTO, `codegen-units=1`, `opt-level=z`):
+Recorded wasm size (release-wasm, fat LTO, `codegen-units=1`, `opt-level=z`, `strip=symbols`):
 see [`docs/evidence/r1-04-wasm-size.json`](../evidence/r1-04-wasm-size.json).
 Poll latency measurement is deferred to R1-05 with the docker-compose CI path.
 

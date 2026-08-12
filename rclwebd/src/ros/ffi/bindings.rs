@@ -4,6 +4,7 @@
 //! Regenerate with scripts/generate-rcl-bindings.sh; do not edit by hand.
 #![allow(non_upper_case_globals, non_camel_case_types, non_snake_case)]
 #![allow(unsafe_code, dead_code, clippy::all, missing_docs)]
+#![cfg_attr(rustfmt, rustfmt::skip)]
 
 pub const RMW_RET_OK: u32 = 0;
 pub const RMW_RET_ERROR: u32 = 1;

@@ -43,7 +43,7 @@ const record = {
   bytes: info.size,
   kib: Math.round((info.size / 1024) * 10) / 10,
   recordedAt: new Date().toISOString(),
-  note: "Hand-written poll ABI (no wasm-bindgen). Poll latency evidence lands in R1-05.",
+  note: "Hand-written poll ABI (no wasm-bindgen). release-wasm strips symbols. Poll latency evidence lands in R1-05.",
 };
 await writeFile(
   path.join(evidenceDir, "r1-04-wasm-size.json"),

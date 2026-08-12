@@ -11,6 +11,7 @@ The project was restructured and renamed from moonspan to rclweb ([ADR 0010](../
 | Product direction and phase boundary | [Intent](./intent.md) |
 | System boundaries and the single-core decision | [Architecture](./architecture.md) |
 | Languages, platforms, transport, and tooling | [Technology stack](./technology-stack.md) |
+| Rust workspace (fmt, clippy, lints, just recipes) | [Technology stack — Rust workspace infrastructure](./technology-stack.md#rust-workspace-infrastructure) |
 | Traps already paid for | [Gotchas](./gotchas.md) |
 | Evidence, single oracle, and gate authority | [Validation](./validation.md) |
 | Studio visual system | [DESIGN.md](./DESIGN.md) |
@@ -49,6 +50,9 @@ The project was restructured and renamed from moonspan to rclweb ([ADR 0010](../
 | `.github/workflows/ci.yml` | Foundation: `setup-bun` / `setup-just` (one retry) / `rust-toolchain`; e2e images copy Bun from `oven/bun` ([gotchas](./gotchas.md#github-releases-downloads-need-retries)) |
 | `scripts/cloud-agent-install.sh`, `scripts/install-pinned-bun.sh`, `scripts/github-release-curl.sh` | Non-Actions toolchain install (cloud-agent VM) ([gotchas](./gotchas.md#github-releases-downloads-need-retries)) |
 | `pixi.toml`, `just ros-test-pixi` | Optional RoboStack J-FT for local `ros-test`; not a pin and not CI evidence ([technology stack](./technology-stack.md#optional-local-ros-prefix), [gotchas](./gotchas.md#pixi-ros-test-must-pin-rosprefix-over-a-host-optros)) |
+| `rustfmt.toml`, `clippy.toml`, root `Cargo.toml` `[workspace.lints]` / `[workspace.dependencies]` | [Rust workspace infrastructure](./technology-stack.md#rust-workspace-infrastructure) |
+| `justfile` (`fmt`, `clippy`, `lint-rust`, `doctor`, `setup`) | Same; `just check` remains the foundation gate |
+| `scripts/build-wasm.ts`, `sdk/typescript/wasm/rclweb.wasm`, `docs/evidence/r1-04-wasm-size.json` | Fat-LTO wasm ship; `release-wasm` inherits native release ([gotchas](./gotchas.md#release-wasm-inherits-native-release-settings)) |
 | `scripts/perf-baseline/**`, `scripts/measure-perf-baseline.ts` | [R2-04 Foxglove/rosbridge baseline](../../docs/milestones/r2-04-perf-baseline.md) |
 | `conformance/**` | [Validation](./validation.md), [corpus README](../../conformance/cdr/README.md), [support matrix](../../docs/support-matrix.md) |
 | `studio/**` | [Prototype scope](../../docs/prototypes/studio-ui.md), [DESIGN.md](./DESIGN.md) |

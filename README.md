@@ -28,8 +28,7 @@ The project was restructured from the earlier three-language architecture (tag `
 ## Quick start
 
 ```bash
-bun install --frozen-lockfile
-just toolchain-check
+just setup
 just check
 just test
 just build
@@ -39,7 +38,10 @@ just build
 
 | Command | Purpose |
 |---|---|
+| `just setup` | Frozen Bun install + `just doctor` |
 | `just toolchain-check` | Verify pinned tools |
+| `just doctor` | Pins plus rustc/rustfmt/clippy identity |
+| `just fmt` / `just fmt-check` / `just clippy` / `just lint-rust` | Rust format and Clippy (subset of `just check`) |
 | `just check` | Docs, protocol, and corpus checks; Rust fmt/clippy; SDK typecheck |
 | `just test` | Bun and Cargo test suites |
 | `just build` | Native build, fat-LTO `rclweb` wasm staged into the SDK, and SDK build |
@@ -66,6 +68,7 @@ Phases and gates live in the [plan](./tasks/plan.md); current state lives in the
 
 | Need | Document |
 |---|---|
+| How to contribute | [CONTRIBUTING.md](./CONTRIBUTING.md) |
 | Full documentation map | [docs/README.md](./docs/README.md) |
 | Product scope | [docs/product-scope.md](./docs/product-scope.md) |
 | Architecture | [docs/architecture.md](./docs/architecture.md) |

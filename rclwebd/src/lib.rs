@@ -27,13 +27,12 @@ pub mod wt;
 
 pub use auth::{AUTHENTICATION_FAILED, AuthMode, AuthResult, OidcSettings, mint_hs256_token};
 pub use backend::{
-    ActionInbound, BackendError, ChannelSpec, EntityId, GraphEndpointInfo, GraphNodeInfo,
-    GraphView, RosBackend, ServiceRequest, SubscriptionSample,
+  ActionInbound, BackendError, ChannelSpec, EntityId, GraphEndpointInfo, GraphNodeInfo, GraphView,
+  RosBackend, ServiceRequest, SubscriptionSample,
 };
 pub use budgets::{Disposition, DispositionCounters, SampleWriteQueue};
 pub use config::{
-    ActiveTransport, GatewayConfig, SUPPORT_ROW_H_FT, SUPPORT_ROW_J_FT, SupportRow,
-    parse_support_row,
+  ActiveTransport, GatewayConfig, SUPPORT_ROW_H_FT, SUPPORT_ROW_J_FT, SupportRow, parse_support_row,
 };
 pub use connection::{Transport, TransportError, run_connection};
 pub use local_dev_tls::{LocalDevTls, TlsAdvertisement};
@@ -42,14 +41,14 @@ pub use ws::{router, serve};
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn crate_identity() {
-        assert_eq!(env!("CARGO_PKG_NAME"), "rclwebd");
-        assert_eq!(env!("CARGO_PKG_VERSION"), "0.0.0");
-    }
+  #[test]
+  fn crate_identity() {
+    assert_eq!(env!("CARGO_PKG_NAME"), "rclwebd");
+    assert_eq!(env!("CARGO_PKG_VERSION"), "0.0.0");
+  }
 
-    #[test]
-    fn core_reachable() {
-        assert_eq!(rclweb::DEFAULT_SELECTED_VERSION, 0);
-    }
+  #[test]
+  fn core_reachable() {
+    assert_eq!(rclweb::DEFAULT_SELECTED_VERSION, 0);
+  }
 }

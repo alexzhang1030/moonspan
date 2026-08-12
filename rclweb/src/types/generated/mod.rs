@@ -14,14 +14,13 @@ pub mod time;
 
 pub use collections::{Collections, TYPE_NAME as COLLECTIONS_TYPE_NAME};
 pub use echo_nested::{
-    EchoNestedRequest, EchoNestedResponse, REQUEST_TYPE_NAME as ECHO_NESTED_REQUEST_TYPE_NAME,
-    RESPONSE_TYPE_NAME as ECHO_NESTED_RESPONSE_TYPE_NAME,
+  EchoNestedRequest, EchoNestedResponse, REQUEST_TYPE_NAME as ECHO_NESTED_REQUEST_TYPE_NAME,
+  RESPONSE_TYPE_NAME as ECHO_NESTED_RESPONSE_TYPE_NAME,
 };
 pub use measure_sequence::{
-    FEEDBACK_TYPE_NAME as MEASURE_SEQUENCE_FEEDBACK_TYPE_NAME,
-    GOAL_TYPE_NAME as MEASURE_SEQUENCE_GOAL_TYPE_NAME, MeasureSequenceFeedback,
-    MeasureSequenceGoal, MeasureSequenceResult,
-    RESULT_TYPE_NAME as MEASURE_SEQUENCE_RESULT_TYPE_NAME,
+  FEEDBACK_TYPE_NAME as MEASURE_SEQUENCE_FEEDBACK_TYPE_NAME,
+  GOAL_TYPE_NAME as MEASURE_SEQUENCE_GOAL_TYPE_NAME, MeasureSequenceFeedback, MeasureSequenceGoal,
+  MeasureSequenceResult, RESULT_TYPE_NAME as MEASURE_SEQUENCE_RESULT_TYPE_NAME,
 };
 pub use nested_sample::{NestedSample, TYPE_NAME as NESTED_SAMPLE_TYPE_NAME};
 pub use point_cloud2::{PointCloud2, TYPE_NAME as POINT_CLOUD2_TYPE_NAME};
@@ -30,13 +29,13 @@ pub use time::Time;
 
 /// The nine Phase 1 registry root type names (sorted).
 pub const PHASE1_ROOT_TYPE_NAMES: &[&str] = &[
-    "moonspan_cdr_interfaces/action/MeasureSequence_Feedback",
-    "moonspan_cdr_interfaces/action/MeasureSequence_Goal",
-    "moonspan_cdr_interfaces/action/MeasureSequence_Result",
-    "moonspan_cdr_interfaces/msg/Collections",
-    "moonspan_cdr_interfaces/msg/NestedSample",
-    "moonspan_cdr_interfaces/msg/PrimitiveScalars",
-    "moonspan_cdr_interfaces/srv/EchoNested_Request",
-    "moonspan_cdr_interfaces/srv/EchoNested_Response",
-    "sensor_msgs/msg/PointCloud2",
+  "moonspan_cdr_interfaces/action/MeasureSequence_Feedback",
+  "moonspan_cdr_interfaces/action/MeasureSequence_Goal",
+  "moonspan_cdr_interfaces/action/MeasureSequence_Result",
+  "moonspan_cdr_interfaces/msg/Collections",
+  "moonspan_cdr_interfaces/msg/NestedSample",
+  "moonspan_cdr_interfaces/msg/PrimitiveScalars",
+  "moonspan_cdr_interfaces/srv/EchoNested_Request",
+  "moonspan_cdr_interfaces/srv/EchoNested_Response",
+  "sensor_msgs/msg/PointCloud2",
 ];

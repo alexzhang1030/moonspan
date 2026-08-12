@@ -6,10 +6,71 @@ set dotenv-load := false
 
 root := justfile_directory()
 
+_default:
+    @just --list
+
+# Prepare a fresh checkout after `just` itself is installed.
+[group('meta')]
+setup:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{root}}"
+    bun install --frozen-lockfile
+    rustup component add rustfmt clippy
+    just doctor
+
 # Verify pinned bun, rustc, and just versions.
 [group('meta')]
 toolchain-check:
     cd "{{root}}" && bun run scripts/toolchain-check.ts
+
+# Print toolchain identity (pins plus rustfmt/clippy).
+[group('meta')]
+doctor: toolchain-check
+    #!/usr/bin/env bash
+    set -euo pipefail
+    rustc --version --verbose
+    cargo --version
+    cargo fmt --version
+    cargo clippy --version
+    just --version
+    bun --version
+
+# Format all Rust sources.
+[group('quality')]
+fmt:
+    cd "{{root}}" && cargo fmt --all
+
+# Verify Rust formatting without changing files.
+[group('quality')]
+fmt-check:
+    cd "{{root}}" && cargo fmt --all --check
+
+# Clippy with the workspace lint policy and no warnings.
+[group('quality')]
+clippy:
+    cd "{{root}}" && cargo clippy --locked --workspace --all-targets -- -D warnings
+
+# Rust-only fmt + clippy. The full gate remains `just check`.
+[group('quality')]
+lint-rust: fmt-check clippy
+
+# Apply rustfmt and Clippy's safe fixes to the working tree.
+[group('quality')]
+fix-rust:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{root}}"
+    cargo fmt --all
+    cargo clippy --fix --locked --workspace --all-targets --allow-dirty --allow-staged
+
+# Optional prek hooks from `.pre-commit-config.yaml` (not a CI pin).
+[group('meta')]
+install-hooks:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cargo install prek --version 0.4.9 --locked
+    prek install --hook-type pre-commit
 
 # Validate R2WP v0 registry JSON and control CDDL.
 [group('quality')]
@@ -74,8 +135,8 @@ check: toolchain-check
     cd "{{root}}"
     bun run check
     cargo run --locked -p protocol-fixtures -- --check
-    cargo fmt --all --check
-    cargo clippy --locked --workspace --all-targets -- -D warnings
+    just fmt-check
+    just clippy
     bun run --filter @rclweb/sdk check
 
 # Bun tests (root scripts and SDK) and Cargo workspace tests.
