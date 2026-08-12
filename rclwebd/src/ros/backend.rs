@@ -342,9 +342,10 @@ impl Worker {
             loop {
                 match entry.subscription.take_serialized(&mut self.take) {
                     Ok(true) => {
-                        let sample = SubscriptionSample::from_payload(
+                        let sample = SubscriptionSample::from_payload_with_telemetry(
                             entry.channel_id,
                             self.take.as_slice(),
+                            Some(&crate::telemetry::PROCESS_TELEMETRY),
                         );
                         // Bounded pre-sequence admission: a full or closed
                         // connection queue drops here (R2 owns dispositions

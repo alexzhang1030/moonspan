@@ -1,0 +1,10 @@
+target/
+node_modules/
+.bun/
+.git/
+dist/
+coverage/
+tmp/
+temp/
+*.log
+.DS_Store

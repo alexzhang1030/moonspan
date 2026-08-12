@@ -15,8 +15,8 @@ pub use control::{
     DEMO_SCHEMA_HASH, ZERO_CORRELATION, authenticate, close_channel, heartbeat, open_topic,
 };
 pub use types::{
-    AppCommand, AppEvent, HostEvent, MAX_HOST_EVENTS_PER_POLL, MAX_OUTBOUND_PER_POLL,
-    OutboundMessage, PollOutcome, ReleasedBuffer, STD_MSGS_STRING,
+    AppCommand, AppEvent, EngineTelemetry, HostEvent, MAX_HOST_EVENTS_PER_POLL,
+    MAX_OUTBOUND_PER_POLL, OutboundMessage, PollOutcome, ReleasedBuffer, STD_MSGS_STRING,
 };
 
 use crate::cdr::{CdrEndian, CdrReader, CdrWriter};
@@ -78,6 +78,7 @@ pub struct ClientEngine {
     last_timer_ms: Option<u64>,
     next_heartbeat_ms: Option<u64>,
     heartbeat_counter: u64,
+    telemetry: EngineTelemetry,
 }
 
 impl Default for ClientEngine {
@@ -105,7 +106,13 @@ impl ClientEngine {
             last_timer_ms: None,
             next_heartbeat_ms: None,
             heartbeat_counter: 0,
+            telemetry: EngineTelemetry::default(),
         }
+    }
+
+    #[must_use]
+    pub fn telemetry(&self) -> EngineTelemetry {
+        self.telemetry
     }
 
     #[must_use]
@@ -134,11 +141,21 @@ impl ClientEngine {
     /// Drive one host turn: ingest a bounded event batch, return outbound work,
     /// application events, released buffers, and the next deadline.
     pub fn poll(&mut self, events: &[HostEvent]) -> PollOutcome {
+        #[cfg(not(target_arch = "wasm32"))]
+        let started = std::time::Instant::now();
         let mut outcome = PollOutcome::default();
         if self.closed {
             outcome.events.push(AppEvent::Closed {
                 phase: self.session.phase(),
             });
+            self.telemetry.poll_turns = self.telemetry.poll_turns.saturating_add(1);
+            #[cfg(not(target_arch = "wasm32"))]
+            {
+                self.telemetry.poll_nanos_total = self
+                    .telemetry
+                    .poll_nanos_total
+                    .saturating_add(started.elapsed().as_nanos() as u64);
+            }
             return outcome;
         }
         let limit = events.len().min(MAX_HOST_EVENTS_PER_POLL);
@@ -150,6 +167,14 @@ impl ClientEngine {
         }
         self.sweep_released(&mut outcome);
         outcome.next_deadline_ms = self.next_heartbeat_ms;
+        self.telemetry.poll_turns = self.telemetry.poll_turns.saturating_add(1);
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            self.telemetry.poll_nanos_total = self
+                .telemetry
+                .poll_nanos_total
+                .saturating_add(started.elapsed().as_nanos() as u64);
+        }
         outcome
     }
 
@@ -263,6 +288,12 @@ impl ClientEngine {
         // `buffer_id` is recorded so it can appear in `released_buffers` once
         // leases clear (the host may free its transferable AB independently;
         // the engine's copy is the lease backing store).
+        // This retention is the browser-side controllable copy (budget slot 2).
+        self.telemetry.copies_into_engine = self.telemetry.copies_into_engine.saturating_add(1);
+        self.telemetry.bytes_copied_into_engine = self
+            .telemetry
+            .bytes_copied_into_engine
+            .saturating_add(bytes.len() as u64);
         let id = if buffer_id == 0 {
             self.alloc_buffer(bytes.to_vec())
         } else {
@@ -482,7 +513,8 @@ impl ClientEngine {
         );
 
         // Owned snapshot for the native PollOutcome API; wasm hosts should
-        // prefer [`Self::lease_payload_view`] into the retained slab.
+        // prefer [`Self::lease_payload_view`] into the retained slab. The SDK
+        // String path delivers `string_data` (no extra controllable copy).
         outcome.events.push(AppEvent::Sample {
             channel_id: frame.channel_id,
             lease_id,
@@ -491,6 +523,7 @@ impl ClientEngine {
             payload: payload.to_vec(),
             string_data,
         });
+        self.telemetry.samples_emitted = self.telemetry.samples_emitted.saturating_add(1);
     }
 
     fn handle_timer(&mut self, now_ms: u64, outcome: &mut PollOutcome) {
@@ -567,6 +600,7 @@ impl ClientEngine {
         if let Some(buf) = self.retained.get_mut(&lease.buffer_id) {
             buf.lease_refs = buf.lease_refs.saturating_sub(1);
         }
+        self.telemetry.leases_released = self.telemetry.leases_released.saturating_add(1);
     }
 
     fn sweep_released(&mut self, outcome: &mut PollOutcome) {

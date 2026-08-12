@@ -1,0 +1,18 @@
+# R1 walking-skeleton end-to-end lane (J-FT).
+# One container: ROS talker + rclwebd + bun SDK harness (shared DDS domain).
+services:
+  e2e:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.r1-e2e
+    environment:
+      ROS_DOMAIN_ID: "0"
+      RCLWEBD_BIND: "127.0.0.1:8794"
+      RCLWEB_GATEWAY_URL: "ws://127.0.0.1:8794/ws"
+      RCLWEB_HEALTH_URL: "http://127.0.0.1:8794/healthz"
+      RCLWEB_TELEMETRY_URL: "http://127.0.0.1:8794/telemetryz"
+      RCLWEB_MIN_SAMPLES: "3"
+      RCLWEB_TIMEOUT_MS: "60000"
+      RCLWEB_EVIDENCE_DIR: "/workspace/docs/evidence"
+    volumes:
+      - ../docs/evidence:/workspace/docs/evidence

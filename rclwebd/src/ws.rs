@@ -81,11 +81,16 @@ async fn healthz() -> &'static str {
     "ok"
 }
 
-/// Gateway router: `GET /ws` (R2WP over binary WebSocket) and `GET /healthz`.
+async fn telemetryz() -> String {
+    crate::telemetry::PROCESS_TELEMETRY.snapshot().to_json()
+}
+
+/// Gateway router: `GET /ws`, `GET /healthz`, `GET /telemetryz`.
 pub fn router<B: RosBackend>(config: Arc<GatewayConfig>, backend: Arc<B>) -> Router {
     Router::new()
         .route("/ws", get(ws_handler::<B>))
         .route("/healthz", get(healthz))
+        .route("/telemetryz", get(telemetryz))
         .with_state(AppState { config, backend })
 }
 

@@ -6,6 +6,7 @@
 //! tests substitute an in-memory backend.
 
 use crate::qos::EffectiveQos;
+use crate::telemetry::GatewayTelemetry;
 use tokio::sync::mpsc;
 
 /// Opaque backend entity handle (publisher or subscription).
@@ -31,8 +32,21 @@ impl SubscriptionSample {
     /// gateway copy).
     #[must_use]
     pub fn from_payload(channel_id: u32, payload: &[u8]) -> Self {
+        Self::from_payload_with_telemetry(channel_id, payload, None)
+    }
+
+    /// As [`Self::from_payload`], also bump gateway copy counters when provided.
+    #[must_use]
+    pub fn from_payload_with_telemetry(
+        channel_id: u32,
+        payload: &[u8],
+        telemetry: Option<&GatewayTelemetry>,
+    ) -> Self {
         let mut frame_buf = vec![0u8; SAMPLE_HEADER_PREFIX + payload.len()];
         frame_buf[SAMPLE_HEADER_PREFIX..].copy_from_slice(payload);
+        if let Some(telemetry) = telemetry {
+            telemetry.record_payload_copy(payload.len());
+        }
         Self {
             channel_id,
             frame_buf,

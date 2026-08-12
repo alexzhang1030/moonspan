@@ -43,12 +43,18 @@ just build
 | `just check` | Docs, protocol, and corpus checks; Rust fmt/clippy; SDK typecheck |
 | `just test` | Bun and Cargo test suites |
 | `just build` | Native build, fat-LTO `rclweb` wasm staged into the SDK, and SDK build |
+| `just poll-latency` | Record wasm poll latency + size evidence (R-D1) |
+| `just e2e` | Docker compose: ROS talker → rclwebd → SDK subscribe |
 | `just protocol-check` | Validate the R2WP registry JSON and control CDDL |
 | `just cdr-corpus-check` | Verify the committed ROS CDR corpus |
 
 ## Status
 
-R0 (stop-loss) and R1-01..R1-04 are complete: the walking skeleton reaches SDK `connect` → `subscribe` → typed String events over the wasm poll ABI. R1-05 adds docker-compose CI evidence, demo, poll latency, and copy counters. Phases and gates live in the [plan](./tasks/plan.md); current state lives in the [checklist](./tasks/todo.md).
+R0 and R1 are complete: the walking skeleton reaches a live ROS talker in CI
+(`just e2e` / `e2e-ros-talker` job) and a committed demo under
+`examples/subscribe-chatter`. Phases and gates live in the
+[plan](./tasks/plan.md); current state lives in the
+[checklist](./tasks/todo.md).
 
 ## Start here
 

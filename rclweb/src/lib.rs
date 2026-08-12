@@ -21,9 +21,9 @@ pub use cdr::{
     REPRESENTATION_CDR_BE, REPRESENTATION_CDR_LE, WRITER_INITIAL_SIZE_HINT,
 };
 pub use engine::{
-    AppCommand, AppEvent, ClientEngine, DEMO_SCHEMA_HASH, HostEvent, MAX_HOST_EVENTS_PER_POLL,
-    MAX_OUTBOUND_PER_POLL, OutboundMessage, PollOutcome, ReleasedBuffer, STD_MSGS_STRING,
-    ZERO_CORRELATION, authenticate, close_channel, heartbeat, open_topic,
+    AppCommand, AppEvent, ClientEngine, DEMO_SCHEMA_HASH, EngineTelemetry, HostEvent,
+    MAX_HOST_EVENTS_PER_POLL, MAX_OUTBOUND_PER_POLL, OutboundMessage, PollOutcome, ReleasedBuffer,
+    STD_MSGS_STRING, ZERO_CORRELATION, authenticate, close_channel, heartbeat, open_topic,
 };
 pub use host::{
     BATCH_MAGIC, BatchError, LAYOUT_VERSION, RESULT_MAGIC, decode_host_batch,

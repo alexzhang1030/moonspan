@@ -5,10 +5,12 @@
 
 import {
   type AppEvent,
+  type EngineTelemetrySnapshot,
   type HostEventInput,
   type WasmExports,
   loadWasm,
   pollEngine,
+  readTelemetry,
 } from "./wasm/abi.ts";
 
 export type HostCallbacks = {
@@ -27,6 +29,7 @@ export class IoHost {
   #disposed = false;
   #pending: HostEventInput[] = [];
   #flushScheduled = false;
+  #lastTelemetry: EngineTelemetrySnapshot | null = null;
 
   private constructor(wasm: WasmExports, handle: number, callbacks: HostCallbacks) {
     this.#wasm = wasm;
@@ -189,6 +192,7 @@ export class IoHost {
     const batch = this.#pending;
     this.#pending = [];
     const result = pollEngine(this.#wasm, this.#handle, batch);
+    this.#lastTelemetry = readTelemetry(this.#wasm, this.#handle);
     for (const msg of result.outbound) {
       if (this.#ws && this.#ws.readyState === WebSocket.OPEN) {
         // Send a copy — ws may retain the buffer.
@@ -217,5 +221,18 @@ export class IoHost {
 
   get started(): boolean {
     return this.#started;
+  }
+
+  /** Engine telemetry snapshot (copy counters + poll timing). */
+  engineTelemetry(): EngineTelemetrySnapshot | null {
+    if (this.#disposed || this.#handle === 0) {
+      return this.#lastTelemetry;
+    }
+    try {
+      this.#lastTelemetry = readTelemetry(this.#wasm, this.#handle);
+    } catch {
+      // keep last known
+    }
+    return this.#lastTelemetry;
   }
 }
