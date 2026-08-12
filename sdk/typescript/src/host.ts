@@ -167,6 +167,143 @@ export class IoHost {
     });
   }
 
+  openService(args: {
+    correlation: Uint8Array;
+    channelId: number;
+    name: string;
+    typeName: string;
+    domainId?: number;
+    client: boolean;
+  }): void {
+    this.#enqueue({
+      type: "command",
+      command: {
+        type: "openService",
+        correlation: args.correlation,
+        channelId: args.channelId,
+        name: args.name,
+        typeName: args.typeName,
+        domainId: args.domainId ?? 0,
+        client: args.client,
+      },
+    });
+  }
+
+  callService(
+    channelId: number,
+    operationId: Uint8Array,
+    request: Uint8Array,
+  ): void {
+    this.#enqueue({
+      type: "command",
+      command: { type: "callService", channelId, operationId, request },
+    });
+  }
+
+  sendServiceResponse(
+    channelId: number,
+    operationId: Uint8Array,
+    response: Uint8Array,
+  ): void {
+    this.#enqueue({
+      type: "command",
+      command: {
+        type: "sendServiceResponse",
+        channelId,
+        operationId,
+        response,
+      },
+    });
+  }
+
+  openAction(args: {
+    correlation: Uint8Array;
+    channelId: number;
+    name: string;
+    typeName: string;
+    domainId?: number;
+    client: boolean;
+  }): void {
+    this.#enqueue({
+      type: "command",
+      command: {
+        type: "openAction",
+        correlation: args.correlation,
+        channelId: args.channelId,
+        name: args.name,
+        typeName: args.typeName,
+        domainId: args.domainId ?? 0,
+        client: args.client,
+      },
+    });
+  }
+
+  sendActionGoal(
+    channelId: number,
+    operationId: Uint8Array,
+    goal: Uint8Array,
+  ): void {
+    this.#enqueue({
+      type: "command",
+      command: { type: "sendActionGoal", channelId, operationId, goal },
+    });
+  }
+
+  cancelAction(channelId: number, operationId: Uint8Array): void {
+    this.#enqueue({
+      type: "command",
+      command: { type: "cancelAction", channelId, operationId },
+    });
+  }
+
+  sendActionFeedback(
+    channelId: number,
+    operationId: Uint8Array,
+    feedback: Uint8Array,
+  ): void {
+    this.#enqueue({
+      type: "command",
+      command: {
+        type: "sendActionFeedback",
+        channelId,
+        operationId,
+        feedback,
+      },
+    });
+  }
+
+  sendActionResult(
+    channelId: number,
+    operationId: Uint8Array,
+    result: Uint8Array,
+  ): void {
+    this.#enqueue({
+      type: "command",
+      command: { type: "sendActionResult", channelId, operationId, result },
+    });
+  }
+
+  sendActionStatus(
+    channelId: number,
+    operationId: Uint8Array,
+    status: Uint8Array,
+  ): void {
+    this.#enqueue({
+      type: "command",
+      command: { type: "sendActionStatus", channelId, operationId, status },
+    });
+  }
+
+  /** Copy a leased payload view out of wasm linear memory (valid until release). */
+  copyPayload(payloadPtr: number, payloadLen: number): Uint8Array {
+    if (payloadLen === 0) return new Uint8Array();
+    return new Uint8Array(
+      this.#wasm.memory.buffer,
+      payloadPtr,
+      payloadLen,
+    ).slice();
+  }
+
   unsubscribe(correlation: Uint8Array, channelId: number): void {
     this.#enqueue({
       type: "command",

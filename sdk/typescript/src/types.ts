@@ -44,3 +44,88 @@ export type ConnectOptions = {
   /** Max reconnect attempts (default 3). */
   reconnectAttempts?: number;
 };
+
+export type ServiceClient = {
+  readonly name: string;
+  readonly typeName: string;
+  readonly channelId: number;
+  call(request: Uint8Array): Promise<Uint8Array>;
+  close(): Promise<void>;
+};
+
+export type ServiceServerHandler = (
+  request: Uint8Array,
+  operationId: Uint8Array,
+) => Uint8Array | Promise<Uint8Array>;
+
+export type ServiceServer = {
+  readonly name: string;
+  readonly typeName: string;
+  readonly channelId: number;
+  close(): Promise<void>;
+};
+
+export type ActionFeedbackHandler = (
+  feedback: Uint8Array,
+  operationId: Uint8Array,
+) => void;
+
+export type ActionStatusHandler = (
+  status: Uint8Array,
+  operationId: Uint8Array,
+) => void;
+
+export type ActionClient = {
+  readonly name: string;
+  readonly typeName: string;
+  readonly channelId: number;
+  sendGoal(goal: Uint8Array): {
+    operationId: Uint8Array;
+    result: Promise<Uint8Array>;
+  };
+  cancel(operationId: Uint8Array): void;
+  onFeedback(handler: ActionFeedbackHandler): void;
+  onStatus(handler: ActionStatusHandler): void;
+  close(): Promise<void>;
+};
+
+export type ActionServerHandlers = {
+  onGoal?: (
+    goal: Uint8Array,
+    operationId: Uint8Array,
+  ) => void | Promise<void>;
+  onCancel?: (operationId: Uint8Array) => void | Promise<void>;
+};
+
+export type ActionServer = {
+  readonly name: string;
+  readonly typeName: string;
+  readonly channelId: number;
+  sendFeedback(operationId: Uint8Array, feedback: Uint8Array): void;
+  sendResult(operationId: Uint8Array, result: Uint8Array): void;
+  sendStatus(operationId: Uint8Array, status: Uint8Array): void;
+  close(): Promise<void>;
+};
+
+export type GraphNode = {
+  id: string;
+  name: string;
+  domain_id: number;
+};
+
+export type GraphEndpoint = {
+  id: string;
+  node_id?: string;
+  name: string;
+  kind?: number;
+  type_name?: string;
+  domain_id: number;
+};
+
+export type GraphView = {
+  generation: number;
+  nodes: GraphNode[];
+  endpoints: GraphEndpoint[];
+};
+
+export type GraphHandler = (graph: GraphView) => void;

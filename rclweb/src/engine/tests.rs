@@ -393,3 +393,171 @@ fn large_point_cloud2_sample_borrowed_view_and_single_retain_copy() {
 fn unused_zero_correlation_constant() {
     assert_eq!(ZERO_CORRELATION, [0u8; 16]);
 }
+
+fn through_ready(engine: &mut ClientEngine) -> u64 {
+    let _ = engine.poll(vec![HostEvent::Command(AppCommand::Start {
+        transferable_arraybuffer: true,
+    })]);
+    let _ = feed(engine, server_hello_bytes());
+    let auth_corr = corr(0xA1);
+    let _ = engine.poll(vec![HostEvent::Command(AppCommand::Authenticate {
+        correlation: auth_corr,
+        scheme: "token".into(),
+        token: b"anonymous".to_vec(),
+    })]);
+    let _ = feed(engine, session_ready_bytes(0, &auth_corr));
+    // Next inbound control sequence after SessionReady (seq 0).
+    1
+}
+
+#[test]
+fn service_client_call_emits_request_and_response_event() {
+    use crate::protocol::extension::{OPERATION_ID_EXTENSION_TYPE, R2wpExtension};
+    use crate::protocol::frame::{
+        FLAG_ROS_RELIABLE, OPCODE_SERVICE_REQUEST, OPCODE_SERVICE_RESPONSE,
+    };
+    use crate::protocol::{FrameHeader, encode_extension_area, encode_frame};
+
+    let mut engine = ClientEngine::new();
+    let mut ctrl_seq = through_ready(&mut engine);
+
+    let open_corr = corr(0xB1);
+    let opened = engine.poll(vec![HostEvent::Command(AppCommand::OpenService {
+        correlation: open_corr,
+        channel_id: 5,
+        name: "/add_two_ints".into(),
+        type_name: "example_interfaces/srv/AddTwoInts".into(),
+        domain_id: 0,
+        client: true,
+    })]);
+    assert_eq!(opened.outbound.len(), 1);
+
+    let ready = feed(
+        &mut engine,
+        channel_ready_allow_bytes(ctrl_seq, &open_corr, 5),
+    );
+    ctrl_seq += 1;
+    assert!(ready.events.iter().any(|e| matches!(
+        e,
+        AppEvent::ServiceReady {
+            channel_id: 5,
+            client: true,
+            ..
+        }
+    )));
+
+    let opid = [0x11u8; 16];
+    let request = b"req-bytes".to_vec();
+    let sent = engine.poll(vec![HostEvent::Command(AppCommand::CallService {
+        channel_id: 5,
+        operation_id: opid,
+        request: request.clone(),
+    })]);
+    assert_eq!(sent.outbound.len(), 1);
+    let frame = parse_frame(&sent.outbound[0].bytes, None).expect("request frame");
+    assert_eq!(frame.opcode, OPCODE_SERVICE_REQUEST);
+    assert_eq!(frame.channel_id, 5);
+    assert_eq!(frame.flags & FLAG_ROS_RELIABLE, FLAG_ROS_RELIABLE);
+    assert!(
+        frame
+            .extensions
+            .iter()
+            .any(|e| e.type_id == OPERATION_ID_EXTENSION_TYPE && e.value == opid)
+    );
+    let FramePayload::Application(payload) = &frame.payload else {
+        panic!("expected application payload");
+    };
+    assert_eq!(*payload, request.as_slice());
+
+    let response_payload = b"resp-bytes";
+    let ext = encode_extension_area(&[R2wpExtension {
+        type_id: OPERATION_ID_EXTENSION_TYPE,
+        critical: true,
+        value: &opid,
+    }])
+    .unwrap();
+    let resp_bytes = encode_frame(
+        &FrameHeader {
+            version: 0,
+            opcode: OPCODE_SERVICE_RESPONSE,
+            flags: FLAG_ROS_RELIABLE,
+            channel_id: 5,
+            sequence: 0,
+            source_time_ns: 0,
+            priority: 2,
+            clock_id: 0,
+        },
+        &ext,
+        response_payload,
+    )
+    .unwrap();
+    let inbound = feed(&mut engine, resp_bytes);
+    let AppEvent::ServiceResponse {
+        channel_id,
+        operation_id,
+        lease_id,
+        ..
+    } = inbound
+        .events
+        .iter()
+        .find(|e| matches!(e, AppEvent::ServiceResponse { .. }))
+        .cloned()
+        .expect("service response event")
+    else {
+        panic!("expected ServiceResponse");
+    };
+    assert_eq!(channel_id, 5);
+    assert_eq!(operation_id, opid);
+    assert_eq!(
+        engine.lease_payload_view(lease_id),
+        Some(response_payload.as_slice())
+    );
+    let _ = ctrl_seq;
+}
+
+#[test]
+fn graph_snapshot_control_emits_app_event() {
+    use crate::protocol::control::CONTROL_KIND_GRAPH_SNAPSHOT;
+
+    let mut engine = ClientEngine::new();
+    let ctrl_seq = through_ready(&mut engine);
+
+    let msg = CborValue::Map(vec![
+        (
+            1,
+            CborValue::Unsigned(u64::from(CONTROL_KIND_GRAPH_SNAPSHOT)),
+        ),
+        (2, bytes_val(&ZERO_CORRELATION)),
+        (7, text_val("gw-test")),
+        (8, text_val("J-FT")),
+        (14, CborValue::Unsigned(7)),
+        (
+            22,
+            CborValue::Array(vec![CborValue::Map(vec![
+                (55, bytes_val(&[0xAAu8; 16])),
+                (1, text_val("/talker")),
+                (9, CborValue::Unsigned(0)),
+            ])]),
+        ),
+        (23, CborValue::Array(Vec::new())),
+    ]);
+    let bytes = encode_control_frame(0, ctrl_seq, &msg).expect("graph snapshot");
+    let out = feed(&mut engine, bytes);
+    let AppEvent::GraphSnapshot {
+        generation,
+        nodes_json,
+        endpoints_json,
+    } = out
+        .events
+        .iter()
+        .find(|e| matches!(e, AppEvent::GraphSnapshot { .. }))
+        .cloned()
+        .expect("graph snapshot event")
+    else {
+        panic!("expected GraphSnapshot");
+    };
+    assert_eq!(generation, 7);
+    assert!(nodes_json.contains("/talker"));
+    assert!(nodes_json.contains("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
+    assert_eq!(endpoints_json, "[]");
+}

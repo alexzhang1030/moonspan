@@ -26,7 +26,7 @@ pub use engine::{
     AppCommand, AppEvent, ClientEngine, DEFAULT_QOS_DEPTH, DEMO_SCHEMA_HASH, EngineTelemetry,
     HostEvent, MAX_HOST_EVENTS_PER_POLL, MAX_OUTBOUND_PER_POLL, OutboundMessage, PollOutcome,
     ReleasedBuffer, STD_MSGS_STRING, ZERO_CORRELATION, authenticate, close_channel, heartbeat,
-    open_topic,
+    open_action, open_service, open_topic,
 };
 pub use host::{
     BATCH_MAGIC, BatchError, LAYOUT_VERSION, RESULT_MAGIC, decode_host_batch,
@@ -41,9 +41,11 @@ pub use protocol::{
     CONTROL_KIND_SCHEMA_REQUEST, CONTROL_KIND_SCHEMA_RESPONSE, CONTROL_KIND_SESSION_READY,
     CONTROL_KIND_SESSION_RESUME, CONTROL_KIND_SESSION_RESUME_RESULT, CONTROL_PAYLOAD_MAX_BYTES,
     CborError, CborValue, ClientHello, ControlMessage, DEFAULT_SELECTED_VERSION, DecodedFrame,
-    EXTENSION_AREA_MAX_BYTES, EffectiveLimits, EncodeError, FRAME_HEADER_LENGTH,
+    EXTENSION_AREA_MAX_BYTES, EffectiveLimits, EncodeError, FLAG_ROS_RELIABLE, FRAME_HEADER_LENGTH,
     FRAME_PAYLOAD_MAX_BYTES, FrameHeader, FrameOptions, FramePayload, MAX_MAP_ENTRIES,
-    MAX_NESTING_DEPTH, OPCODE_CONTROL_CBOR, OPCODE_MEDIA_CHUNK, OPCODE_ROS_SAMPLE,
+    MAX_NESTING_DEPTH, OPCODE_ACTION_CANCEL, OPCODE_ACTION_FEEDBACK, OPCODE_ACTION_GOAL,
+    OPCODE_ACTION_RESULT, OPCODE_ACTION_STATUS, OPCODE_CONTROL_CBOR, OPCODE_MEDIA_CHUNK,
+    OPCODE_ROS_SAMPLE, OPCODE_SERVICE_REQUEST, OPCODE_SERVICE_RESPONSE,
     OPERATION_ID_EXTENSION_TYPE, ProtocolError, R2wpExtension, RequestedLimits, ServerHello,
     TRACE_CONTEXT_EXTENSION_TYPE, TransportCapabilities, decode_control_message,
     decode_deterministic_cbor, decode_extension_area, encode_bootstrap_error, encode_client_hello,

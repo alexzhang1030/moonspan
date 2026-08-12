@@ -85,6 +85,91 @@ pub fn open_topic(
     ])
 }
 
+/// OpenChannel (kind 8) for a service client (`operation_kind` 2) or server (3).
+///
+/// Same map shape as [`open_topic`]; service name lives in key 31.
+#[must_use]
+#[allow(clippy::too_many_arguments)]
+pub fn open_service(
+    correlation: &[u8; 16],
+    channel_id: u32,
+    client: bool,
+    name: &str,
+    type_name: &str,
+    domain_id: u8,
+) -> CborValue<'static> {
+    let operation_kind = if client { 2 } else { 3 };
+    open_topic(
+        correlation,
+        channel_id,
+        operation_kind,
+        name,
+        type_name,
+        1, // RELIABLE
+        DEFAULT_QOS_DEPTH,
+        domain_id,
+    )
+}
+
+fn reliable_keep_last_qos(depth: u64) -> CborValue<'static> {
+    CborValue::Map(vec![
+        (1, CborValue::Unsigned(1)), // RELIABLE
+        (2, CborValue::Unsigned(0)), // durability SYSTEM_DEFAULT
+        (3, CborValue::Unsigned(1)), // KEEP_LAST
+        (4, CborValue::Unsigned(depth)),
+    ])
+}
+
+/// OpenChannel (kind 8) for an action client (`operation_kind` 4) or server (5).
+///
+/// Carries `action_qos` key 58: five QoS maps (goal/result/cancel/feedback/status),
+/// each RELIABLE + KEEP_LAST depth 5.
+#[must_use]
+#[allow(clippy::too_many_arguments)]
+pub fn open_action(
+    correlation: &[u8; 16],
+    channel_id: u32,
+    client: bool,
+    name: &str,
+    type_name: &str,
+    domain_id: u8,
+) -> CborValue<'static> {
+    let operation_kind = if client { 4 } else { 5 };
+    let depth = u64::from(DEFAULT_QOS_DEPTH);
+    let qos = reliable_keep_last_qos(depth);
+    CborValue::Map(vec![
+        (1, CborValue::Unsigned(8)),
+        (2, bytes_val(correlation)),
+        (29, CborValue::Unsigned(u64::from(channel_id))),
+        (30, CborValue::Unsigned(operation_kind)),
+        (31, text_val(name)),
+        (4, text_val(type_name)),
+        (
+            3,
+            CborValue::Map(vec![
+                (1, text_val("rep2011-rihs")),
+                (2, text_val(DEMO_SCHEMA_HASH)),
+            ]),
+        ),
+        (5, CborValue::Unsigned(1)),
+        (6, CborValue::Unsigned(0)),
+        (
+            58,
+            CborValue::Map(vec![
+                (1, qos.clone()),
+                (2, qos.clone()),
+                (3, qos.clone()),
+                (4, qos.clone()),
+                (5, qos),
+            ]),
+        ),
+        (32, CborValue::Unsigned(2)),
+        (12, CborValue::Map(Vec::new())),
+        (9, CborValue::Unsigned(u64::from(domain_id))),
+        (8, text_val("J-FT")),
+    ])
+}
+
 /// CloseChannel (kind 10).
 #[must_use]
 pub fn close_channel(correlation: &[u8; 16], channel_id: u32) -> CborValue<'static> {

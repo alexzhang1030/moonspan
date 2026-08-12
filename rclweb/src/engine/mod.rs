@@ -14,7 +14,7 @@ mod tests;
 pub use crate::cdr::SENSOR_MSGS_POINT_CLOUD2;
 pub use control::{
     DEFAULT_QOS_DEPTH, DEMO_SCHEMA_HASH, ZERO_CORRELATION, authenticate, close_channel, heartbeat,
-    open_topic,
+    open_action, open_service, open_topic,
 };
 pub use types::{
     AppCommand, AppEvent, EngineTelemetry, HostEvent, MAX_HOST_EVENTS_PER_POLL,
@@ -27,16 +27,18 @@ use crate::protocol::bootstrap::{
 };
 use crate::protocol::cbor::CborValue;
 use crate::protocol::control::{
-    CONTROL_KIND_CHANNEL_READY, CONTROL_KIND_ERROR, CONTROL_KIND_HEARTBEAT,
-    CONTROL_KIND_SESSION_READY,
+    CONTROL_KIND_CHANNEL_READY, CONTROL_KIND_ERROR, CONTROL_KIND_GRAPH_DELTA,
+    CONTROL_KIND_GRAPH_SNAPSHOT, CONTROL_KIND_HEARTBEAT, CONTROL_KIND_SESSION_READY,
 };
+use crate::protocol::extension::{OPERATION_ID_EXTENSION_TYPE, R2wpExtension};
 use crate::protocol::frame::{
-    DecodedFrame, FLAG_ROS_RELIABLE, FrameOptions, FramePayload, OPCODE_CONTROL_CBOR,
-    OPCODE_ROS_SAMPLE,
+    DecodedFrame, FLAG_ROS_RELIABLE, FrameOptions, FramePayload, OPCODE_ACTION_CANCEL,
+    OPCODE_ACTION_FEEDBACK, OPCODE_ACTION_GOAL, OPCODE_ACTION_RESULT, OPCODE_ACTION_STATUS,
+    OPCODE_CONTROL_CBOR, OPCODE_ROS_SAMPLE, OPCODE_SERVICE_REQUEST, OPCODE_SERVICE_RESPONSE,
 };
 use crate::protocol::{
-    FrameHeader, encode_client_hello, encode_control_frame, encode_frame, parse_bootstrap,
-    parse_frame,
+    FrameHeader, encode_client_hello, encode_control_frame, encode_extension_area, encode_frame,
+    parse_bootstrap, parse_frame,
 };
 use crate::session::{ChannelState, Role, Session, SessionEffects, SessionPhase};
 use bytes::Bytes;
@@ -48,6 +50,10 @@ const HEARTBEAT_INTERVAL_MS: u64 = 15_000;
 enum PendingKind {
     Subscribe,
     Publish,
+    ServiceClient,
+    ServiceServer,
+    ActionClient,
+    ActionServer,
 }
 
 #[derive(Debug)]
@@ -67,6 +73,32 @@ struct ActivePublish {
     type_name: String,
     reliable: bool,
     seq_out: u64,
+}
+
+#[derive(Debug)]
+struct ActiveService {
+    #[allow(dead_code)]
+    name: String,
+    #[allow(dead_code)]
+    type_name: String,
+    #[allow(dead_code)]
+    client: bool,
+    /// Next channel-wide outbound sequence.
+    next_seq: u64,
+    /// Per-operation outbound sequence keyed by `operation_id`.
+    seq_out: HashMap<[u8; 16], u64>,
+}
+
+#[derive(Debug)]
+struct ActiveAction {
+    #[allow(dead_code)]
+    name: String,
+    #[allow(dead_code)]
+    type_name: String,
+    #[allow(dead_code)]
+    client: bool,
+    next_seq: u64,
+    seq_out: HashMap<[u8; 16], u64>,
 }
 
 #[derive(Debug)]
@@ -101,6 +133,8 @@ pub struct ClientEngine {
     pending_opens: HashMap<u32, PendingOpen>,
     active_subscribes: HashMap<u32, PendingOpen>,
     active_publishes: HashMap<u32, ActivePublish>,
+    active_services: HashMap<u32, ActiveService>,
+    active_actions: HashMap<u32, ActiveAction>,
     started: bool,
     closed: bool,
     last_timer_ms: Option<u64>,
@@ -130,6 +164,8 @@ impl ClientEngine {
             pending_opens: HashMap::new(),
             active_subscribes: HashMap::new(),
             active_publishes: HashMap::new(),
+            active_services: HashMap::new(),
+            active_actions: HashMap::new(),
             started: false,
             closed: false,
             last_timer_ms: None,
@@ -316,6 +352,173 @@ impl ClientEngine {
             } => {
                 self.send_sample(*channel_id, string_data, outcome);
             }
+            AppCommand::OpenService {
+                correlation,
+                channel_id,
+                name,
+                type_name,
+                domain_id,
+                client,
+            } => {
+                let kind = if *client {
+                    PendingKind::ServiceClient
+                } else {
+                    PendingKind::ServiceServer
+                };
+                let msg = open_service(
+                    correlation,
+                    *channel_id,
+                    *client,
+                    name,
+                    type_name,
+                    *domain_id,
+                );
+                if !self.push_control(&msg, outcome) {
+                    self.fail(outcome, 1, "open_service_encode_failed");
+                    return;
+                }
+                self.pending_opens.insert(
+                    *channel_id,
+                    PendingOpen {
+                        kind,
+                        topic: name.to_owned(),
+                        type_name: type_name.to_owned(),
+                        qos_reliability: 1,
+                    },
+                );
+            }
+            AppCommand::CallService {
+                channel_id,
+                operation_id,
+                request,
+            } => {
+                self.send_service_action_frame(
+                    *channel_id,
+                    OPCODE_SERVICE_REQUEST,
+                    operation_id,
+                    request,
+                    true,
+                    outcome,
+                );
+            }
+            AppCommand::SendServiceResponse {
+                channel_id,
+                operation_id,
+                response,
+            } => {
+                self.send_service_action_frame(
+                    *channel_id,
+                    OPCODE_SERVICE_RESPONSE,
+                    operation_id,
+                    response,
+                    true,
+                    outcome,
+                );
+            }
+            AppCommand::OpenAction {
+                correlation,
+                channel_id,
+                name,
+                type_name,
+                domain_id,
+                client,
+            } => {
+                let kind = if *client {
+                    PendingKind::ActionClient
+                } else {
+                    PendingKind::ActionServer
+                };
+                let msg = open_action(
+                    correlation,
+                    *channel_id,
+                    *client,
+                    name,
+                    type_name,
+                    *domain_id,
+                );
+                if !self.push_control(&msg, outcome) {
+                    self.fail(outcome, 1, "open_action_encode_failed");
+                    return;
+                }
+                self.pending_opens.insert(
+                    *channel_id,
+                    PendingOpen {
+                        kind,
+                        topic: name.to_owned(),
+                        type_name: type_name.to_owned(),
+                        qos_reliability: 1,
+                    },
+                );
+            }
+            AppCommand::SendActionGoal {
+                channel_id,
+                operation_id,
+                goal,
+            } => {
+                self.send_service_action_frame(
+                    *channel_id,
+                    OPCODE_ACTION_GOAL,
+                    operation_id,
+                    goal,
+                    true,
+                    outcome,
+                );
+            }
+            AppCommand::CancelAction {
+                channel_id,
+                operation_id,
+            } => {
+                self.send_service_action_frame(
+                    *channel_id,
+                    OPCODE_ACTION_CANCEL,
+                    operation_id,
+                    &[],
+                    true,
+                    outcome,
+                );
+            }
+            AppCommand::SendActionFeedback {
+                channel_id,
+                operation_id,
+                feedback,
+            } => {
+                self.send_service_action_frame(
+                    *channel_id,
+                    OPCODE_ACTION_FEEDBACK,
+                    operation_id,
+                    feedback,
+                    false,
+                    outcome,
+                );
+            }
+            AppCommand::SendActionResult {
+                channel_id,
+                operation_id,
+                result,
+            } => {
+                self.send_service_action_frame(
+                    *channel_id,
+                    OPCODE_ACTION_RESULT,
+                    operation_id,
+                    result,
+                    true,
+                    outcome,
+                );
+            }
+            AppCommand::SendActionStatus {
+                channel_id,
+                operation_id,
+                status,
+            } => {
+                self.send_service_action_frame(
+                    *channel_id,
+                    OPCODE_ACTION_STATUS,
+                    operation_id,
+                    status,
+                    false,
+                    outcome,
+                );
+            }
             AppCommand::Unsubscribe {
                 correlation,
                 channel_id,
@@ -328,6 +531,8 @@ impl ClientEngine {
                 self.pending_opens.remove(channel_id);
                 self.active_subscribes.remove(channel_id);
                 self.active_publishes.remove(channel_id);
+                self.active_services.remove(channel_id);
+                self.active_actions.remove(channel_id);
             }
             AppCommand::Close => {
                 self.closed = true;
@@ -444,6 +649,97 @@ impl ClientEngine {
         self.telemetry.samples_sent = self.telemetry.samples_sent.saturating_add(1);
     }
 
+    /// Encode an outbound service/action frame with an OPERATION_ID extension.
+    fn send_service_action_frame(
+        &mut self,
+        channel_id: u32,
+        opcode: u8,
+        operation_id: &[u8; 16],
+        payload: &[u8],
+        reliable: bool,
+        outcome: &mut PollOutcome,
+    ) {
+        let sequence = if let Some(svc) = self.active_services.get_mut(&channel_id) {
+            let seq = svc.next_seq;
+            svc.next_seq = svc.next_seq.saturating_add(1);
+            svc.seq_out.insert(*operation_id, seq);
+            seq
+        } else if let Some(act) = self.active_actions.get_mut(&channel_id) {
+            let seq = act.next_seq;
+            act.next_seq = act.next_seq.saturating_add(1);
+            act.seq_out.insert(*operation_id, seq);
+            seq
+        } else {
+            let pending = self.pending_opens.get(&channel_id).map(|p| p.kind);
+            match pending {
+                Some(PendingKind::ActionClient | PendingKind::ActionServer) => {
+                    outcome.events.push(AppEvent::ActionFailed {
+                        channel_id,
+                        code: 25,
+                        message: "action_channel_not_ready".to_owned(),
+                    });
+                }
+                _ => {
+                    outcome.events.push(AppEvent::ServiceFailed {
+                        channel_id,
+                        code: 25,
+                        message: "service_action_channel_not_ready".to_owned(),
+                    });
+                }
+            }
+            return;
+        };
+
+        let flags = if reliable { FLAG_ROS_RELIABLE } else { 0 };
+        let Ok(ext_area) = encode_extension_area(&[R2wpExtension {
+            type_id: OPERATION_ID_EXTENSION_TYPE,
+            critical: true,
+            value: operation_id,
+        }]) else {
+            outcome.events.push(AppEvent::ServiceFailed {
+                channel_id,
+                code: 1,
+                message: "operation_id_encode_failed".to_owned(),
+            });
+            return;
+        };
+        let header = FrameHeader {
+            version: 0,
+            opcode,
+            flags,
+            channel_id,
+            sequence,
+            source_time_ns: 0,
+            priority: 2,
+            clock_id: 0,
+        };
+        let Ok(bytes) = encode_frame(&header, &ext_area, payload) else {
+            outcome.events.push(AppEvent::ServiceFailed {
+                channel_id,
+                code: 1,
+                message: "service_action_frame_encode_failed".to_owned(),
+            });
+            return;
+        };
+        let Ok(frame) = parse_frame(&bytes, Some(&self.frame_options)) else {
+            outcome.events.push(AppEvent::ServiceFailed {
+                channel_id,
+                code: 1,
+                message: "service_action_frame_parse_failed".to_owned(),
+            });
+            return;
+        };
+        if self.session.record_send_frame(&frame).is_err() {
+            outcome.events.push(AppEvent::ServiceFailed {
+                channel_id,
+                code: 25,
+                message: "service_action_frame_record_failed".to_owned(),
+            });
+            return;
+        }
+        self.push_outbound(bytes, outcome);
+    }
+
     fn handle_ws_bytes(&mut self, buffer_id: u32, bytes: Bytes, outcome: &mut PollOutcome) {
         // Move into the retained slab. This retention is the browser-side
         // controllable copy (budget slot 2) when the host already placed bytes
@@ -552,6 +848,15 @@ impl ClientEngine {
             OPCODE_ROS_SAMPLE => {
                 self.handle_sample(buffer_id, &frame, &bytes, outcome);
             }
+            OPCODE_SERVICE_REQUEST
+            | OPCODE_SERVICE_RESPONSE
+            | OPCODE_ACTION_GOAL
+            | OPCODE_ACTION_FEEDBACK
+            | OPCODE_ACTION_RESULT
+            | OPCODE_ACTION_STATUS
+            | OPCODE_ACTION_CANCEL => {
+                self.handle_service_action(buffer_id, &frame, &bytes, outcome);
+            }
             _ => {}
         }
     }
@@ -626,6 +931,44 @@ impl ClientEngine {
                                 },
                             );
                         }
+                        PendingKind::ServiceClient | PendingKind::ServiceServer => {
+                            let client = kind == PendingKind::ServiceClient;
+                            outcome.events.push(AppEvent::ServiceReady {
+                                channel_id,
+                                name: topic.clone(),
+                                type_name: type_name.clone(),
+                                client,
+                            });
+                            self.active_services.insert(
+                                channel_id,
+                                ActiveService {
+                                    name: topic,
+                                    type_name,
+                                    client,
+                                    next_seq: 0,
+                                    seq_out: HashMap::new(),
+                                },
+                            );
+                        }
+                        PendingKind::ActionClient | PendingKind::ActionServer => {
+                            let client = kind == PendingKind::ActionClient;
+                            outcome.events.push(AppEvent::ActionReady {
+                                channel_id,
+                                name: topic.clone(),
+                                type_name: type_name.clone(),
+                                client,
+                            });
+                            self.active_actions.insert(
+                                channel_id,
+                                ActiveAction {
+                                    name: topic,
+                                    type_name,
+                                    client,
+                                    next_seq: 0,
+                                    seq_out: HashMap::new(),
+                                },
+                            );
+                        }
                     }
                 } else {
                     let (code, message) = channel_ready_error_body(fields);
@@ -646,6 +989,20 @@ impl ClientEngine {
                                 message,
                             });
                         }
+                        PendingKind::ServiceClient | PendingKind::ServiceServer => {
+                            outcome.events.push(AppEvent::ServiceFailed {
+                                channel_id,
+                                code,
+                                message,
+                            });
+                        }
+                        PendingKind::ActionClient | PendingKind::ActionServer => {
+                            outcome.events.push(AppEvent::ActionFailed {
+                                channel_id,
+                                code,
+                                message,
+                            });
+                        }
                     }
                 }
             }
@@ -657,10 +1014,69 @@ impl ClientEngine {
                 let reply = heartbeat(self.heartbeat_counter);
                 let _ = self.push_control(&reply, outcome);
             }
-            CONTROL_KIND_ERROR if effects.session_error => {
-                let code = field_uint(fields, 48).unwrap_or(25) as u8;
-                let message = field_text(fields, 51).unwrap_or("session_error").to_owned();
-                self.fail(outcome, code, &message);
+            CONTROL_KIND_GRAPH_SNAPSHOT if effects.graph_snapshot.is_some() => {
+                let generation = effects.graph_snapshot.unwrap_or(0);
+                outcome.events.push(AppEvent::GraphSnapshot {
+                    generation,
+                    nodes_json: graph_nodes_json(fields),
+                    endpoints_json: graph_endpoints_json(fields),
+                });
+            }
+            CONTROL_KIND_GRAPH_DELTA if effects.graph_delta.is_some() => {
+                let generation = effects.graph_delta.unwrap_or(0);
+                outcome.events.push(AppEvent::GraphDelta { generation });
+            }
+            CONTROL_KIND_ERROR => {
+                if effects.session_error {
+                    let code = field_uint(fields, 48).unwrap_or(25) as u8;
+                    let message = field_text(fields, 51).unwrap_or("session_error").to_owned();
+                    self.fail(outcome, code, &message);
+                } else if let Some(channel_id) = effects.operation_cancelled {
+                    let code = field_uint(fields, 48).unwrap_or(15) as u8;
+                    let message = field_text(fields, 51)
+                        .unwrap_or("operation_cancelled")
+                        .to_owned();
+                    outcome.events.push(AppEvent::OperationCancelled {
+                        channel_id,
+                        code,
+                        message,
+                    });
+                } else if let Some(channel_id) = effects.channel_failed {
+                    let (code, message) = channel_ready_error_body(fields);
+                    let code = field_uint(fields, 48).unwrap_or(u64::from(code)) as u8;
+                    let message = field_text(fields, 51).map(str::to_owned).unwrap_or(message);
+                    let pending = self.pending_opens.remove(&channel_id);
+                    match pending.map(|p| p.kind) {
+                        Some(PendingKind::Publish) => {
+                            outcome.events.push(AppEvent::PublishFailed {
+                                channel_id,
+                                code,
+                                message,
+                            });
+                        }
+                        Some(PendingKind::ServiceClient | PendingKind::ServiceServer) => {
+                            outcome.events.push(AppEvent::ServiceFailed {
+                                channel_id,
+                                code,
+                                message,
+                            });
+                        }
+                        Some(PendingKind::ActionClient | PendingKind::ActionServer) => {
+                            outcome.events.push(AppEvent::ActionFailed {
+                                channel_id,
+                                code,
+                                message,
+                            });
+                        }
+                        _ => {
+                            outcome.events.push(AppEvent::SubscribeFailed {
+                                channel_id,
+                                code,
+                                message,
+                            });
+                        }
+                    }
+                }
             }
             _ => {}
         }
@@ -722,6 +1138,99 @@ impl ClientEngine {
             string_data,
         });
         self.telemetry.samples_emitted = self.telemetry.samples_emitted.saturating_add(1);
+    }
+
+    fn handle_service_action(
+        &mut self,
+        buffer_id: u32,
+        frame: &DecodedFrame<'_>,
+        full_bytes: &[u8],
+        outcome: &mut PollOutcome,
+    ) {
+        let FramePayload::Application(payload) = &frame.payload else {
+            return;
+        };
+        let payload_offset = payload.as_ptr() as usize - full_bytes.as_ptr() as usize;
+        let payload_len = payload.len();
+        if payload_offset + payload_len > full_bytes.len() {
+            self.fail(outcome, 25, "service_action_payload_out_of_bounds");
+            return;
+        }
+
+        // ACTION_CANCEL has no dedicated AppEvent in R3-01; payload is empty and
+        // cancellation is also signaled via operation-scoped Error.
+        if frame.opcode == OPCODE_ACTION_CANCEL {
+            return;
+        }
+
+        let operation_id = match frame_operation_id(frame) {
+            Some(id) => id,
+            None if frame.opcode == OPCODE_ACTION_STATUS => [0u8; 16],
+            None => {
+                self.fail(outcome, 25, "missing_operation_id");
+                return;
+            }
+        };
+
+        let lease_id = self.next_lease_id;
+        self.next_lease_id = self.next_lease_id.saturating_add(1);
+        if let Some(buf) = self.retained.get_mut(&buffer_id) {
+            buf.lease_refs = buf.lease_refs.saturating_add(1);
+        }
+        self.leases.insert(
+            lease_id,
+            Lease {
+                buffer_id,
+                payload_offset,
+                payload_len,
+            },
+        );
+
+        let channel_id = frame.channel_id;
+        let sequence = frame.sequence;
+        let event = match frame.opcode {
+            OPCODE_SERVICE_REQUEST => AppEvent::ServiceRequest {
+                channel_id,
+                operation_id,
+                lease_id,
+                sequence,
+            },
+            OPCODE_SERVICE_RESPONSE => AppEvent::ServiceResponse {
+                channel_id,
+                operation_id,
+                lease_id,
+                sequence,
+            },
+            OPCODE_ACTION_GOAL => AppEvent::ActionGoal {
+                channel_id,
+                operation_id,
+                lease_id,
+                sequence,
+            },
+            OPCODE_ACTION_FEEDBACK => AppEvent::ActionFeedback {
+                channel_id,
+                operation_id,
+                lease_id,
+                sequence,
+            },
+            OPCODE_ACTION_RESULT => AppEvent::ActionResult {
+                channel_id,
+                operation_id,
+                lease_id,
+                sequence,
+            },
+            OPCODE_ACTION_STATUS => AppEvent::ActionStatus {
+                channel_id,
+                operation_id,
+                lease_id,
+                sequence,
+            },
+            _ => {
+                self.release_lease(lease_id);
+                return;
+            }
+        };
+        outcome.events.push(event);
     }
 
     fn handle_timer(&mut self, now_ms: u64, outcome: &mut PollOutcome) {
@@ -930,4 +1439,146 @@ fn channel_ready_error_body(
         return (code, message);
     }
     (3, "channel_ready_failed".to_owned())
+}
+
+fn frame_operation_id(frame: &DecodedFrame<'_>) -> Option<[u8; 16]> {
+    for ext in &frame.extensions {
+        if ext.type_id == OPERATION_ID_EXTENSION_TYPE {
+            if ext.value.len() != 16 {
+                return None;
+            }
+            let mut id = [0u8; 16];
+            id.copy_from_slice(ext.value);
+            return Some(id);
+        }
+    }
+    None
+}
+
+fn hex_encode(bytes: &[u8]) -> String {
+    const HEX: &[u8; 16] = b"0123456789abcdef";
+    let mut out = String::with_capacity(bytes.len() * 2);
+    for b in bytes {
+        out.push(HEX[(b >> 4) as usize] as char);
+        out.push(HEX[(b & 0xf) as usize] as char);
+    }
+    out
+}
+
+fn json_escape(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if c.is_control() => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out
+}
+
+fn map_field_text<'a>(entries: &'a [(u64, CborValue<'_>)], key: u64) -> Option<&'a str> {
+    for (k, v) in entries {
+        if *k == key {
+            if let CborValue::Text(t) = v {
+                return Some(t.as_ref());
+            }
+            return None;
+        }
+    }
+    None
+}
+
+fn map_field_bytes<'a>(entries: &'a [(u64, CborValue<'_>)], key: u64) -> Option<&'a [u8]> {
+    for (k, v) in entries {
+        if *k == key {
+            if let CborValue::Bytes(b) = v {
+                return Some(b.as_ref());
+            }
+            return None;
+        }
+    }
+    None
+}
+
+fn map_field_uint(entries: &[(u64, CborValue<'_>)], key: u64) -> Option<u64> {
+    for (k, v) in entries {
+        if *k == key {
+            if let CborValue::Unsigned(n) = v {
+                return Some(*n);
+            }
+            return None;
+        }
+    }
+    None
+}
+
+fn graph_nodes_json(fields: &std::collections::BTreeMap<u64, CborValue<'_>>) -> String {
+    let Some(CborValue::Array(nodes)) = fields.get(&22) else {
+        return "[]".to_owned();
+    };
+    let mut out = String::from("[");
+    for (i, node) in nodes.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let CborValue::Map(entries) = node else {
+            out.push_str("{}");
+            continue;
+        };
+        let id = map_field_bytes(entries, 55)
+            .map(hex_encode)
+            .unwrap_or_default();
+        let name = map_field_text(entries, 1).unwrap_or("");
+        let domain_id = map_field_uint(entries, 9).unwrap_or(0);
+        out.push_str(&format!(
+            "{{\"id\":\"{}\",\"name\":\"{}\",\"domain_id\":{}}}",
+            id,
+            json_escape(name),
+            domain_id
+        ));
+    }
+    out.push(']');
+    out
+}
+
+fn graph_endpoints_json(fields: &std::collections::BTreeMap<u64, CborValue<'_>>) -> String {
+    let Some(CborValue::Array(endpoints)) = fields.get(&23) else {
+        return "[]".to_owned();
+    };
+    let mut out = String::from("[");
+    for (i, ep) in endpoints.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        let CborValue::Map(entries) = ep else {
+            out.push_str("{}");
+            continue;
+        };
+        let id = map_field_bytes(entries, 56)
+            .map(hex_encode)
+            .unwrap_or_default();
+        let node_id = map_field_bytes(entries, 55)
+            .map(hex_encode)
+            .unwrap_or_default();
+        let name = map_field_text(entries, 1).unwrap_or("");
+        let kind = map_field_uint(entries, 2).unwrap_or(0);
+        let type_name = map_field_text(entries, 3).unwrap_or("");
+        let domain_id = map_field_uint(entries, 9).unwrap_or(0);
+        out.push_str(&format!(
+            "{{\"id\":\"{}\",\"node_id\":\"{}\",\"name\":\"{}\",\"kind\":{},\"type_name\":\"{}\",\"domain_id\":{}}}",
+            id,
+            node_id,
+            json_escape(name),
+            kind,
+            json_escape(type_name),
+            domain_id
+        ));
+    }
+    out.push(']');
+    out
 }

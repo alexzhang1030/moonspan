@@ -113,6 +113,20 @@ fn is_experimental_opcode(opcode: u8) -> bool {
     (128..=255).contains(&opcode)
 }
 
+fn opcode_allows_ros_reliable(opcode: u8) -> bool {
+    matches!(
+        opcode,
+        OPCODE_ROS_SAMPLE
+            | OPCODE_SERVICE_REQUEST
+            | OPCODE_SERVICE_RESPONSE
+            | OPCODE_ACTION_GOAL
+            | OPCODE_ACTION_FEEDBACK
+            | OPCODE_ACTION_RESULT
+            | OPCODE_ACTION_STATUS
+            | OPCODE_ACTION_CANCEL
+    )
+}
+
 fn checked_add(a: usize, b: usize, offset: usize) -> Result<usize, ProtocolError> {
     a.checked_add(b)
         .ok_or_else(|| ProtocolError::message_too_large_frame("payload_too_large", offset, 4))
@@ -216,8 +230,12 @@ pub fn parse_frame<'a>(
     if flags & FLAG_KEYFRAME != 0 && opcode != OPCODE_MEDIA_CHUNK {
         return Err(ProtocolError::unsupported_flags("keyframe_opcode", 2, 7));
     }
-    if (flags & FLAG_ROS_RELIABLE != 0 || flags & FLAG_RETAINED != 0) && opcode != OPCODE_ROS_SAMPLE
-    {
+    // RETAINED remains ROS_SAMPLE-only. ROS_RELIABLE is also legal on Service /
+    // Action opcodes (R3-01 reliable operation streams).
+    if flags & FLAG_RETAINED != 0 && opcode != OPCODE_ROS_SAMPLE {
+        return Err(ProtocolError::unsupported_flags("ros_flag_opcode", 2, 7));
+    }
+    if flags & FLAG_ROS_RELIABLE != 0 && !opcode_allows_ros_reliable(opcode) {
         return Err(ProtocolError::unsupported_flags("ros_flag_opcode", 2, 7));
     }
 

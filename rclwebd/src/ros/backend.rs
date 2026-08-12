@@ -7,7 +7,10 @@ use super::rcl::{
     Attachment, GuardCondition, GuardTrigger, SerializedPublisher, SerializedSubscription,
     TakeBuffer, WaitSet,
 };
-use crate::backend::{BackendError, ChannelSpec, EntityId, RosBackend, SubscriptionSample};
+use crate::backend::{
+    ActionInbound, BackendError, ChannelSpec, EntityId, GraphEndpointInfo, GraphNodeInfo,
+    GraphView, RosBackend, ServiceRequest, SubscriptionSample,
+};
 use std::collections::HashMap;
 use std::sync::mpsc as std_mpsc;
 use std::thread::JoinHandle;
@@ -98,6 +101,12 @@ impl RclBackend {
     }
 }
 
+fn unsupported_service_action(what: &str) -> BackendError {
+    BackendError::schema_unavailable(format!(
+        "{what}: live ROS service/action FFI is not linked in this build"
+    ))
+}
+
 impl RosBackend for RclBackend {
     async fn create_subscription(
         &self,
@@ -137,6 +146,130 @@ impl RosBackend for RclBackend {
         if self.send(Command::Destroy { entity, reply }).is_ok() {
             let _ = rx.await;
         }
+    }
+
+    async fn create_client(&self, _spec: &ChannelSpec) -> Result<EntityId, BackendError> {
+        Err(unsupported_service_action("create_client"))
+    }
+
+    async fn create_service(
+        &self,
+        _spec: &ChannelSpec,
+        _sink: mpsc::Sender<ServiceRequest>,
+    ) -> Result<EntityId, BackendError> {
+        Err(unsupported_service_action("create_service"))
+    }
+
+    async fn call(
+        &self,
+        _entity: EntityId,
+        _operation_id: [u8; 16],
+        _request: Vec<u8>,
+    ) -> Result<Vec<u8>, BackendError> {
+        Err(unsupported_service_action("call"))
+    }
+
+    async fn send_service_response(
+        &self,
+        _entity: EntityId,
+        _operation_id: [u8; 16],
+        _response: Vec<u8>,
+    ) -> Result<(), BackendError> {
+        Err(unsupported_service_action("send_service_response"))
+    }
+
+    async fn create_action_client(&self, _spec: &ChannelSpec) -> Result<EntityId, BackendError> {
+        Err(unsupported_service_action("create_action_client"))
+    }
+
+    async fn create_action_server(
+        &self,
+        _spec: &ChannelSpec,
+        _sink: mpsc::Sender<ActionInbound>,
+    ) -> Result<EntityId, BackendError> {
+        Err(unsupported_service_action("create_action_server"))
+    }
+
+    async fn send_action_goal(
+        &self,
+        _entity: EntityId,
+        _operation_id: [u8; 16],
+        _request: Vec<u8>,
+    ) -> Result<Vec<u8>, BackendError> {
+        Err(unsupported_service_action("send_action_goal"))
+    }
+
+    async fn cancel_action(
+        &self,
+        _entity: EntityId,
+        _operation_id: [u8; 16],
+        _request: Vec<u8>,
+    ) -> Result<Vec<u8>, BackendError> {
+        Err(unsupported_service_action("cancel_action"))
+    }
+
+    async fn send_action_feedback(
+        &self,
+        _entity: EntityId,
+        _operation_id: [u8; 16],
+        _payload: Vec<u8>,
+    ) -> Result<(), BackendError> {
+        Err(unsupported_service_action("send_action_feedback"))
+    }
+
+    async fn send_action_result(
+        &self,
+        _entity: EntityId,
+        _operation_id: [u8; 16],
+        _payload: Vec<u8>,
+    ) -> Result<(), BackendError> {
+        Err(unsupported_service_action("send_action_result"))
+    }
+
+    async fn send_action_status(
+        &self,
+        _entity: EntityId,
+        _operation_id: [u8; 16],
+        _payload: Vec<u8>,
+    ) -> Result<(), BackendError> {
+        Err(unsupported_service_action("send_action_status"))
+    }
+
+    async fn graph_view(&self) -> Result<GraphView, BackendError> {
+        let topics = self.graph_topics().await?;
+        let node_id = {
+            let mut id = [0u8; 16];
+            id[15] = 1;
+            id.to_vec()
+        };
+        let node = GraphNodeInfo {
+            id: node_id.clone(),
+            name: format!("rclwebd_{}", std::process::id()),
+            namespace: None,
+            domain_id: 0,
+        };
+        let mut endpoints = Vec::new();
+        for (index, (topic, types)) in topics.into_iter().enumerate() {
+            let type_name = types
+                .into_iter()
+                .next()
+                .unwrap_or_else(|| "std_msgs/msg/String".to_owned());
+            let mut eid = [0u8; 16];
+            let n = (index as u64).saturating_add(1);
+            eid[8..].copy_from_slice(&n.to_be_bytes());
+            endpoints.push(GraphEndpointInfo {
+                id: eid.to_vec(),
+                node_id: node_id.clone(),
+                name: topic,
+                kind: 0, // topic_pub synthesized from graph_topics
+                type_name,
+                domain_id: 0,
+            });
+        }
+        Ok(GraphView {
+            nodes: vec![node],
+            endpoints,
+        })
     }
 }
 

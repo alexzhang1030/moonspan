@@ -41,6 +41,7 @@ One gateway process may expose multiple domain IDs within its support row. Fleet
 - The copy budget is two controllable payload copies end to end, with telemetry counters ([performance plan](../../docs/proposals/architecture-restructure.md#performance-plan)).
 - Queue, buffer, timeout, retry, and memory budgets are explicit; best-effort channels drop at the edge with stable dispositions ([R2-01](../../docs/milestones/r2-01-data-plane-hardening.md)).
 - Large-message / PointCloud2 delivery keeps O(1) borrowed CDR views and measures both host buffer strategies ([R2-02](../../docs/milestones/r2-02-large-message-path.md)).
+- Service/action channels use `OPERATION_ID` streams; graph state arrives as GraphSnapshot/Delta after SessionReady ([R3-01](../../docs/milestones/r3-01-services-actions-graph.md)).
 - Fixtures are the single conformance oracle; there is no cross-implementation agreement apparatus.
 - Security-sensitive work records effective policy, audit identity, and failure behavior.
 - Platform expansion enters through the [support matrix](../../docs/support-matrix.md) and [validation gates](../../docs/validation.md) after the walking skeleton proves the path.

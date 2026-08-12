@@ -13,7 +13,12 @@ use crate::protocol::control::{
     ControlMessage,
 };
 use crate::protocol::error::ProtocolError;
-use crate::protocol::frame::{DecodedFrame, FramePayload, OPCODE_CONTROL_CBOR, OPCODE_ROS_SAMPLE};
+use crate::protocol::extension::OPERATION_ID_EXTENSION_TYPE;
+use crate::protocol::frame::{
+    DecodedFrame, FramePayload, OPCODE_ACTION_CANCEL, OPCODE_ACTION_FEEDBACK, OPCODE_ACTION_GOAL,
+    OPCODE_ACTION_RESULT, OPCODE_ACTION_STATUS, OPCODE_CONTROL_CBOR, OPCODE_ROS_SAMPLE,
+    OPCODE_SERVICE_REQUEST, OPCODE_SERVICE_RESPONSE,
+};
 
 /// Control field key: correlation_id (bstr).
 pub const FIELD_CORRELATION_ID: u64 = 2;
@@ -23,6 +28,12 @@ pub const FIELD_CHANNEL_ID: u64 = 29;
 pub const FIELD_OPERATION_KIND: u64 = 30;
 /// Control field key: ChannelReady result.
 pub const FIELD_CHANNEL_RESULT: u64 = 33;
+/// Control field key: graph_generation.
+pub const FIELD_GRAPH_GENERATION: u64 = 14;
+/// Control field key: GraphDelta base_generation.
+pub const FIELD_BASE_GENERATION: u64 = 24;
+/// Control field key: Error scope (registry: 0 session, 1 channel, 2 operation).
+pub const FIELD_ERROR_SCOPE: u64 = 49;
 
 /// Minimal host-facing effects produced by a successful transition.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -39,6 +50,12 @@ pub struct SessionEffects {
     pub auth_correlation_matched: bool,
     /// Matched OpenChannel ↔ ChannelReady/Error correlation when present.
     pub channel_correlation_matched: bool,
+    /// GraphSnapshot accepted; carries `graph_generation`.
+    pub graph_snapshot: Option<u64>,
+    /// GraphDelta accepted; carries new `graph_generation`.
+    pub graph_delta: Option<u64>,
+    /// Operation-scoped Error cancelled an in-flight operation (channel id).
+    pub operation_cancelled: Option<u32>,
 }
 
 /// Mutable session connection state (phase + channels + entry correlation).
@@ -51,6 +68,8 @@ pub struct SessionState {
     pub pending_auth_correlation: Option<Vec<u8>>,
     /// Selected wire version from ServerHello (informational).
     pub selected_wire_version: Option<u8>,
+    /// Last accepted graph generation (`None` until first GraphSnapshot).
+    pub graph_generation: Option<u64>,
 }
 
 impl SessionState {
@@ -62,8 +81,45 @@ impl SessionState {
             channels: ChannelTable::new(),
             pending_auth_correlation: None,
             selected_wire_version: None,
+            graph_generation: None,
         }
     }
+}
+
+fn frame_operation_id(frame: &DecodedFrame<'_>) -> Option<[u8; 16]> {
+    for ext in &frame.extensions {
+        if ext.type_id == OPERATION_ID_EXTENSION_TYPE {
+            if ext.value.len() != 16 {
+                return None;
+            }
+            let mut id = [0u8; 16];
+            id.copy_from_slice(ext.value);
+            return Some(id);
+        }
+    }
+    None
+}
+
+fn is_service_or_action_opcode(opcode: u8) -> bool {
+    matches!(
+        opcode,
+        OPCODE_SERVICE_REQUEST
+            | OPCODE_SERVICE_RESPONSE
+            | OPCODE_ACTION_GOAL
+            | OPCODE_ACTION_FEEDBACK
+            | OPCODE_ACTION_RESULT
+            | OPCODE_ACTION_STATUS
+            | OPCODE_ACTION_CANCEL
+    )
+}
+
+fn operation_id_required(opcode: u8) -> bool {
+    is_service_or_action_opcode(opcode)
+}
+
+fn operation_id_may_be_zero(opcode: u8) -> bool {
+    // ACTION_STATUS may use the all-zero stream id for the channel-wide status stream.
+    opcode == OPCODE_ACTION_STATUS
 }
 
 fn field_uint(msg: &ControlMessage<'_>, key: u64) -> Option<u64> {
@@ -256,9 +312,11 @@ pub fn apply_frame(
             )),
         },
         OPCODE_ROS_SAMPLE => apply_ros_sample(state, frame, sender),
+        opcode if is_service_or_action_opcode(opcode) => {
+            apply_service_action_frame(state, frame, sender)
+        }
         _ => {
-            // Other application opcodes: treat like data-plane for readiness / channel rules,
-            // then reject as unsupported for the v0.1 topic skeleton.
+            // Media/recording/asset remain parked until R4.
             if !state.phase.is_ready() {
                 return Err(ProtocolError::session_not_ready("data_before_ready", 0));
             }
@@ -307,13 +365,13 @@ fn apply_control(
         CONTROL_KIND_HEARTBEAT => {
             effects.heartbeat = true;
         }
-        CONTROL_KIND_GRAPH_SNAPSHOT
-        | CONTROL_KIND_GRAPH_DELTA
-        | CONTROL_KIND_SCHEMA_REQUEST
+        CONTROL_KIND_GRAPH_SNAPSHOT => apply_graph_snapshot(state, msg, &mut effects)?,
+        CONTROL_KIND_GRAPH_DELTA => apply_graph_delta(state, msg, &mut effects)?,
+        CONTROL_KIND_SCHEMA_REQUEST
         | CONTROL_KIND_SCHEMA_RESPONSE
         | CONTROL_KIND_SCHEMA_ADVERTISE
         | CONTROL_KIND_CLOCK_SYNC => {
-            // Legal when ready (direction already checked); product semantics parked.
+            // Schema exchange is R3-02; ClockSync stays parked (later breadth).
         }
         _ => {
             return Err(ProtocolError::protocol_violation(
@@ -324,6 +382,56 @@ fn apply_control(
         }
     }
     Ok(effects)
+}
+
+fn apply_graph_snapshot(
+    state: &mut SessionState,
+    msg: &ControlMessage<'_>,
+    effects: &mut SessionEffects,
+) -> Result<(), ProtocolError> {
+    let generation = field_uint(msg, FIELD_GRAPH_GENERATION).ok_or_else(|| {
+        ProtocolError::protocol_violation("graph_snapshot_missing_generation", 0, 25)
+    })?;
+    state.graph_generation = Some(generation);
+    effects.graph_snapshot = Some(generation);
+    Ok(())
+}
+
+fn apply_graph_delta(
+    state: &mut SessionState,
+    msg: &ControlMessage<'_>,
+    effects: &mut SessionEffects,
+) -> Result<(), ProtocolError> {
+    let base = field_uint(msg, FIELD_BASE_GENERATION).ok_or_else(|| {
+        ProtocolError::protocol_violation("graph_delta_missing_base_generation", 0, 25)
+    })?;
+    let generation = field_uint(msg, FIELD_GRAPH_GENERATION).ok_or_else(|| {
+        ProtocolError::protocol_violation("graph_delta_missing_generation", 0, 25)
+    })?;
+    let Some(current) = state.graph_generation else {
+        return Err(ProtocolError::protocol_violation(
+            "graph_delta_without_snapshot",
+            0,
+            25,
+        ));
+    };
+    if base != current {
+        return Err(ProtocolError::protocol_violation(
+            "graph_delta_base_mismatch",
+            0,
+            25,
+        ));
+    }
+    if generation != base.saturating_add(1) {
+        return Err(ProtocolError::protocol_violation(
+            "graph_delta_generation_step",
+            0,
+            25,
+        ));
+    }
+    state.graph_generation = Some(generation);
+    effects.graph_delta = Some(generation);
+    Ok(())
 }
 
 fn apply_authenticate(
@@ -388,10 +496,29 @@ fn apply_error(
         return Ok(());
     }
     if state.phase.is_ready() {
-        // Channel-scoped Error may pair with an open; session-scope fails the session.
-        // For v0.1 skeleton: treat as session_error effect without forcing Failed unless
-        // no channel_id is present (session scope default when channel_id absent).
+        // Channel-scoped Error may pair with an open; operation-scoped cancel is
+        // non-fatal; session-scope fails the session when channel_id is absent.
         let channel_id = field_uint(msg, FIELD_CHANNEL_ID).map(|v| v as u32);
+        let scope = field_uint(msg, FIELD_ERROR_SCOPE).unwrap_or(0);
+        if scope == 2 {
+            // Operation cancel / operation error: require channel + keep session.
+            let Some(id) = channel_id else {
+                return Err(ProtocolError::protocol_violation(
+                    "operation_error_missing_channel",
+                    0,
+                    25,
+                ));
+            };
+            if state.channels.state(id) != ChannelState::Active {
+                return Err(ProtocolError::protocol_violation(
+                    "operation_error_inactive_channel",
+                    0,
+                    25,
+                ));
+            }
+            effects.operation_cancelled = Some(id);
+            return Ok(());
+        }
         if let Some(id) = channel_id
             && state.channels.state(id) == ChannelState::Pending
         {
@@ -568,11 +695,77 @@ fn apply_ros_sample(
         .channels
         .get(frame.channel_id)
         .expect("active channel must exist");
-    if !entry.operation_kind.allows_ros_sample_from(sender) {
+    if !entry.operation_kind.allows_opcode(OPCODE_ROS_SAMPLE)
+        || !entry.operation_kind.allows_ros_sample_from(sender)
+    {
         return Err(ProtocolError::protocol_violation(
             "ros_sample_wrong_direction",
             0,
             22,
+        ));
+    }
+    Ok(SessionEffects::default())
+}
+
+fn apply_service_action_frame(
+    state: &mut SessionState,
+    frame: &DecodedFrame<'_>,
+    sender: Role,
+) -> Result<SessionEffects, ProtocolError> {
+    if !state.phase.is_ready() {
+        return Err(ProtocolError::session_not_ready("data_before_ready", 0));
+    }
+    apply_data_channel_gates(state, frame.channel_id)?;
+    let entry = state
+        .channels
+        .get(frame.channel_id)
+        .expect("active channel must exist");
+    if !entry.operation_kind.allows_opcode(frame.opcode) {
+        return Err(ProtocolError::protocol_violation(
+            "opcode_operation_kind_mismatch",
+            0,
+            22,
+        ));
+    }
+    let expected = entry.operation_kind.opcode_sender(frame.opcode);
+    if expected != Some(sender) {
+        return Err(ProtocolError::protocol_violation(
+            "service_action_wrong_direction",
+            0,
+            22,
+        ));
+    }
+    if operation_id_required(frame.opcode) {
+        let Some(opid) = frame_operation_id(frame) else {
+            return Err(ProtocolError::protocol_violation(
+                "missing_operation_id",
+                0,
+                25,
+            ));
+        };
+        if opid == [0u8; 16] && !operation_id_may_be_zero(frame.opcode) {
+            return Err(ProtocolError::protocol_violation(
+                "zero_operation_id",
+                0,
+                25,
+            ));
+        }
+    }
+    // Reliable service/action streams (request/response/goal/cancel/result) must
+    // carry the ROS_RELIABLE flag; feedback/status may be best-effort.
+    let reliable_required = matches!(
+        frame.opcode,
+        OPCODE_SERVICE_REQUEST
+            | OPCODE_SERVICE_RESPONSE
+            | OPCODE_ACTION_GOAL
+            | OPCODE_ACTION_CANCEL
+            | OPCODE_ACTION_RESULT
+    );
+    if reliable_required && (frame.flags & crate::protocol::frame::FLAG_ROS_RELIABLE) == 0 {
+        return Err(ProtocolError::protocol_violation(
+            "service_action_requires_reliable",
+            0,
+            25,
         ));
     }
     Ok(SessionEffects::default())
