@@ -1,0 +1,40 @@
+[package]
+name = "rclweb-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+rclweb = { path = "../rclweb" }
+
+[[bin]]
+name = "parse_bootstrap"
+path = "fuzz_targets/parse_bootstrap.rs"
+doc = false
+test = false
+bench = false
+
+[[bin]]
+name = "parse_frame"
+path = "fuzz_targets/parse_frame.rs"
+doc = false
+test = false
+bench = false
+
+[[bin]]
+name = "decode_cbor"
+path = "fuzz_targets/decode_cbor.rs"
+doc = false
+test = false
+bench = false
+
+[[bin]]
+name = "cdr_reader"
+path = "fuzz_targets/cdr_reader.rs"
+doc = false
+test = false
+bench = false

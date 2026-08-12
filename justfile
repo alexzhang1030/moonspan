@@ -16,6 +16,21 @@ toolchain-check:
 protocol-check: toolchain-check
     cd "{{root}}" && bun run protocol-check
 
+# Verify protocol fixtures materialize from manifest sources (R2-03).
+[group('quality')]
+protocol-fixtures-check: toolchain-check
+    cd "{{root}}" && cargo run --locked -p protocol-fixtures -- --check
+
+# Regenerate materializable protocol fixtures (malformed + valid bootstraps).
+[group('quality')]
+protocol-fixtures-write: toolchain-check
+    cd "{{root}}" && cargo run --locked -p protocol-fixtures -- --write
+
+# Deterministic decoder fuzz smoke (stable toolchain; see fuzz/README.md for nightly).
+[group('quality')]
+fuzz-smoke: toolchain-check
+    cd "{{root}}" && cargo test --locked -p rclweb --test decoder_fuzz_smoke
+
 # ROS CDR corpus check from committed artifacts.
 [group('quality')]
 cdr-corpus-check: toolchain-check
@@ -48,6 +63,7 @@ check: toolchain-check
     set -euo pipefail
     cd "{{root}}"
     bun run check
+    cargo run --locked -p protocol-fixtures -- --check
     cargo fmt --all --check
     cargo clippy --locked --workspace --all-targets -- -D warnings
     bun run --filter @rclweb/sdk check

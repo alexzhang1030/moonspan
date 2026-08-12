@@ -1,0 +1,14 @@
+[package]
+name = "protocol-fixtures"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "protocol-fixtures"
+path = "main.rs"
+
+[dependencies]
+rclweb = { path = "../../rclweb" }
+serde_json = "1"
+sha2 = "0.10"

@@ -1,6 +1,10 @@
 # R2WP v0 malformed fixtures
 
-This corpus verifies receiver rejection behavior and validation precedence. The fixtures are frozen data consumed by the `rclweb` core test suite; their generator was retired at tag `pre-restructure`, and R2 reintroduces a single small generator for the v0.1 normative subset.
+This corpus verifies receiver rejection behavior and validation precedence. The
+`rclweb` core test suite consumes the bins as the single oracle. R2-03's
+[`scripts/protocol-fixtures`](../../../scripts/protocol-fixtures/) regenerates
+every entry from its `hex` / `mutate` source recipe (`just protocol-fixtures-check`
+/ `just protocol-fixtures-write`).
 
 ## Layout
 
@@ -9,12 +13,13 @@ This corpus verifies receiver rejection behavior and validation precedence. The 
 | `manifest.json` | Fixture source, input identity, expected registry error, location, plane, step, and coverage |
 | `*.bin` | Exact failing wire records |
 
-Sources use a closed construction format with literal hex and bounded mutations. Canonical paths and allocation limits are checked before file access or materialization.
-
-Expected outcomes are fixed oracles bound to [`protocol/registry/r2wp-v0.json`](../../registry/r2wp-v0.json). Multi-fault fixtures prove the declared receiver validation order.
+Sources use a closed construction format with literal hex and bounded mutations.
+Expected outcomes are fixed oracles bound to [`protocol/registry/r2wp-v0.json`](../../registry/r2wp-v0.json).
+Multi-fault fixtures prove the declared receiver validation order.
 
 ## Commands
 
 ```bash
+just protocol-fixtures-check
 cargo test --locked -p rclweb
 ```
