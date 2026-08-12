@@ -8,7 +8,8 @@
 #
 # Toolchain versions come from the project pin files (.bun-version,
 # .just-version, rust-toolchain.toml). The just archive digest is pinned to
-# the same value verified in .github/workflows/ci.yml; recompute them together.
+# the same value verified in .github/workflows/ci.yml; bun zip digests live
+# in scripts/install-pinned-bun.sh. Recompute them together with the pin files.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -38,7 +39,7 @@ if bun_matches; then
   echo "bun ${bun_version} already installed"
 else
   echo "Installing bun ${bun_version}"
-  curl -fsSL https://bun.sh/install | bash -s "bun-v${bun_version}"
+  bash scripts/install-pinned-bun.sh
 fi
 
 if just_matches; then
@@ -47,7 +48,7 @@ else
   echo "Installing just ${just_version}"
   asset="just-${just_version}-x86_64-unknown-linux-musl.tar.gz"
   archive="$(mktemp --suffix=.tar.gz)"
-  curl -fsSL -L -o "$archive" \
+  bash scripts/github-release-curl.sh -o "$archive" \
     "https://github.com/casey/just/releases/download/${just_version}/${asset}"
   echo "${just_archive_sha256}  ${archive}" | sha256sum -c -
   mkdir -p "$HOME/.local/bin"

@@ -16,18 +16,20 @@ RUN apt-get update \
 
 # Rust (pinned to repo toolchain channel)
 COPY rust-toolchain.toml /tmp/rust-toolchain.toml
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+RUN curl --retry 8 --retry-all-errors --retry-delay 2 --connect-timeout 20 \
+      --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
       --default-toolchain "$(awk -F'"' '/^[[:space:]]*channel[[:space:]]*=/{print $2; exit}' /tmp/rust-toolchain.toml)" \
       --profile minimal \
       --target wasm32-unknown-unknown \
   && . "$HOME/.cargo/env" \
   && rustup component add rustfmt clippy
 ENV PATH="/root/.cargo/bin:${PATH}"
+ENV CARGO_NET_RETRY=8
 
-# Bun (pinned)
-COPY .bun-version /tmp/.bun-version
-RUN BUN_VERSION="$(tr -d '[:space:]' < /tmp/.bun-version)" \
-  && curl -fsSL "https://bun.sh/install" | bash -s "bun-v${BUN_VERSION}"
+# Bun (pinned GitHub zip + SHA256; see scripts/install-pinned-bun.sh)
+COPY .bun-version /tmp/rclweb-pins/.bun-version
+COPY scripts/github-release-curl.sh scripts/install-pinned-bun.sh /tmp/rclweb-pins/scripts/
+RUN bash /tmp/rclweb-pins/scripts/install-pinned-bun.sh
 ENV PATH="/root/.bun/bin:${PATH}"
 
 WORKDIR /workspace

@@ -64,3 +64,7 @@ Do not rename those array keys without updating both the Bun generator and `rclw
 ## Sectioned corpus roots are graph endpoints without source rows
 
 Canonical CDR bundles for `*_Request` / `*_Response` / `*_Goal` / `*_Result` / `*_Feedback` store interface text under the parent `.srv` / `.action` type, while `dependency_graph` edges use the sectioned `root_type_name` as `from`. M1-02b join validation must accept `root_type_name` as a known endpoint alongside `sources[].type_name`; requiring every `from` to appear in `sources` rejects the committed Phase 1 corpus.
+
+## GitHub Releases downloads need retries
+
+CI e2e images used `curl | bun.sh/install` with no retry; GitHub 503 on `bun-linux-x64.zip` failed `e2e-ros-talker-h-ft` while J-FT happened to succeed. Foundation `just` install hit curl (56) “Connection died, tried 5 times” on HTTP/2 to the same host. Fetch GitHub Releases through [`scripts/github-release-curl.sh`](../../scripts/github-release-curl.sh) (HTTP/1.1, `--retry-all-errors`) and install Bun with [`scripts/install-pinned-bun.sh`](../../scripts/install-pinned-bun.sh) (zip + SHA256). Do not pipe `bun.sh/install` in images or cloud-agent setup.

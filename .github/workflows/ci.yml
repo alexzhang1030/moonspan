@@ -83,7 +83,7 @@ jobs:
           url="https://github.com/casey/just/releases/download/${just_version}/${asset}"
           archive="${RUNNER_TEMP}/${asset}"
           bin_dir="${RUNNER_TEMP}/rclweb-bin"
-          curl -fsSL -L -o "${archive}" "${url}"
+          bash scripts/github-release-curl.sh -o "${archive}" "${url}"
           echo "${JUST_ARCHIVE_SHA256}  ${archive}" | sha256sum -c -
           mkdir -p "${bin_dir}"
           tar -xzf "${archive}" -C "${bin_dir}" just
