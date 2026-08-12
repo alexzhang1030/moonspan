@@ -1,0 +1,61 @@
+# H-FT (Humble + Fast DDS) runtime image for rclwebd.
+# Digest-pinned base matches docs/support-matrix.md Humble pin.
+# Regenerates vendored rcl bindings against Humble headers before linking so the
+# artifact matches the process support row (ADR 0008: one row per process).
+# Builder compiles only the gateway; the runtime has no Rust toolchain.
+ARG ROS_IMAGE=docker.io/library/ros:humble-ros-base-jammy@sha256:7bea3d9aa2483d3ca34c8e30d921b79273b0913bd7dc64bebf51d082b5d107e4
+FROM ${ROS_IMAGE} AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    clang \
+    curl \
+    libclang-dev \
+    pkg-config \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY rust-toolchain.toml /tmp/rust-toolchain.toml
+ENV CARGO_NET_RETRY=8
+RUN curl --retry 8 --retry-all-errors --retry-delay 2 --connect-timeout 20 \
+      --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+      --default-toolchain "$(awk -F'"' '/^[[:space:]]*channel[[:space:]]*=/{print $2; exit}' /tmp/rust-toolchain.toml)" \
+      --profile minimal \
+  && . "$HOME/.cargo/env" \
+  && cargo install bindgen-cli --locked
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+WORKDIR /src
+COPY . /src
+ENV ROS_PREFIX=/opt/ros/humble
+ENV AMENT_PREFIX_PATH=/opt/ros/humble
+ENV RCLWEBD_SUPPORT_ROW=H-FT
+RUN . /opt/ros/humble/setup.sh \
+  && ROS_PREFIX=/opt/ros/humble bash scripts/generate-rcl-bindings.sh \
+  && cargo build --locked -p rclwebd --features ros --release
+
+FROM ${ROS_IMAGE}
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends curl \
+  && rm -rf /var/lib/apt/lists/* \
+  && useradd --system --uid 10001 --create-home --home-dir /var/lib/rclweb rclweb
+
+COPY --from=builder /src/target/release/rclwebd /usr/local/bin/rclwebd
+COPY docker/rclwebd-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh /usr/local/bin/rclwebd
+
+ENV RCLWEBD_BIND=0.0.0.0:8794 \
+    RCLWEBD_SUPPORT_ROW=H-FT \
+    ROS_DOMAIN_ID=0 \
+    RMW_IMPLEMENTATION=rmw_fastrtps_cpp \
+    ROS_PREFIX=/opt/ros/humble
+
+USER rclweb
+EXPOSE 8794
+HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:8794/readyz || exit 1
+ENTRYPOINT ["/entrypoint.sh"]

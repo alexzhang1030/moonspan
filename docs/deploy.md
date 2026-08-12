@@ -1,27 +1,33 @@
 # Deploying `rclwebd`
 
-Operator profile for the J-FT runtime image and process operations. The
+Operator profile for the J-FT / H-FT runtime images and process operations. The
 gateway remains the trust boundary ([security](./security.md)); this page
 covers how to run it. Milestone evidence: [R4-02](./milestones/r4-02-deployment-observability.md).
 
 ## Artifact
 
 One support row per process ([ADR 0008](./adr/0008-one-adapter-row-per-gateway-process.md)).
-This slice ships **J-FT** (Jazzy + Fast DDS):
+This slice ships **J-FT** (Jazzy + Fast DDS) and **H-FT** (Humble + Fast DDS):
 
 ```bash
 just image-rclwebd          # docker build -t rclwebd:j-ft
-just gateway                # host-network compose
+just gateway                # host-network compose (J-FT)
+just image-rclwebd-h-ft     # docker build -t rclwebd:h-ft (regenerates FFI)
+just gateway-h-ft           # host-network compose (H-FT)
 ```
 
-The image is multi-stage: builder compiles `rclwebd --features ros`, runtime
-is digest-pinned `ros:jazzy-ros-base-noble` plus the binary, running as uid
-`10001`. `HEALTHCHECK` probes `GET /readyz`. Extra ROS interface packages
-must be installed in the image or mounted into `ROS_PREFIX` — typesupport is
-dlopen, not link-time.
+Both images are multi-stage: builder compiles `rclwebd --features ros`, runtime
+is the digest-pinned ROS base plus the binary, running as uid `10001`.
+`HEALTHCHECK` probes `GET /readyz`. Extra ROS interface packages must be
+installed in the image or mounted into `ROS_PREFIX` — typesupport is dlopen,
+not link-time.
 
-H-FT still uses the Humble e2e image path (`just e2e-h-ft`). A Humble runtime
-image is a follow-up.
+The H-FT builder regenerates vendored rcl bindings against Humble headers
+before linking. Do not run an H-FT binary against a Jazzy prefix (or the
+reverse).
+
+The entrypoint sources `$ROS_PREFIX/setup.bash` (J-FT default
+`/opt/ros/jazzy`, H-FT `/opt/ros/humble`).
 
 ## Listen address
 
@@ -39,8 +45,9 @@ default on this image.
 
 Set `RCLWEBD_GATEWAY_INSTANCE_ID` to a stable deployment id if the instance
 should survive ordinary restart. Unset keeps a random id (a replacement
-instance every process start). Pair `RCLWEBD_SUPPORT_ROW=J-FT` with Jazzy
-`ROS_PREFIX`. `ROS_DOMAIN_ID` selects the domain.
+instance every process start). Pair `RCLWEBD_SUPPORT_ROW` with the matching
+prefix (`J-FT` ↔ `/opt/ros/jazzy`, `H-FT` ↔ `/opt/ros/humble`).
+`ROS_DOMAIN_ID` selects the domain.
 
 Authenticate stays **off** unless `RCLWEBD_AUTH_MODE=oidc` ([R4-01](./milestones/r4-01-oidc-sros2-audit.md)).
 
@@ -72,11 +79,12 @@ headers.
 
 ## Compose shape
 
-[`docker/compose.r4-02-gateway.yml`](../docker/compose.r4-02-gateway.yml) uses
-`network_mode: host` so Fast DDS can see the robot domain. That is a local /
-robot-edge shape, not a cloud overlay network.
+[`docker/compose.r4-02-gateway.yml`](../docker/compose.r4-02-gateway.yml) (J-FT)
+and [`docker/compose.r4-02-gateway-h-ft.yml`](../docker/compose.r4-02-gateway-h-ft.yml)
+(H-FT) use `network_mode: host` so Fast DDS can see the robot domain. That is
+a local / robot-edge shape, not a cloud overlay network.
 
 ## Not in this slice
 
-Production PKI, H-FT runtime image, remote metrics/trace export, Kubernetes
-or systemd units, upgrade/rollback playbooks, SROS2 keystore (D-04).
+Production PKI, remote metrics/trace export, Kubernetes or systemd units,
+upgrade/rollback playbooks, SROS2 keystore (D-04).

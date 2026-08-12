@@ -50,6 +50,8 @@ just build
 | `just e2e-h-ft` | Docker compose: Humble talker → rclwebd (H-FT) → SDK subscribe |
 | `just image-rclwebd` | Docker: J-FT runtime image (`rclwebd:j-ft`) |
 | `just gateway` | Docker compose: packaged J-FT gateway (host network) |
+| `just image-rclwebd-h-ft` | Docker: H-FT runtime image (`rclwebd:h-ft`; regenerates FFI) |
+| `just gateway-h-ft` | Docker compose: packaged H-FT gateway (host network) |
 | `just ros-test` | Gateway tests against real rcl (sourced Jazzy env) |
 | `just ros-test-pixi` | Same, using optional RoboStack Jazzy via pixi (not CI evidence) |
 | `just protocol-check` | Validate the R2WP registry JSON and control CDDL |
