@@ -149,9 +149,11 @@ function encodeCommand(out: number[], command: HostCommand): void {
       for (let i = 0; i < 16; i++) out.push(command.correlation[i] ?? 0);
       const scheme = te.encode(command.scheme);
       writeU16(out, scheme.length);
-      out.push(...scheme);
+      for (let i = 0; i < scheme.length; i++) out.push(scheme[i]!);
       writeU16(out, command.token.length);
-      out.push(...command.token);
+      for (let i = 0; i < command.token.length; i++) {
+        out.push(command.token[i]!);
+      }
       break;
     }
     case "subscribe": {
@@ -161,10 +163,10 @@ function encodeCommand(out: number[], command: HostCommand): void {
       out.push(command.qosReliability & 0xff, command.domainId & 0xff, 0, 0);
       const topic = te.encode(command.topic);
       writeU16(out, topic.length);
-      out.push(...topic);
+      for (let i = 0; i < topic.length; i++) out.push(topic[i]!);
       const typeName = te.encode(command.typeName);
       writeU16(out, typeName.length);
-      out.push(...typeName);
+      for (let i = 0; i < typeName.length; i++) out.push(typeName[i]!);
       break;
     }
     case "unsubscribe": {
@@ -179,7 +181,14 @@ function encodeCommand(out: number[], command: HostCommand): void {
   }
 }
 
-/** Encode a host batch with inline WS payloads (bun tests + I/O Worker). */
+/**
+ * Encode a host batch with inline WS payloads (bun tests + I/O Worker).
+ *
+ * Byte arrays are pushed one byte at a time — spreading a large frame into
+ * `push(...)` overflows the call stack. The per-byte `number[]` builder is
+ * fine for R1 control traffic + small samples; a preallocated encoder is an
+ * R2-02 large-message item.
+ */
 export function encodeHostBatch(events: HostEventInput[]): Uint8Array {
   const out: number[] = [];
   writeU32(out, BATCH_MAGIC);
@@ -193,7 +202,9 @@ export function encodeHostBatch(events: HostEventInput[]): Uint8Array {
         writeU32(out, event.bufferId >>> 0);
         writeU32(out, 0);
         writeU32(out, event.bytes.length);
-        out.push(...event.bytes);
+        for (let i = 0; i < event.bytes.length; i++) {
+          out.push(event.bytes[i]!);
+        }
         break;
       case "timer":
         out.push(EVENT_TIMER, 0, 0, 0);

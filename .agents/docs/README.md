@@ -11,6 +11,7 @@ The project was restructured and renamed from moonspan to rclweb ([ADR 0010](../
 | Product direction and phase boundary | [Intent](./intent.md) |
 | System boundaries and the single-core decision | [Architecture](./architecture.md) |
 | Languages, platforms, transport, and tooling | [Technology stack](./technology-stack.md) |
+| Traps already paid for | [Gotchas](./gotchas.md) |
 | Evidence, single oracle, and gate authority | [Validation](./validation.md) |
 | Studio visual system | [DESIGN.md](./DESIGN.md) |
 
