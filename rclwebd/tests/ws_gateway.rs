@@ -3,7 +3,7 @@
 
 mod common;
 
-use common::{TestClient, corr, start_gateway, start_gateway_with_row};
+use common::{TestClient, corr, start_gateway, start_gateway_with_config, start_gateway_with_row};
 use rclweb::{
     BootstrapRecord, CborValue, ChannelState, FrameHeader, FramePayload, OPCODE_ROS_SAMPLE,
     SCHEME_MOONSPAN_SCHEMA_V1, encode_frame, parse_frame, schema_identity_for_type,
@@ -509,4 +509,63 @@ async fn h_ft_rejects_wrong_row_open_channel() {
     let body: BTreeMap<u64, CborValue<'_>> = body.iter().map(|(k, v)| (*k, v.clone())).collect();
     assert_eq!(uint(&body, 48), 25, "support_row_mismatch");
     assert_eq!(client.session.channel_state(4), ChannelState::Failed);
+}
+
+#[tokio::test]
+async fn oidc_mode_rejects_anonymous_token() {
+    let (addr, _backend) = start_gateway_with_config(rclwebd::GatewayConfig {
+        gateway_instance_id: "gw-test".to_owned(),
+        auth_mode: rclwebd::AuthMode::Oidc,
+        oidc: Some(rclwebd::OidcSettings {
+            issuer: "https://issuer.test".to_owned(),
+            audience: "rclwebd".to_owned(),
+            hs_secret: Some(b"test-secret-32-bytes-minimum-ok".to_vec()),
+            jwks: None,
+        }),
+        ..rclwebd::GatewayConfig::default()
+    })
+    .await;
+    let mut client = TestClient::connect(&addr).await;
+    let hello = TestClient::default_hello();
+    let _ = client.bootstrap(&hello).await;
+    client
+        .send_control(&TestClient::authenticate_msg(&corr(0xA1)))
+        .await;
+    let bytes = client.recv_frame_raw().await.expect("auth error");
+    let (kind, fields) = control_fields(&bytes);
+    assert_eq!(kind, 15, "Error");
+    assert_eq!(uint(&fields, 48), 26, "authentication_failed");
+}
+
+#[tokio::test]
+async fn oidc_mode_accepts_valid_jwt_subject() {
+    let secret = b"test-secret-32-bytes-minimum-ok";
+    let token = rclwebd::mint_hs256_token(secret, "https://issuer.test", "rclwebd", "alice");
+    let (addr, _backend) = start_gateway_with_config(rclwebd::GatewayConfig {
+        gateway_instance_id: "gw-test".to_owned(),
+        auth_mode: rclwebd::AuthMode::Oidc,
+        oidc: Some(rclwebd::OidcSettings {
+            issuer: "https://issuer.test".to_owned(),
+            audience: "rclwebd".to_owned(),
+            hs_secret: Some(secret.to_vec()),
+            jwks: None,
+        }),
+        ..rclwebd::GatewayConfig::default()
+    })
+    .await;
+    let mut client = TestClient::connect(&addr).await;
+    let hello = TestClient::default_hello();
+    let _ = client.bootstrap(&hello).await;
+    client
+        .send_control(&TestClient::authenticate_msg_with(
+            &corr(0xA1),
+            "oidc",
+            token.as_bytes(),
+        ))
+        .await;
+    let (bytes, effects) = client.recv_ingested().await.expect("session ready");
+    assert!(effects.entered_ready);
+    let (kind, fields) = control_fields(&bytes);
+    assert_eq!(kind, 2, "SessionReady");
+    assert_eq!(text(&fields, 21), "alice");
 }

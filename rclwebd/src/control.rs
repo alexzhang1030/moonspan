@@ -481,9 +481,19 @@ pub fn heartbeat(counter: u64) -> CborValue<'static> {
 /// Flat CONTROL Error, session scope (channel_id absent).
 #[must_use]
 pub fn session_error(code: u8, message: &str) -> CborValue<'static> {
+    session_error_with_correlation(&ZERO_CORRELATION, code, message)
+}
+
+/// Session-scope Error with an explicit correlation (Authenticate failures).
+#[must_use]
+pub fn session_error_with_correlation(
+    correlation: &[u8],
+    code: u8,
+    message: &str,
+) -> CborValue<'static> {
     CborValue::Map(vec![
         (1, CborValue::Unsigned(15)),
-        (2, bytes_value(&ZERO_CORRELATION)),
+        (2, bytes_value(correlation)),
         (48, CborValue::Unsigned(u64::from(code))),
         (49, CborValue::Unsigned(0)),
         (51, text_value(message)),

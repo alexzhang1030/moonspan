@@ -6,7 +6,9 @@
 //! - `RCLWEBD_SUPPORT_ROW` — support row id (`J-FT` default; `H-FT` accepted)
 //! - `RCLWEBD_LOCAL_DEV_TLS` — `1`/`true` enables ADR 0011 local-dev TLS
 //! - `RCLWEBD_OFFER_WEBTRANSPORT` — `1`/`true` AND-negotiates WT + starts accept
-//! - `RCLWEBD_WT_BIND` — UDP bind for WebTransport (default `127.0.0.1:4433`)
+//! - `RCLWEBD_AUTH_MODE` — `dev` (default, accept any credential) or `oidc`
+//! - `RCLWEBD_OIDC_ISSUER` / `RCLWEBD_OIDC_AUDIENCE` — required in `oidc` mode
+//! - `RCLWEBD_OIDC_HS_SECRET` or `RCLWEBD_OIDC_JWKS` / `RCLWEBD_OIDC_JWKS_PATH`
 //!
 //! The `ros` feature links whatever ROS prefix is on `ROS_PREFIX` /
 //! `AMENT_PREFIX_PATH` (default `/opt/ros/jazzy`). Pair `RCLWEBD_SUPPORT_ROW`
@@ -14,7 +16,7 @@
 //! regenerates FFI bindings against Humble before linking.
 
 use rclwebd::ros::RclBackend;
-use rclwebd::{GatewayConfig, SUPPORT_ROW_J_FT, parse_support_row, serve};
+use rclwebd::{AuthMode, GatewayConfig, OidcSettings, SUPPORT_ROW_J_FT, parse_support_row, serve};
 use std::sync::Arc;
 
 fn env_flag(name: &str) -> bool {
@@ -58,12 +60,25 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let webtransport_bind =
         std::env::var("RCLWEBD_WT_BIND").unwrap_or_else(|_| "127.0.0.1:4433".to_owned());
 
+    let auth_mode = match std::env::var("RCLWEBD_AUTH_MODE") {
+        Ok(raw) => AuthMode::parse(&raw).ok_or_else(|| {
+            format!("unsupported RCLWEBD_AUTH_MODE={raw:?}; expected dev or oidc")
+        })?,
+        Err(_) => AuthMode::Dev,
+    };
+    let oidc = match auth_mode {
+        AuthMode::Dev => None,
+        AuthMode::Oidc => Some(OidcSettings::from_env()?),
+    };
+
     let config = GatewayConfig {
         domain_id,
         support_row,
         local_dev_tls_enabled,
         offer_webtransport,
         webtransport_bind,
+        auth_mode,
+        oidc,
         ..GatewayConfig::default()
     };
     let backend = Arc::new(RclBackend::spawn(domain_id)?);
