@@ -27,6 +27,9 @@ The restructure plan governs sequencing: R0 stop-loss, R1 walking skeleton, R2 d
 | R1-03 gateway WebSocket + rcl attachment | [Completion note](./milestones/r1-03-gateway-ws-rcl.md) |
 | R1-04 Wasm host boundary + SDK subscribe | [Completion note](./milestones/r1-04-wasm-host-sdk.md) |
 | R1-05 e2e CI evidence + demo | [Completion note](./milestones/r1-05-e2e-evidence.md) |
+| R2-01 data-plane hardening | [Completion note](./milestones/r2-01-data-plane-hardening.md) |
+| R2-02 large-message path | [Completion note](./milestones/r2-02-large-message-path.md) |
+| R2-03 fixtures + fuzzing | [Completion note](./milestones/r2-03-fixtures-fuzzing.md) |
 | Plan and current work | [Implementation plan](../tasks/plan.md), [execution checklist](../tasks/todo.md) |
 | Post-mainline Studio work | [Studio prototype](./prototypes/studio-ui.md), [design system](../.agents/docs/DESIGN.md) |
 

@@ -2,7 +2,7 @@
   "schema_version": 1,
   "protocol": "r2wp-v0",
   "byte_order": "network",
-  "generated_by": "scripts/protocol-malformed-fixtures.ts",
+  "generated_by": "scripts/protocol-fixtures (R2-03)",
   "fixtures": [
     {
       "id": "bootstrap-multi-2-before-3",
