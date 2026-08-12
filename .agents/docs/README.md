@@ -21,6 +21,7 @@ The project was restructured and renamed from moonspan to rclweb ([ADR 0010](../
 |---|---|
 | Formal documentation | [Documentation index](../../docs/README.md) |
 | Architecture decisions | [ADR register](../../docs/adr/README.md) |
+| Local WebTransport TLS (cert-hash, 14-day rotate) | [ADR 0011](../../docs/adr/0011-local-dev-webtransport-tls.md) |
 | Restructure rulings and plan | [Restructure proposal](../../docs/proposals/architecture-restructure.md) |
 | Delivery sequence | [Implementation plan](../../tasks/plan.md) |
 | Current execution state | [Execution checklist](../../tasks/todo.md) |

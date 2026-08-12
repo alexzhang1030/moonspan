@@ -16,6 +16,7 @@ ADRs capture accepted decisions that carry significant reversal cost. Technical 
 | [0008](./0008-one-adapter-row-per-gateway-process.md) | Accepted | Bind each gateway process to one ROS adapter support row with multi-domain contexts inside that row. |
 | [0009](./0009-r2wp-v0-wire-encoding.md) | Accepted | Freeze R2WP wire version 0 encoding, registries, deterministic CBOR control maps, and transport length rules. |
 | [0010](./0010-restructure-single-rust-core.md) | Accepted | Restructure on a single Rust core (`rclweb`) for gateway and browser; retire MoonBit, the TypeScript protocol implementation, and the agreement apparatus; rename the project rclweb. |
+| [0011](./0011-local-dev-webtransport-tls.md) | Accepted | Local-dev WebTransport uses auto-minted short-lived ECDSA certs + `serverCertificateHashes`; rotate before the browser's 14-day ceiling; production stays on PKI. |
 
 ## Convention
 
