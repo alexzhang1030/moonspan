@@ -23,7 +23,8 @@ agreement apparatus, fixtures remain the single oracle.
 |---|---|
 | Regenerator | [`scripts/protocol-fixtures/`](../../scripts/protocol-fixtures/) |
 | Manifest `generated_by` | `scripts/protocol-fixtures (R2-03)` |
-| just recipes | `protocol-fixtures-check`, `protocol-fixtures-write`, `fuzz-smoke` (also wired into `just check`) |
+| just recipes | `protocol-fixtures-check`, `protocol-fixtures-write` |
+| Fuzz smoke | [`rclweb/tests/decoder_fuzz_smoke.rs`](../../rclweb/tests/decoder_fuzz_smoke.rs) (runs under `just test`) |
 | Optional libFuzzer | [`fuzz/`](../../fuzz/) |
 
 ## Acceptance evidence

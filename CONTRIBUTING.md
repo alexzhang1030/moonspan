@@ -34,8 +34,6 @@ just lint-rust
 just fix-rust
 ```
 
-Optional Git hooks (prek, not required for CI): `just install-hooks`.
-
 ## Records
 
 Read the [PCR map](.agents/docs/README.md) before changing an enrolled area. Update the authoritative document with the code. Durable decisions live under [`docs/adr/`](docs/adr/README.md).

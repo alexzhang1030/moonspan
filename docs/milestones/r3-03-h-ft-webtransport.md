@@ -42,7 +42,7 @@ just e2e-h-ft   # or CI job e2e-ros-talker-h-ft
 
 Optional WT accept: `cargo test --locked -p rclwebd --features webtransport --lib`
 
-Optional mock compose: `docker compose -f docker/compose.r3-03-h-ft.yml run --rm h-ft-protocol`
+H-FT protocol without Humble packages is the mock gateway in `cargo test` (`just test`). There is no separate Docker mock lane.
 
 ## Surfaces
 
@@ -54,9 +54,8 @@ Optional mock compose: `docker compose -f docker/compose.r3-03-h-ft.yml run --rm
 | HTTP advertise + WS | [`rclwebd/src/ws.rs`](../../rclwebd/src/ws.rs) |
 | Engine OpenChannel / ClientHello | [`rclweb/src/engine/`](../../rclweb/src/engine/) |
 | SDK ConnectOptions / host | [`sdk/typescript/src/`](../../sdk/typescript/src/) |
-| Mock H-FT e2e | [`rclwebd/tests/ws_gateway.rs`](../../rclwebd/tests/ws_gateway.rs) |
+| Mock H-FT protocol | [`rclwebd/tests/ws_gateway.rs`](../../rclwebd/tests/ws_gateway.rs) (runs under `just test`) |
 | Live Humble e2e | [`docker/compose.r3-03-h-ft-e2e.yml`](../../docker/compose.r3-03-h-ft-e2e.yml) |
-| Mock protocol scaffolding | [`docker/compose.r3-03-h-ft.yml`](../../docker/compose.r3-03-h-ft.yml) |
 
 ## Deferred
 

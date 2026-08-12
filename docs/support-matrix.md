@@ -28,7 +28,7 @@ Fast DDS (`rmw_fastrtps_cpp`) is the reference and default row for each ROS dist
 
 One gateway process binds one row and may host multiple domain IDs. `support_row_id` is fixed for the running artifact. `gateway_instance_id` identifies the deployment across eligible restart and upgrade paths. Applications use independent sessions across rows.
 
-**H-FT delivery gate (R3-03):** SessionReady / OpenChannel row identity and `moonspan-schema-v1` OpenChannel are proven on the mock gateway and corpus ([evidence](./evidence/r3-03-h-ft-row.json)). Live Humble rcl attachment is proven by the digest-pinned compose lane ([compose](../docker/compose.r3-03-h-ft-e2e.yml), CI `e2e-ros-talker-h-ft`, [evidence](./evidence/r3-03-h-ft-e2e.json), [milestone](./milestones/r3-03-h-ft-webtransport.md)): the image regenerates FFI against Humble headers, links `--features ros` with `ROS_PREFIX=/opt/ros/humble`, sets `RCLWEBD_SUPPORT_ROW=H-FT`, and runs talker → gateway → SDK. Default committed bindings remain Jazzy for host `just ros-test`.
+**H-FT delivery gate (R3-03):** SessionReady / OpenChannel row identity and `moonspan-schema-v1` OpenChannel are proven on the mock gateway in `just test` and the corpus ([evidence](./evidence/r3-03-h-ft-row.json)). Live Humble rcl attachment is proven by the digest-pinned compose lane ([compose](../docker/compose.r3-03-h-ft-e2e.yml), CI `e2e-ros-talker-h-ft`, [evidence](./evidence/r3-03-h-ft-e2e.json), [milestone](./milestones/r3-03-h-ft-webtransport.md)): the image regenerates FFI against Humble headers, links `--features ros` with `ROS_PREFIX=/opt/ros/humble`, sets `RCLWEBD_SUPPORT_ROW=H-FT`, and runs talker → gateway → SDK. Default committed bindings remain Jazzy for host `just ros-test`.
 
 ## Qualification
 

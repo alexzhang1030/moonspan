@@ -107,45 +107,9 @@ jobs:
         shell: bash
         run: just test
 
-      - name: H-FT mock protocol gate (R3-03)
-        shell: bash
-        run: |
-          set -euo pipefail
-          cargo test --locked -p rclweb --lib h_ft_session_ready
-          cargo test --locked -p rclwebd --test ws_gateway h_ft
-
       - name: just build
         shell: bash
         run: just build
-
-  h-ft-protocol:
-    name: h-ft-protocol-mock
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    needs: foundation
-    # Optional evidence-gated lane: mock H-FT protocol without Humble ROS packages.
-    # Skipped unless dispatched or labeled; foundation already runs the same cargo tests.
-    if: github.event_name == 'workflow_dispatch'
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
-
-      - name: Build and run H-FT mock protocol compose
-        shell: bash
-        run: |
-          set -euo pipefail
-          docker compose -f docker/compose.r3-03-h-ft.yml build
-          docker compose -f docker/compose.r3-03-h-ft.yml run --rm h-ft-protocol
-
-      - name: Upload H-FT evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: r3-03-h-ft-evidence
-          path: docs/evidence/r3-03-h-ft-row.json
-          if-no-files-found: warn
 
   e2e:
     name: e2e-ros-talker
@@ -165,17 +129,6 @@ jobs:
           docker compose -f docker/compose.r1-e2e.yml build
           docker compose -f docker/compose.r1-e2e.yml run --rm e2e
 
-      - name: Upload R1 evidence artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: r1-evidence
-          path: |
-            docs/evidence/r1-04-wasm-size.json
-            docs/evidence/r1-05-poll-latency.json
-            docs/evidence/r1-05-e2e.json
-          if-no-files-found: warn
-
   e2e-h-ft:
     name: e2e-ros-talker-h-ft
     runs-on: ubuntu-24.04
@@ -194,11 +147,3 @@ jobs:
           set -euo pipefail
           docker compose -f docker/compose.r3-03-h-ft-e2e.yml build
           docker compose -f docker/compose.r3-03-h-ft-e2e.yml run --rm e2e-h-ft
-
-      - name: Upload H-FT live e2e evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: r3-03-h-ft-e2e-evidence
-          path: docs/evidence/r3-03-h-ft-e2e.json
-          if-no-files-found: warn

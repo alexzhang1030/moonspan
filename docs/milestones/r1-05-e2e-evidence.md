@@ -15,7 +15,8 @@ Live `/chatter` samples reach a typed SDK handler in CI. Evidence files under
 |---|---|
 | `r1-04-wasm-size.json` | Fat-LTO wasm artifact size (R-D1) |
 | `r1-05-poll-latency.json` | Wasm `poll` p50/p95/p99 (R-D1) |
-| `r1-05-e2e.json` | Live subscribe run identity, samples, telemetry |
+
+The e2e harness writes `r1-05-e2e.json` into `docs/evidence/` on a live run (default filename, overridable with `RCLWEB_EVIDENCE_FILE`). That file is local/CI output, not a committed measurement. The live gate is the compose job succeeding.
 
 Copy budget (two controllable copies) is evidenced structurally and with
 counters: gateway `payload_copies` via `/telemetryz`, browser

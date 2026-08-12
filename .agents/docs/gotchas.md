@@ -88,3 +88,7 @@ Foundation CI installs Bun with SHA-pinned `oven-sh/setup-bun` (`.bun-version`) 
 ## Do not add an evidence-check CI job
 
 `docs/evidence/*.json` are measurements. Git versions them. `just build` rewrites `recordedAt` on the wasm-size file, so a sha256 wrapper over those files fails for a timestamp. Qualification is a human edit of the [support matrix](../../docs/support-matrix.md). The owner cut `evidence-check` and the report-index JSON; do not bring back the closed pre-restructure M0-05a ceremony either. [R4-03](../../docs/milestones/r4-03-evidence-harness.md).
+
+## Do not wrap cargo tests in a Docker mock lane
+
+R3-03 added `docker/compose.r3-03-h-ft.yml` whose image only re-ran `cargo test` inside `rust:1.97.1`. Foundation already runs those tests via `just test`. The CI job was `workflow_dispatch`-only, so it never gated. Live Humble remains [`docker/compose.r3-03-h-ft-e2e.yml`](../../docker/compose.r3-03-h-ft-e2e.yml). Do not add a compose file whose only command is cargo tests the workspace already runs.

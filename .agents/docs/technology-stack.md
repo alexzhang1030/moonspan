@@ -52,7 +52,6 @@ Committed rustfmt/clippy knobs, workspace lints, shared crate versions, and name
 | `[profile.release]` | thin LTO, `codegen-units = 1`, `strip = "symbols"` | Native gateway binaries. `release-wasm` inherits this then overrides to fat LTO / `panic = abort` / `opt-level = z` and **keeps `strip = "symbols"` explicit** so a later native-strip change cannot silently move R-D1. Inheriting strip dropped staged `rclweb.wasm` from 593631 bytes to 376519 ([evidence](../../docs/evidence/r1-04-wasm-size.json); [gotcha](./gotchas.md#release-wasm-inherits-native-release-settings)) |
 | `just fmt` / `fmt-check` / `clippy` / `lint-rust` / `fix-rust` / `doctor` / `setup` | Named recipes | Faster rust-only loops. `just check` stays the full foundation gate (docs, protocol, corpus, fmt, clippy, SDK) |
 | `.gitattributes` | `* text=auto eol=lf` | LF in the repo |
-| `.pre-commit-config.yaml` | Optional prek 0.4.9; hygiene + `just fmt-check` | Not a toolchain pin and not part of `just check`. Clippy and tests stay in CI |
 
 `fuzz/` stays outside the workspace (cargo-fuzz). Vendored `rclwebd/src/ros/ffi/bindings.rs` is `rustfmt::skip` so regenerate does not fight the formatter; `scripts/generate-rcl-bindings.sh` emits that attribute.
 
@@ -69,7 +68,6 @@ Committed rustfmt/clippy knobs, workspace lints, shared crate versions, and name
 | `pixi.toml` | Optional RoboStack J-FT prefix for `just ros-test-pixi`; not a toolchain pin |
 | `rustfmt.toml`, `clippy.toml` | Rust format and Clippy knobs; see [Rust workspace infrastructure](#rust-workspace-infrastructure) |
 | `CONTRIBUTING.md` | Clone → `just setup` / `just check` |
-| `.pre-commit-config.yaml` | Optional prek hooks; not CI |
 | `studio/` | U0 workspace added after release |
 
 ## ROS profile

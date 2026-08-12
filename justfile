@@ -64,14 +64,6 @@ fix-rust:
     cargo fmt --all
     cargo clippy --fix --locked --workspace --all-targets --allow-dirty --allow-staged
 
-# Optional prek hooks from `.pre-commit-config.yaml` (not a CI pin).
-[group('meta')]
-install-hooks:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    cargo install prek --version 0.4.9 --locked
-    prek install --hook-type pre-commit
-
 # Validate R2WP v0 registry JSON and control CDDL.
 [group('quality')]
 protocol-check: toolchain-check
@@ -86,11 +78,6 @@ protocol-fixtures-check: toolchain-check
 [group('quality')]
 protocol-fixtures-write: toolchain-check
     cd "{{root}}" && cargo run --locked -p protocol-fixtures -- --write
-
-# Deterministic decoder fuzz smoke (stable toolchain; see fuzz/README.md for nightly).
-[group('quality')]
-fuzz-smoke: toolchain-check
-    cd "{{root}}" && cargo test --locked -p rclweb --test decoder_fuzz_smoke
 
 # ROS CDR corpus check from committed artifacts.
 [group('quality')]

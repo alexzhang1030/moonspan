@@ -16,6 +16,8 @@ closed pre-restructure report ceremony.
 
 The owner rejected a machine report index (`evidence-check`, sha256 wrappers, generated JSON Schema). Git plus the matrix are enough.
 
+This slice also dropped process that had no independent subject: the `workflow_dispatch`-only H-FT mock Docker lane (it re-ran `cargo test`), the extra foundation cargo invocations already covered by `just test`, CI `upload-artifact` wrappers, optional prek hooks, and the `just fuzz-smoke` alias for a test `just test` already runs.
+
 ## Delivery evidence (not Qualified)
 
 | Row | Gate | Files |
