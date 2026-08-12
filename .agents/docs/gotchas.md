@@ -87,7 +87,7 @@ Foundation CI installs Bun with SHA-pinned `oven-sh/setup-bun` (`.bun-version`) 
 
 ## Do not commit measurement JSON
 
-The owner deleted `docs/evidence/*.json`. Nothing in CI read those files. `just build` used to rewrite `recordedAt` on a wasm-size file, dirtying the tree. Qualification is a human edit of the [support matrix](../../docs/support-matrix.md). Measurement recipes (`just poll-latency`, `just large-message`, `just perf-baseline`) print to stdout; optional dump is `RCLWEB_EVIDENCE_DIR`. Do not add an evidence-check job, and do not bring back the closed pre-restructure M0-05a ceremony. [R4-03](../../docs/milestones/r4-03-evidence-harness.md).
+The owner deleted `docs/evidence/*.json`. Nothing in CI read those files. `just build` used to rewrite `recordedAt` on a wasm-size file, dirtying the tree. Qualification is a human edit of the [support matrix](../../docs/support-matrix.md). Measurement recipes (`just poll-latency`, `just large-message`, `just perf-baseline`) print to stdout. Do not add an evidence-check job, and do not bring back the closed pre-restructure M0-05a ceremony. [R4-03](../../docs/milestones/r4-03-support-matrix.md).
 
 ## Do not wrap cargo tests in a Docker mock lane
 

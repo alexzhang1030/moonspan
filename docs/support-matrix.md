@@ -32,7 +32,7 @@ One gateway process binds one row and may host multiple domain IDs. `support_row
 
 ## Qualification
 
-Live gates are the delivery evidence. A row becomes **Qualified** only after a human updates this matrix. There is no report-index CI job and no committed measurement JSON ([R4-03](./milestones/r4-03-evidence-harness.md)).
+Live gates are the delivery evidence. A row becomes **Qualified** only after a human updates this matrix. There is no report-index CI job and no committed measurement JSON ([R4-03](./milestones/r4-03-support-matrix.md)).
 
 | Row | Delivery evidence | Status |
 |---|---|---|

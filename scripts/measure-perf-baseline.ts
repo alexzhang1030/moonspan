@@ -15,7 +15,6 @@ import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { measureAllProtocolCosts } from "./perf-baseline/protocol-cost.ts";
 import { measureRclwebHost } from "./perf-baseline/rclweb-host.ts";
-import { probeLiveComparison } from "./perf-baseline/live-gate.ts";
 
 const root = path.resolve(import.meta.dir, "..");
 const wasmPath = path.join(root, "sdk/typescript/wasm/rclweb.wasm");
@@ -33,7 +32,6 @@ const rclwebHost = await measureRclwebHost(
     wasmBytes.byteOffset + wasmBytes.byteLength,
   ),
 );
-const live = probeLiveComparison();
 
 const pc2 = protocolCosts.filter((r) => r.workload === "pointcloud2-1mb-10hz");
 const summary = Object.fromEntries(
@@ -46,8 +44,6 @@ const summary = Object.fromEntries(
 console.log(
   JSON.stringify(
     {
-      liveStatus: live.status,
-      liveReason: live.reason,
       hostWorkloads: rclwebHost.workloads.map((w) => ({
         id: w.workload,
         encodeP50: w.encodeHostBatchMs.p50,

@@ -13,8 +13,6 @@ services:
       RMW_IMPLEMENTATION: "rmw_fastrtps_cpp"
       RCLWEB_GATEWAY_URL: "ws://127.0.0.1:8794/ws"
       RCLWEB_HEALTH_URL: "http://127.0.0.1:8794/healthz"
-      RCLWEB_TELEMETRY_URL: "http://127.0.0.1:8794/telemetryz"
       RCLWEB_SUPPORT_ROW: "H-FT"
-      RCLWEB_TASK: "R3-03"
       RCLWEB_MIN_SAMPLES: "3"
       RCLWEB_TIMEOUT_MS: "60000"

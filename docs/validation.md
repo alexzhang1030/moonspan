@@ -55,7 +55,7 @@ Each accepted claim records:
 - artifact location and integrity;
 - reviewer, gate, decision, and known limits.
 
-The live gates (`just e2e`, `just e2e-h-ft`, `just test`) are the delivery evidence. A row becomes **Qualified** only when a human updates the [support matrix](./support-matrix.md). There is no `evidence-check` job and no committed measurement JSON under `docs/evidence/` ([R4-03](./milestones/r4-03-evidence-harness.md)).
+The live gates (`just e2e`, `just e2e-h-ft`, `just test`) are the delivery evidence. A row becomes **Qualified** only when a human updates the [support matrix](./support-matrix.md). There is no `evidence-check` job and no committed measurement JSON under `docs/evidence/` ([R4-03](./milestones/r4-03-support-matrix.md)).
 
 ## Foundation CI
 

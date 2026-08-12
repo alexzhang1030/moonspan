@@ -95,10 +95,6 @@ jobs:
           set -euo pipefail
           bun install --frozen-lockfile
 
-      - name: just toolchain-check
-        shell: bash
-        run: just toolchain-check
-
       - name: just check
         shell: bash
         run: just check

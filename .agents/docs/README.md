@@ -14,7 +14,7 @@ The project was restructured and renamed from moonspan to rclweb ([ADR 0010](../
 | Rust workspace (fmt, clippy, lints, just recipes) | [Technology stack — Rust workspace infrastructure](./technology-stack.md#rust-workspace-infrastructure) |
 | Traps already paid for | [Gotchas](./gotchas.md) |
 | Evidence, single oracle, and gate authority | [Validation](./validation.md) |
-| Support matrix vs live gates | [Validation](./validation.md#evidence-contract), [R4-03](../../docs/milestones/r4-03-evidence-harness.md) |
+| Support matrix vs live gates | [Validation](./validation.md#evidence-contract), [R4-03](../../docs/milestones/r4-03-support-matrix.md) |
 | Studio visual system | [DESIGN.md](./DESIGN.md) |
 
 ## Project records
@@ -25,7 +25,7 @@ The project was restructured and renamed from moonspan to rclweb ([ADR 0010](../
 | Architecture decisions | [ADR register](../../docs/adr/README.md) |
 | Local WebTransport TLS (cert-hash, 14-day rotate) | [ADR 0011](../../docs/adr/0011-local-dev-webtransport-tls.md) |
 | J-FT runtime image and operations endpoints | [Deploy](../../docs/deploy.md), [R4-02](../../docs/milestones/r4-02-deployment-observability.md) |
-| Support-matrix status | [R4-03](../../docs/milestones/r4-03-evidence-harness.md) |
+| Support-matrix status | [R4-03](../../docs/milestones/r4-03-support-matrix.md) |
 | Restructure rulings and plan | [Restructure proposal](../../docs/proposals/architecture-restructure.md) |
 | Delivery sequence | [Implementation plan](../../tasks/plan.md) |
 | Current execution state | [Execution checklist](../../tasks/todo.md) |
@@ -59,7 +59,7 @@ The project was restructured and renamed from moonspan to rclweb ([ADR 0010](../
 | `justfile` (`fmt`, `clippy`, `lint-rust`, `doctor`, `setup`) | Same; `just check` remains the foundation gate. No git-hook installer |
 | `scripts/build-wasm.ts`, `sdk/typescript/wasm/rclweb.wasm` | Fat-LTO wasm ship; `release-wasm` inherits native release ([gotchas](./gotchas.md#release-wasm-inherits-native-release-settings)) |
 | `scripts/perf-baseline/**`, `scripts/measure-perf-baseline.ts` | [R2-04 Foxglove/rosbridge baseline](../../docs/milestones/r2-04-perf-baseline.md) |
-| Support matrix / qualification | Human matrix edit; no committed measurement JSON ([R4-03](../../docs/milestones/r4-03-evidence-harness.md), [gotchas](./gotchas.md#do-not-commit-measurement-json)) |
+| Support matrix / qualification | Human matrix edit; no committed measurement JSON ([R4-03](../../docs/milestones/r4-03-support-matrix.md), [gotchas](./gotchas.md#do-not-commit-measurement-json)) |
 | `conformance/**` | [Validation](./validation.md), [corpus README](../../conformance/cdr/README.md), [support matrix](../../docs/support-matrix.md) |
 | `studio/**` | [Prototype scope](../../docs/prototypes/studio-ui.md), [DESIGN.md](./DESIGN.md) |
 

@@ -15,7 +15,6 @@ export RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}"
 export RCLWEBD_SUPPORT_ROW="${RCLWEBD_SUPPORT_ROW:-H-FT}"
 export ROS_PREFIX="${ROS_PREFIX:-/opt/ros/humble}"
 export RCLWEB_SUPPORT_ROW="${RCLWEB_SUPPORT_ROW:-H-FT}"
-export RCLWEB_TASK="${RCLWEB_TASK:-R3-03}"
 
 echo "r3-03-h-ft-e2e: starting talker on domain ${ROS_DOMAIN_ID} (row ${RCLWEBD_SUPPORT_ROW})"
 ros2 topic pub --rate 10 /chatter std_msgs/msg/String "{data: 'rclweb-r3-03-h-ft-e2e'}" >/tmp/talker.log 2>&1 &
