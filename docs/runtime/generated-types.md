@@ -48,14 +48,14 @@ The generator validates every M1 generated root against closed joins. Failure yi
 
 | Rule | Contract |
 |---|---|
-| Bundle digest identity | SHA-256 of the committed canonical bundle bytes equals the `moonspan-schema-v1` `SchemaKey.value` **and** the bundle file name stem (`fixtures/bundles/<value>.json`) |
+| Bundle digest identity | SHA-256 of the committed canonical bundle bytes equals the `rclweb-schema-v1` `SchemaKey.value` **and** the bundle file name stem (`fixtures/bundles/<value>.json`) |
 | Source type names | Source `type_name` values inside one bundle are unique |
 | Root present | Bundle `root_type_name` equals the generated root, and a source entry for that root (or its parent `.srv` / `.action` type for sectioned roots) is present |
 | Dependency endpoints | Every `from` and `to` in `dependency_graph` names a source `type_name` present in the same bundle |
 | Acyclic graph | The dependency graph for the M1 generated subset is a directed acyclic graph |
 | Manifest join | Every Phase 1 fixture row joins to its type, scheme/value, encoding, schema generation, support row, and serialized artifact consistently with the bundle and scheme rules |
 | Tail-slack join | Every fixture used for zero-tail resolution joins to a unique tail-slack row for its fixture identity, support row, and CDR representation |
-| Provenance join | Every Jazzy `rep2011-rihs` identity for the nine roots joins to exactly one RIHS-to-bundle provenance record whose `bundle_sha256` matches the corresponding `moonspan-schema-v1` digest and `type_name` |
+| Provenance join | Every Jazzy `rep2011-rihs` identity for the nine roots joins to exactly one RIHS-to-bundle provenance record whose `bundle_sha256` matches the corresponding `rclweb-schema-v1` digest and `type_name` |
 | Deterministic ordering | Sources, dependency edges, identity rows, wire-profile rows, and emitted artifact members use a single stable sort (type name ascending, then scheme, then value, then support row, then representation) so regeneration is byte-identical |
 
 ## Phase 1 generated surface
@@ -64,14 +64,14 @@ The Phase 1 generated surface is the **nine authoritative corpus roots** represe
 
 | Root type name |
 |---|
-| `moonspan_cdr_interfaces/msg/PrimitiveScalars` |
-| `moonspan_cdr_interfaces/msg/NestedSample` |
-| `moonspan_cdr_interfaces/msg/Collections` |
-| `moonspan_cdr_interfaces/srv/EchoNested_Request` |
-| `moonspan_cdr_interfaces/srv/EchoNested_Response` |
-| `moonspan_cdr_interfaces/action/MeasureSequence_Goal` |
-| `moonspan_cdr_interfaces/action/MeasureSequence_Result` |
-| `moonspan_cdr_interfaces/action/MeasureSequence_Feedback` |
+| `rclweb_cdr_interfaces/msg/PrimitiveScalars` |
+| `rclweb_cdr_interfaces/msg/NestedSample` |
+| `rclweb_cdr_interfaces/msg/Collections` |
+| `rclweb_cdr_interfaces/srv/EchoNested_Request` |
+| `rclweb_cdr_interfaces/srv/EchoNested_Response` |
+| `rclweb_cdr_interfaces/action/MeasureSequence_Goal` |
+| `rclweb_cdr_interfaces/action/MeasureSequence_Result` |
+| `rclweb_cdr_interfaces/action/MeasureSequence_Feedback` |
 | `sensor_msgs/msg/PointCloud2` |
 
 Shared dependencies (for example `builtin_interfaces/msg/Time`, `std_msgs/msg/Header`, `sensor_msgs/msg/PointField`, nested corpus members) generate as supporting models and codecs referenced by those roots. Phase 1 registry roots remain exactly the nine rows above.
@@ -151,7 +151,7 @@ This matches ADR 0007: identity is the pair `(scheme, value)`; full cache identi
 
 | Scheme | Value form | Validation |
 |---|---|---|
-| `moonspan-schema-v1` | SHA-256 of the deterministic canonical bundle bytes | Exactly 64 **lowercase** hex characters |
+| `rclweb-schema-v1` | SHA-256 of the deterministic canonical bundle bytes | Exactly 64 **lowercase** hex characters |
 | `rep2011-rihs` | REP-2011 RIHS string | Exact `RIHS01_` prefix plus 64 **lowercase** hex characters |
 
 Accepted schemes and value forms pass exact validation. Rejected schemes, wrong prefixes, wrong lengths, and non-lowercase hex fail as `invalid_schema_key` before registry mutation or lookup success. Validation requires the exact committed case; uppercase hex fails as invalid.

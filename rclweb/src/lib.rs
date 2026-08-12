@@ -24,7 +24,7 @@ pub use cdr::{
   encode_point_cloud2, encode_point_cloud2_le,
 };
 pub use engine::{
-  AppCommand, AppEvent, ClientEngine, DEFAULT_QOS_DEPTH, DEMO_MOONSPAN_HASH, DEMO_SCHEMA_HASH,
+  AppCommand, AppEvent, ClientEngine, DEFAULT_QOS_DEPTH, DEMO_BUNDLE_HASH, DEMO_SCHEMA_HASH,
   EngineTelemetry, HostEvent, MAX_HOST_EVENTS_PER_POLL, MAX_OUTBOUND_PER_POLL, OutboundMessage,
   PollOutcome, ReleasedBuffer, STD_MSGS_STRING, ZERO_CORRELATION, authenticate, close_channel,
   heartbeat, open_action, open_service, open_topic, resolve_open_schema_identity,
@@ -62,7 +62,7 @@ pub use types::{
   CdrRepresentation, Collections, ENCODING_CDR1, EchoNestedRequest, EchoNestedResponse,
   LookupResult, MeasureSequenceFeedback, MeasureSequenceGoal, MeasureSequenceResult, NestedSample,
   PHASE1_ROOT_TYPE_NAMES, PHASE1_SCHEMA_GENERATION, PointCloud2, PrimitiveScalars,
-  SCHEME_MOONSPAN_SCHEMA_V1, SCHEME_REP2011_RIHS, SchemaError, SchemaErrorCode, SchemaKey,
+  SCHEME_RCLWEB_SCHEMA_V1, SCHEME_REP2011_RIHS, SchemaError, SchemaErrorCode, SchemaKey,
   SchemaRegistry, SchemaRegistryBuilder, Time, WIRE_ERROR_SCHEMA_UNAVAILABLE,
   lookup_phase1_root_for_open, schema_identity_for_type,
 };

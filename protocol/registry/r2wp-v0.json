@@ -47,7 +47,7 @@
       "prefix": "RIHS01_",
       "hex_len": 64
     },
-    "moonspan-schema-v1": {
+    "rclweb-schema-v1": {
       "value_size_bytes": 64,
       "value_pattern": "64 lowercase hex SHA-256",
       "hex_len": 64
@@ -706,7 +706,7 @@
     },
     "reserved": "0,6-255",
     "unknown_behavior": "invalid_control",
-    "note": "Distinct from payload encodings. M0-04 owns bundle canonical ordering, bytes, and hash for moonspan-schema-v1 digests."
+    "note": "Distinct from payload encodings. M0-04 owns bundle canonical ordering, bytes, and hash for rclweb-schema-v1 digests."
   },
   "flags": {
     "assigned": {

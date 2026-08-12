@@ -33,7 +33,7 @@ Default builds (`just check` / `just test` / `just build`) compile the gateway w
 
 ## Support-row binding
 
-One `rclwebd` process binds one adapter support row; Phase 1 gates J-FT by default. R3-03 delivery-gates H-FT (`RCLWEBD_SUPPORT_ROW`, SessionReady fields 8/18/19, moonspan OpenChannel) with mock + corpus evidence and a Humble-linked live talker e2e; remaining rows return through the support matrix in R4. The process may open multiple ROS domain IDs within that row. Applications use independent sessions across rows.
+One `rclwebd` process binds one adapter support row; Phase 1 gates J-FT by default. R3-03 delivery-gates H-FT (`RCLWEBD_SUPPORT_ROW`, SessionReady fields 8/18/19, rclweb OpenChannel) with mock + corpus evidence and a Humble-linked live talker e2e; remaining rows return through the support matrix in R4. The process may open multiple ROS domain IDs within that row. Applications use independent sessions across rows.
 
 `support_row_id` is fixed for the running artifact. `gateway_instance_id` identifies the logical deployment and supports resume across ordinary restart or in-place upgrade when state is preserved. Startup validates the configured row, ROS distribution, RMW, adapter ABI, and artifact profile. A mismatch keeps readiness closed with `adapter_profile_mismatch`.
 
@@ -52,7 +52,7 @@ Per the owner constraint recorded in [ADR 0010](../adr/0010-restructure-single-r
 - recursive type descriptions and schema identity;
 - readiness polling and buffer release.
 
-Jazzy obtains native type descriptions and uses `rep2011-rihs`. Humble combines generic serialized operations with recursive deployment bundles identified by `moonspan-schema-v1`.
+Jazzy obtains native type descriptions and uses `rep2011-rihs`. Humble combines generic serialized operations with recursive deployment bundles identified by `rclweb-schema-v1`.
 
 ## Data path
 

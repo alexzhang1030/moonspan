@@ -29,13 +29,13 @@ pub use time::Time;
 
 /// The nine Phase 1 registry root type names (sorted).
 pub const PHASE1_ROOT_TYPE_NAMES: &[&str] = &[
-  "moonspan_cdr_interfaces/action/MeasureSequence_Feedback",
-  "moonspan_cdr_interfaces/action/MeasureSequence_Goal",
-  "moonspan_cdr_interfaces/action/MeasureSequence_Result",
-  "moonspan_cdr_interfaces/msg/Collections",
-  "moonspan_cdr_interfaces/msg/NestedSample",
-  "moonspan_cdr_interfaces/msg/PrimitiveScalars",
-  "moonspan_cdr_interfaces/srv/EchoNested_Request",
-  "moonspan_cdr_interfaces/srv/EchoNested_Response",
+  "rclweb_cdr_interfaces/action/MeasureSequence_Feedback",
+  "rclweb_cdr_interfaces/action/MeasureSequence_Goal",
+  "rclweb_cdr_interfaces/action/MeasureSequence_Result",
+  "rclweb_cdr_interfaces/msg/Collections",
+  "rclweb_cdr_interfaces/msg/NestedSample",
+  "rclweb_cdr_interfaces/msg/PrimitiveScalars",
+  "rclweb_cdr_interfaces/srv/EchoNested_Request",
+  "rclweb_cdr_interfaces/srv/EchoNested_Response",
   "sensor_msgs/msg/PointCloud2",
 ];

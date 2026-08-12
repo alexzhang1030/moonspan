@@ -400,11 +400,11 @@ fn open_oversized_stream_bounds_exceeded() {
 #[test]
 fn round_trip_determinism() {
   let mut w1 = CdrWriter::new_default(CdrEndian::Little).unwrap();
-  w1.write_string("Moonspan CDR ✓", None).unwrap();
+  w1.write_string("rclweb CDR ✓", None).unwrap();
   w1.write_wstring("月面CDR", None).unwrap();
   let a = w1.to_bytes();
   let mut w2 = CdrWriter::new_default(CdrEndian::Little).unwrap();
-  w2.write_string("Moonspan CDR ✓", None).unwrap();
+  w2.write_string("rclweb CDR ✓", None).unwrap();
   w2.write_wstring("月面CDR", None).unwrap();
   assert_eq!(a, w2.to_bytes());
 }

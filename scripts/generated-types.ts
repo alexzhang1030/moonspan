@@ -31,17 +31,17 @@ export const OUT_REL = "rclweb/generated/metadata";
 export const SCHEMA_VERSION = 1;
 export const SCHEMA_GENERATION = 1;
 export const ENCODING_CDR1 = 1;
-export const CORPUS_ID = "moonspan-ros-cdr-v1";
+export const CORPUS_ID = "rclweb-ros-cdr-v1";
 
 export const PHASE1_ROOTS = [
-  "moonspan_cdr_interfaces/msg/PrimitiveScalars",
-  "moonspan_cdr_interfaces/msg/NestedSample",
-  "moonspan_cdr_interfaces/msg/Collections",
-  "moonspan_cdr_interfaces/srv/EchoNested_Request",
-  "moonspan_cdr_interfaces/srv/EchoNested_Response",
-  "moonspan_cdr_interfaces/action/MeasureSequence_Goal",
-  "moonspan_cdr_interfaces/action/MeasureSequence_Result",
-  "moonspan_cdr_interfaces/action/MeasureSequence_Feedback",
+  "rclweb_cdr_interfaces/msg/PrimitiveScalars",
+  "rclweb_cdr_interfaces/msg/NestedSample",
+  "rclweb_cdr_interfaces/msg/Collections",
+  "rclweb_cdr_interfaces/srv/EchoNested_Request",
+  "rclweb_cdr_interfaces/srv/EchoNested_Response",
+  "rclweb_cdr_interfaces/action/MeasureSequence_Goal",
+  "rclweb_cdr_interfaces/action/MeasureSequence_Result",
+  "rclweb_cdr_interfaces/action/MeasureSequence_Feedback",
   "sensor_msgs/msg/PointCloud2",
 ] as const;
 
@@ -55,7 +55,7 @@ export type RootKind =
   | "action_result"
   | "action_feedback";
 
-export type Scheme = "moonspan-schema-v1" | "rep2011-rihs";
+export type Scheme = "rclweb-schema-v1" | "rep2011-rihs";
 export type CdrRepresentation = "CDR_LE" | "CDR_BE";
 export type Mode = "write" | "check";
 
@@ -600,13 +600,13 @@ export function buildArtifacts(input: {
       field_names: parsed.field_names,
     });
 
-    // Moonspan identity from bundle digest.
-    const moonspanValue = bundle_sha256;
-    const moonBound =
-      checkStringBound("moonspan-schema-v1", "max_scheme_chars") ??
-      checkStringBound(moonspanValue, "max_value_chars") ??
+    // rclweb identity from bundle digest.
+    const bundleValue = bundle_sha256;
+    const schemeBound =
+      checkStringBound("rclweb-schema-v1", "max_scheme_chars") ??
+      checkStringBound(bundleValue, "max_value_chars") ??
       checkStringBound(type_name, "max_type_name_chars");
-    if (moonBound) return moonBound;
+    if (schemeBound) return schemeBound;
 
     // RIHS from provenance, joined to bundle + Jazzy fixtures.
     const prov = provByType.get(type_name)!;
@@ -634,15 +634,15 @@ export function buildArtifacts(input: {
       }
     }
     const humbleFixtures = fixtures.filter(
-      (f) => f.schema_identity.scheme === "moonspan-schema-v1",
+      (f) => f.schema_identity.scheme === "rclweb-schema-v1",
     );
     if (humbleFixtures.length === 0) {
-      return inputInvalid(`missing Humble moonspan fixtures for ${type_name}`);
+      return inputInvalid(`missing Humble bundle-scheme fixtures for ${type_name}`);
     }
     for (const hf of humbleFixtures) {
-      if (hf.schema_identity.value !== moonspanValue) {
+      if (hf.schema_identity.value !== bundleValue) {
         return inputInvalid(
-          `Humble moonspan fixture ${hf.id} value != bundle digest for ${type_name}`,
+          `Humble bundle-scheme fixture ${hf.id} value != bundle digest for ${type_name}`,
         );
       }
     }
@@ -666,8 +666,8 @@ export function buildArtifacts(input: {
     }
 
     identities.push({
-      scheme: "moonspan-schema-v1",
-      value: moonspanValue,
+      scheme: "rclweb-schema-v1",
+      value: bundleValue,
       type_name,
       encoding: ENCODING_CDR1,
       schema_generation: SCHEMA_GENERATION,

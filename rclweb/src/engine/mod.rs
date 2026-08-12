@@ -13,7 +13,7 @@ mod tests;
 
 pub use crate::cdr::SENSOR_MSGS_POINT_CLOUD2;
 pub use control::{
-  DEFAULT_QOS_DEPTH, DEMO_MOONSPAN_HASH, DEMO_SCHEMA_HASH, ZERO_CORRELATION, authenticate,
+  DEFAULT_QOS_DEPTH, DEMO_BUNDLE_HASH, DEMO_SCHEMA_HASH, ZERO_CORRELATION, authenticate,
   close_channel, heartbeat, open_action, open_service, open_topic, resolve_open_schema_identity,
   schema_scheme_for_support_row,
 };

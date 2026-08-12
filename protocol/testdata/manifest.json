@@ -272,7 +272,7 @@
                 "entries": [
                   [
                     1,
-                    "moonspan-schema-v1"
+                    "rclweb-schema-v1"
                   ],
                   [
                     2,
@@ -558,18 +558,18 @@
       }
     },
     {
-      "id": "frame-schema-request-moonspan-schema-v1",
+      "id": "frame-schema-request-rclweb-schema-v1",
       "kind": "frame",
-      "path": "valid/frame-schema-request-moonspan-schema-v1.bin",
+      "path": "valid/frame-schema-request-rclweb-schema-v1.bin",
       "representation": "binary",
-      "byte_length": 163,
-      "sha256": "98887a9ebd2ae9b07f6245c238ef3ecc0fde509c409fbc30035acb6f52a54c26",
+      "byte_length": 161,
+      "sha256": "30c1792d059f1e4b3d09d8aa1c74468789a50bb42822c0cbecd14c0f851ef561",
       "expected": {
         "status": "success",
         "roundtrip": "decode-reencode"
       },
       "coverage": [
-        "schema_identity_moonspan_v1",
+        "schema_identity_rclweb_v1",
         "schema_request"
       ],
       "source": {
@@ -604,7 +604,7 @@
                 "entries": [
                   [
                     1,
-                    "moonspan-schema-v1"
+                    "rclweb-schema-v1"
                   ],
                   [
                     2,

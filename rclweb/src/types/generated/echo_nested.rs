@@ -1,10 +1,10 @@
-//! `moonspan_cdr_interfaces/srv/EchoNested_{Request,Response}`.
+//! `rclweb_cdr_interfaces/srv/EchoNested_{Request,Response}`.
 
 use super::nested_sample::{NestedSample, decode_nested_sample, encode_nested_sample};
 use crate::cdr::{CdrEndian, CdrError, CdrReader, CdrWriter};
 
-pub const REQUEST_TYPE_NAME: &str = "moonspan_cdr_interfaces/srv/EchoNested_Request";
-pub const RESPONSE_TYPE_NAME: &str = "moonspan_cdr_interfaces/srv/EchoNested_Response";
+pub const REQUEST_TYPE_NAME: &str = "rclweb_cdr_interfaces/srv/EchoNested_Request";
+pub const RESPONSE_TYPE_NAME: &str = "rclweb_cdr_interfaces/srv/EchoNested_Response";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct EchoNestedRequest {

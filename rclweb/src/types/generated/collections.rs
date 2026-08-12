@@ -1,8 +1,8 @@
-//! `moonspan_cdr_interfaces/msg/Collections`.
+//! `rclweb_cdr_interfaces/msg/Collections`.
 
 use crate::cdr::{CdrEndian, CdrError, CdrNesting, CdrReader, CdrWriter};
 
-pub const TYPE_NAME: &str = "moonspan_cdr_interfaces/msg/Collections";
+pub const TYPE_NAME: &str = "rclweb_cdr_interfaces/msg/Collections";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Collections {

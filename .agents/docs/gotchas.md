@@ -4,7 +4,7 @@ Traps already paid for in this repository, each with its why.
 
 ## One gateway process binds one support row
 
-`rclwebd` carries a single [`SupportRow`](../../rclwebd/src/config.rs) for the process lifetime ([ADR 0008](../../docs/adr/0008-one-adapter-row-per-gateway-process.md)). `RCLWEBD_SUPPORT_ROW` selects `J-FT` (default) or `H-FT`. Mixing rows in one process is unsupported — run separate gateways and compose SDK sessions. H-FT OpenChannel uses `moonspan-schema-v1`; J-FT uses `rep2011-rihs`. Wrong-row OpenChannel fails with wire code 25 (`support_row_mismatch`). Pair the row with the linked ROS prefix (`J-FT` ↔ `/opt/ros/jazzy`, `H-FT` ↔ `/opt/ros/humble`); the H-FT live image regenerates vendored FFI against Humble before `cargo build --features ros` so layouts match that distro. Startup also probes adapter ABI `serialized-adapter-v1` against the row/distro ([R3-04](../../docs/milestones/r3-04-adapter-abi-typesupport.md)).
+`rclwebd` carries a single [`SupportRow`](../../rclwebd/src/config.rs) for the process lifetime ([ADR 0008](../../docs/adr/0008-one-adapter-row-per-gateway-process.md)). `RCLWEBD_SUPPORT_ROW` selects `J-FT` (default) or `H-FT`. Mixing rows in one process is unsupported — run separate gateways and compose SDK sessions. H-FT OpenChannel uses `rclweb-schema-v1`; J-FT uses `rep2011-rihs`. Wrong-row OpenChannel fails with wire code 25 (`support_row_mismatch`). Pair the row with the linked ROS prefix (`J-FT` ↔ `/opt/ros/jazzy`, `H-FT` ↔ `/opt/ros/humble`); the H-FT live image regenerates vendored FFI against Humble before `cargo build --features ros` so layouts match that distro. Startup also probes adapter ABI `serialized-adapter-v1` against the row/distro ([R3-04](../../docs/milestones/r3-04-adapter-abi-typesupport.md)).
 
 ## Authenticate defaults to off
 
@@ -84,6 +84,10 @@ Foundation CI installs Bun with SHA-pinned `oven-sh/setup-bun` (`.bun-version`) 
 ## release-wasm inherits native release settings
 
 `[profile.release-wasm] inherits = "release"`. Adding `strip`, `lto`, or panic settings to native release also applies to the wasm ship profile unless that key is set again on `release-wasm`. Putting `strip = "symbols"` on native release dropped staged `rclweb.wasm` from 593631 bytes to 376519. Keep fat LTO, `panic = abort`, `opt-level = "z"`, and `strip` explicit on `release-wasm`. Reproduce with `just build` (it prints the staged size).
+
+## Humble bundle identity strings are in the hash
+
+Canonical bundle JSON includes `format`, ROS type names, and `generator_revision` (which hashes generator source paths). Renaming `rclweb-schema-v1`, `rclweb-schema-bundle-v1`, `rclweb_cdr_interfaces`, or the generator package changes Humble `SchemaKey.value` and `fixtures/bundles/<digest>.json` filenames. CDR `.bin` payloads do not embed those strings — rehash committed bundles and rewrite metadata; do not Docker `--write` the corpus for a name change. Parked protocol fixtures that carry the scheme string in CBOR must be patched (text length prefix plus frame `payload_len`). [ADR 0012](../../docs/adr/0012-rclweb-schema-identifiers.md).
 
 ## Do not commit measurement JSON
 

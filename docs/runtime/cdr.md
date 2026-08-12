@@ -16,7 +16,7 @@ The CDR core encodes and decodes ROS sample payloads on the R2WP data path. It o
 
 M1 qualifies **CDR1** (OMG DDS-XTypes 1.3 encoding version 1 / PLAIN_CDR rules for final types) against the committed ROS corpus. XCDR2 stream foundations are a follow-on surface for later schema identity work. M1-01 acceptance covers CDR1 little and big endian only.
 
-Corpus encoding identity is `CDR1` in [`conformance/cdr/manifest.json`](../../conformance/cdr/manifest.json) (`corpus` = `moonspan-ros-cdr-v1`; manifest `schema_version` = 1; runtime `schema_generation` = 1).
+Corpus encoding identity is `CDR1` in [`conformance/cdr/manifest.json`](../../conformance/cdr/manifest.json) (`corpus` = `rclweb-ros-cdr-v1`; manifest `schema_version` = 1; runtime `schema_generation` = 1).
 
 ## CDR1 framing and alignment
 
@@ -268,7 +268,7 @@ The authoritative corpus is [`conformance/cdr/`](../../conformance/cdr/README.md
 
 | Fact | Value |
 |---|---|
-| Corpus id | `moonspan-ros-cdr-v1` |
+| Corpus id | `rclweb-ros-cdr-v1` |
 | Encoding | `CDR1` |
 | Manifest schema version | `1` (`schema_version`) |
 | Runtime schema generation | `1` (`schema_generation`) |

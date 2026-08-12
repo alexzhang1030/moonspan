@@ -289,7 +289,7 @@
       }
     }
   ],
-  "corpus": "moonspan-ros-cdr-v1",
+  "corpus": "rclweb-ros-cdr-v1",
   "fixtures": [
     {
       "canonical_fixture_id": "H-CY-collections",

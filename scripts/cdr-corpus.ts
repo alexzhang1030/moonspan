@@ -22,10 +22,10 @@ import path from "node:path";
 export const CORPUS_REL = "conformance/cdr";
 export const FIXTURES_REL = `${CORPUS_REL}/fixtures`;
 export const MANIFEST_REL = `${CORPUS_REL}/manifest.json`;
-export const CORPUS_ID = "moonspan-ros-cdr-v1";
+export const CORPUS_ID = "rclweb-ros-cdr-v1";
 export const SCHEMA_VERSION = 1;
 export const SCHEMA_GENERATION = 1;
-export const BUNDLE_FORMAT = "moonspan-schema-bundle-v1";
+export const BUNDLE_FORMAT = "rclweb-schema-bundle-v1";
 export const PLATFORM = "linux/arm64";
 
 export type Mode = "write" | "check" | "reproduce";
@@ -53,7 +53,7 @@ export const SUPPORT_ROWS: readonly SupportRow[] = [
     cycloneVersion: "1.3.4-1jammy.20260717.012644",
     zenohPackage: "ros-humble-rmw-zenoh-cpp",
     zenohVersion: "0.1.9-1jammy.20260725.135946",
-    imageTag: "moonspan-cdr-generator:humble-arm64-v2",
+    imageTag: "rclweb-cdr-generator:humble-arm64-v2",
   },
   {
     id: "H-CY",
@@ -65,7 +65,7 @@ export const SUPPORT_ROWS: readonly SupportRow[] = [
     cycloneVersion: "1.3.4-1jammy.20260717.012644",
     zenohPackage: "ros-humble-rmw-zenoh-cpp",
     zenohVersion: "0.1.9-1jammy.20260725.135946",
-    imageTag: "moonspan-cdr-generator:humble-arm64-v2",
+    imageTag: "rclweb-cdr-generator:humble-arm64-v2",
   },
   {
     id: "H-ZN",
@@ -77,7 +77,7 @@ export const SUPPORT_ROWS: readonly SupportRow[] = [
     cycloneVersion: "1.3.4-1jammy.20260717.012644",
     zenohPackage: "ros-humble-rmw-zenoh-cpp",
     zenohVersion: "0.1.9-1jammy.20260725.135946",
-    imageTag: "moonspan-cdr-generator:humble-arm64-v2",
+    imageTag: "rclweb-cdr-generator:humble-arm64-v2",
   },
   {
     id: "J-FT",
@@ -89,7 +89,7 @@ export const SUPPORT_ROWS: readonly SupportRow[] = [
     cycloneVersion: "2.2.3-1noble.20260612.091852",
     zenohPackage: "ros-jazzy-rmw-zenoh-cpp",
     zenohVersion: "0.2.9-1noble.20260612.051449",
-    imageTag: "moonspan-cdr-generator:jazzy-arm64-v2",
+    imageTag: "rclweb-cdr-generator:jazzy-arm64-v2",
   },
   {
     id: "J-CY",
@@ -101,7 +101,7 @@ export const SUPPORT_ROWS: readonly SupportRow[] = [
     cycloneVersion: "2.2.3-1noble.20260612.091852",
     zenohPackage: "ros-jazzy-rmw-zenoh-cpp",
     zenohVersion: "0.2.9-1noble.20260612.051449",
-    imageTag: "moonspan-cdr-generator:jazzy-arm64-v2",
+    imageTag: "rclweb-cdr-generator:jazzy-arm64-v2",
   },
   {
     id: "J-ZN",
@@ -113,7 +113,7 @@ export const SUPPORT_ROWS: readonly SupportRow[] = [
     cycloneVersion: "2.2.3-1noble.20260612.091852",
     zenohPackage: "ros-jazzy-rmw-zenoh-cpp",
     zenohVersion: "0.2.9-1noble.20260612.051449",
-    imageTag: "moonspan-cdr-generator:jazzy-arm64-v2",
+    imageTag: "rclweb-cdr-generator:jazzy-arm64-v2",
   },
 ] as const;
 
@@ -141,7 +141,7 @@ const primitiveValues = {
   uint32_value: 4000000000,
   int64_value: "-9000000000000000000",
   uint64_value: "18000000000000000000",
-  string_value: "Moonspan CDR ✓",
+  string_value: "rclweb CDR ✓",
   wstring_value: "月面CDR",
 };
 
@@ -186,38 +186,38 @@ const pointCloudValues = {
 
 export const FIXTURE_SPECS: Readonly<Record<string, FixtureSpec>> = {
   primitive_scalars: {
-    typeName: "moonspan_cdr_interfaces/msg/PrimitiveScalars",
-    sourceTypeNames: ["moonspan_cdr_interfaces/msg/PrimitiveScalars"],
+    typeName: "rclweb_cdr_interfaces/msg/PrimitiveScalars",
+    sourceTypeNames: ["rclweb_cdr_interfaces/msg/PrimitiveScalars"],
     dependencyTargets: [],
     values: primitiveValues,
     coverage: ["endianness_little", "primitives", "strings", "wide_strings"],
   },
   primitive_scalars_big_endian: {
-    typeName: "moonspan_cdr_interfaces/msg/PrimitiveScalars",
-    sourceTypeNames: ["moonspan_cdr_interfaces/msg/PrimitiveScalars"],
+    typeName: "rclweb_cdr_interfaces/msg/PrimitiveScalars",
+    sourceTypeNames: ["rclweb_cdr_interfaces/msg/PrimitiveScalars"],
     dependencyTargets: [],
     values: primitiveValues,
     coverage: ["endianness_big", "primitives", "strings", "wide_strings"],
   },
   collections: {
-    typeName: "moonspan_cdr_interfaces/msg/Collections",
-    sourceTypeNames: ["moonspan_cdr_interfaces/msg/Collections"],
+    typeName: "rclweb_cdr_interfaces/msg/Collections",
+    sourceTypeNames: ["rclweb_cdr_interfaces/msg/Collections"],
     dependencyTargets: [],
     values: collectionsValues,
     coverage: ["arrays", "bounds", "endianness_little", "strings", "wide_strings"],
   },
   nested_sample: {
-    typeName: "moonspan_cdr_interfaces/msg/NestedSample",
+    typeName: "rclweb_cdr_interfaces/msg/NestedSample",
     sourceTypeNames: [
       "builtin_interfaces/msg/Time",
-      "moonspan_cdr_interfaces/msg/Collections",
-      "moonspan_cdr_interfaces/msg/NestedSample",
-      "moonspan_cdr_interfaces/msg/PrimitiveScalars",
+      "rclweb_cdr_interfaces/msg/Collections",
+      "rclweb_cdr_interfaces/msg/NestedSample",
+      "rclweb_cdr_interfaces/msg/PrimitiveScalars",
     ],
     dependencyTargets: [
       "builtin_interfaces/msg/Time",
-      "moonspan_cdr_interfaces/msg/Collections",
-      "moonspan_cdr_interfaces/msg/PrimitiveScalars",
+      "rclweb_cdr_interfaces/msg/Collections",
+      "rclweb_cdr_interfaces/msg/PrimitiveScalars",
     ],
     values: nestedValues,
     coverage: ["endianness_little", "nesting"],
@@ -235,78 +235,78 @@ export const FIXTURE_SPECS: Readonly<Record<string, FixtureSpec>> = {
     coverage: ["arrays", "endianness_little", "nesting", "point_cloud2"],
   },
   echo_nested_request: {
-    typeName: "moonspan_cdr_interfaces/srv/EchoNested_Request",
+    typeName: "rclweb_cdr_interfaces/srv/EchoNested_Request",
     sourceTypeNames: [
       "builtin_interfaces/msg/Time",
-      "moonspan_cdr_interfaces/msg/Collections",
-      "moonspan_cdr_interfaces/msg/NestedSample",
-      "moonspan_cdr_interfaces/msg/PrimitiveScalars",
-      "moonspan_cdr_interfaces/srv/EchoNested",
+      "rclweb_cdr_interfaces/msg/Collections",
+      "rclweb_cdr_interfaces/msg/NestedSample",
+      "rclweb_cdr_interfaces/msg/PrimitiveScalars",
+      "rclweb_cdr_interfaces/srv/EchoNested",
     ],
     dependencyTargets: [
-      "moonspan_cdr_interfaces/msg/NestedSample",
-      "moonspan_cdr_interfaces/srv/EchoNested",
+      "rclweb_cdr_interfaces/msg/NestedSample",
+      "rclweb_cdr_interfaces/srv/EchoNested",
     ],
     values: { input: nestedValues },
     coverage: ["endianness_little", "nesting", "service"],
   },
   echo_nested_response: {
-    typeName: "moonspan_cdr_interfaces/srv/EchoNested_Response",
+    typeName: "rclweb_cdr_interfaces/srv/EchoNested_Response",
     sourceTypeNames: [
       "builtin_interfaces/msg/Time",
-      "moonspan_cdr_interfaces/msg/Collections",
-      "moonspan_cdr_interfaces/msg/NestedSample",
-      "moonspan_cdr_interfaces/msg/PrimitiveScalars",
-      "moonspan_cdr_interfaces/srv/EchoNested",
+      "rclweb_cdr_interfaces/msg/Collections",
+      "rclweb_cdr_interfaces/msg/NestedSample",
+      "rclweb_cdr_interfaces/msg/PrimitiveScalars",
+      "rclweb_cdr_interfaces/srv/EchoNested",
     ],
     dependencyTargets: [
-      "moonspan_cdr_interfaces/msg/NestedSample",
-      "moonspan_cdr_interfaces/srv/EchoNested",
+      "rclweb_cdr_interfaces/msg/NestedSample",
+      "rclweb_cdr_interfaces/srv/EchoNested",
     ],
     values: { output: nestedValues, accepted: true },
     coverage: ["endianness_little", "nesting", "service"],
   },
   measure_sequence_goal: {
-    typeName: "moonspan_cdr_interfaces/action/MeasureSequence_Goal",
+    typeName: "rclweb_cdr_interfaces/action/MeasureSequence_Goal",
     sourceTypeNames: [
-      "moonspan_cdr_interfaces/action/MeasureSequence",
-      "moonspan_cdr_interfaces/msg/Collections",
+      "rclweb_cdr_interfaces/action/MeasureSequence",
+      "rclweb_cdr_interfaces/msg/Collections",
     ],
     dependencyTargets: [
-      "moonspan_cdr_interfaces/action/MeasureSequence",
-      "moonspan_cdr_interfaces/msg/Collections",
+      "rclweb_cdr_interfaces/action/MeasureSequence",
+      "rclweb_cdr_interfaces/msg/Collections",
     ],
     values: { target: collectionsValues },
     coverage: ["action", "bounds", "endianness_little"],
   },
   measure_sequence_result: {
-    typeName: "moonspan_cdr_interfaces/action/MeasureSequence_Result",
+    typeName: "rclweb_cdr_interfaces/action/MeasureSequence_Result",
     sourceTypeNames: [
       "builtin_interfaces/msg/Time",
-      "moonspan_cdr_interfaces/action/MeasureSequence",
-      "moonspan_cdr_interfaces/msg/Collections",
-      "moonspan_cdr_interfaces/msg/NestedSample",
-      "moonspan_cdr_interfaces/msg/PrimitiveScalars",
+      "rclweb_cdr_interfaces/action/MeasureSequence",
+      "rclweb_cdr_interfaces/msg/Collections",
+      "rclweb_cdr_interfaces/msg/NestedSample",
+      "rclweb_cdr_interfaces/msg/PrimitiveScalars",
     ],
     dependencyTargets: [
-      "moonspan_cdr_interfaces/action/MeasureSequence",
-      "moonspan_cdr_interfaces/msg/NestedSample",
+      "rclweb_cdr_interfaces/action/MeasureSequence",
+      "rclweb_cdr_interfaces/msg/NestedSample",
     ],
     values: { result: nestedValues },
     coverage: ["action", "endianness_little", "nesting"],
   },
   measure_sequence_feedback: {
-    typeName: "moonspan_cdr_interfaces/action/MeasureSequence_Feedback",
+    typeName: "rclweb_cdr_interfaces/action/MeasureSequence_Feedback",
     sourceTypeNames: [
       "builtin_interfaces/msg/Time",
-      "moonspan_cdr_interfaces/action/MeasureSequence",
-      "moonspan_cdr_interfaces/msg/Collections",
-      "moonspan_cdr_interfaces/msg/NestedSample",
-      "moonspan_cdr_interfaces/msg/PrimitiveScalars",
+      "rclweb_cdr_interfaces/action/MeasureSequence",
+      "rclweb_cdr_interfaces/msg/Collections",
+      "rclweb_cdr_interfaces/msg/NestedSample",
+      "rclweb_cdr_interfaces/msg/PrimitiveScalars",
     ],
     dependencyTargets: [
-      "moonspan_cdr_interfaces/action/MeasureSequence",
-      "moonspan_cdr_interfaces/msg/NestedSample",
+      "rclweb_cdr_interfaces/action/MeasureSequence",
+      "rclweb_cdr_interfaces/msg/NestedSample",
     ],
     values: { progress: 0.625, sample: nestedValues },
     coverage: ["action", "endianness_little", "nesting"],
@@ -345,41 +345,41 @@ const SOURCE_PATHS: Readonly<Record<string, { scope: "repo" | "row"; rel: string
     rel: "sources/sensor_msgs/msg/PointField.msg",
   },
   "std_msgs/msg/Header": { scope: "row", rel: "sources/std_msgs/msg/Header.msg" },
-  "moonspan_cdr_interfaces/msg/PrimitiveScalars": {
+  "rclweb_cdr_interfaces/msg/PrimitiveScalars": {
     scope: "repo",
-    rel: "conformance/interfaces/moonspan_cdr_interfaces/msg/PrimitiveScalars.msg",
+    rel: "conformance/interfaces/rclweb_cdr_interfaces/msg/PrimitiveScalars.msg",
   },
-  "moonspan_cdr_interfaces/msg/Collections": {
+  "rclweb_cdr_interfaces/msg/Collections": {
     scope: "repo",
-    rel: "conformance/interfaces/moonspan_cdr_interfaces/msg/Collections.msg",
+    rel: "conformance/interfaces/rclweb_cdr_interfaces/msg/Collections.msg",
   },
-  "moonspan_cdr_interfaces/msg/NestedSample": {
+  "rclweb_cdr_interfaces/msg/NestedSample": {
     scope: "repo",
-    rel: "conformance/interfaces/moonspan_cdr_interfaces/msg/NestedSample.msg",
+    rel: "conformance/interfaces/rclweb_cdr_interfaces/msg/NestedSample.msg",
   },
-  "moonspan_cdr_interfaces/srv/EchoNested": {
+  "rclweb_cdr_interfaces/srv/EchoNested": {
     scope: "repo",
-    rel: "conformance/interfaces/moonspan_cdr_interfaces/srv/EchoNested.srv",
+    rel: "conformance/interfaces/rclweb_cdr_interfaces/srv/EchoNested.srv",
   },
-  "moonspan_cdr_interfaces/action/MeasureSequence": {
+  "rclweb_cdr_interfaces/action/MeasureSequence": {
     scope: "repo",
-    rel: "conformance/interfaces/moonspan_cdr_interfaces/action/MeasureSequence.action",
+    rel: "conformance/interfaces/rclweb_cdr_interfaces/action/MeasureSequence.action",
   },
 };
 
 const REVISION_FILES = [
   "scripts/cdr-corpus.ts",
   "conformance/cdr/generate/Dockerfile",
-  "conformance/cdr/generate/moonspan_cdr_generator/CMakeLists.txt",
-  "conformance/cdr/generate/moonspan_cdr_generator/package.xml",
-  "conformance/cdr/generate/moonspan_cdr_generator/src/generate.cpp",
-  "conformance/interfaces/moonspan_cdr_interfaces/CMakeLists.txt",
-  "conformance/interfaces/moonspan_cdr_interfaces/package.xml",
-  "conformance/interfaces/moonspan_cdr_interfaces/msg/PrimitiveScalars.msg",
-  "conformance/interfaces/moonspan_cdr_interfaces/msg/Collections.msg",
-  "conformance/interfaces/moonspan_cdr_interfaces/msg/NestedSample.msg",
-  "conformance/interfaces/moonspan_cdr_interfaces/srv/EchoNested.srv",
-  "conformance/interfaces/moonspan_cdr_interfaces/action/MeasureSequence.action",
+  "conformance/cdr/generate/rclweb_cdr_generator/CMakeLists.txt",
+  "conformance/cdr/generate/rclweb_cdr_generator/package.xml",
+  "conformance/cdr/generate/rclweb_cdr_generator/src/generate.cpp",
+  "conformance/interfaces/rclweb_cdr_interfaces/CMakeLists.txt",
+  "conformance/interfaces/rclweb_cdr_interfaces/package.xml",
+  "conformance/interfaces/rclweb_cdr_interfaces/msg/PrimitiveScalars.msg",
+  "conformance/interfaces/rclweb_cdr_interfaces/msg/Collections.msg",
+  "conformance/interfaces/rclweb_cdr_interfaces/msg/NestedSample.msg",
+  "conformance/interfaces/rclweb_cdr_interfaces/srv/EchoNested.srv",
+  "conformance/interfaces/rclweb_cdr_interfaces/action/MeasureSequence.action",
 ].sort(asciiCompare);
 
 type SummaryRow = {
@@ -403,7 +403,7 @@ export type FixtureRecord = {
   type_name: string;
   encoding: "CDR1";
   schema_generation: number;
-  schema_identity: { scheme: "moonspan-schema-v1" | "rep2011-rihs"; value: string };
+  schema_identity: { scheme: "rclweb-schema-v1" | "rep2011-rihs"; value: string };
   type_description: {
     canonical_bundle_path: string;
     canonical_bundle_sha256: string;
@@ -535,17 +535,17 @@ async function buildGeneratorImages(root: string): Promise<void> {
 const containerGenerateScript = `
 set -eo pipefail
 mkdir -p /tmp/ws/src
-cp -a /repo/conformance/interfaces/moonspan_cdr_interfaces /tmp/ws/src/
-cp -a /repo/conformance/cdr/generate/moonspan_cdr_generator /tmp/ws/src/
+cp -a /repo/conformance/interfaces/rclweb_cdr_interfaces /tmp/ws/src/
+cp -a /repo/conformance/cdr/generate/rclweb_cdr_generator /tmp/ws/src/
 set +u
 source "/opt/ros/$ROS_DISTRO/setup.bash"
 set -u
 cd /tmp/ws
-colcon build --merge-install --packages-up-to moonspan_cdr_generator --event-handlers console_start_end+ console_cohesion- console_direct-
+colcon build --merge-install --packages-up-to rclweb_cdr_generator --event-handlers console_start_end+ console_cohesion- console_direct-
 set +u
 source /tmp/ws/install/setup.bash
 set -u
-/tmp/ws/install/lib/moonspan_cdr_generator/moonspan_cdr_generate /out
+/tmp/ws/install/lib/rclweb_cdr_generator/rclweb_cdr_generate /out
 mkdir -p /out/sources/builtin_interfaces/msg /out/sources/sensor_msgs/msg /out/sources/std_msgs/msg
 cp "/opt/ros/$ROS_DISTRO/share/builtin_interfaces/msg/Time.msg" /out/sources/builtin_interfaces/msg/Time.msg
 cp "/opt/ros/$ROS_DISTRO/share/sensor_msgs/msg/PointCloud2.msg" /out/sources/sensor_msgs/msg/PointCloud2.msg
@@ -633,13 +633,13 @@ function parsePackageVersions(text: string, distro: string): Record<string, stri
 function transitiveDependencyEdges(rootTypeName: string, caseId: string): Array<{ from: string; to: string }> {
   const spec = FIXTURE_SPECS[caseId]!;
   const edges = spec.dependencyTargets.map((to) => ({ from: rootTypeName, to }));
-  if (spec.sourceTypeNames.includes("moonspan_cdr_interfaces/msg/NestedSample")) {
+  if (spec.sourceTypeNames.includes("rclweb_cdr_interfaces/msg/NestedSample")) {
     for (const to of [
       "builtin_interfaces/msg/Time",
-      "moonspan_cdr_interfaces/msg/Collections",
-      "moonspan_cdr_interfaces/msg/PrimitiveScalars",
+      "rclweb_cdr_interfaces/msg/Collections",
+      "rclweb_cdr_interfaces/msg/PrimitiveScalars",
     ]) {
-      edges.push({ from: "moonspan_cdr_interfaces/msg/NestedSample", to });
+      edges.push({ from: "rclweb_cdr_interfaces/msg/NestedSample", to });
     }
   }
   if (caseId === "point_cloud2") {
@@ -725,11 +725,11 @@ async function buildRowRecord(
     if (prior && prior !== bundle.text) throw new Error(`bundle digest collision ${bundle.sha256}`);
     bundles.set(bundle.sha256, bundle.text);
 
-    let scheme: "moonspan-schema-v1" | "rep2011-rihs";
+    let scheme: "rclweb-schema-v1" | "rep2011-rihs";
     let schemaValue: string;
     if (row.distro === "humble") {
       if (entry.typeHash !== "") throw new Error(`${row.id}/${caseId}: Humble emitted RIHS`);
-      scheme = "moonspan-schema-v1";
+      scheme = "rclweb-schema-v1";
       schemaValue = bundle.sha256;
     } else {
       if (!/^RIHS01_[0-9a-f]{64}$/.test(entry.typeHash)) {
@@ -831,7 +831,7 @@ function buildComparisons(fixtures: FixtureRecord[]) {
   );
 }
 
-function buildProvenance(fixtures: FixtureRecord[], generatorRevision: string) {
+export function buildProvenance(fixtures: FixtureRecord[], generatorRevision: string) {
   const entries = new Map<string, { type_name: string; rihs: string; bundle_sha256: string }>();
   for (const fixture of fixtures) {
     if (fixture.schema_identity.scheme !== "rep2011-rihs") continue;
@@ -852,7 +852,7 @@ function buildProvenance(fixtures: FixtureRecord[], generatorRevision: string) {
   };
 }
 
-function buildManifest(rowRecords: RowRecord[], provenanceSha256: string) {
+export function buildManifest(rowRecords: RowRecord[], provenanceSha256: string) {
   const fixtures = rowRecords
     .flatMap((record) => record.fixtures)
     .sort((a, b) => asciiCompare(a.id, b.id));
@@ -1014,7 +1014,7 @@ async function validateRowRecord(
     }
     if (row.distro === "humble") {
       if (
-        fixture.schema_identity.scheme !== "moonspan-schema-v1" ||
+        fixture.schema_identity.scheme !== "rclweb-schema-v1" ||
         fixture.schema_identity.value !== bundleSha
       ) {
         throw new Error(`${fixture.id}: Humble schema identity mismatch`);
@@ -1128,7 +1128,7 @@ export function digestsEqual(
 }
 
 async function writeCorpus(sourceRoot: string): Promise<void> {
-  const temp = await mkdtemp(path.join(tmpdir(), "moonspan-cdr-write-"));
+  const temp = await mkdtemp(path.join(tmpdir(), "rclweb-cdr-write-"));
   try {
     const generated = path.join(temp, "cdr");
     await generateCorpus(sourceRoot, generated);
@@ -1148,7 +1148,7 @@ async function writeCorpus(sourceRoot: string): Promise<void> {
 }
 
 async function reproduceCorpus(sourceRoot: string): Promise<void> {
-  const temp = await mkdtemp(path.join(tmpdir(), "moonspan-cdr-reproduce-"));
+  const temp = await mkdtemp(path.join(tmpdir(), "rclweb-cdr-reproduce-"));
   try {
     const generated = path.join(temp, "cdr");
     await generateCorpus(sourceRoot, generated);

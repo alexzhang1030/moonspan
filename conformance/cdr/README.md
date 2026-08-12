@@ -11,7 +11,7 @@ Pinned Humble and Jazzy CDR fixtures for the six support rows:
 | J-CY | jazzy | `rmw_cyclonedds_cpp` |
 | J-ZN | jazzy | `rmw_zenoh_cpp` |
 
-This corpus is the oracle for `rclweb::cdr` ([R1-01](../../docs/milestones/r1-01-cdr-rust-port.md)). J-FT and H-FT are delivery-gated; the other four rows stay committed. Directory and package names (`moonspan_cdr_generator`, `moonspan_cdr_interfaces`, corpus id `moonspan-ros-cdr-v1`, scheme `moonspan-schema-v1`) keep their historical names: committed hashes and wire identity depend on them.
+This corpus is the oracle for `rclweb::cdr` ([R1-01](../../docs/milestones/r1-01-cdr-rust-port.md)). J-FT and H-FT are delivery-gated; the other four rows stay committed. Humble identity is `rclweb-schema-v1` (SHA-256 of canonical bundle bytes); the corpus id is `rclweb-ros-cdr-v1`; interfaces live in `rclweb_cdr_interfaces` ([ADR 0012](../../docs/adr/0012-rclweb-schema-identifiers.md)). Those strings are part of the bundle hash — renaming them rehashes Humble `SchemaKey.value` without changing CDR payload bytes.
 
 ## Layout
 
@@ -20,10 +20,10 @@ This corpus is the oracle for `rclweb::cdr` ([R1-01](../../docs/milestones/r1-01
 | `manifest.json` | Corpus index: environments, fixtures, coverage, RMW comparisons, provenance |
 | `tail-slack.json` | Top-level zero-tail evidence overlay (canonical prefix + zero suffix) |
 | `fixtures/<row>/` | Per-row serialized `.bin` artifacts and `row.json` metadata |
-| `fixtures/bundles/` | Canonical `moonspan-schema-v1` recursive interface bundles |
+| `fixtures/bundles/` | Canonical `rclweb-schema-v1` recursive interface bundles |
 | `fixtures/provenance/jazzy-rihs-to-bundle.json` | Jazzy RIHS-to-bundle mapping |
 | `generate/` | Dockerized ROS generator package and Dockerfile |
-| `../interfaces/moonspan_cdr_interfaces/` | Corpus message, service, and action interfaces |
+| `../interfaces/rclweb_cdr_interfaces/` | Corpus message, service, and action interfaces |
 
 ## Commands
 
@@ -63,7 +63,7 @@ The 4- and 12-byte tails appear on Fast DDS and Zenoh little-endian rows. Cyclon
 
 ## Coverage
 
-Primitives, little/big endian, arrays, bounds, strings, wide strings, nesting, PointCloud2, Service request/response, and Action goal/result/feedback. Humble schema identity uses `moonspan-schema-v1` bundle digests. Jazzy uses native `rep2011-rihs` values with committed RIHS-to-bundle provenance. Each native case compares Fast DDS, Cyclone DDS, and Zenoh byte digests and records semantic equality.
+Primitives, little/big endian, arrays, bounds, strings, wide strings, nesting, PointCloud2, Service request/response, and Action goal/result/feedback. Humble schema identity uses `rclweb-schema-v1` bundle digests. Jazzy uses native `rep2011-rihs` values with committed RIHS-to-bundle provenance. Each native case compares Fast DDS, Cyclone DDS, and Zenoh byte digests and records semantic equality.
 
 ## Serializer provenance
 

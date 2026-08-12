@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <package format="3">
-  <name>moonspan_cdr_interfaces</name>
+  <name>rclweb_cdr_interfaces</name>
   <version>0.0.0</version>
-  <description>Deterministic ROS interfaces for the Moonspan CDR corpus.</description>
-  <maintainer email="maintainers@moonspan.dev">Moonspan maintainers</maintainer>
+  <description>Deterministic ROS interfaces for the rclweb CDR corpus.</description>
+  <maintainer email="maintainers@localhost">rclweb maintainers</maintainer>
   <license>LicenseRef-Pending-D06</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

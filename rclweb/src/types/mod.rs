@@ -24,7 +24,7 @@ pub use generated::{
   MeasureSequenceResult, NESTED_SAMPLE_TYPE_NAME, NestedSample, PHASE1_ROOT_TYPE_NAMES,
   POINT_CLOUD2_TYPE_NAME, PRIMITIVE_SCALARS_TYPE_NAME, PointCloud2, PrimitiveScalars, Time,
 };
-pub use key::{SCHEME_MOONSPAN_SCHEMA_V1, SCHEME_REP2011_RIHS, SchemaKey};
+pub use key::{SCHEME_RCLWEB_SCHEMA_V1, SCHEME_REP2011_RIHS, SchemaKey};
 pub use limits::{ENCODING_CDR1, PHASE1_SCHEMA_GENERATION};
 pub use registry::{
   CdrRepresentation, LookupResult, SchemaRegistry, SchemaRegistryBuilder,

@@ -13,7 +13,7 @@ pub const MAX_CONTROL_PAYLOAD_BYTES_CEILING: u32 = 1_048_576;
 ///
 /// Immutable for the running process: SessionReady, ChannelReady, graph, and
 /// OpenChannel validation all carry `id`. Humble rows (`H-*`) use
-/// `moonspan-schema-v1` OpenChannel identity; Jazzy rows (`J-*`) use
+/// `rclweb-schema-v1` OpenChannel identity; Jazzy rows (`J-*`) use
 /// `rep2011-rihs`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SupportRow {
@@ -26,7 +26,7 @@ impl SupportRow {
   /// Schema identity scheme for OpenChannel / graph placeholders on this row.
   #[must_use]
   pub fn schema_scheme(self) -> &'static str {
-    if self.id.starts_with('H') { "moonspan-schema-v1" } else { "rep2011-rihs" }
+    if self.id.starts_with('H') { "rclweb-schema-v1" } else { "rep2011-rihs" }
   }
 }
 

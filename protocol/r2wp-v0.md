@@ -36,7 +36,7 @@ additional parked sections without a wire-version bump.
 - The flat and embedded error models.
 - Parameter get/set/list as Service channels; parameter events as Topic subscribe
   (composition — no dedicated opcodes).
-- Dual-scheme `SchemaKey` identity (`moonspan-schema-v1`, `rep2011-rihs`) and the
+- Dual-scheme `SchemaKey` identity (`rclweb-schema-v1`, `rep2011-rihs`) and the
   frozen local Phase 1 schema registry used at channel activation (nine corpus
   roots, representation-aware zero-tail).
 
@@ -89,7 +89,7 @@ Phase-one support rows (exact triple match required on SessionReady):
 | J-CY | jazzy | rmw_cyclonedds_cpp |
 | J-ZN | jazzy | rmw_zenoh_cpp |
 
-Schema schemes: **`rep2011-rihs`** (71-byte `RIHS01_` + 64 lowercase hex) and **`moonspan-schema-v1`** (64 lowercase hex). Fast DDS is the reference row per distro; Cyclone DDS and Zenoh are peer first-class Phase 1 rows. Jazzy+ is later expansion only.
+Schema schemes: **`rep2011-rihs`** (71-byte `RIHS01_` + 64 lowercase hex) and **`rclweb-schema-v1`** (64 lowercase hex). Fast DDS is the reference row per distro; Cyclone DDS and Zenoh are peer first-class Phase 1 rows. Jazzy+ is later expansion only.
 
 ## Protocol state machine
 
@@ -594,7 +594,7 @@ MEDIA_CHUNK, RECORDING_CHUNK, and ASSET_CHUNK application payloads are **RFC 894
 
 ## Source entry encodings
 
-Phase-one source bundle entry encodings: `ROS2_INTERFACE_TEXT`, `ROS2_IDL_TEXT`, `TYPE_DESCRIPTION_JSON`, `TYPE_DESCRIPTION_CBOR`, `OPAQUE_BYTES`. Distinct from CDR/media payload encodings. M0-04 owns canonical ordering, bytes, and hash for `moonspan-schema-v1`.
+Phase-one source bundle entry encodings: `ROS2_INTERFACE_TEXT`, `ROS2_IDL_TEXT`, `TYPE_DESCRIPTION_JSON`, `TYPE_DESCRIPTION_CBOR`, `OPAQUE_BYTES`. Distinct from CDR/media payload encodings. M0-04 owns canonical ordering, bytes, and hash for `rclweb-schema-v1`.
 
 Schema advertise/response payload encodings are CDR1 or XCDR2 only.
 

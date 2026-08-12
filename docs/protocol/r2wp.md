@@ -39,7 +39,7 @@ Schema identity is the pair `(scheme, value)` defined by [ADR 0007](../adr/0007-
 | ROS profile | Scheme |
 |---|---|
 | Jazzy | `rep2011-rihs` |
-| Humble | `moonspan-schema-v1` |
+| Humble | `rclweb-schema-v1` |
 
 Schema-bearing records also carry type name, encoding, and schema generation. Graph and channel records retain `gateway_instance_id`, `support_row_id`, and `domain_id` so applications can compose multiple sessions without losing origin.
 

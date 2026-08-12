@@ -17,12 +17,12 @@
 #include "fastcdr/Cdr.h"
 #include "fastcdr/FastBuffer.h"
 #include "fastcdr/config.h"
-#include "moonspan_cdr_interfaces/action/measure_sequence.hpp"
-#include "moonspan_cdr_interfaces/msg/collections.hpp"
-#include "moonspan_cdr_interfaces/msg/detail/primitive_scalars__rosidl_typesupport_fastrtps_cpp.hpp"
-#include "moonspan_cdr_interfaces/msg/nested_sample.hpp"
-#include "moonspan_cdr_interfaces/msg/primitive_scalars.hpp"
-#include "moonspan_cdr_interfaces/srv/echo_nested.hpp"
+#include "rclweb_cdr_interfaces/action/measure_sequence.hpp"
+#include "rclweb_cdr_interfaces/msg/collections.hpp"
+#include "rclweb_cdr_interfaces/msg/detail/primitive_scalars__rosidl_typesupport_fastrtps_cpp.hpp"
+#include "rclweb_cdr_interfaces/msg/nested_sample.hpp"
+#include "rclweb_cdr_interfaces/msg/primitive_scalars.hpp"
+#include "rclweb_cdr_interfaces/srv/echo_nested.hpp"
 #include "rclcpp/serialization.hpp"
 #include "rclcpp/serialized_message.hpp"
 #include "rcutils/allocator.h"
@@ -32,10 +32,10 @@
 #include "sensor_msgs/msg/point_field.hpp"
 
 #if __has_include("rosidl_runtime_c/type_hash.h")
-#define MOONSPAN_HAS_REP2011_TYPE_HASH 1
+#define RCLWEB_HAS_REP2011_TYPE_HASH 1
 #include "rosidl_runtime_c/type_hash.h"
 #else
-#define MOONSPAN_HAS_REP2011_TYPE_HASH 0
+#define RCLWEB_HAS_REP2011_TYPE_HASH 0
 #endif
 
 namespace fs = std::filesystem;
@@ -70,9 +70,9 @@ struct SummaryRow
   std::size_t byte_length;
 };
 
-moonspan_cdr_interfaces::msg::PrimitiveScalars make_primitive_scalars()
+rclweb_cdr_interfaces::msg::PrimitiveScalars make_primitive_scalars()
 {
-  moonspan_cdr_interfaces::msg::PrimitiveScalars message;
+  rclweb_cdr_interfaces::msg::PrimitiveScalars message;
   message.bool_value = true;
   message.byte_value = 0xa5U;
   message.char_value = 0x5aU;
@@ -86,14 +86,14 @@ moonspan_cdr_interfaces::msg::PrimitiveScalars make_primitive_scalars()
   message.uint32_value = 4000000000U;
   message.int64_value = -9000000000000000000LL;
   message.uint64_value = 18000000000000000000ULL;
-  message.string_value = "Moonspan CDR \xe2\x9c\x93";
+  message.string_value = "rclweb CDR \xe2\x9c\x93";
   message.wstring_value = u"\u6708\u9762CDR";
   return message;
 }
 
-moonspan_cdr_interfaces::msg::Collections make_collections()
+rclweb_cdr_interfaces::msg::Collections make_collections()
 {
-  moonspan_cdr_interfaces::msg::Collections message;
+  rclweb_cdr_interfaces::msg::Collections message;
   message.fixed_i32 = {
     std::numeric_limits<std::int32_t>::min(), 0, std::numeric_limits<std::int32_t>::max()};
   message.bounded_f64 = {-1.25, 0.0, 3.5, 1024.125};
@@ -103,9 +103,9 @@ moonspan_cdr_interfaces::msg::Collections make_collections()
   return message;
 }
 
-moonspan_cdr_interfaces::msg::NestedSample make_nested_sample()
+rclweb_cdr_interfaces::msg::NestedSample make_nested_sample()
 {
-  moonspan_cdr_interfaces::msg::NestedSample message;
+  rclweb_cdr_interfaces::msg::NestedSample message;
   message.stamp.sec = 1700000000;
   message.stamp.nanosec = 123456789U;
   message.scalars = make_primitive_scalars();
@@ -180,7 +180,7 @@ sensor_msgs::msg::PointCloud2 make_point_cloud2()
 template<typename MessageT>
 std::string rep2011_type_hash()
 {
-#if MOONSPAN_HAS_REP2011_TYPE_HASH
+#if RCLWEB_HAS_REP2011_TYPE_HASH
   const auto * type_support = rosidl_typesupport_cpp::get_message_type_support_handle<MessageT>();
   if (type_support == nullptr || type_support->get_type_hash_func == nullptr) {
     throw std::runtime_error("REP-2011 type hash callback unavailable");
@@ -242,14 +242,14 @@ std::vector<std::uint8_t> serialize_native(const MessageT & message)
 }
 
 std::vector<std::uint8_t> serialize_primitive_big_endian(
-  const moonspan_cdr_interfaces::msg::PrimitiveScalars & message)
+  const rclweb_cdr_interfaces::msg::PrimitiveScalars & message)
 {
   std::vector<char> storage(kSerializedCapacity, 0);
   eprosima::fastcdr::FastBuffer buffer(storage.data(), storage.size());
   eprosima::fastcdr::Cdr encoder(
     buffer, eprosima::fastcdr::Cdr::BIG_ENDIANNESS, kFastCdrDdsCdr);
   encoder.serialize_encapsulation();
-  if (!moonspan_cdr_interfaces::msg::typesupport_fastrtps_cpp::cdr_serialize(message, encoder)) {
+  if (!rclweb_cdr_interfaces::msg::typesupport_fastrtps_cpp::cdr_serialize(message, encoder)) {
     throw std::runtime_error("Fast-CDR big-endian serialization failed");
   }
   const std::size_t length = serialized_data_length(encoder);
@@ -258,8 +258,8 @@ std::vector<std::uint8_t> serialize_primitive_big_endian(
   eprosima::fastcdr::Cdr decoder(
     decode_buffer, eprosima::fastcdr::Cdr::BIG_ENDIANNESS, kFastCdrDdsCdr);
   decoder.read_encapsulation();
-  moonspan_cdr_interfaces::msg::PrimitiveScalars decoded;
-  if (!moonspan_cdr_interfaces::msg::typesupport_fastrtps_cpp::cdr_deserialize(decoder, decoded)) {
+  rclweb_cdr_interfaces::msg::PrimitiveScalars decoded;
+  if (!rclweb_cdr_interfaces::msg::typesupport_fastrtps_cpp::cdr_deserialize(decoder, decoded)) {
     throw std::runtime_error("Fast-CDR big-endian deserialization failed");
   }
   if (!(decoded == message)) {
@@ -317,7 +317,7 @@ int main(int argc, char ** argv)
 {
   try {
     if (argc != 2) {
-      std::cerr << "usage: moonspan_cdr_generate OUTPUT_DIR\n";
+      std::cerr << "usage: rclweb_cdr_generate OUTPUT_DIR\n";
       return 2;
     }
     const fs::path output_dir(argv[1]);
@@ -332,24 +332,24 @@ int main(int argc, char ** argv)
     rows.push_back(write_native_fixture(output_dir, "nested_sample", nested));
     rows.push_back(write_native_fixture(output_dir, "point_cloud2", make_point_cloud2()));
 
-    moonspan_cdr_interfaces::srv::EchoNested::Request request;
+    rclweb_cdr_interfaces::srv::EchoNested::Request request;
     request.input = nested;
     rows.push_back(write_native_fixture(output_dir, "echo_nested_request", request));
 
-    moonspan_cdr_interfaces::srv::EchoNested::Response response;
+    rclweb_cdr_interfaces::srv::EchoNested::Response response;
     response.output = nested;
     response.accepted = true;
     rows.push_back(write_native_fixture(output_dir, "echo_nested_response", response));
 
-    moonspan_cdr_interfaces::action::MeasureSequence::Goal goal;
+    rclweb_cdr_interfaces::action::MeasureSequence::Goal goal;
     goal.target = collections;
     rows.push_back(write_native_fixture(output_dir, "measure_sequence_goal", goal));
 
-    moonspan_cdr_interfaces::action::MeasureSequence::Result result;
+    rclweb_cdr_interfaces::action::MeasureSequence::Result result;
     result.result = nested;
     rows.push_back(write_native_fixture(output_dir, "measure_sequence_result", result));
 
-    moonspan_cdr_interfaces::action::MeasureSequence::Feedback feedback;
+    rclweb_cdr_interfaces::action::MeasureSequence::Feedback feedback;
     feedback.progress = 0.625F;
     feedback.sample = nested;
     rows.push_back(write_native_fixture(output_dir, "measure_sequence_feedback", feedback));
@@ -358,10 +358,10 @@ int main(int argc, char ** argv)
     write_bytes(output_dir / "primitive_scalars_big_endian.bin", big_endian);
     rows.push_back({
       "primitive_scalars_big_endian",
-      rosidl_generator_traits::name<moonspan_cdr_interfaces::msg::PrimitiveScalars>(),
+      rosidl_generator_traits::name<rclweb_cdr_interfaces::msg::PrimitiveScalars>(),
       "rosidl_typesupport_fastrtps_cpp",
       cdr_endianness(big_endian),
-      rep2011_type_hash<moonspan_cdr_interfaces::msg::PrimitiveScalars>(),
+      rep2011_type_hash<rclweb_cdr_interfaces::msg::PrimitiveScalars>(),
       big_endian.size(),
     });
 
@@ -369,7 +369,7 @@ int main(int argc, char ** argv)
     std::cout << "generated " << rows.size() << " fixtures\n";
     return 0;
   } catch (const std::exception & error) {
-    std::cerr << "moonspan_cdr_generate: " << error.what() << '\n';
+    std::cerr << "rclweb_cdr_generate: " << error.what() << '\n';
     return 1;
   }
 }

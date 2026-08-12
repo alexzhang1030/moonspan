@@ -33,7 +33,7 @@ Each phase closes on its gate evidence plus human approval.
 | R0-03 | Complete | Rename project to rclweb (packages, tooling, CI, docs); declare the protocol v0.1 normative scope |
 | R0-04 | Complete | Rewrite plan/checklist, add ADR 0010, refresh PCR records and docs tree |
 
-Gate: `just check`, `just test`, `just build` green on the shrunk repository. Frozen wire identifiers (`moonspan-schema-v1`, `moonspan-ros-cdr-v1`, conformance ROS package names) keep their historical names because committed corpus hashes and fixtures depend on them.
+Gate: `just check`, `just test`, `just build` green on the shrunk repository. Humble scheme `rclweb-schema-v1`, corpus id `rclweb-ros-cdr-v1`, and conformance ROS package `rclweb_cdr_interfaces` follow the project name ([ADR 0012](../docs/adr/0012-rclweb-schema-identifiers.md)).
 
 ### R1 — Walking skeleton
 

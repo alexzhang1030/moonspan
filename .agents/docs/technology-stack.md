@@ -72,7 +72,7 @@ Committed rustfmt/clippy knobs, workspace lints, shared crate versions, and name
 
 ## ROS profile
 
-J-FT and H-FT are delivery-gated. Corpus data for all six rows (H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN) stays committed; remaining rows enter through the [support matrix](../../docs/support-matrix.md). Humble uses `moonspan-schema-v1` bundle identity and Jazzy uses `rep2011-rihs` (frozen wire identifiers — committed hashes depend on them).
+J-FT and H-FT are delivery-gated. Corpus data for all six rows (H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN) stays committed; remaining rows enter through the [support matrix](../../docs/support-matrix.md). Humble uses `rclweb-schema-v1` bundle identity and Jazzy uses `rep2011-rihs` ([ADR 0012](../../docs/adr/0012-rclweb-schema-identifiers.md)).
 
 ## Optional local ROS prefix
 

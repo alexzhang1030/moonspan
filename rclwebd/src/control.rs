@@ -22,8 +22,8 @@ pub const ZERO_CORRELATION: [u8; 16] = [0u8; 16];
 pub const RIHS_DEMO: &str =
   "RIHS01_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
-/// Demo moonspan-schema-v1 value (64 lowercase hex) for Humble graph placeholders.
-pub const MOONSPAN_DEMO: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+/// Demo rclweb-schema-v1 value (64 lowercase hex) for Humble graph placeholders.
+pub const BUNDLE_DEMO: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 /// Negotiate a ServerHello for the active transport.
 ///
@@ -308,7 +308,7 @@ pub fn channel_ready_action_allow(
 
 fn demo_schema_identity(row: SupportRow) -> CborValue<'static> {
   let (scheme, value) = if row.id.starts_with('H') {
-    (row.schema_scheme(), MOONSPAN_DEMO)
+    (row.schema_scheme(), BUNDLE_DEMO)
   } else {
     (row.schema_scheme(), RIHS_DEMO)
   };

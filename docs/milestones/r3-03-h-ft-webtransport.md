@@ -12,7 +12,7 @@ digest-pinned compose lane `docker/compose.r3-03-h-ft-e2e.yml` (CI job
 |---|---|
 | Gateway config | `SupportRow` on `GatewayConfig`; `RCLWEBD_SUPPORT_ROW` selects `J-FT` (default) or `H-FT` |
 | SessionReady | Fields 8/18/19 carry row id / distro / RMW from config |
-| OpenChannel | Client engine remembers SessionReady row; `H-*` → `moonspan-schema-v1`, `J-*` → `rep2011-rihs` |
+| OpenChannel | Client engine remembers SessionReady row; `H-*` → `rclweb-schema-v1`, `J-*` → `rep2011-rihs` |
 | Wrong row | Gateway rejects OpenChannel with `support_row_mismatch` (wire 25) |
 | Live Humble rcl | Digest-pinned Humble image regenerates FFI (`scripts/generate-rcl-bindings.sh`) then links `--features ros` with `ROS_PREFIX=/opt/ros/humble` and `RCLWEBD_SUPPORT_ROW=H-FT`; talker → gateway → SDK harness |
 
