@@ -7,7 +7,7 @@ out of scope for this note.
 ## Outcome
 
 The walking skeleton gains a symmetric **publish** path and the first data-plane
-contracts called out in the [restructure performance plan](../proposals/architecture-restructure.md#performance-plan):
+contracts in the [performance contracts](../architecture.md#performance-contracts):
 
 | Area | Behavior |
 |---|---|

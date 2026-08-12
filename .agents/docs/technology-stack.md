@@ -15,7 +15,7 @@ rclweb keeps the language count at the minimum the platform forces: Rust for eve
 | JavaScript tooling | Bun ([ADR 0002](../../docs/adr/0002-use-bun-for-javascript-tooling.md)) | Workspaces, installation, scripts, tests, builds, lockfile |
 | Repository commands | just | One root command surface |
 
-MoonBit was the pre-restructure browser runtime language, chosen for Wasm convenience. It was retired because the poll boundary (ADR 0004) is a narrow buffer interface where authoring ergonomics matter least, while the gateway/browser split is where a second language compounds cost. The sole reopen condition is R1 evidence on wasm artifact size or poll latency. `just build` prints staged wasm size; `just poll-latency` prints p50/p99.
+A second language for the browser runtime would duplicate every shared contract. The single-core choice reopens only if wasm artifact size or poll latency is unacceptable for a required profile ([ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md)). `just build` prints staged wasm size; `just poll-latency` prints p50/p99.
 
 ## Toolchain pins
 
@@ -72,7 +72,7 @@ Committed rustfmt/clippy knobs, workspace lints, shared crate versions, and name
 
 ## ROS profile
 
-Phase 1 gates J-FT (Jazzy + Fast DDS). Corpus data for all six rows (H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN) stays committed; H-FT returns in R3 and the rest in R4 through the [support matrix](../../docs/support-matrix.md). Humble uses `moonspan-schema-v1` bundle identity and Jazzy uses `rep2011-rihs` (frozen historical identifiers — committed hashes depend on them).
+J-FT and H-FT are delivery-gated. Corpus data for all six rows (H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN) stays committed; remaining rows enter through the [support matrix](../../docs/support-matrix.md). Humble uses `moonspan-schema-v1` bundle identity and Jazzy uses `rep2011-rihs` (frozen wire identifiers — committed hashes depend on them).
 
 ## Optional local ROS prefix
 

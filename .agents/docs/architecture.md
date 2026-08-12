@@ -1,6 +1,6 @@
 # Architecture rationale
 
-rclweb places deterministic ROS application state in browser Wasm and robot trust at the edge, with **one Rust core serving both sides of the wire**. This is the load-bearing decision ([ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md)): the gateway must be native (it binds the rcl C surface), the browser must be Wasm, and any second language for the browser runtime forces every shared contract to exist twice plus permanent cross-implementation verification. The pre-restructure repository paid that bill (three protocol implementations and a ~9,900-line agreement apparatus at tag `pre-restructure`) and it was retired deliberately.
+rclweb places deterministic ROS application state in browser Wasm and robot trust at the edge, with **one Rust core serving both sides of the wire**. This is the load-bearing decision ([ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md)): the gateway must be native (it binds the rcl C surface), the browser must be Wasm, and a second language for the browser runtime would force every shared contract to exist twice plus permanent cross-implementation verification.
 
 Detailed contracts live in [architecture](../../docs/architecture.md), [R2WP](../../docs/protocol/r2wp.md), [`rclweb` core](../../docs/runtime/core.md), and [`rclwebd`](../../docs/gateway/rclwebd.md).
 
@@ -38,7 +38,7 @@ One gateway process may expose multiple domain IDs within its support row. Fleet
 
 - CDR stays on the binary data path; the gateway never parses sample bodies.
 - Browser APIs remain in JavaScript Workers; the core crosses the boundary through bounded poll batches (ADR 0004; R1-04 hand-written ABI + I/O Worker).
-- The copy budget is two controllable payload copies end to end, with telemetry counters ([performance plan](../../docs/proposals/architecture-restructure.md#performance-plan)).
+- The copy budget is two controllable payload copies end to end, with telemetry counters ([performance contracts](../../docs/architecture.md#performance-contracts)).
 - Queue, buffer, timeout, retry, and memory budgets are explicit; best-effort channels drop at the edge with stable dispositions ([R2-01](../../docs/milestones/r2-01-data-plane-hardening.md)).
 - Large-message / PointCloud2 delivery keeps O(1) borrowed CDR views and measures both host buffer strategies ([R2-02](../../docs/milestones/r2-02-large-message-path.md)).
 - Service/action channels use `OPERATION_ID` streams; graph state arrives as GraphSnapshot/Delta after SessionReady ([R3-01](../../docs/milestones/r3-01-services-actions-graph.md)).

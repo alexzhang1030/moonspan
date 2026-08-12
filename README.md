@@ -2,8 +2,6 @@
 
 rclweb connects browser applications to ROS 2 through a versioned wire protocol (R2WP), a single Rust core compiled natively for the edge gateway and to Wasm for the browser, and a TypeScript SDK.
 
-The project was restructured from the earlier three-language architecture (tag `pre-restructure`, formerly named moonspan). [ADR 0010](./docs/adr/0010-restructure-single-rust-core.md) records the decision; the [restructure proposal](./docs/proposals/architecture-restructure.md) carries the plan and rulings.
-
 ## Scope
 
 | Path | Role |
@@ -12,7 +10,7 @@ The project was restructured from the earlier three-language architecture (tag `
 | `rclwebd/` | Rust edge gateway: transport endpoints, serialized rcl attachment, policy |
 | `sdk/typescript/` | Browser SDK: Worker host, buffers, public typed API around the core wasm artifact |
 | `protocol/` | Normative R2WP contract, registry, schema, and frozen fixtures |
-| `conformance/` | Authoritative ROS CDR corpus (six rows of data; one row gated in Phase 1) |
+| `conformance/` | Authoritative ROS CDR corpus (six rows of data; J-FT and H-FT delivery-gated) |
 | `examples/` | Demo applications (from R1) |
 
 ## Requirements
@@ -78,7 +76,6 @@ walking skeleton reaches a live ROS talker in CI (`just e2e` /
 | Full documentation map | [docs/README.md](./docs/README.md) |
 | Product scope | [docs/product-scope.md](./docs/product-scope.md) |
 | Architecture | [docs/architecture.md](./docs/architecture.md) |
-| Restructure plan and rulings | [docs/proposals/architecture-restructure.md](./docs/proposals/architecture-restructure.md) |
 | Decisions | [docs/adr/README.md](./docs/adr/README.md) |
 | Plan and checklist | [tasks/plan.md](./tasks/plan.md), [tasks/todo.md](./tasks/todo.md) |
 

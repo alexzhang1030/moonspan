@@ -1,10 +1,10 @@
 # Generated types and schema registry
 
-Authoritative runtime contract for rclweb generated types and the schema-identity registry. The contract was frozen before the restructure ([ADR 0010](../adr/0010-restructure-single-rust-core.md)); it retargets from MoonBit to Rust code generation in R3-02 with behavior unchanged, so batch identifiers (M1-02x) and MoonBit mentions below are historical labels for the frozen behavior. Consumes the [CDR core contract](./cdr.md). Schema identity strategy remains [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md). Payload encoding values follow the R2WP v0 `payload-encoding-cdr` domain ([registry](../../protocol/registry/r2wp-v0.json), [CDDL](../../protocol/schema/control-v0.cddl)).
+Authoritative runtime contract for rclweb generated types and the schema-identity registry. The [`rclweb` core](./core.md) implements it in Rust (`rclweb/src/types/`) from Bun-generated metadata under `rclweb/generated/metadata/` ([R3-02](../milestones/r3-02-generated-types.md)). Consumes the [CDR core contract](./cdr.md). Schema identity strategy remains [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md). Payload encoding values follow the R2WP v0 `payload-encoding-cdr` domain ([registry](../../protocol/registry/r2wp-v0.json), [CDDL](../../protocol/schema/control-v0.cddl)).
 
 ## Purpose
 
-M1-02 turns the committed authoritative ROS corpus into production MoonBit models, CDR1 codecs, and a dual-scheme schema registry. The browser runtime resolves schema material by identity before channel activation, encodes and decodes sample payloads with `cdr_mbt`, and applies the committed top-level zero-tail declaration from wire-profile resolution metadata. Dynamic type description and lazy field projection belong to M2.
+The generator turns the committed authoritative ROS corpus into production Rust models, CDR1 codecs, and a dual-scheme schema registry. The browser runtime resolves schema material by identity before channel activation, encodes and decodes sample payloads with `rclweb::cdr`, and applies the committed top-level zero-tail declaration from wire-profile resolution metadata. Dynamic type description and lazy field projection remain later work.
 
 ## Delivery batches
 
@@ -12,7 +12,7 @@ M1-02 turns the committed authoritative ROS corpus into production MoonBit model
 |---|---|
 | **M1-02a** | Contract freeze (this document) and task routing |
 | **M1-02b** | Deterministic Bun generator (`--write` / `--check`); validated normalized descriptors and static metadata artifacts |
-| **M1-02c** | Production MoonBit models and CDR1 codecs for the nine authoritative corpus roots plus shared dependencies |
+| **M1-02c** | Production Rust models and CDR1 codecs for the nine authoritative corpus roots plus shared dependencies |
 | **M1-02d** | Dual-scheme registry builder, freeze into an immutable M1 registry, Jazzy RIHS provenance, lookup with support-row and CDR representation zero-tail |
 | **M1-02e** | Corpus, adversarial, and public completion gate |
 
@@ -23,7 +23,7 @@ M1-02b starts only after M1-02a is accepted.
 | Batch | Owns | Leaves to later batches |
 |---|---|---|
 | **M1-02b** | Parse and validate authoritative inputs; emit **validated normalized descriptors** and **static metadata artifacts** (codec descriptor tables, identity rows, wire-profile tail tables, provenance rows) under `--write` / `--check` byte identity | Production encode/decode model and codec bodies |
-| **M1-02c** | Extend generation to **production MoonBit models and CDR1 codecs** that implement those descriptors against `cdr_mbt` | Registry builder freeze and runtime lookup wiring |
+| **M1-02c** | Extend generation to **production Rust models and CDR1 codecs** that implement those descriptors against `rclweb::cdr` | Registry builder freeze and runtime lookup wiring |
 | **M1-02d** | Bounded registry **builder**, freeze into an **immutable** M1 registry, dual-scheme resolve, provenance, representation-aware tail lookup | Public/adversarial completion gate |
 | **M1-02e** | Corpus, adversarial, and public completion evidence | — |
 
@@ -122,7 +122,7 @@ Root `bun run check` includes `generated-types:check` after `cdr-tail-slack:chec
 
 M1-02c extends the M1-02b descriptor surface into production models and codecs:
 
-- call only the public `cdr_mbt` surface ([CDR core](./cdr.md));
+- call only the public `rclweb::cdr` surface ([CDR core](./cdr.md));
 - enforce schema-declared field bounds (string/wstring payload maxima, sequence element maxima, fixed-array counts);
 - pass `CdrNesting` tokens through nested aggregates and respect `max_nesting_depth`;
 - return borrowed `BytesView` for large binary payloads, including **PointCloud2 `data`**, as zero-copy views into caller-retained storage;
@@ -244,7 +244,7 @@ The Phase 1 generated surface sits inside these ceilings. Raising a ceiling is a
 
 ## Typed errors
 
-Public schema and generation faults (stable codes). Codec field faults remain [`CdrError`](./cdr.md#typed-error-taxonomy-cdrmbt).
+Public schema and generation faults (stable codes). Codec field faults remain [`CdrError`](./cdr.md#typed-error-taxonomy).
 
 | Code | When it surfaces |
 |---|---|
@@ -263,7 +263,7 @@ Error payloads carry the fault code and stable diagnostic context (offending fie
 |---|---|
 | Generator identity | `bun run <generator>:check` (name lands in M1-02b) is byte-stable on a clean tree |
 | Normalized descriptors | M1-02b artifacts include validated descriptors and static metadata with exact input joins |
-| Nine-root codecs | M1-02c MoonBit/Wasm tests decode and exact-encode every corpus fixture for the nine roots |
+| Nine-root codecs | M1-02c Rust tests decode and exact-encode every corpus fixture for the nine roots |
 | Dual-scheme resolve | All 18 identities resolve to the nine descriptors; invalid keys and missing material fault correctly |
 | Provenance | Jazzy RIHS map loads as provenance; schemes keep independent meaning |
 | Zero-tail | Lookup with each support row **and** CDR representation returns the committed expected tail (including H-FT/J-FT `PrimitiveScalars` LE tail 4 vs BE tail 0); declared completion matches corpus evidence |

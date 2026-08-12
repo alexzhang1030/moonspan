@@ -4,13 +4,11 @@ rclweb gives browser applications typed, secure access to ROS 2 through a versio
 
 ## Mainline
 
-The mainline follows the restructure plan ([ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md)):
+The mainline is one Rust core for gateway and browser ([ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md)). Delivery follows the [implementation plan](../../tasks/plan.md):
 
-1. R0: stop-loss — one implementation per side, one gated support row, a declared protocol subset.
-2. R1: walking skeleton — a browser page subscribes to a live ROS 2 topic end-to-end.
-3. R2: data-plane hardening — publish, QoS, budgets, adversarial fixtures, performance baseline.
-4. R3: ROS semantics, generated types, second row, WebTransport.
-5. R4: identity, policy, deployment, evidence, and a stable SDK release.
+1. R0–R3 complete: one implementation per side, walking skeleton, data-plane hardening, ROS semantics, H-FT, WebTransport.
+2. R4 in progress: identity, policy, deployment, support-matrix qualification, and a stable SDK release.
+3. U0 after release: Studio prototype.
 
 ## Users
 
@@ -34,7 +32,7 @@ The mainline follows the restructure plan ([ADR 0010](../../docs/adr/0010-restru
 
 - No JSON transcoding on the sample path; CDR stays end to end.
 - No client library reinvention: the browser core is an R2WP protocol client with rcl-shaped semantics, and the gateway binds the serialized-only rcl surface directly (owner constraint in ADR 0010).
-- Contracts harden after they carry traffic; breadth (rows, transports, evidence harnesses) follows the walking skeleton, not the other way around.
+- Contracts harden after they carry traffic; platform expansion enters through the [support matrix](../../docs/support-matrix.md).
 
 ## Post-release work
 

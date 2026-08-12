@@ -2,7 +2,7 @@
 
 PCR records preserve the durable reasoning that contributors need across tasks. Formal requirements live under [`docs/`](../../docs/README.md). These records remain open to evidence-backed updates.
 
-The project was restructured and renamed from moonspan to rclweb ([ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md), tag `pre-restructure`); the [restructure proposal](../../docs/proposals/architecture-restructure.md) carries the rulings, cut/keep lists, and performance plan.
+rclweb is one Rust core (`rclweb`) serving the gateway natively and the browser as Wasm, a TypeScript SDK, and R2WP over WebSocket and WebTransport ([ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md), [architecture](../../docs/architecture.md)).
 
 ## Context records
 
@@ -26,7 +26,6 @@ The project was restructured and renamed from moonspan to rclweb ([ADR 0010](../
 | Local WebTransport TLS (cert-hash, 14-day rotate) | [ADR 0011](../../docs/adr/0011-local-dev-webtransport-tls.md) |
 | J-FT runtime image and operations endpoints | [Deploy](../../docs/deploy.md), [R4-02](../../docs/milestones/r4-02-deployment-observability.md) |
 | Support-matrix status | [R4-03](../../docs/milestones/r4-03-support-matrix.md) |
-| Restructure rulings and plan | [Restructure proposal](../../docs/proposals/architecture-restructure.md) |
 | Delivery sequence | [Implementation plan](../../tasks/plan.md) |
 | Current execution state | [Execution checklist](../../tasks/todo.md) |
 
@@ -34,8 +33,8 @@ The project was restructured and renamed from moonspan to rclweb ([ADR 0010](../
 
 | Area | Context |
 |---|---|
-| `protocol/**` | [Architecture](./architecture.md), [R2WP](../../docs/protocol/r2wp.md), [normative subset](../../protocol/r2wp-v0.md#normative-scope-after-the-restructure-v01-subset), [R2-03 fixtures + fuzz](../../docs/milestones/r2-03-fixtures-fuzzing.md), [R3-01 re-freeze](../../docs/milestones/r3-01-services-actions-graph.md) |
-| `rclweb/**` | [Architecture](./architecture.md), [technology stack](./technology-stack.md), [`rclweb` core](../../docs/runtime/core.md), [CDR contract](../../docs/runtime/cdr.md), [R1-02 session SM](../../docs/milestones/r1-02-session-channel-state.md), [R1-04 poll ABI](../../docs/milestones/r1-04-wasm-host-sdk.md), [R2-01 publish/QoS](../../docs/milestones/r2-01-data-plane-hardening.md), [R2-02 large-message / PointCloud2](../../docs/milestones/r2-02-large-message-path.md), [R2-03 fixtures + fuzz smoke](../../docs/milestones/r2-03-fixtures-fuzzing.md), [R3-01 services/actions/graph](../../docs/milestones/r3-01-services-actions-graph.md), [R3-02 generated types + registry](../../docs/milestones/r3-02-generated-types.md), [R3-03 H-FT OpenChannel moonspan](../../docs/milestones/r3-03-h-ft-webtransport.md), [generated-types contract](../../docs/runtime/generated-types.md) (`rclweb/src/types/`, embedded `rclweb/generated/metadata/`) |
+| `protocol/**` | [Architecture](./architecture.md), [R2WP](../../docs/protocol/r2wp.md), [normative subset](../../protocol/r2wp-v0.md#normative-scope-v01-subset), [R2-03 fixtures + fuzz](../../docs/milestones/r2-03-fixtures-fuzzing.md), [R3-01 re-freeze](../../docs/milestones/r3-01-services-actions-graph.md) |
+| `rclweb/**` | [Architecture](./architecture.md), [technology stack](./technology-stack.md), [`rclweb` core](../../docs/runtime/core.md), [CDR contract](../../docs/runtime/cdr.md), [R1-02 session SM](../../docs/milestones/r1-02-session-channel-state.md), [R1-04 poll ABI](../../docs/milestones/r1-04-wasm-host-sdk.md), [R2-01 publish/QoS](../../docs/milestones/r2-01-data-plane-hardening.md), [R2-02 large-message / PointCloud2](../../docs/milestones/r2-02-large-message-path.md), [R2-03 fixtures + fuzz smoke](../../docs/milestones/r2-03-fixtures-fuzzing.md), [R3-01 services/actions/graph](../../docs/milestones/r3-01-services-actions-graph.md), [R3-02 generated types + registry](../../docs/milestones/r3-02-generated-types.md), [R3-03 H-FT OpenChannel](../../docs/milestones/r3-03-h-ft-webtransport.md), [generated-types contract](../../docs/runtime/generated-types.md) (`rclweb/src/types/`, embedded `rclweb/generated/metadata/`) |
 | `rclweb/generated/metadata/**`, `scripts/generated-types.ts` | [R3-02](../../docs/milestones/r3-02-generated-types.md); Bun generator + committed descriptors/identities/wire-profiles/provenance; sectioned-root join gotcha in [gotchas](./gotchas.md#sectioned-corpus-roots-are-graph-endpoints-without-source-rows) |
 | `rclwebd/**` | [Architecture](./architecture.md), [`rclwebd`](../../docs/gateway/rclwebd.md), [R1-03 WS + rcl](../../docs/milestones/r1-03-gateway-ws-rcl.md), [R2-01 budgets/dispositions](../../docs/milestones/r2-01-data-plane-hardening.md), [R3-01 graph/service/action](../../docs/milestones/r3-01-services-actions-graph.md), [R3-03 H-FT + WebTransport](../../docs/milestones/r3-03-h-ft-webtransport.md), [R3-04 adapter ABI + dlopen typesupport](../../docs/milestones/r3-04-adapter-abi-typesupport.md), [R4-01 auth](../../docs/milestones/r4-01-oidc-sros2-audit.md), [R4-02 ops + image](../../docs/milestones/r4-02-deployment-observability.md), [ADR 0011](../../docs/adr/0011-local-dev-webtransport-tls.md), [security](../../docs/security.md), [deploy](../../docs/deploy.md) |
 | `rclwebd/src/local_dev_tls.rs`, `wt.rs` | [ADR 0011](../../docs/adr/0011-local-dev-webtransport-tls.md), [R3-03 WT](../../docs/milestones/r3-03-h-ft-webtransport.md#outcome-webtransport), [gotchas](./gotchas.md#webtransport-local-certs-are-14-days-by-browser-rule) |

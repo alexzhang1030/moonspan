@@ -1,14 +1,14 @@
 # rclweb implementation plan
 
-This plan executes the [architecture restructure](../docs/adr/0010-restructure-single-rust-core.md): a single Rust core (`rclweb`) serving both the gateway and the browser, a walking skeleton before breadth, and process proportional to product. The full rationale, rulings, cut/keep lists, and performance plan live in the [restructure proposal](../docs/proposals/architecture-restructure.md). The pre-restructure M-phase plan is preserved at tag `pre-restructure`.
+Delivery sequence for a single Rust core (`rclweb`) serving both the gateway and the browser, a walking skeleton before breadth, and process proportional to product. Architecture: [docs/architecture.md](../docs/architecture.md). Decision: [ADR 0010](../docs/adr/0010-restructure-single-rust-core.md).
 
 ## Rulings
 
 | ID | State | Ruling |
 |---|---|---|
-| R-D1 | Ruled (owner, 2026-08-12) | Single Rust core, native for `rclwebd`, wasm32 for the browser; MoonBit and the TypeScript protocol implementation removed |
+| R-D1 | Ruled (owner, 2026-08-12) | Single Rust core, native for `rclwebd`, wasm32 for the browser |
 | R-D2 | Standing recommendation | Phase 1 gates one support row, J-FT (Jazzy + Fast DDS); all six rows of corpus data stay committed |
-| R-D3 | Standing recommendation | Protocol v0.1 normative subset per the [scope declaration](../protocol/r2wp-v0.md#normative-scope-after-the-restructure-v01-subset); the rest is parked |
+| R-D3 | Standing recommendation | Protocol v0.1 normative subset per the [scope declaration](../protocol/r2wp-v0.md#normative-scope-v01-subset); the rest is parked |
 | R-D4 | Ruled (owner, 2026-08-12) | Project name `rclweb`; core crate `rclweb`, gateway `rclwebd`, SDK `@rclweb/sdk` |
 
 ## Phases
@@ -28,7 +28,7 @@ Each phase closes on its gate evidence plus human approval.
 
 | ID | State | Deliverable |
 |---|---|---|
-| R0-01 | Complete | Tag `pre-restructure`; delete the agreement apparatus, fixture generators, MoonBit stack, TS protocol implementation, and evidence harness |
+| R0-01 | Complete | One implementation per side; baseline tagged |
 | R0-02 | Complete | Extract the `rclweb` core crate (protocol module + fixtures oracle), thin `rclwebd` over it, wasm32 build in the command surface |
 | R0-03 | Complete | Rename project to rclweb (packages, tooling, CI, docs); declare the protocol v0.1 normative scope |
 | R0-04 | Complete | Rewrite plan/checklist, add ADR 0010, refresh PCR records and docs tree |

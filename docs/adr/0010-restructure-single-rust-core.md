@@ -45,4 +45,4 @@ MoonBit had been chosen for Wasm convenience. The accepted counter-argument: the
 
 ## Source
 
-Owner rulings R-D1 and R-D4 (2026-08-12) and standing recommendations R-D2/R-D3, recorded with rationale in the [restructure proposal](../proposals/architecture-restructure.md).
+Owner rulings R-D1 and R-D4 (2026-08-12) and standing recommendations R-D2/R-D3.

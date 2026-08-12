@@ -56,4 +56,4 @@ Raw browser UDP sockets are not available to ordinary web pages; R2WP's unreliab
 
 ## Source
 
-WebTransport secure-context and `serverCertificateHashes` custom-certificate requirements in the [W3C WebTransport API](https://www.w3.org/TR/webtransport/) and [MDN `WebTransport()`](https://developer.mozilla.org/en-US/docs/Web/API/WebTransport/WebTransport); transport ceiling and R3 WebTransport timing in the [restructure performance plan](../proposals/architecture-restructure.md#performance-plan); TLS expectations in [security](../security.md).
+WebTransport secure-context and `serverCertificateHashes` custom-certificate requirements in the [W3C WebTransport API](https://www.w3.org/TR/webtransport/) and [MDN `WebTransport()`](https://developer.mozilla.org/en-US/docs/Web/API/WebTransport/WebTransport); transport notes in the [performance contracts](../architecture.md#performance-contracts); TLS expectations in [security](../security.md).

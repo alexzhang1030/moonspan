@@ -11,9 +11,7 @@ Pinned Humble and Jazzy CDR fixtures for the six support rows:
 | J-CY | jazzy | `rmw_cyclonedds_cpp` |
 | J-ZN | jazzy | `rmw_zenoh_cpp` |
 
-This corpus is the oracle for the Rust CDR port in the `rclweb` core (R1-01, [ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md)). Phase 1 gates row J-FT; the other five rows stay committed for R3/R4 breadth. The retired MoonBit white-box bridge and its proofs (M1-01d1–d3) live at tag `pre-restructure`; the [M1-01 completion note](../../docs/milestones/m1-01-cdr-core.md) records that milestone, which proved the corpus implementable end to end (semantic decode, exact canonical re-encode, adversarial gating over all 56 fixtures and 18 comparison groups).
-
-Directory and package names (`moonspan_cdr_generator`, `moonspan_cdr_interfaces`, corpus id `moonspan-ros-cdr-v1`, scheme `moonspan-schema-v1`) keep their historical names: committed hashes and wire identity depend on them.
+This corpus is the oracle for `rclweb::cdr` ([R1-01](../../docs/milestones/r1-01-cdr-rust-port.md)). J-FT and H-FT are delivery-gated; the other four rows stay committed. Directory and package names (`moonspan_cdr_generator`, `moonspan_cdr_interfaces`, corpus id `moonspan-ros-cdr-v1`, scheme `moonspan-schema-v1`) keep their historical names: committed hashes and wire identity depend on them.
 
 ## Layout
 

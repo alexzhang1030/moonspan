@@ -9,10 +9,9 @@ Normative for wire version **0** (Accepted under [ADR 0009](../docs/adr/0009-r2w
 
 Overview: [docs/protocol/r2wp.md](../docs/protocol/r2wp.md). [ADR 0005](../docs/adr/0005-r2wp-wire-versioning.md). [ADR 0009](../docs/adr/0009-r2wp-v0-wire-encoding.md).
 
-## Normative scope after the restructure (v0.1 subset)
+## Normative scope (v0.1 subset)
 
-Per [ADR 0010](../docs/adr/0010-restructure-single-rust-core.md) and ruling R-D3 in the
-[restructure proposal](../docs/proposals/architecture-restructure.md), wire version 0
+Per [ADR 0010](../docs/adr/0010-restructure-single-rust-core.md), wire version 0
 remains the single version. The subset below is **normative** against the running
 implementation (walking skeleton plus the R3-01 re-freeze); later phases re-freeze
 additional parked sections without a wire-version bump.
@@ -448,7 +447,7 @@ Operation-scoped failures are **not** embedded; they use flat CONTROL Error only
 
 ## Validation order and error precedence
 
-`validation_order` lists **receiver/input checks only**. Implementations stop at the **first** failing check. Every Error row has exactly one error code. Disposition rows produce dispositions only. Multi-invalid inputs return exactly that one stable result so Rust, MoonBit, and TypeScript agree. Sender-local sequence exhaustion is specified under Sequence domains above, not in this list. Machine form: registry `validation_order`.
+`validation_order` lists **receiver/input checks only**. Implementations stop at the **first** failing check. Every Error row has exactly one error code. Disposition rows produce dispositions only. Multi-invalid inputs return exactly that one stable result. Sender-local sequence exhaustion is specified under Sequence domains above, not in this list. Machine form: registry `validation_order`.
 
 ### Bootstrap checks (ordered)
 
