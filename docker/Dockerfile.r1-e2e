@@ -11,6 +11,7 @@ RUN apt-get update \
     git \
     pkg-config \
     python3 \
+    unzip \
   && rm -rf /var/lib/apt/lists/*
 
 # Rust (pinned to repo toolchain channel)
