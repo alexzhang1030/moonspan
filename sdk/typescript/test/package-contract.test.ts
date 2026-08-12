@@ -11,7 +11,7 @@ const pkg = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
 };
 
 test("sdk package identity and privacy", () => {
-  expect(pkg.name).toBe("@moonspan/sdk");
+  expect(pkg.name).toBe("@rclweb/sdk");
   expect(pkg.version).toBe("0.0.0");
   expect(pkg.private).toBe(true);
   expect(pkg.type).toBe("module");

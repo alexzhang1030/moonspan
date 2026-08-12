@@ -1,9 +1,9 @@
 [package]
-name = "rclwebd"
+name = "rclweb"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 publish = false
 
-[dependencies]
-rclweb = { path = "../rclweb" }
+[dev-dependencies]
+serde_json = "1"

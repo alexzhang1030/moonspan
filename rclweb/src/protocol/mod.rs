@@ -1,7 +1,5 @@
-//! R2WP v0 protocol parsers for `rclwebd`.
-//!
-//! M0-03f1: bootstrap + deterministic CBOR.
-//! M0-03f2: extension TLVs, CONTROL_CBOR shape, selected-frame steps 1–16.
+//! R2WP v0 protocol parsers: bootstrap, deterministic CBOR, extension TLVs,
+//! CONTROL_CBOR shape, and selected-frame validation steps 1–16.
 
 pub mod bootstrap;
 pub mod cbor;

@@ -33,10 +33,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "rclwebd"
+name = "rclweb"
 version = "0.0.0"
 dependencies = [
  "serde_json",
+]
+
+[[package]]
+name = "rclwebd"
+version = "0.0.0"
+dependencies = [
+ "rclweb",
 ]
 
 [[package]]
