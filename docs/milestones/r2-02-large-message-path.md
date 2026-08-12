@@ -54,7 +54,7 @@ Notable tests:
 ## Ownership after completion
 
 R2-03 owns adversarial fixture regeneration and fuzzing —
-see [R2-03](./r2-03-fixtures-fuzzing.md). R2-04 owns the Foxglove/rosbridge
-baseline on the same ~1 MB @ 10 Hz workload identity. Browser COOP/COEP
-qualification for SAB production remains a support-matrix row, not a silent
-ship.
+see [R2-03](./r2-03-fixtures-fuzzing.md). R2-04 recorded the Foxglove/rosbridge
+baseline on the shared workload identities —
+see [R2-04](./r2-04-perf-baseline.md). Browser COOP/COEP qualification for SAB
+production remains a support-matrix row, not a silent ship.

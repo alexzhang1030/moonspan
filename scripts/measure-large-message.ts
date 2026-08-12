@@ -5,7 +5,8 @@
  * Workload direction from the restructure performance plan: PointCloud2 ~1 MB
  * @ 10 Hz. This records host-side encode + buffer-strategy cost for 30
  * synthetic ~1 MiB frames (3 s at 10 Hz) and one controllable engine-retain
- * copy. Live ROS talker and Foxglove/rosbridge comparison remain R2-04.
+ * copy. Live ROS talker and Foxglove/rosbridge comparison: see R2-04
+ * (`scripts/measure-perf-baseline.ts`).
  * Timing uses host `performance.now()` (never wasm Instant).
  *
  * Usage: `bun run scripts/measure-large-message.ts`

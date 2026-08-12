@@ -1,0 +1,44 @@
+# R2-04 live comparison image: J-FT + rclwebd + foxglove_bridge + rosbridge.
+# Digest-pinned base matches the CDR corpus / R1-05 Jazzy pin.
+FROM docker.io/library/ros:jazzy-ros-base-noble@sha256:da725acf8b0f9f30c683e33ffbdcd6482d077af96d6fdc7688c5f4f280b7d923
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    curl \
+    git \
+    pkg-config \
+    python3 \
+    python3-pip \
+    unzip \
+    ros-jazzy-foxglove-bridge \
+    ros-jazzy-rosbridge-suite \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY rust-toolchain.toml /tmp/rust-toolchain.toml
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+      --default-toolchain "$(awk -F'"' '/^[[:space:]]*channel[[:space:]]*=/{print $2; exit}' /tmp/rust-toolchain.toml)" \
+      --profile minimal \
+      --target wasm32-unknown-unknown \
+  && . "$HOME/.cargo/env" \
+  && rustup component add rustfmt clippy
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+COPY .bun-version /tmp/.bun-version
+RUN BUN_VERSION="$(tr -d '[:space:]' < /tmp/.bun-version)" \
+  && curl -fsSL "https://bun.sh/install" | bash -s "bun-v${BUN_VERSION}"
+ENV PATH="/root/.bun/bin:${PATH}"
+
+WORKDIR /workspace
+COPY . /workspace
+
+RUN bun install --frozen-lockfile \
+  && . /opt/ros/jazzy/setup.sh \
+  && cargo build --locked -p rclwebd --features ros --release \
+  && bun run scripts/build-wasm.ts
+
+COPY docker/r2-04-perf-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
