@@ -9,13 +9,22 @@
 #![allow(unsafe_code)]
 
 use super::ffi::bindings as b;
+use super::typesupport::{ActionTypeSupport, MessageTypeSupport, ServiceTypeSupport};
 use crate::qos::EffectiveQos;
 use std::ffi::{CStr, CString};
+use std::os::raw::c_void;
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 
 const RCL_OK: b::rcl_ret_t = b::RCL_RET_OK as b::rcl_ret_t;
 const RCL_TIMEOUT: b::rcl_ret_t = b::RCL_RET_TIMEOUT as b::rcl_ret_t;
-const RCL_TAKE_FAILED: b::rcl_ret_t = b::RCL_RET_SUBSCRIPTION_TAKE_FAILED as b::rcl_ret_t;
+const RMW_OK: b::rmw_ret_t = b::RMW_RET_OK as b::rmw_ret_t;
+
+pub const RCL_TAKE_FAILED: b::rcl_ret_t = b::RCL_RET_SUBSCRIPTION_TAKE_FAILED as b::rcl_ret_t;
+pub const RCL_CLIENT_TAKE_FAILED: b::rcl_ret_t = b::RCL_RET_CLIENT_TAKE_FAILED as b::rcl_ret_t;
+pub const RCL_SERVICE_TAKE_FAILED: b::rcl_ret_t = b::RCL_RET_SERVICE_TAKE_FAILED as b::rcl_ret_t;
+pub const RCL_ACTION_CLIENT_TAKE_FAILED: b::rcl_ret_t =
+    b::RCL_RET_ACTION_CLIENT_TAKE_FAILED as b::rcl_ret_t;
 
 /// rcl call failure with the drained rcutils error string.
 #[derive(Debug, Clone)]
@@ -47,6 +56,17 @@ fn drain_error_string() -> String {
 
 fn check(ret: b::rcl_ret_t, operation: &str) -> Result<(), RclError> {
     if ret == RCL_OK {
+        Ok(())
+    } else {
+        Err(RclError {
+            ret,
+            message: format!("{operation}: {}", drain_error_string()),
+        })
+    }
+}
+
+fn check_rmw(ret: b::rmw_ret_t, operation: &str) -> Result<(), RclError> {
+    if ret == RMW_OK {
         Ok(())
     } else {
         Err(RclError {
@@ -90,6 +110,61 @@ fn rmw_profile(qos: &EffectiveQos) -> b::rmw_qos_profile_t {
         liveliness_lease_duration: b::rmw_time_s { sec: 0, nsec: 0 },
         avoid_ros_namespace_conventions: false,
     }
+}
+
+/// Allocate one ROS message via typesupport create.
+pub fn allocate_message(ts: MessageTypeSupport) -> Result<*mut c_void, RclError> {
+    // SAFETY: create is the rosidl generator hook for this message type.
+    let ptr = unsafe { (ts.create)() };
+    if ptr.is_null() {
+        return Err(RclError {
+            ret: -1,
+            message: "message create returned null".to_owned(),
+        });
+    }
+    Ok(ptr)
+}
+
+/// Destroy a message allocated with [`allocate_message`].
+pub fn destroy_message(ts: MessageTypeSupport, ptr: *mut c_void) {
+    if !ptr.is_null() {
+        // SAFETY: destroy pairs with create for the same type.
+        unsafe { (ts.destroy)(ptr) };
+    }
+}
+
+/// Deserialize CDR into an already-allocated ROS message.
+pub fn deserialize_into(
+    ts: MessageTypeSupport,
+    cdr: &[u8],
+    msg: *mut c_void,
+) -> Result<(), RclError> {
+    // SAFETY: serialized view borrows `cdr` for the call only.
+    unsafe {
+        let serialized = b::rcl_serialized_message_t {
+            buffer: cdr.as_ptr().cast_mut(),
+            buffer_length: cdr.len(),
+            buffer_capacity: cdr.len(),
+            allocator: allocator(),
+        };
+        check_rmw(
+            b::rmw_deserialize(&serialized, ts.handle, msg),
+            "rmw_deserialize",
+        )
+    }
+}
+
+/// Serialize a ROS message into a fresh CDR byte vector.
+pub fn serialize_message(ts: MessageTypeSupport, msg: *const c_void) -> Result<Vec<u8>, RclError> {
+    let mut scratch = TakeBuffer::new()?;
+    // SAFETY: scratch owns a valid uint8 array; msg is a live ROS message.
+    unsafe {
+        check_rmw(
+            b::rmw_serialize(msg, ts.handle, &mut scratch.array),
+            "rmw_serialize",
+        )?;
+    }
+    Ok(scratch.as_slice().to_vec())
 }
 
 /// Context + node pair (init and domain attachment).
@@ -154,35 +229,22 @@ impl Attachment {
 
     /// Graph query: all visible topic names with their types.
     pub fn topic_names_and_types(&mut self) -> Result<Vec<(String, Vec<String>)>, RclError> {
-        // SAFETY: zero-initialized out-struct; fini after copying out.
-        unsafe {
-            // rcl_get_zero_initialized_names_and_types is a #define for this.
-            let mut names_and_types = b::rmw_get_zero_initialized_names_and_types();
-            let mut alloc = allocator();
-            check(
-                b::rcl_get_topic_names_and_types(
-                    self.node.as_ref(),
-                    &mut alloc,
-                    false,
-                    &mut names_and_types,
-                ),
-                "rcl_get_topic_names_and_types",
-            )?;
-            let mut out = Vec::with_capacity(names_and_types.names.size);
-            for i in 0..names_and_types.names.size {
-                let name_ptr = *names_and_types.names.data.add(i);
-                let name = CStr::from_ptr(name_ptr).to_string_lossy().into_owned();
-                let types_array = &*names_and_types.types.add(i);
-                let mut types = Vec::with_capacity(types_array.size);
-                for j in 0..types_array.size {
-                    let type_ptr = *types_array.data.add(j);
-                    types.push(CStr::from_ptr(type_ptr).to_string_lossy().into_owned());
-                }
-                out.push((name, types));
-            }
-            let _ = b::rcl_names_and_types_fini(&mut names_and_types);
-            Ok(out)
-        }
+        names_and_types(
+            self.node.as_ref(),
+            b::rcl_get_topic_names_and_types,
+            "rcl_get_topic_names_and_types",
+            false,
+        )
+    }
+
+    /// Graph query: all visible service names with their types.
+    pub fn service_names_and_types(&mut self) -> Result<Vec<(String, Vec<String>)>, RclError> {
+        names_and_types(
+            self.node.as_ref(),
+            service_names_fn,
+            "rcl_get_service_names_and_types",
+            false,
+        )
     }
 
     /// Finalize node then context. Call after all entities are finalized.
@@ -193,6 +255,52 @@ impl Attachment {
             let _ = b::rcl_shutdown(self.context.as_mut());
             let _ = b::rcl_context_fini(self.context.as_mut());
         }
+    }
+}
+
+unsafe extern "C" fn service_names_fn(
+    node: *const b::rcl_node_t,
+    allocator: *mut b::rcutils_allocator_t,
+    no_demangle: bool,
+    names_and_types: *mut b::rcl_names_and_types_t,
+) -> b::rcl_ret_t {
+    let _ = no_demangle;
+    unsafe { b::rcl_get_service_names_and_types(node, allocator, names_and_types) }
+}
+
+fn names_and_types(
+    node: *const b::rcl_node_t,
+    query: unsafe extern "C" fn(
+        *const b::rcl_node_t,
+        *mut b::rcutils_allocator_t,
+        bool,
+        *mut b::rcl_names_and_types_t,
+    ) -> b::rcl_ret_t,
+    operation: &'static str,
+    no_demangle: bool,
+) -> Result<Vec<(String, Vec<String>)>, RclError> {
+    // SAFETY: zero-initialized out-struct; fini after copying out.
+    unsafe {
+        let mut names_and_types = b::rmw_get_zero_initialized_names_and_types();
+        let mut alloc = allocator();
+        check(
+            query(node, &mut alloc, no_demangle, &mut names_and_types),
+            operation,
+        )?;
+        let mut out = Vec::with_capacity(names_and_types.names.size);
+        for i in 0..names_and_types.names.size {
+            let name_ptr = *names_and_types.names.data.add(i);
+            let name = CStr::from_ptr(name_ptr).to_string_lossy().into_owned();
+            let types_array = &*names_and_types.types.add(i);
+            let mut types = Vec::with_capacity(types_array.size);
+            for j in 0..types_array.size {
+                let type_ptr = *types_array.data.add(j);
+                types.push(CStr::from_ptr(type_ptr).to_string_lossy().into_owned());
+            }
+            out.push((name, types));
+        }
+        let _ = b::rcl_names_and_types_fini(&mut names_and_types);
+        Ok(out)
     }
 }
 
@@ -331,6 +439,590 @@ impl SerializedSubscription {
     }
 }
 
+/// Serialized service client.
+pub struct SerializedClient {
+    client: Box<b::rcl_client_t>,
+}
+
+impl SerializedClient {
+    pub fn create(
+        attachment: &mut Attachment,
+        service_name: &str,
+        type_support: ServiceTypeSupport,
+        qos: &EffectiveQos,
+    ) -> Result<Self, RclError> {
+        let name_c = CString::new(service_name).map_err(|_| RclError {
+            ret: -1,
+            message: "service name contains NUL".to_owned(),
+        })?;
+        // SAFETY: documented client init sequence.
+        unsafe {
+            let mut client = Box::new(b::rcl_get_zero_initialized_client());
+            let mut options = b::rcl_client_get_default_options();
+            options.qos = rmw_profile(qos);
+            check(
+                b::rcl_client_init(
+                    client.as_mut(),
+                    attachment.node_ptr(),
+                    type_support.handle,
+                    name_c.as_ptr(),
+                    &options,
+                ),
+                "rcl_client_init",
+            )?;
+            Ok(Self { client })
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn raw(&self) -> *const b::rcl_client_t {
+        self.client.as_ref()
+    }
+
+    /// Send `request_cdr`, wait up to `timeout`, return response CDR.
+    ///
+    /// `pump` is invoked each loop iteration so the worker can service other
+    /// entities (for example a loopback service server) while waiting.
+    #[allow(clippy::too_many_arguments)]
+    pub fn call_with_pump<F>(
+        &self,
+        context: *mut b::rcl_context_t,
+        guard: *const b::rcl_guard_condition_t,
+        request_ts: MessageTypeSupport,
+        response_ts: MessageTypeSupport,
+        request_cdr: &[u8],
+        timeout: Duration,
+        mut pump: F,
+    ) -> Result<Vec<u8>, RclError>
+    where
+        F: FnMut() -> Result<(), RclError>,
+    {
+        let request = allocate_message(request_ts)?;
+        let response = allocate_message(response_ts)?;
+        let mut wait_set = WaitSet::new(context, 0, 1, 0, 1)?;
+        let result = (|| {
+            deserialize_into(request_ts, request_cdr, request)?;
+            let mut seq = 0i64;
+            unsafe {
+                check(
+                    b::rcl_send_request(self.client.as_ref(), request, &mut seq),
+                    "rcl_send_request",
+                )?;
+            }
+            let deadline = Instant::now() + timeout;
+            loop {
+                pump()?;
+                let remaining = deadline.saturating_duration_since(Instant::now());
+                if remaining.is_zero() {
+                    return Err(RclError {
+                        ret: RCL_TIMEOUT,
+                        message: "service call timed out".to_owned(),
+                    });
+                }
+                wait_set.wait_raw_client(
+                    self.client.as_ref(),
+                    guard,
+                    remaining.as_nanos() as i64,
+                )?;
+                let mut header = b::rmw_request_id_t {
+                    writer_guid: [0; 16],
+                    sequence_number: 0,
+                };
+                let ret = unsafe {
+                    b::rcl_take_response(
+                        self.client.as_ref(),
+                        &mut header,
+                        response,
+                    )
+                };
+                if ret == RCL_CLIENT_TAKE_FAILED {
+                    unsafe { b::rcutils_reset_error() };
+                    continue;
+                }
+                check(ret, "rcl_take_response")?;
+                return serialize_message(response_ts, response);
+            }
+        })();
+        destroy_message(request_ts, request);
+        destroy_message(response_ts, response);
+        wait_set.fini();
+        result
+    }
+
+    /// Send `request_cdr`, wait up to `timeout`, return response CDR.
+    /// Blocking service call without an interleaved pump hook.
+    #[allow(dead_code)]
+    pub fn call(
+        &self,
+        context: *mut b::rcl_context_t,
+        guard: *const b::rcl_guard_condition_t,
+        request_ts: MessageTypeSupport,
+        response_ts: MessageTypeSupport,
+        request_cdr: &[u8],
+        timeout: Duration,
+    ) -> Result<Vec<u8>, RclError> {
+        self.call_with_pump(
+            context,
+            guard,
+            request_ts,
+            response_ts,
+            request_cdr,
+            timeout,
+            || Ok(()),
+        )
+    }
+
+    pub fn fini(mut self, attachment: &mut Attachment) {
+        // SAFETY: client outlived by node until this call.
+        unsafe {
+            let _ = b::rcl_client_fini(self.client.as_mut(), attachment.node_ptr());
+        }
+    }
+}
+
+/// Serialized service server.
+pub struct SerializedService {
+    service: Box<b::rcl_service_t>,
+}
+
+impl SerializedService {
+    pub fn create(
+        attachment: &mut Attachment,
+        service_name: &str,
+        type_support: ServiceTypeSupport,
+        qos: &EffectiveQos,
+    ) -> Result<Self, RclError> {
+        let name_c = CString::new(service_name).map_err(|_| RclError {
+            ret: -1,
+            message: "service name contains NUL".to_owned(),
+        })?;
+        // SAFETY: documented service init sequence.
+        unsafe {
+            let mut service = Box::new(b::rcl_get_zero_initialized_service());
+            let mut options = b::rcl_service_get_default_options();
+            options.qos = rmw_profile(qos);
+            check(
+                b::rcl_service_init(
+                    service.as_mut(),
+                    attachment.node_ptr(),
+                    type_support.handle,
+                    name_c.as_ptr(),
+                    &options,
+                ),
+                "rcl_service_init",
+            )?;
+            Ok(Self { service })
+        }
+    }
+
+    pub fn raw(&self) -> *const b::rcl_service_t {
+        self.service.as_ref()
+    }
+
+    /// Take one pending request; `None` when the queue is empty.
+    pub fn take_request(
+        &mut self,
+        request_ts: MessageTypeSupport,
+    ) -> Result<Option<(b::rmw_request_id_t, Vec<u8>)>, RclError> {
+        let request = allocate_message(request_ts)?;
+        let mut header = b::rmw_request_id_t {
+            writer_guid: [0; 16],
+            sequence_number: 0,
+        };
+        let ret = unsafe {
+            b::rcl_take_request(self.service.as_ref(), &mut header, request)
+        };
+        if ret == RCL_SERVICE_TAKE_FAILED {
+            unsafe { b::rcutils_reset_error() };
+            destroy_message(request_ts, request);
+            return Ok(None);
+        }
+        if let Err(err) = check(ret, "rcl_take_request") {
+            destroy_message(request_ts, request);
+            return Err(err);
+        }
+        let cdr = serialize_message(request_ts, request)?;
+        destroy_message(request_ts, request);
+        Ok(Some((header, cdr)))
+    }
+
+    /// Send a response for a previously taken request header.
+    pub fn send_response(
+        &mut self,
+        response_ts: MessageTypeSupport,
+        header: b::rmw_request_id_t,
+        response_cdr: &[u8],
+    ) -> Result<(), RclError> {
+        let response = allocate_message(response_ts)?;
+        let result = (|| {
+            deserialize_into(response_ts, response_cdr, response)?;
+            let mut header_mut = header;
+            // SAFETY: response is a live ROS response message.
+            unsafe {
+                check(
+                    b::rcl_send_response(
+                        self.service.as_ref(),
+                        &mut header_mut,
+                        response,
+                    ),
+                    "rcl_send_response",
+                )
+            }
+        })();
+        destroy_message(response_ts, response);
+        result
+    }
+
+    pub fn fini(mut self, attachment: &mut Attachment) {
+        // SAFETY: service outlived by node until this call.
+        unsafe {
+            let _ = b::rcl_service_fini(self.service.as_mut(), attachment.node_ptr());
+        }
+    }
+}
+
+/// Action client for call-style goal→result (and cancel) round-trips.
+pub struct ActionClient {
+    client: Box<b::rcl_action_client_t>,
+}
+
+impl ActionClient {
+    pub fn create(
+        attachment: &mut Attachment,
+        action_name: &str,
+        type_support: ActionTypeSupport,
+        qos: &EffectiveQos,
+    ) -> Result<Self, RclError> {
+        let name_c = CString::new(action_name).map_err(|_| RclError {
+            ret: -1,
+            message: "action name contains NUL".to_owned(),
+        })?;
+        // SAFETY: documented action client init sequence.
+        unsafe {
+            let mut client = Box::new(b::rcl_action_get_zero_initialized_client());
+            let mut options = b::rcl_action_client_get_default_options();
+            let profile = rmw_profile(qos);
+            options.goal_service_qos = profile;
+            options.result_service_qos = profile;
+            options.cancel_service_qos = profile;
+            options.feedback_topic_qos = profile;
+            options.status_topic_qos = profile;
+            check(
+                b::rcl_action_client_init(
+                    client.as_mut(),
+                    attachment.node_ptr(),
+                    type_support.handle,
+                    name_c.as_ptr(),
+                    &options,
+                ),
+                "rcl_action_client_init",
+            )?;
+            Ok(Self { client })
+        }
+    }
+
+    pub fn raw(&self) -> *const b::rcl_action_client_t {
+        self.client.as_ref()
+    }
+
+    /// Send goal, wait for acceptance, fetch result; returns GetResult_Response CDR.
+    pub fn send_goal_result(
+        &mut self,
+        context: *mut b::rcl_context_t,
+        guard: &GuardCondition,
+        action_ts: &ActionTypeSupport,
+        operation_id: [u8; 16],
+        goal_cdr: &[u8],
+        timeout: Duration,
+    ) -> Result<Vec<u8>, RclError> {
+        let send_goal_req = allocate_message(action_ts.send_goal_request)?;
+        let send_goal_resp = allocate_message(action_ts.send_goal_response)?;
+        let get_result_req = allocate_message(action_ts.get_result_request)?;
+        let get_result_resp = allocate_message(action_ts.get_result_response)?;
+
+        let result = (|| {
+            // SAFETY: goal_id is the first 16 bytes of SendGoal_Request.
+            unsafe {
+                std::ptr::copy_nonoverlapping(
+                    operation_id.as_ptr(),
+                    send_goal_req as *mut u8,
+                    16,
+                );
+            }
+            deserialize_into(action_ts.goal, goal_cdr, unsafe {
+                send_goal_req.add(16) as *mut c_void
+            })?;
+
+            let mut seq = 0i64;
+            unsafe {
+                check(
+                    b::rcl_action_send_goal_request(
+                        self.client.as_ref(),
+                        send_goal_req,
+                        &mut seq,
+                    ),
+                    "rcl_action_send_goal_request",
+                )?;
+            }
+
+            self.wait_and_take_goal_response(
+                context,
+                guard,
+                action_ts.send_goal_response,
+                send_goal_resp,
+                timeout,
+            )?;
+
+            let accepted = unsafe { *(send_goal_resp as *const bool) };
+            if !accepted {
+                return Err(RclError {
+                    ret: b::RCL_RET_ACTION_GOAL_REJECTED as b::rcl_ret_t,
+                    message: "action goal rejected".to_owned(),
+                });
+            }
+
+            unsafe {
+                std::ptr::copy_nonoverlapping(
+                    operation_id.as_ptr(),
+                    get_result_req as *mut u8,
+                    16,
+                );
+            }
+            let mut result_seq = 0i64;
+            unsafe {
+                check(
+                    b::rcl_action_send_result_request(
+                        self.client.as_ref(),
+                        get_result_req,
+                        &mut result_seq,
+                    ),
+                    "rcl_action_send_result_request",
+                )?;
+            }
+
+            self.wait_and_take_result_response(
+                context,
+                guard,
+                action_ts.get_result_response,
+                get_result_resp,
+                timeout,
+            )?;
+
+            serialize_message(action_ts.get_result_response, get_result_resp)
+        })();
+
+        destroy_message(action_ts.send_goal_request, send_goal_req);
+        destroy_message(action_ts.send_goal_response, send_goal_resp);
+        destroy_message(action_ts.get_result_request, get_result_req);
+        destroy_message(action_ts.get_result_response, get_result_resp);
+        result
+    }
+
+    /// Cancel a goal; returns CancelGoal_Response CDR.
+    pub fn cancel_goal(
+        &mut self,
+        context: *mut b::rcl_context_t,
+        guard: &GuardCondition,
+        action_ts: &ActionTypeSupport,
+        operation_id: [u8; 16],
+        timeout: Duration,
+    ) -> Result<Vec<u8>, RclError> {
+        let cancel_req = allocate_message(action_ts.cancel_request)?;
+        let cancel_resp = allocate_message(action_ts.cancel_response)?;
+
+        let result = (|| {
+            // SAFETY: GoalInfo.goal_id.uuid is the first 16 bytes of CancelGoal_Request.
+            unsafe {
+                std::ptr::copy_nonoverlapping(
+                    operation_id.as_ptr(),
+                    cancel_req as *mut u8,
+                    16,
+                );
+            }
+            let mut seq = 0i64;
+            unsafe {
+                check(
+                    b::rcl_action_send_cancel_request(
+                        self.client.as_ref(),
+                        cancel_req,
+                        &mut seq,
+                    ),
+                    "rcl_action_send_cancel_request",
+                )?;
+            }
+            self.wait_and_take_cancel_response(
+                context,
+                guard,
+                action_ts.cancel_response,
+                cancel_resp,
+                timeout,
+            )?;
+            serialize_message(action_ts.cancel_response, cancel_resp)
+        })();
+
+        destroy_message(action_ts.cancel_request, cancel_req);
+        destroy_message(action_ts.cancel_response, cancel_resp);
+        result
+    }
+
+    fn wait_and_take_goal_response(
+        &self,
+        context: *mut b::rcl_context_t,
+        guard: &GuardCondition,
+        _response_ts: MessageTypeSupport,
+        response: *mut c_void,
+        timeout: Duration,
+    ) -> Result<(), RclError> {
+        let deadline = Instant::now() + timeout;
+        loop {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                return Err(RclError {
+                    ret: RCL_TIMEOUT,
+                    message: "action goal response timed out".to_owned(),
+                });
+            }
+            if self.wait_action_ready(context, guard, remaining)? {
+                let mut header = b::rmw_request_id_t {
+                    writer_guid: [0; 16],
+                    sequence_number: 0,
+                };
+                let ret = unsafe {
+                    b::rcl_action_take_goal_response(
+                        self.client.as_ref(),
+                        &mut header,
+                        response,
+                    )
+                };
+                if ret == RCL_ACTION_CLIENT_TAKE_FAILED {
+                    unsafe { b::rcutils_reset_error() };
+                    continue;
+                }
+                return check(ret, "rcl_action_take_goal_response");
+            }
+        }
+    }
+
+    fn wait_and_take_result_response(
+        &self,
+        context: *mut b::rcl_context_t,
+        guard: &GuardCondition,
+        _response_ts: MessageTypeSupport,
+        response: *mut c_void,
+        timeout: Duration,
+    ) -> Result<(), RclError> {
+        let deadline = Instant::now() + timeout;
+        loop {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                return Err(RclError {
+                    ret: RCL_TIMEOUT,
+                    message: "action result response timed out".to_owned(),
+                });
+            }
+            if self.wait_action_ready(context, guard, remaining)? {
+                let mut header = b::rmw_request_id_t {
+                    writer_guid: [0; 16],
+                    sequence_number: 0,
+                };
+                let ret = unsafe {
+                    b::rcl_action_take_result_response(
+                        self.client.as_ref(),
+                        &mut header,
+                        response,
+                    )
+                };
+                if ret == RCL_ACTION_CLIENT_TAKE_FAILED {
+                    unsafe { b::rcutils_reset_error() };
+                    continue;
+                }
+                return check(ret, "rcl_action_take_result_response");
+            }
+        }
+    }
+
+    fn wait_and_take_cancel_response(
+        &self,
+        context: *mut b::rcl_context_t,
+        guard: &GuardCondition,
+        _response_ts: MessageTypeSupport,
+        response: *mut c_void,
+        timeout: Duration,
+    ) -> Result<(), RclError> {
+        let deadline = Instant::now() + timeout;
+        loop {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            if remaining.is_zero() {
+                return Err(RclError {
+                    ret: RCL_TIMEOUT,
+                    message: "action cancel response timed out".to_owned(),
+                });
+            }
+            if self.wait_action_ready(context, guard, remaining)? {
+                let mut header = b::rmw_request_id_t {
+                    writer_guid: [0; 16],
+                    sequence_number: 0,
+                };
+                let ret = unsafe {
+                    b::rcl_action_take_cancel_response(
+                        self.client.as_ref(),
+                        &mut header,
+                        response,
+                    )
+                };
+                if ret == RCL_ACTION_CLIENT_TAKE_FAILED {
+                    unsafe { b::rcutils_reset_error() };
+                    continue;
+                }
+                return check(ret, "rcl_action_take_cancel_response");
+            }
+        }
+    }
+
+    fn wait_action_ready(
+        &self,
+        context: *mut b::rcl_context_t,
+        guard: &GuardCondition,
+        timeout: Duration,
+    ) -> Result<bool, RclError> {
+        let mut num_subs = 0;
+        let mut num_gc = 0;
+        let mut num_timers = 0;
+        let mut num_clients = 0;
+        let mut num_services = 0;
+        unsafe {
+            check(
+                b::rcl_action_client_wait_set_get_num_entities(
+                    self.client.as_ref(),
+                    &mut num_subs,
+                    &mut num_gc,
+                    &mut num_timers,
+                    &mut num_clients,
+                    &mut num_services,
+                ),
+                "rcl_action_client_wait_set_get_num_entities",
+            )?;
+        }
+        let mut wait_set = WaitSet::new(
+            context,
+            num_subs,
+            num_clients,
+            num_services,
+            num_gc + 1,
+        )?;
+        let ready = wait_set.wait_action_client(self, guard, timeout.as_nanos() as i64)?;
+        wait_set.fini();
+        Ok(ready)
+    }
+
+    pub fn fini(mut self, attachment: &mut Attachment) {
+        // SAFETY: action client outlived by node until this call.
+        unsafe {
+            let _ = b::rcl_action_client_fini(self.client.as_mut(), attachment.node_ptr());
+        }
+    }
+}
+
 /// Reused take buffer (rmw copies into it; rcl grows it as needed).
 pub struct TakeBuffer {
     array: b::rcl_serialized_message_t,
@@ -448,16 +1140,31 @@ impl GuardCondition {
     }
 }
 
-/// Wait set over subscriptions plus one guard condition.
+/// Ready indices returned from [`WaitSet::wait`].
+#[derive(Debug, Clone, Default)]
+pub struct WaitReady {
+    pub subscriptions: Vec<usize>,
+    pub services: Vec<usize>,
+}
+
+/// Wait set over subscriptions, services, clients, and one guard condition.
 pub struct WaitSet {
     wait_set: Box<b::rcl_wait_set_t>,
-    capacity: usize,
+    subscription_capacity: usize,
+    #[allow(dead_code)]
+    client_capacity: usize,
+    service_capacity: usize,
+    #[allow(dead_code)]
+    guard_capacity: usize,
 }
 
 impl WaitSet {
     pub fn new(
-        attachment: &mut Attachment,
+        context: *mut b::rcl_context_t,
         subscription_capacity: usize,
+        client_capacity: usize,
+        service_capacity: usize,
+        guard_capacity: usize,
     ) -> Result<Self, RclError> {
         // SAFETY: documented wait-set init with explicit capacities.
         unsafe {
@@ -466,39 +1173,53 @@ impl WaitSet {
                 b::rcl_wait_set_init(
                     wait_set.as_mut(),
                     subscription_capacity,
-                    1,
+                    guard_capacity,
                     0,
+                    client_capacity,
+                    service_capacity,
                     0,
-                    0,
-                    0,
-                    attachment.context_ptr(),
+                    context,
                     allocator(),
                 ),
                 "rcl_wait_set_init",
             )?;
             Ok(Self {
                 wait_set,
-                capacity: subscription_capacity,
+                subscription_capacity,
+                client_capacity,
+                service_capacity,
+                guard_capacity,
             })
         }
     }
 
     #[must_use]
-    pub fn capacity(&self) -> usize {
-        self.capacity
+    pub fn subscription_capacity(&self) -> usize {
+        self.subscription_capacity
     }
 
-    /// Clear, re-add all handles, and wait up to `timeout_ns`. Returns the
-    /// indexes of ready subscriptions (in the order they were added).
+    #[must_use]
+    pub fn service_capacity(&self) -> usize {
+        self.service_capacity
+    }
+
+    /// Clear, re-add handles, and wait up to `timeout_ns`.
     pub fn wait(
         &mut self,
         subscriptions: &[&SerializedSubscription],
+        services: &[&SerializedService],
         guard: &GuardCondition,
         timeout_ns: i64,
-    ) -> Result<Vec<usize>, RclError> {
-        assert!(subscriptions.len() <= self.capacity, "wait set overflow");
-        // SAFETY: standard clear/add/wait cycle; ready entries are read from
-        // the parallel arrays the wait set maintains.
+    ) -> Result<WaitReady, RclError> {
+        assert!(
+            subscriptions.len() <= self.subscription_capacity,
+            "subscription wait set overflow"
+        );
+        assert!(
+            services.len() <= self.service_capacity,
+            "service wait set overflow"
+        );
+        // SAFETY: standard clear/add/wait cycle.
         unsafe {
             check(
                 b::rcl_wait_set_clear(self.wait_set.as_mut()),
@@ -514,8 +1235,158 @@ impl WaitSet {
                     "rcl_wait_set_add_subscription",
                 )?;
             }
-            let guard_ptr = guard.raw();
-            if !guard_ptr.is_null() {
+            for service in services {
+                check(
+                    b::rcl_wait_set_add_service(
+                        self.wait_set.as_mut(),
+                        service.raw(),
+                        std::ptr::null_mut(),
+                    ),
+                    "rcl_wait_set_add_service",
+                )?;
+            }
+            self.add_guard(guard)?;
+            let ret = b::rcl_wait(self.wait_set.as_mut(), timeout_ns);
+            if ret == RCL_TIMEOUT {
+                b::rcutils_reset_error();
+                return Ok(WaitReady::default());
+            }
+            check(ret, "rcl_wait")?;
+            let mut ready = WaitReady::default();
+            for index in 0..subscriptions.len() {
+                if !(*self.wait_set.subscriptions.add(index)).is_null() {
+                    ready.subscriptions.push(index);
+                }
+            }
+            for index in 0..services.len() {
+                if !(*self.wait_set.services.add(index)).is_null() {
+                    ready.services.push(index);
+                }
+            }
+            Ok(ready)
+        }
+    }
+
+    /// Wait on a raw client handle (used when the client cannot be borrowed from the worker map).
+    pub fn wait_raw_client(
+        &mut self,
+        client: *const b::rcl_client_t,
+        guard: *const b::rcl_guard_condition_t,
+        timeout_ns: i64,
+    ) -> Result<(), RclError> {
+        unsafe {
+            check(
+                b::rcl_wait_set_clear(self.wait_set.as_mut()),
+                "rcl_wait_set_clear",
+            )?;
+            check(
+                b::rcl_wait_set_add_client(
+                    self.wait_set.as_mut(),
+                    client,
+                    std::ptr::null_mut(),
+                ),
+                "rcl_wait_set_add_client",
+            )?;
+            if !guard.is_null() {
+                check(
+                    b::rcl_wait_set_add_guard_condition(
+                        self.wait_set.as_mut(),
+                        guard,
+                        std::ptr::null_mut(),
+                    ),
+                    "rcl_wait_set_add_guard_condition",
+                )?;
+            }
+            let ret = b::rcl_wait(self.wait_set.as_mut(), timeout_ns);
+            if ret == RCL_TIMEOUT {
+                b::rcutils_reset_error();
+                return Ok(());
+            }
+            check(ret, "rcl_wait")?;
+            Ok(())
+        }
+    }
+
+    /// Wait on service clients only.
+    #[allow(dead_code)]
+    pub fn wait_clients(
+        &mut self,
+        clients: &[&SerializedClient],
+        guard: &GuardCondition,
+        timeout_ns: i64,
+    ) -> Result<Vec<usize>, RclError> {
+        assert!(clients.len() <= self.client_capacity, "client wait set overflow");
+        unsafe {
+            check(
+                b::rcl_wait_set_clear(self.wait_set.as_mut()),
+                "rcl_wait_set_clear",
+            )?;
+            for client in clients {
+                check(
+                    b::rcl_wait_set_add_client(
+                        self.wait_set.as_mut(),
+                        client.raw(),
+                        std::ptr::null_mut(),
+                    ),
+                    "rcl_wait_set_add_client",
+                )?;
+            }
+            self.add_guard(guard)?;
+            let ret = b::rcl_wait(self.wait_set.as_mut(), timeout_ns);
+            if ret == RCL_TIMEOUT {
+                b::rcutils_reset_error();
+                return Ok(Vec::new());
+            }
+            check(ret, "rcl_wait")?;
+            let mut ready = Vec::new();
+            for index in 0..clients.len() {
+                if !(*self.wait_set.clients.add(index)).is_null() {
+                    ready.push(index);
+                }
+            }
+            Ok(ready)
+        }
+    }
+
+    /// Wait for an action client's internal entities to become ready.
+    pub fn wait_action_client(
+        &mut self,
+        action_client: &ActionClient,
+        guard: &GuardCondition,
+        timeout_ns: i64,
+    ) -> Result<bool, RclError> {
+        unsafe {
+            check(
+                b::rcl_wait_set_clear(self.wait_set.as_mut()),
+                "rcl_wait_set_clear",
+            )?;
+            let mut client_index = 0;
+            let mut subscription_index = 0;
+            check(
+                b::rcl_action_wait_set_add_action_client(
+                    self.wait_set.as_mut(),
+                    action_client.raw(),
+                    &mut client_index,
+                    &mut subscription_index,
+                ),
+                "rcl_action_wait_set_add_action_client",
+            )?;
+            self.add_guard(guard)?;
+            let ret = b::rcl_wait(self.wait_set.as_mut(), timeout_ns);
+            if ret == RCL_TIMEOUT {
+                b::rcutils_reset_error();
+                return Ok(false);
+            }
+            check(ret, "rcl_wait")?;
+            let client_ready = !(*self.wait_set.clients.add(client_index)).is_null();
+            Ok(client_ready)
+        }
+    }
+
+    unsafe fn add_guard(&mut self, guard: &GuardCondition) -> Result<(), RclError> {
+        let guard_ptr = guard.raw();
+        if !guard_ptr.is_null() {
+            unsafe {
                 check(
                     b::rcl_wait_set_add_guard_condition(
                         self.wait_set.as_mut(),
@@ -525,20 +1396,8 @@ impl WaitSet {
                     "rcl_wait_set_add_guard_condition",
                 )?;
             }
-            let ret = b::rcl_wait(self.wait_set.as_mut(), timeout_ns);
-            if ret == RCL_TIMEOUT {
-                b::rcutils_reset_error();
-                return Ok(Vec::new());
-            }
-            check(ret, "rcl_wait")?;
-            let mut ready = Vec::new();
-            for index in 0..subscriptions.len() {
-                if !(*self.wait_set.subscriptions.add(index)).is_null() {
-                    ready.push(index);
-                }
-            }
-            Ok(ready)
         }
+        Ok(())
     }
 
     pub fn fini(mut self) {

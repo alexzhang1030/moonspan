@@ -116,7 +116,7 @@ impl Default for GatewayConfig {
             support_row: SUPPORT_ROW_J_FT,
             domain_id: 0,
             policy_revision: "r1-dev".to_owned(),
-            adapter_abi_version: "serialized-rcl-static-r1".to_owned(),
+            adapter_abi_version: crate::adapter::ABI_VERSION_STRING.to_owned(),
             max_channels: MAX_CHANNELS_CEILING,
             max_session_bytes: MAX_SESSION_BYTES_CEILING,
             max_message_bytes: MAX_MESSAGE_BYTES_CEILING,

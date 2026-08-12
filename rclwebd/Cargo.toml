@@ -6,9 +6,10 @@ rust-version.workspace = true
 publish = false
 
 [features]
-# Serialized-only rcl attachment (links a ROS 2 Jazzy installation; see
-# docs/gateway/rclwebd.md for the environment contract).
-ros = []
+# Serialized-only rcl attachment (links a ROS 2 installation; see
+# docs/gateway/rclwebd.md for the environment contract). Typesupport is
+# resolved at runtime via dlopen (R3-04); pair ROS_PREFIX with RCLWEBD_SUPPORT_ROW.
+ros = ["dep:libloading"]
 # HTTP/3 WebTransport accept loop (wtransport/quinn). Off by default so
 # `just check` stays light; enable for local WT bring-up.
 webtransport = ["dep:wtransport"]
@@ -17,6 +18,7 @@ webtransport = ["dep:wtransport"]
 axum = { version = "0.8.9", features = ["ws"] }
 base64 = "0.22"
 bytes = "1.12.1"
+libloading = { version = "0.8", optional = true }
 rcgen = "0.14"
 rclweb = { path = "../rclweb" }
 sha2 = "0.10"
