@@ -1,9 +1,11 @@
-//! R2WP v0 protocol parsers: bootstrap, deterministic CBOR, extension TLVs,
-//! CONTROL_CBOR shape, and selected-frame validation steps 1–16.
+//! R2WP v0 protocol parsers and encoders: bootstrap, deterministic CBOR,
+//! extension TLVs, CONTROL_CBOR shape, selected-frame validation steps 1–16,
+//! and the sender-side encoders proven against those parsers.
 
 pub mod bootstrap;
 pub mod cbor;
 pub mod control;
+pub mod encode;
 pub mod error;
 pub mod extension;
 pub mod frame;
@@ -25,6 +27,11 @@ pub use control::{
     CONTROL_KIND_SESSION_RESUME_RESULT, CONTROL_PAYLOAD_MAX_BYTES, ControlMessage,
     decode_control_message, validate_control_message,
 };
+pub use encode::{
+    EncodeError, FrameHeader, encode_bootstrap_error, encode_client_hello, encode_control_frame,
+    encode_deterministic_cbor, encode_extension_area, encode_frame, encode_server_hello,
+    write_frame_header,
+};
 pub use error::ProtocolError;
 pub use extension::{
     EXTENSION_AREA_MAX_BYTES, OPERATION_ID_EXTENSION_TYPE, R2wpExtension,
@@ -36,5 +43,7 @@ pub use frame::{
     parse_frame,
 };
 
+#[cfg(test)]
+mod encode_tests;
 #[cfg(test)]
 mod tests;
