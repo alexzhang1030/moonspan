@@ -1,8 +1,8 @@
 //! Focused transition-matrix tests for the v0.1 session/channel state machine.
 
 use super::{
-    ChannelResult, ChannelState, OperationKind, Role, Session, SessionPhase, FIELD_CHANNEL_ID,
-    FIELD_CHANNEL_RESULT, FIELD_CORRELATION_ID, FIELD_OPERATION_KIND,
+    ChannelResult, ChannelState, FIELD_CHANNEL_ID, FIELD_CHANNEL_RESULT, FIELD_CORRELATION_ID,
+    FIELD_OPERATION_KIND, OperationKind, Role, Session, SessionPhase,
 };
 use crate::protocol::bootstrap::{
     BootstrapErrorRecord, BootstrapRecord, BufferCapabilities, ClientHello, EffectiveLimits,

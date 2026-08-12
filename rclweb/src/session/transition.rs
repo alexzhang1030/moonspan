@@ -125,21 +125,23 @@ fn control_sender(kind: u8) -> Option<Role> {
         | CONTROL_KIND_SCHEMA_ADVERTISE
         | CONTROL_KIND_SCHEMA_RESPONSE => Some(Role::Server),
         CONTROL_KIND_SCHEMA_REQUEST => Some(Role::Client),
-        CONTROL_KIND_CLOSE_CHANNEL | CONTROL_KIND_CLOCK_SYNC | CONTROL_KIND_HEARTBEAT
+        CONTROL_KIND_CLOSE_CHANNEL
+        | CONTROL_KIND_CLOCK_SYNC
+        | CONTROL_KIND_HEARTBEAT
         | CONTROL_KIND_ERROR => None,
         _ => None,
     }
 }
 
 fn reject_if_wrong_sender(kind: u8, sender: Role) -> Result<(), ProtocolError> {
-    if let Some(expected) = control_sender(kind) {
-        if sender != expected {
-            return Err(ProtocolError::protocol_violation(
-                "wrong_control_direction",
-                0,
-                25,
-            ));
-        }
+    if let Some(expected) = control_sender(kind)
+        && sender != expected
+    {
+        return Err(ProtocolError::protocol_violation(
+            "wrong_control_direction",
+            0,
+            25,
+        ));
     }
     Ok(())
 }
@@ -234,11 +236,7 @@ pub fn apply_frame(
     sender: Role,
 ) -> Result<SessionEffects, ProtocolError> {
     if state.phase.is_terminal() {
-        return Err(ProtocolError::protocol_violation(
-            "session_terminal",
-            0,
-            25,
-        ));
+        return Err(ProtocolError::protocol_violation("session_terminal", 0, 25));
     }
     if !state.phase.in_selected_plane() {
         return Err(ProtocolError::protocol_violation(
@@ -262,10 +260,7 @@ pub fn apply_frame(
             // Other application opcodes: treat like data-plane for readiness / channel rules,
             // then reject as unsupported for the v0.1 topic skeleton.
             if !state.phase.is_ready() {
-                return Err(ProtocolError::session_not_ready(
-                    "data_before_ready",
-                    0,
-                ));
+                return Err(ProtocolError::session_not_ready("data_before_ready", 0));
             }
             apply_data_channel_gates(state, frame.channel_id)?;
             Err(ProtocolError::protocol_violation(
@@ -298,10 +293,7 @@ fn apply_control(
 
     // Ready-required kinds before ready → session_not_ready (step 17).
     if !state.phase.is_ready() && is_ready_required_kind(msg.kind) {
-        return Err(ProtocolError::session_not_ready(
-            "control_before_ready",
-            0,
-        ));
+        return Err(ProtocolError::session_not_ready("control_before_ready", 0));
     }
 
     let mut effects = SessionEffects::default();
@@ -370,10 +362,7 @@ fn apply_session_ready(
         ));
     }
     let response_corr = correlation_vec(msg);
-    if correlations_match(
-        state.pending_auth_correlation.as_deref(),
-        &response_corr,
-    ) {
+    if correlations_match(state.pending_auth_correlation.as_deref(), &response_corr) {
         effects.auth_correlation_matched = true;
     }
     state.pending_auth_correlation = None;
@@ -390,10 +379,7 @@ fn apply_error(
     // Error is legal after selected-plane entry (not a ready-required kind).
     let response_corr = correlation_vec(msg);
     if state.phase == SessionPhase::SelectedAwaitSessionReady {
-        if correlations_match(
-            state.pending_auth_correlation.as_deref(),
-            &response_corr,
-        ) {
+        if correlations_match(state.pending_auth_correlation.as_deref(), &response_corr) {
             effects.auth_correlation_matched = true;
         }
         state.pending_auth_correlation = None;
@@ -406,17 +392,17 @@ fn apply_error(
         // For v0.1 skeleton: treat as session_error effect without forcing Failed unless
         // no channel_id is present (session scope default when channel_id absent).
         let channel_id = field_uint(msg, FIELD_CHANNEL_ID).map(|v| v as u32);
-        if let Some(id) = channel_id {
-            if state.channels.state(id) == ChannelState::Pending {
-                if let Some(entry) = state.channels.get(id) {
-                    if correlations_match(Some(&entry.open_correlation), &response_corr) {
-                        effects.channel_correlation_matched = true;
-                    }
-                }
-                state.channels.set_state(id, ChannelState::Failed);
-                effects.channel_failed = Some(id);
-                return Ok(());
+        if let Some(id) = channel_id
+            && state.channels.state(id) == ChannelState::Pending
+        {
+            if let Some(entry) = state.channels.get(id)
+                && correlations_match(Some(&entry.open_correlation), &response_corr)
+            {
+                effects.channel_correlation_matched = true;
             }
+            state.channels.set_state(id, ChannelState::Failed);
+            effects.channel_failed = Some(id);
+            return Ok(());
         }
         effects.session_error = true;
         return Ok(());
@@ -429,11 +415,7 @@ fn apply_error(
         effects.session_error = true;
         return Ok(());
     }
-    Err(ProtocolError::protocol_violation(
-        "error_bad_phase",
-        0,
-        25,
-    ))
+    Err(ProtocolError::protocol_violation("error_bad_phase", 0, 25))
 }
 
 fn apply_open_channel(
@@ -453,11 +435,7 @@ fn apply_open_channel(
         ));
     }
     if state.channels.contains(channel_id) {
-        return Err(ProtocolError::protocol_violation(
-            "channel_id_reuse",
-            0,
-            25,
-        ));
+        return Err(ProtocolError::protocol_violation("channel_id_reuse", 0, 25));
     }
     let op_raw = field_uint(msg, FIELD_OPERATION_KIND).ok_or_else(|| {
         ProtocolError::protocol_violation("open_channel_missing_operation_kind", 0, 25)
@@ -469,9 +447,8 @@ fn apply_open_channel(
             25,
         ));
     }
-    let operation_kind = OperationKind::from_u8(op_raw as u8).ok_or_else(|| {
-        ProtocolError::protocol_violation("unsupported_operation_kind", 0, 25)
-    })?;
+    let operation_kind = OperationKind::from_u8(op_raw as u8)
+        .ok_or_else(|| ProtocolError::protocol_violation("unsupported_operation_kind", 0, 25))?;
     state
         .channels
         .insert_pending(channel_id, operation_kind, correlation_vec(msg));
@@ -505,9 +482,8 @@ fn apply_channel_ready(
             ));
         }
     }
-    let result_raw = field_uint(msg, FIELD_CHANNEL_RESULT).ok_or_else(|| {
-        ProtocolError::protocol_violation("channel_ready_missing_result", 0, 25)
-    })?;
+    let result_raw = field_uint(msg, FIELD_CHANNEL_RESULT)
+        .ok_or_else(|| ProtocolError::protocol_violation("channel_ready_missing_result", 0, 25))?;
     if result_raw > u64::from(u8::MAX) {
         return Err(ProtocolError::protocol_violation(
             "channel_ready_bad_result",
@@ -515,14 +491,13 @@ fn apply_channel_ready(
             25,
         ));
     }
-    let result = ChannelResult::from_u8(result_raw as u8).ok_or_else(|| {
-        ProtocolError::protocol_violation("channel_ready_bad_result", 0, 25)
-    })?;
+    let result = ChannelResult::from_u8(result_raw as u8)
+        .ok_or_else(|| ProtocolError::protocol_violation("channel_ready_bad_result", 0, 25))?;
     let response_corr = correlation_vec(msg);
-    if let Some(entry) = state.channels.get(channel_id) {
-        if correlations_match(Some(&entry.open_correlation), &response_corr) {
-            effects.channel_correlation_matched = true;
-        }
+    if let Some(entry) = state.channels.get(channel_id)
+        && correlations_match(Some(&entry.open_correlation), &response_corr)
+    {
+        effects.channel_correlation_matched = true;
     }
     if result.is_success() {
         state.channels.set_state(channel_id, ChannelState::Active);
@@ -573,9 +548,9 @@ fn apply_data_channel_gates(state: &SessionState, channel_id: u32) -> Result<(),
             0,
             19,
         )),
-        ChannelState::Failed | ChannelState::Closed | ChannelState::Unused => {
-            Err(ProtocolError::unknown_channel("data_on_inactive_channel", 0))
-        }
+        ChannelState::Failed | ChannelState::Closed | ChannelState::Unused => Err(
+            ProtocolError::unknown_channel("data_on_inactive_channel", 0),
+        ),
         ChannelState::Active => Ok(()),
     }
 }

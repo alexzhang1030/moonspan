@@ -26,14 +26,14 @@ mod tests;
 pub use channel::{ChannelEntry, ChannelResult, ChannelState, ChannelTable, OperationKind};
 pub use state::{Role, SessionPhase};
 pub use transition::{
-    SessionEffects, FIELD_CHANNEL_ID, FIELD_CHANNEL_RESULT, FIELD_CORRELATION_ID,
-    FIELD_OPERATION_KIND,
+    FIELD_CHANNEL_ID, FIELD_CHANNEL_RESULT, FIELD_CORRELATION_ID, FIELD_OPERATION_KIND,
+    SessionEffects,
 };
 
 use crate::protocol::bootstrap::BootstrapRecord;
 use crate::protocol::error::ProtocolError;
 use crate::protocol::frame::DecodedFrame;
-use transition::{apply_bootstrap, apply_frame, SessionState};
+use transition::{SessionState, apply_bootstrap, apply_frame};
 
 /// Connection/session state machine for one peer role.
 #[derive(Debug, Clone)]
