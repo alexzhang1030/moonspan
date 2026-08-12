@@ -65,4 +65,4 @@ Optional mock compose: `docker compose -f docker/compose.r3-03-h-ft.yml run --rm
 
 ## Ownership after completion
 
-R3-04 owns versioned adapter ABI and dynamic typesupport (stronger multi-row packaging and live service/action schemas beyond the static demo typesupport set).
+R3-04 delivered versioned adapter ABI and dynamic typesupport ([milestone](./r3-04-adapter-abi-typesupport.md)); keep J-FT and H-FT talker e2e green under that ABI.

@@ -32,7 +32,7 @@ Phase 1 gates one support row, J-FT (Jazzy + Fast DDS); corpus data for all six 
 | I/O Worker | Transport, reconnect, and buffer transfer | Byte batches to and from the core |
 | `rclweb` core | R2WP codecs, CDR, session/channel state, graph, QoS, clocks, and ROS operations | Host poll ABI (wasm) and Rust API (native) |
 | `rclwebd` | ROS attachment, sessions, schema cache, scheduling, policy, audit, and operations | R2WP and the serialized rcl surface |
-| ROS adapter | Serialized-only rcl FFI for one support row (versioned ABI from R3) | Narrow serialized C surface |
+| ROS adapter | Versioned serialized C ABI (`serialized-adapter-v1`) + dlopen typesupport for one support row | Narrow serialized C surface ([R3-04](./milestones/r3-04-adapter-abi-typesupport.md)) |
 | Conformance system | Fixtures, corpus, workloads, and reports | Machine-readable evidence |
 | Studio | Post-release workspace and visual application behavior | Released SDK and capability schema |
 

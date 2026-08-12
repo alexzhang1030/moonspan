@@ -41,10 +41,7 @@ impl AdapterStatus {
             Self::SchemaUnavailable => 10,
             Self::QosIncompatible => 11,
             Self::ResourceExhausted => 13,
-            Self::Timeout
-            | Self::InvalidArgument
-            | Self::ProfileMismatch
-            | Self::Internal => 13,
+            Self::Timeout | Self::InvalidArgument | Self::ProfileMismatch | Self::Internal => 13,
         }
     }
 }
@@ -111,11 +108,7 @@ pub struct AdapterProbe {
 impl AdapterProbe {
     /// Build the probe for the process-local support row after ROS attach.
     #[must_use]
-    pub fn for_row(
-        support_row_id: &str,
-        ros_distro: &str,
-        rmw_implementation: &str,
-    ) -> Self {
+    pub fn for_row(support_row_id: &str, ros_distro: &str, rmw_implementation: &str) -> Self {
         Self {
             abi_major: ABI_MAJOR,
             abi_minor: ABI_MINOR,

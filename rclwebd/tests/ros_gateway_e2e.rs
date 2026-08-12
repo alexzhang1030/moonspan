@@ -11,7 +11,8 @@ mod common;
 
 use common::{TestClient, corr};
 use rclweb::{
-    BootstrapRecord, CdrEndian, CdrReader, CdrWriter, FramePayload, OPCODE_ROS_SAMPLE, parse_frame,
+    BootstrapRecord, CdrEndian, CdrReader, CdrWriter, FramePayload, OPCODE_CONTROL_CBOR,
+    OPCODE_ROS_SAMPLE, parse_frame,
 };
 use rclwebd::ros::RclBackend;
 use std::process::{Child, Command, Stdio};
@@ -64,6 +65,13 @@ async fn ready(client: &mut TestClient) {
         .await;
     let (_, effects) = client.recv_ingested().await.expect("session ready");
     assert!(effects.entered_ready);
+    // GraphSnapshot (kind 3) follows SessionReady before any OpenChannel.
+    let (bytes, _) = client.recv_ingested().await.expect("graph snapshot");
+    let frame = parse_frame(&bytes, None).expect("parse graph snapshot");
+    let FramePayload::Control(msg) = frame.payload else {
+        panic!("expected control GraphSnapshot");
+    };
+    assert_eq!(msg.kind, 3, "GraphSnapshot");
 }
 
 async fn open_ready_channel(
@@ -83,20 +91,32 @@ async fn open_ready_channel(
             DOMAIN,
         ))
         .await;
-    let (bytes, _) = client.recv_ingested().await.expect("channel ready");
-    let frame = parse_frame(&bytes, None).expect("parse channel ready");
-    let FramePayload::Control(msg) = frame.payload else {
-        panic!("expected control payload");
-    };
-    assert_eq!(msg.kind, 9, "ChannelReady");
-    match msg.fields.get(&33) {
-        Some(rclweb::CborValue::Unsigned(0)) => {}
-        other => panic!("channel {channel_id} not allowed: result {other:?} ({msg:?})"),
+    // Skip GraphDelta (kind 4) from a prior OpenChannel; take ChannelReady (9).
+    let deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        assert!(Instant::now() < deadline, "ChannelReady timeout");
+        let (bytes, _) = client.recv_ingested().await.expect("channel ready");
+        let frame = parse_frame(&bytes, None).expect("parse channel ready");
+        let FramePayload::Control(msg) = frame.payload else {
+            panic!("expected control payload");
+        };
+        if msg.kind == 4 {
+            continue;
+        }
+        assert_eq!(msg.kind, 9, "ChannelReady");
+        match msg.fields.get(&33) {
+            Some(rclweb::CborValue::Unsigned(0)) => return,
+            other => panic!("channel {channel_id} not allowed: result {other:?} ({msg:?})"),
+        }
     }
 }
 
-fn decode_sample_string(bytes: &[u8]) -> (u32, u64, String) {
-    let frame = parse_frame(bytes, None).expect("parse sample frame");
+/// Decode a ROS_SAMPLE string, or `None` when the frame is control (e.g. GraphDelta).
+fn try_decode_sample_string(bytes: &[u8]) -> Option<(u32, u64, String)> {
+    let frame = parse_frame(bytes, None).expect("parse frame");
+    if frame.opcode == OPCODE_CONTROL_CBOR {
+        return None;
+    }
     assert_eq!(frame.opcode, OPCODE_ROS_SAMPLE);
     assert_ne!(
         frame.flags & 0x0001,
@@ -108,7 +128,7 @@ fn decode_sample_string(bytes: &[u8]) -> (u32, u64, String) {
     };
     let mut reader = CdrReader::open_default(payload).expect("open cdr");
     let text = reader.read_string(None).expect("read string");
-    (frame.channel_id, frame.sequence, text)
+    Some((frame.channel_id, frame.sequence, text))
 }
 
 #[tokio::test]
@@ -130,7 +150,9 @@ async fn live_talker_reaches_websocket_client_and_publish_crosses_dds() {
             let Some((bytes, _)) = client.recv_ingested().await else {
                 panic!("connection closed while waiting for samples");
             };
-            let (channel_id, sequence, text) = decode_sample_string(&bytes);
+            let Some((channel_id, sequence, text)) = try_decode_sample_string(&bytes) else {
+                continue; // GraphDelta / other control after OpenChannel
+            };
             assert_eq!(channel_id, 7);
             assert_eq!(sequence, expected_seq, "contiguous reliable sequence");
             assert_eq!(text, TALKER_TEXT);
@@ -154,12 +176,16 @@ async fn live_talker_reaches_websocket_client_and_publish_crosses_dds() {
             client.send_sample(9, publish_seq, true, &message).await;
             publish_seq += 1;
             match tokio::time::timeout(Duration::from_millis(500), client.recv_ingested()).await {
-                Ok(Some((bytes, _))) => break bytes,
+                Ok(Some((bytes, _))) => {
+                    if try_decode_sample_string(&bytes).is_some() {
+                        break bytes;
+                    }
+                }
                 Ok(None) => panic!("connection closed while waiting for echo"),
                 Err(_) => continue,
             }
         };
-        let (channel_id, _, text) = decode_sample_string(&echoed);
+        let (channel_id, _, text) = try_decode_sample_string(&echoed).expect("echo sample");
         assert_eq!(channel_id, 8, "echo arrives on the subscribe channel");
         assert_eq!(text, "echo through dds");
     });

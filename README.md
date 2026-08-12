@@ -51,12 +51,13 @@ just build
 
 ## Status
 
-R0–R2 are complete and R3-01 lands services, actions, parameters, and graph
-on the wire (MockBackend-proven; live ROS service/action typesupport waits on
-R3-04). The walking skeleton still reaches a live ROS talker in CI
-(`just e2e` / `e2e-ros-talker`, and Humble via `just e2e-h-ft` / `e2e-ros-talker-h-ft`) with a committed demo under
-`examples/subscribe-chatter`. Phases and gates live in the
-[plan](./tasks/plan.md); current state lives in the
+R0–R3 are complete through R3-04: versioned adapter ABI (`serialized-adapter-v1`),
+dynamic typesupport, and live ROS service client/server (plus action client
+call-style) on `RclBackend`. MockBackend remains the protocol/SDK oracle; wire
+schema exchange stays parked. The walking skeleton reaches a live ROS talker in
+CI (`just e2e` / `e2e-ros-talker`, and Humble via `just e2e-h-ft` /
+`e2e-ros-talker-h-ft`) with a committed demo under `examples/subscribe-chatter`.
+Phases and gates live in the [plan](./tasks/plan.md); current state lives in the
 [checklist](./tasks/todo.md).
 
 ## Start here

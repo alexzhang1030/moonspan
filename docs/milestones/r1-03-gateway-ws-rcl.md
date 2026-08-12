@@ -30,7 +30,7 @@ control frame through its own session machine before sending it.
 | QoS resolution (wire ↔ effective ↔ rmw profile) | [`rclwebd/src/qos.rs`](../../rclwebd/src/qos.rs) |
 | WebSocket endpoint (`/ws`, `/healthz`) | [`rclwebd/src/ws.rs`](../../rclwebd/src/ws.rs) |
 | ROS attachment trait (engine ↔ rcl seam) | [`rclwebd/src/backend.rs`](../../rclwebd/src/backend.rs) |
-| Vendored rcl FFI bindings + static demo typesupport | [`rclwebd/src/ros/ffi/`](../../rclwebd/src/ros/ffi/), [`scripts/generate-rcl-bindings.sh`](../../scripts/generate-rcl-bindings.sh) |
+| Vendored rcl FFI bindings (demo typesupport was static in R1; dlopen in R3-04) | [`rclwebd/src/ros/ffi/`](../../rclwebd/src/ros/ffi/), [`scripts/generate-rcl-bindings.sh`](../../scripts/generate-rcl-bindings.sh) |
 | Safe rcl wrapper (init, node, serialized publish/take, wait set, graph) | [`rclwebd/src/ros/rcl.rs`](../../rclwebd/src/ros/rcl.rs) |
 | Single ROS thread behind the trait | [`rclwebd/src/ros/backend.rs`](../../rclwebd/src/ros/backend.rs) |
 | Gateway daemon binary | [`rclwebd/src/main.rs`](../../rclwebd/src/main.rs) |

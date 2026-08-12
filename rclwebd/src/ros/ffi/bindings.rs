@@ -790,9 +790,24 @@ const _: () = {
         [::std::mem::align_of::<
             rosidl_runtime_c__type_description__IndividualTypeDescription__Sequence,
         >() - 8usize];
-    ["Offset of field: rosidl_runtime_c__type_description__IndividualTypeDescription__Sequence::data"] [:: std :: mem :: offset_of ! (rosidl_runtime_c__type_description__IndividualTypeDescription__Sequence , data) - 0usize] ;
-    ["Offset of field: rosidl_runtime_c__type_description__IndividualTypeDescription__Sequence::size"] [:: std :: mem :: offset_of ! (rosidl_runtime_c__type_description__IndividualTypeDescription__Sequence , size) - 8usize] ;
-    ["Offset of field: rosidl_runtime_c__type_description__IndividualTypeDescription__Sequence::capacity"] [:: std :: mem :: offset_of ! (rosidl_runtime_c__type_description__IndividualTypeDescription__Sequence , capacity) - 16usize] ;
+    [
+        "Offset of field: rosidl_runtime_c__type_description__IndividualTypeDescription__Sequence::data",
+    ][::std::mem::offset_of!(
+        rosidl_runtime_c__type_description__IndividualTypeDescription__Sequence,
+        data
+    ) - 0usize];
+    [
+        "Offset of field: rosidl_runtime_c__type_description__IndividualTypeDescription__Sequence::size",
+    ][::std::mem::offset_of!(
+        rosidl_runtime_c__type_description__IndividualTypeDescription__Sequence,
+        size
+    ) - 8usize];
+    [
+        "Offset of field: rosidl_runtime_c__type_description__IndividualTypeDescription__Sequence::capacity",
+    ][::std::mem::offset_of!(
+        rosidl_runtime_c__type_description__IndividualTypeDescription__Sequence,
+        capacity
+    ) - 16usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -812,7 +827,12 @@ const _: () = {
         type_description
     )
         - 0usize];
-    ["Offset of field: rosidl_runtime_c__type_description__TypeDescription::referenced_type_descriptions"] [:: std :: mem :: offset_of ! (rosidl_runtime_c__type_description__TypeDescription , referenced_type_descriptions) - 48usize] ;
+    [
+        "Offset of field: rosidl_runtime_c__type_description__TypeDescription::referenced_type_descriptions",
+    ][::std::mem::offset_of!(
+        rosidl_runtime_c__type_description__TypeDescription,
+        referenced_type_descriptions
+    ) - 48usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

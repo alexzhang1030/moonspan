@@ -3,8 +3,8 @@
 //! and are woken via the guard condition.
 
 use super::rcl::{
-    ActionClient, Attachment, GuardCondition, GuardTrigger, SerializedClient,
-    SerializedPublisher, SerializedService, SerializedSubscription, TakeBuffer, WaitSet,
+    ActionClient, Attachment, GuardCondition, GuardTrigger, SerializedClient, SerializedPublisher,
+    SerializedService, SerializedSubscription, TakeBuffer, WaitSet,
 };
 use super::typesupport::{self, ActionTypeSupport, ServiceTypeSupport};
 use crate::adapter::{AdapterProbe, QueueLimits};
@@ -12,9 +12,9 @@ use crate::backend::{
     ActionInbound, BackendError, ChannelSpec, EntityId, GraphEndpointInfo, GraphNodeInfo,
     GraphView, RosBackend, ServiceRequest, SubscriptionSample,
 };
-use crate::config::{parse_support_row, SUPPORT_ROW_J_FT};
+use crate::config::{SUPPORT_ROW_J_FT, parse_support_row};
 use std::collections::HashMap;
-use std::sync::mpsc::{sync_channel, SyncSender};
+use std::sync::mpsc::{SyncSender, sync_channel};
 use std::thread::JoinHandle;
 use std::time::Duration;
 use tokio::sync::{mpsc, oneshot};
@@ -101,8 +101,7 @@ pub struct RclBackend {
 impl RclBackend {
     /// Initialize rcl on `domain_id` and start the attachment thread.
     pub fn spawn(domain_id: u8) -> Result<Self, BackendError> {
-        let capacity = usize::try_from(QueueLimits::default().command_capacity)
-            .unwrap_or(1024);
+        let capacity = usize::try_from(QueueLimits::default().command_capacity).unwrap_or(1024);
         let (command_tx, command_rx) = sync_channel::<Command>(capacity);
         let (init_tx, init_rx) = sync_channel::<Result<GuardTrigger, BackendError>>(1);
         let thread = std::thread::Builder::new()
@@ -416,12 +415,13 @@ fn map_rcl_error(err: super::rcl::RclError) -> BackendError {
 }
 
 fn check_adapter_probe() -> Result<(), BackendError> {
-    let row_raw = std::env::var("RCLWEBD_SUPPORT_ROW").unwrap_or_else(|_| SUPPORT_ROW_J_FT.id.to_owned());
+    let row_raw =
+        std::env::var("RCLWEBD_SUPPORT_ROW").unwrap_or_else(|_| SUPPORT_ROW_J_FT.id.to_owned());
     let row = parse_support_row(&row_raw).unwrap_or(SUPPORT_ROW_J_FT);
     let distro = std::env::var("ROS_DISTRO").unwrap_or_else(|_| row.ros_distro.to_owned());
     let rmw = std::env::var("RMW_IMPLEMENTATION").unwrap_or_else(|_| "rmw_fastrtps_cpp".to_owned());
     let probe = AdapterProbe::for_row(row.id, &distro, &rmw);
-  if let Err(status) = probe.check_compatible(row.id, row.ros_distro) {
+    if let Err(status) = probe.check_compatible(row.id, row.ros_distro) {
         return Err(BackendError::new(
             status.wire_code(),
             format!(
@@ -444,8 +444,7 @@ impl Worker {
         let mut attachment =
             Attachment::init(usize::from(domain_id), &node_name).map_err(map_rcl_error)?;
         let guard = GuardCondition::create(&mut attachment).map_err(map_rcl_error)?;
-        let wait_set =
-            WaitSet::new(attachment.context_ptr(), 4, 0, 4, 1).map_err(map_rcl_error)?;
+        let wait_set = WaitSet::new(attachment.context_ptr(), 4, 0, 4, 1).map_err(map_rcl_error)?;
         let take = TakeBuffer::new().map_err(map_rcl_error)?;
         Ok(Self {
             domain_id,
@@ -489,11 +488,7 @@ impl Worker {
         self.next_entity
     }
 
-    fn handle(
-        &mut self,
-        commands: &std::sync::mpsc::Receiver<Command>,
-        command: Command,
-    ) {
+    fn handle(&mut self, commands: &std::sync::mpsc::Receiver<Command>, command: Command) {
         match command {
             Command::CreateSubscription { spec, sink, reply } => {
                 let _ = reply.send(self.create_subscription(&spec, sink));
@@ -694,21 +689,12 @@ impl Worker {
                 format!("no dynamic typesupport for {}", spec.type_name),
             ));
         };
-        let client = SerializedClient::create(
-            &mut self.attachment,
-            &spec.topic,
-            service_ts,
-            &spec.qos,
-        )
-        .map_err(map_rcl_error)?;
+        let client =
+            SerializedClient::create(&mut self.attachment, &spec.topic, service_ts, &spec.qos)
+                .map_err(map_rcl_error)?;
         let entity = self.allocate();
-        self.clients.insert(
-            entity,
-            ClientEntry {
-                client,
-                service_ts,
-            },
-        );
+        self.clients
+            .insert(entity, ClientEntry { client, service_ts });
         Ok(entity)
     }
 
@@ -723,13 +709,9 @@ impl Worker {
                 format!("no dynamic typesupport for {}", spec.type_name),
             ));
         };
-        let service = SerializedService::create(
-            &mut self.attachment,
-            &spec.topic,
-            service_ts,
-            &spec.qos,
-        )
-        .map_err(map_rcl_error)?;
+        let service =
+            SerializedService::create(&mut self.attachment, &spec.topic, service_ts, &spec.qos)
+                .map_err(map_rcl_error)?;
         let entity = self.allocate();
         self.services.insert(
             entity,
@@ -752,21 +734,11 @@ impl Worker {
                 format!("no dynamic typesupport for {}", spec.type_name),
             ));
         };
-        let client = ActionClient::create(
-            &mut self.attachment,
-            &spec.topic,
-            action_ts,
-            &spec.qos,
-        )
-        .map_err(map_rcl_error)?;
+        let client = ActionClient::create(&mut self.attachment, &spec.topic, action_ts, &spec.qos)
+            .map_err(map_rcl_error)?;
         let entity = self.allocate();
-        self.action_clients.insert(
-            entity,
-            ActionClientEntry {
-                client,
-                action_ts,
-            },
-        );
+        self.action_clients
+            .insert(entity, ActionClientEntry { client, action_ts });
         Ok(entity)
     }
 
@@ -813,9 +785,10 @@ impl Worker {
         operation_id: [u8; 16],
         response: &[u8],
     ) -> Result<(), BackendError> {
-        let entry = self.services.get_mut(&entity).ok_or_else(|| {
-            BackendError::new(13, "unknown service server entity")
-        })?;
+        let entry = self
+            .services
+            .get_mut(&entity)
+            .ok_or_else(|| BackendError::new(13, "unknown service server entity"))?;
         let header = entry
             .pending
             .remove(&operation_id)
@@ -832,9 +805,10 @@ impl Worker {
         operation_id: [u8; 16],
         goal_cdr: &[u8],
     ) -> Result<Vec<u8>, BackendError> {
-        let entry = self.action_clients.get_mut(&entity).ok_or_else(|| {
-            BackendError::new(13, "unknown action client entity")
-        })?;
+        let entry = self
+            .action_clients
+            .get_mut(&entity)
+            .ok_or_else(|| BackendError::new(13, "unknown action client entity"))?;
         entry
             .client
             .send_goal_result(
@@ -853,9 +827,10 @@ impl Worker {
         entity: EntityId,
         operation_id: [u8; 16],
     ) -> Result<Vec<u8>, BackendError> {
-        let entry = self.action_clients.get_mut(&entity).ok_or_else(|| {
-            BackendError::new(13, "unknown action client entity")
-        })?;
+        let entry = self
+            .action_clients
+            .get_mut(&entity)
+            .ok_or_else(|| BackendError::new(13, "unknown action client entity"))?;
         entry
             .client
             .cancel_goal(
@@ -944,18 +919,12 @@ impl Worker {
 
         for entry in self.services.values_mut() {
             loop {
-                match entry
-                    .service
-                    .take_request(entry.service_ts.request)
-                {
+                match entry.service.take_request(entry.service_ts.request) {
                     Ok(Some((header, cdr))) => {
                         let operation_id = Self::next_operation_id(&mut entry.next_opid);
                         entry.pending.insert(operation_id, header);
-                        let request = ServiceRequest::from_payload(
-                            entry.channel_id,
-                            operation_id,
-                            &cdr,
-                        );
+                        let request =
+                            ServiceRequest::from_payload(entry.channel_id, operation_id, &cdr);
                         let _ = entry.sink.try_send(request);
                     }
                     Ok(None) => break,
@@ -976,11 +945,8 @@ impl Worker {
             .iter()
             .map(|entry| &entry.subscription)
             .collect();
-        let svc_handles: Vec<&SerializedService> = self
-            .services
-            .values()
-            .map(|entry| &entry.service)
-            .collect();
+        let svc_handles: Vec<&SerializedService> =
+            self.services.values().map(|entry| &entry.service).collect();
         let _ready = self
             .wait_set
             .wait(&sub_handles, &svc_handles, &self.guard, WAIT_TIMEOUT_NS)

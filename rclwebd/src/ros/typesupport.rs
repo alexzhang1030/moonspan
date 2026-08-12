@@ -123,7 +123,8 @@ fn open_library(cache: &mut Cache, path: &Path) -> Result<*const Library, String
         // linker to dedupe by soname. Keep every Library alive.
         let _ = lib;
     }
-    let lib = unsafe { Library::new(path) }.map_err(|err| format!("dlopen {}: {err}", path.display()))?;
+    let lib =
+        unsafe { Library::new(path) }.map_err(|err| format!("dlopen {}: {err}", path.display()))?;
     cache.libraries.push(lib);
     Ok(cache.libraries.last().expect("just pushed") as *const Library)
 }
@@ -167,7 +168,8 @@ fn load_message_ts(
         find_library(dirs, &gen_name).ok_or_else(|| format!("missing {gen_name} under ROS lib"))?;
     let ts_lib = unsafe { &*open_library(cache, &ts_path)? };
     let gen_lib = unsafe { &*open_library(cache, &gen_path)? };
-    let getter = format!("rosidl_typesupport_c__get_message_type_support_handle__{pkg}__{kind}__{name}");
+    let getter =
+        format!("rosidl_typesupport_c__get_message_type_support_handle__{pkg}__{kind}__{name}");
     let create_name = format!("{pkg}__{kind}__{name}__create");
     let destroy_name = format!("{pkg}__{kind}__{name}__destroy");
     let getter_fn: MessageTsFn = load_symbol(ts_lib, &getter)?;
@@ -211,28 +213,17 @@ pub fn service_type_support(type_name: &str) -> Option<ServiceTypeSupport> {
     let ts_name = format!("lib{pkg}__rosidl_typesupport_c.so");
     let ts_path = find_library(&dirs, &ts_name)?;
     let ts_lib = unsafe { &*open_library(&mut cache, &ts_path).ok()? };
-    let getter = format!("rosidl_typesupport_c__get_service_type_support_handle__{pkg}__srv__{name}");
+    let getter =
+        format!("rosidl_typesupport_c__get_service_type_support_handle__{pkg}__srv__{name}");
     let getter_fn: ServiceTsFn = load_symbol(ts_lib, &getter).ok()?;
     let handle = unsafe { getter_fn() };
     if handle.is_null() {
         return None;
     }
-    let request = load_message_ts(
-        &mut cache,
-        &dirs,
-        pkg,
-        "srv",
-        &format!("{name}_Request"),
-    )
-    .ok()?;
-    let response = load_message_ts(
-        &mut cache,
-        &dirs,
-        pkg,
-        "srv",
-        &format!("{name}_Response"),
-    )
-    .ok()?;
+    let request =
+        load_message_ts(&mut cache, &dirs, pkg, "srv", &format!("{name}_Request")).ok()?;
+    let response =
+        load_message_ts(&mut cache, &dirs, pkg, "srv", &format!("{name}_Response")).ok()?;
     let ts = ServiceTypeSupport {
         handle,
         request,
@@ -265,14 +256,27 @@ pub fn action_type_support(type_name: &str) -> Option<ActionTypeSupport> {
         return None;
     }
     // CancelGoal lives in action_msgs.
-    let cancel_request =
-        load_message_ts(&mut cache, &dirs, "action_msgs", "srv", "CancelGoal_Request").ok()?;
-    let cancel_response =
-        load_message_ts(&mut cache, &dirs, "action_msgs", "srv", "CancelGoal_Response").ok()?;
+    let cancel_request = load_message_ts(
+        &mut cache,
+        &dirs,
+        "action_msgs",
+        "srv",
+        "CancelGoal_Request",
+    )
+    .ok()?;
+    let cancel_response = load_message_ts(
+        &mut cache,
+        &dirs,
+        "action_msgs",
+        "srv",
+        "CancelGoal_Response",
+    )
+    .ok()?;
     let ts = ActionTypeSupport {
         handle,
         goal: load_message_ts(&mut cache, &dirs, pkg, "action", &format!("{name}_Goal")).ok()?,
-        result: load_message_ts(&mut cache, &dirs, pkg, "action", &format!("{name}_Result")).ok()?,
+        result: load_message_ts(&mut cache, &dirs, pkg, "action", &format!("{name}_Result"))
+            .ok()?,
         send_goal_request: load_message_ts(
             &mut cache,
             &dirs,

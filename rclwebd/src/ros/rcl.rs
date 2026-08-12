@@ -528,13 +528,8 @@ impl SerializedClient {
                     writer_guid: [0; 16],
                     sequence_number: 0,
                 };
-                let ret = unsafe {
-                    b::rcl_take_response(
-                        self.client.as_ref(),
-                        &mut header,
-                        response,
-                    )
-                };
+                let ret =
+                    unsafe { b::rcl_take_response(self.client.as_ref(), &mut header, response) };
                 if ret == RCL_CLIENT_TAKE_FAILED {
                     unsafe { b::rcutils_reset_error() };
                     continue;
@@ -629,9 +624,7 @@ impl SerializedService {
             writer_guid: [0; 16],
             sequence_number: 0,
         };
-        let ret = unsafe {
-            b::rcl_take_request(self.service.as_ref(), &mut header, request)
-        };
+        let ret = unsafe { b::rcl_take_request(self.service.as_ref(), &mut header, request) };
         if ret == RCL_SERVICE_TAKE_FAILED {
             unsafe { b::rcutils_reset_error() };
             destroy_message(request_ts, request);
@@ -660,11 +653,7 @@ impl SerializedService {
             // SAFETY: response is a live ROS response message.
             unsafe {
                 check(
-                    b::rcl_send_response(
-                        self.service.as_ref(),
-                        &mut header_mut,
-                        response,
-                    ),
+                    b::rcl_send_response(self.service.as_ref(), &mut header_mut, response),
                     "rcl_send_response",
                 )
             }
@@ -743,11 +732,7 @@ impl ActionClient {
         let result = (|| {
             // SAFETY: goal_id is the first 16 bytes of SendGoal_Request.
             unsafe {
-                std::ptr::copy_nonoverlapping(
-                    operation_id.as_ptr(),
-                    send_goal_req as *mut u8,
-                    16,
-                );
+                std::ptr::copy_nonoverlapping(operation_id.as_ptr(), send_goal_req as *mut u8, 16);
             }
             deserialize_into(action_ts.goal, goal_cdr, unsafe {
                 send_goal_req.add(16) as *mut c_void
@@ -756,11 +741,7 @@ impl ActionClient {
             let mut seq = 0i64;
             unsafe {
                 check(
-                    b::rcl_action_send_goal_request(
-                        self.client.as_ref(),
-                        send_goal_req,
-                        &mut seq,
-                    ),
+                    b::rcl_action_send_goal_request(self.client.as_ref(), send_goal_req, &mut seq),
                     "rcl_action_send_goal_request",
                 )?;
             }
@@ -782,11 +763,7 @@ impl ActionClient {
             }
 
             unsafe {
-                std::ptr::copy_nonoverlapping(
-                    operation_id.as_ptr(),
-                    get_result_req as *mut u8,
-                    16,
-                );
+                std::ptr::copy_nonoverlapping(operation_id.as_ptr(), get_result_req as *mut u8, 16);
             }
             let mut result_seq = 0i64;
             unsafe {
@@ -833,20 +810,12 @@ impl ActionClient {
         let result = (|| {
             // SAFETY: GoalInfo.goal_id.uuid is the first 16 bytes of CancelGoal_Request.
             unsafe {
-                std::ptr::copy_nonoverlapping(
-                    operation_id.as_ptr(),
-                    cancel_req as *mut u8,
-                    16,
-                );
+                std::ptr::copy_nonoverlapping(operation_id.as_ptr(), cancel_req as *mut u8, 16);
             }
             let mut seq = 0i64;
             unsafe {
                 check(
-                    b::rcl_action_send_cancel_request(
-                        self.client.as_ref(),
-                        cancel_req,
-                        &mut seq,
-                    ),
+                    b::rcl_action_send_cancel_request(self.client.as_ref(), cancel_req, &mut seq),
                     "rcl_action_send_cancel_request",
                 )?;
             }
@@ -888,11 +857,7 @@ impl ActionClient {
                     sequence_number: 0,
                 };
                 let ret = unsafe {
-                    b::rcl_action_take_goal_response(
-                        self.client.as_ref(),
-                        &mut header,
-                        response,
-                    )
+                    b::rcl_action_take_goal_response(self.client.as_ref(), &mut header, response)
                 };
                 if ret == RCL_ACTION_CLIENT_TAKE_FAILED {
                     unsafe { b::rcutils_reset_error() };
@@ -926,11 +891,7 @@ impl ActionClient {
                     sequence_number: 0,
                 };
                 let ret = unsafe {
-                    b::rcl_action_take_result_response(
-                        self.client.as_ref(),
-                        &mut header,
-                        response,
-                    )
+                    b::rcl_action_take_result_response(self.client.as_ref(), &mut header, response)
                 };
                 if ret == RCL_ACTION_CLIENT_TAKE_FAILED {
                     unsafe { b::rcutils_reset_error() };
@@ -964,11 +925,7 @@ impl ActionClient {
                     sequence_number: 0,
                 };
                 let ret = unsafe {
-                    b::rcl_action_take_cancel_response(
-                        self.client.as_ref(),
-                        &mut header,
-                        response,
-                    )
+                    b::rcl_action_take_cancel_response(self.client.as_ref(), &mut header, response)
                 };
                 if ret == RCL_ACTION_CLIENT_TAKE_FAILED {
                     unsafe { b::rcutils_reset_error() };
@@ -1003,13 +960,7 @@ impl ActionClient {
                 "rcl_action_client_wait_set_get_num_entities",
             )?;
         }
-        let mut wait_set = WaitSet::new(
-            context,
-            num_subs,
-            num_clients,
-            num_services,
-            num_gc + 1,
-        )?;
+        let mut wait_set = WaitSet::new(context, num_subs, num_clients, num_services, num_gc + 1)?;
         let ready = wait_set.wait_action_client(self, guard, timeout.as_nanos() as i64)?;
         wait_set.fini();
         Ok(ready)
@@ -1280,11 +1231,7 @@ impl WaitSet {
                 "rcl_wait_set_clear",
             )?;
             check(
-                b::rcl_wait_set_add_client(
-                    self.wait_set.as_mut(),
-                    client,
-                    std::ptr::null_mut(),
-                ),
+                b::rcl_wait_set_add_client(self.wait_set.as_mut(), client, std::ptr::null_mut()),
                 "rcl_wait_set_add_client",
             )?;
             if !guard.is_null() {
@@ -1315,7 +1262,10 @@ impl WaitSet {
         guard: &GuardCondition,
         timeout_ns: i64,
     ) -> Result<Vec<usize>, RclError> {
-        assert!(clients.len() <= self.client_capacity, "client wait set overflow");
+        assert!(
+            clients.len() <= self.client_capacity,
+            "client wait set overflow"
+        );
         unsafe {
             check(
                 b::rcl_wait_set_clear(self.wait_set.as_mut()),

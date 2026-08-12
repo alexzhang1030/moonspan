@@ -8,7 +8,7 @@
 use rclweb::{CdrEndian, CdrReader, CdrWriter};
 use rclwebd::backend::{ChannelSpec, RosBackend};
 use rclwebd::qos::{RequestedQos, resolve_effective};
-use rclwebd::ros::{typesupport, RclBackend, LINKED_TYPES};
+use rclwebd::ros::{LINKED_TYPES, RclBackend, typesupport};
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
 
@@ -141,10 +141,7 @@ async fn live_service_add_two_ints_round_trip() {
 
     let (service_sink, mut service_rx) = mpsc::channel(8);
     let service_entity = backend
-        .create_service(
-            &reliable_spec(10, service_name, type_name),
-            service_sink,
-        )
+        .create_service(&reliable_spec(10, service_name, type_name), service_sink)
         .await
         .expect("create service server");
 
