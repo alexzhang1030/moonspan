@@ -61,6 +61,19 @@ test: toolchain-check
     bun test
     cargo test --locked --workspace
 
+# Gateway tests against real rcl (requires a sourced ROS 2 Jazzy env, row J-FT).
+[group('quality')]
+ros-test: toolchain-check
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{root}}"
+    if [ -z "${AMENT_PREFIX_PATH:-}" ]; then
+        echo "error: source a ROS 2 Jazzy environment first (e.g. /opt/ros/jazzy/setup.bash)" >&2
+        exit 1
+    fi
+    cargo test --locked -p rclwebd --features ros
+    cargo clippy --locked -p rclwebd --features ros --all-targets -- -D warnings
+
 # Cargo native build, rclweb wasm32 build, and SDK build.
 [group('quality')]
 build: toolchain-check
