@@ -87,7 +87,7 @@ Foundation CI installs Bun with SHA-pinned `oven-sh/setup-bun` (`.bun-version`) 
 
 ## Humble bundle identity strings are in the hash
 
-Canonical bundle JSON includes `format`, ROS type names, and `generator_revision` (which hashes generator source paths). Renaming `rclweb-schema-v1`, `rclweb-schema-bundle-v1`, `rclweb_cdr_interfaces`, or the generator package changes Humble `SchemaKey.value` and `fixtures/bundles/<digest>.json` filenames. CDR `.bin` payloads do not embed those strings — rehash committed bundles and rewrite metadata; do not Docker `--write` the corpus for a name change. Parked protocol fixtures that carry the scheme string in CBOR must be patched (text length prefix plus frame `payload_len`). [ADR 0012](../../docs/adr/0012-rclweb-schema-identifiers.md).
+Canonical bundle JSON includes `format`, ROS type names, and `generator_revision` (which hashes generator source paths). Renaming `rclweb-schema-v1`, `rclweb-schema-bundle-v1`, `rclweb_cdr_interfaces`, or the generator package changes Humble `SchemaKey.value` and `fixtures/bundles/<digest>.json` filenames. CDR `.bin` payloads do not embed those identity strings — rehash committed bundles and rewrite metadata; do not Docker `--write` the corpus for a name change. Sample *values* that still spelled the old project name were same-length UTF-8 patches (a length change would shift CDR layout). Parked protocol fixtures that carry the scheme string in CBOR must be patched (text length prefix plus frame `payload_len`); a 1 MiB control payload keeps its bound by growing the fill bstr. [ADR 0012](../../docs/adr/0012-rclweb-schema-identifiers.md).
 
 ## Do not commit measurement JSON
 

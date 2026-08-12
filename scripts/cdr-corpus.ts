@@ -141,7 +141,7 @@ const primitiveValues = {
   uint32_value: 4000000000,
   int64_value: "-9000000000000000000",
   uint64_value: "18000000000000000000",
-  string_value: "rclweb CDR ✓",
+  string_value: "rclweb CDR ✓!!",
   wstring_value: "月面CDR",
 };
 

@@ -86,7 +86,7 @@ rclweb_cdr_interfaces::msg::PrimitiveScalars make_primitive_scalars()
   message.uint32_value = 4000000000U;
   message.int64_value = -9000000000000000000LL;
   message.uint64_value = 18000000000000000000ULL;
-  message.string_value = "rclweb CDR \xe2\x9c\x93";
+  message.string_value = "rclweb CDR \xe2\x9c\x93!!";
   message.wstring_value = u"\u6708\u9762CDR";
   return message;
 }

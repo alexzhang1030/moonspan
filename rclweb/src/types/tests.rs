@@ -17,7 +17,7 @@ fn primitive_scalars_h_ft_and_j_ft_tails() {
   let type_name = "rclweb_cdr_interfaces/msg/PrimitiveScalars";
 
   for (scheme, value) in [
-    (SCHEME_RCLWEB_SCHEMA_V1, "e42b18f990e13d03e5c0999c5a019a567d1f9d868c5873082bef5ef0941f0d4f"),
+    (SCHEME_RCLWEB_SCHEMA_V1, "ec92f53bd1a60ed2b7aaf4df51159a7330e3eddc6ac24341973f60bffec6a0c7"),
     (
       SCHEME_REP2011_RIHS,
       "RIHS01_db44c373c05fc055970958730d7cb835f816b091b68bfdf93d6ed50086092cea",
@@ -47,7 +47,7 @@ fn invalid_key_faults() {
 
   let err = SchemaKey::new(
     "unknown-scheme",
-    "e42b18f990e13d03e5c0999c5a019a567d1f9d868c5873082bef5ef0941f0d4f",
+    "ec92f53bd1a60ed2b7aaf4df51159a7330e3eddc6ac24341973f60bffec6a0c7",
     "t",
     1,
     1,
@@ -67,7 +67,7 @@ fn invalid_key_faults() {
 
   let err = SchemaKey::new(
     SCHEME_RCLWEB_SCHEMA_V1,
-    "e42b18f990e13d03e5c0999c5a019a567d1f9d868c5873082bef5ef0941f0d4f",
+    "ec92f53bd1a60ed2b7aaf4df51159a7330e3eddc6ac24341973f60bffec6a0c7",
     "t",
     2,
     1,

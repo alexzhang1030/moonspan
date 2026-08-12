@@ -230,7 +230,7 @@
       "path": "valid/frame-control-payload-1mib.bin",
       "representation": "binary",
       "byte_length": 1048608,
-      "sha256": "f4f15dcc3499679fa9e472c5516e50564fe5b594eb154f18385f1e1ffccfb72a",
+      "sha256": "6a71b4748815204194cb19791581dfbe41de56212cf42db8260831cd16f2e9ec",
       "expected": {
         "status": "success",
         "roundtrip": "decode-reencode"
@@ -295,7 +295,7 @@
                 "$type": "recipe",
                 "kind": "pattern_fill",
                 "pattern_hex": "42",
-                "length": 1048452
+                "length": 1048454
               }
             ]
           ]

@@ -7,9 +7,7 @@
 //! in the session SM; this registry is for local resolve before channel activation.
 
 use super::error::{SchemaError, SchemaErrorCode};
-use super::key::{
-  SCHEME_RCLWEB_SCHEMA_V1, SCHEME_REP2011_RIHS, SchemaKey, validate_scheme_value,
-};
+use super::key::{SCHEME_RCLWEB_SCHEMA_V1, SCHEME_REP2011_RIHS, SchemaKey, validate_scheme_value};
 use super::limits::{
   ENCODING_CDR1, MAX_REGISTRY_ENTRIES, MAX_SUPPORT_ROW_ID_CHARS, MAX_TYPE_NAME_CHARS,
   PHASE1_SCHEMA_GENERATION,
