@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Install the repo-pinned Bun from GitHub Releases (not bun.sh/install).
 #
-# bun.sh/install is another hop that then hits GitHub Releases with no retry.
+# Used by scripts/cloud-agent-install.sh (no GitHub Actions). CI uses
+# oven-sh/setup-bun; e2e images copy bun from digest-pinned oven/bun.
 # Digests are from bun-v1.3.14 SHASUMS256.txt; recompute together with
 # .bun-version.
 set -euo pipefail
