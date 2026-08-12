@@ -10,6 +10,7 @@
 
 #![deny(unsafe_code)]
 
+pub mod adapter;
 pub mod backend;
 pub mod budgets;
 pub mod config;

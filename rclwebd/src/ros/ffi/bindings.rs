@@ -52,6 +52,16 @@ pub const RCL_RET_EVENT_INVALID: u32 = 2000;
 pub const RCL_RET_EVENT_TAKE_FAILED: u32 = 2001;
 pub const RCL_RET_LIFECYCLE_STATE_REGISTERED: u32 = 3000;
 pub const RCL_RET_LIFECYCLE_STATE_NOT_REGISTERED: u32 = 3001;
+pub const RCL_ACTION_RET_NOT_TERMINATED_YET: u32 = 4001;
+pub const RCL_RET_ACTION_NAME_INVALID: u32 = 2000;
+pub const RCL_RET_ACTION_GOAL_ACCEPTED: u32 = 2100;
+pub const RCL_RET_ACTION_GOAL_REJECTED: u32 = 2101;
+pub const RCL_RET_ACTION_CLIENT_INVALID: u32 = 2102;
+pub const RCL_RET_ACTION_CLIENT_TAKE_FAILED: u32 = 2103;
+pub const RCL_RET_ACTION_SERVER_INVALID: u32 = 2200;
+pub const RCL_RET_ACTION_SERVER_TAKE_FAILED: u32 = 2201;
+pub const RCL_RET_ACTION_GOAL_HANDLE_INVALID: u32 = 2300;
+pub const RCL_RET_ACTION_GOAL_EVENT_INVALID: u32 = 2301;
 pub type rcutils_ret_t = ::std::os::raw::c_int;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -314,6 +324,41 @@ const _: () = {
         [::std::mem::offset_of!(rmw_subscription_allocation_s, data) - 8usize];
 };
 pub type rmw_subscription_allocation_t = rmw_subscription_allocation_s;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rmw_request_id_s {
+    pub writer_guid: [u8; 16usize],
+    pub sequence_number: i64,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of rmw_request_id_s"][::std::mem::size_of::<rmw_request_id_s>() - 24usize];
+    ["Alignment of rmw_request_id_s"][::std::mem::align_of::<rmw_request_id_s>() - 8usize];
+    ["Offset of field: rmw_request_id_s::writer_guid"]
+        [::std::mem::offset_of!(rmw_request_id_s, writer_guid) - 0usize];
+    ["Offset of field: rmw_request_id_s::sequence_number"]
+        [::std::mem::offset_of!(rmw_request_id_s, sequence_number) - 16usize];
+};
+pub type rmw_request_id_t = rmw_request_id_s;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rmw_service_info_s {
+    pub source_timestamp: rmw_time_point_value_t,
+    pub received_timestamp: rmw_time_point_value_t,
+    pub request_id: rmw_request_id_t,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of rmw_service_info_s"][::std::mem::size_of::<rmw_service_info_s>() - 40usize];
+    ["Alignment of rmw_service_info_s"][::std::mem::align_of::<rmw_service_info_s>() - 8usize];
+    ["Offset of field: rmw_service_info_s::source_timestamp"]
+        [::std::mem::offset_of!(rmw_service_info_s, source_timestamp) - 0usize];
+    ["Offset of field: rmw_service_info_s::received_timestamp"]
+        [::std::mem::offset_of!(rmw_service_info_s, received_timestamp) - 8usize];
+    ["Offset of field: rmw_service_info_s::request_id"]
+        [::std::mem::offset_of!(rmw_service_info_s, request_id) - 16usize];
+};
+pub type rmw_service_info_t = rmw_service_info_s;
 pub const RMW_QOS_POLICY_RELIABILITY_SYSTEM_DEFAULT: rmw_qos_reliability_policy_e = 0;
 pub const RMW_QOS_POLICY_RELIABILITY_RELIABLE: rmw_qos_reliability_policy_e = 1;
 pub const RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT: rmw_qos_reliability_policy_e = 2;
@@ -914,6 +959,181 @@ const _: () = {
     )
         - 40usize];
 };
+pub type rosidl_service_typesupport_handle_function = ::std::option::Option<
+    unsafe extern "C" fn(
+        arg1: *const rosidl_service_type_support_t,
+        arg2: *const ::std::os::raw::c_char,
+    ) -> *const rosidl_service_type_support_t,
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rosidl_service_introspection_info_s {
+    pub event_type: u8,
+    pub stamp_sec: i32,
+    pub stamp_nanosec: u32,
+    pub client_gid: [u8; 16usize],
+    pub sequence_number: i64,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of rosidl_service_introspection_info_s"]
+        [::std::mem::size_of::<rosidl_service_introspection_info_s>() - 40usize];
+    ["Alignment of rosidl_service_introspection_info_s"]
+        [::std::mem::align_of::<rosidl_service_introspection_info_s>() - 8usize];
+    ["Offset of field: rosidl_service_introspection_info_s::event_type"]
+        [::std::mem::offset_of!(rosidl_service_introspection_info_s, event_type) - 0usize];
+    ["Offset of field: rosidl_service_introspection_info_s::stamp_sec"]
+        [::std::mem::offset_of!(rosidl_service_introspection_info_s, stamp_sec) - 4usize];
+    ["Offset of field: rosidl_service_introspection_info_s::stamp_nanosec"]
+        [::std::mem::offset_of!(rosidl_service_introspection_info_s, stamp_nanosec) - 8usize];
+    ["Offset of field: rosidl_service_introspection_info_s::client_gid"]
+        [::std::mem::offset_of!(rosidl_service_introspection_info_s, client_gid) - 12usize];
+    ["Offset of field: rosidl_service_introspection_info_s::sequence_number"]
+        [::std::mem::offset_of!(rosidl_service_introspection_info_s, sequence_number) - 32usize];
+};
+pub type rosidl_service_introspection_info_t = rosidl_service_introspection_info_s;
+pub type rosidl_event_message_create_handle_function_function = ::std::option::Option<
+    unsafe extern "C" fn(
+        info: *const rosidl_service_introspection_info_t,
+        allocator: *mut rcutils_allocator_t,
+        request_message: *const ::std::os::raw::c_void,
+        response_message: *const ::std::os::raw::c_void,
+    ) -> *mut ::std::os::raw::c_void,
+>;
+pub type rosidl_event_message_destroy_handle_function_function = ::std::option::Option<
+    unsafe extern "C" fn(
+        event_message: *mut ::std::os::raw::c_void,
+        allocator: *mut rcutils_allocator_t,
+    ) -> bool,
+>;
+pub type rosidl_service_get_type_hash_function = ::std::option::Option<
+    unsafe extern "C" fn(arg1: *const rosidl_service_type_support_t) -> *const rosidl_type_hash_t,
+>;
+pub type rosidl_service_get_type_description_function = ::std::option::Option<
+    unsafe extern "C" fn(
+        arg1: *const rosidl_service_type_support_t,
+    ) -> *const rosidl_runtime_c__type_description__TypeDescription,
+>;
+pub type rosidl_service_get_type_description_sources_function = ::std::option::Option<
+    unsafe extern "C" fn(
+        arg1: *const rosidl_service_type_support_t,
+    ) -> *const rosidl_runtime_c__type_description__TypeSource__Sequence,
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rosidl_service_type_support_t {
+    pub typesupport_identifier: *const ::std::os::raw::c_char,
+    pub data: *const ::std::os::raw::c_void,
+    pub func: rosidl_service_typesupport_handle_function,
+    pub request_typesupport: *const rosidl_message_type_support_t,
+    pub response_typesupport: *const rosidl_message_type_support_t,
+    pub event_typesupport: *const rosidl_message_type_support_t,
+    pub event_message_create_handle_function: rosidl_event_message_create_handle_function_function,
+    pub event_message_destroy_handle_function:
+        rosidl_event_message_destroy_handle_function_function,
+    pub get_type_hash_func: rosidl_service_get_type_hash_function,
+    pub get_type_description_func: rosidl_service_get_type_description_function,
+    pub get_type_description_sources_func: rosidl_service_get_type_description_sources_function,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of rosidl_service_type_support_t"]
+        [::std::mem::size_of::<rosidl_service_type_support_t>() - 88usize];
+    ["Alignment of rosidl_service_type_support_t"]
+        [::std::mem::align_of::<rosidl_service_type_support_t>() - 8usize];
+    ["Offset of field: rosidl_service_type_support_t::typesupport_identifier"]
+        [::std::mem::offset_of!(rosidl_service_type_support_t, typesupport_identifier) - 0usize];
+    ["Offset of field: rosidl_service_type_support_t::data"]
+        [::std::mem::offset_of!(rosidl_service_type_support_t, data) - 8usize];
+    ["Offset of field: rosidl_service_type_support_t::func"]
+        [::std::mem::offset_of!(rosidl_service_type_support_t, func) - 16usize];
+    ["Offset of field: rosidl_service_type_support_t::request_typesupport"]
+        [::std::mem::offset_of!(rosidl_service_type_support_t, request_typesupport) - 24usize];
+    ["Offset of field: rosidl_service_type_support_t::response_typesupport"]
+        [::std::mem::offset_of!(rosidl_service_type_support_t, response_typesupport) - 32usize];
+    ["Offset of field: rosidl_service_type_support_t::event_typesupport"]
+        [::std::mem::offset_of!(rosidl_service_type_support_t, event_typesupport) - 40usize];
+    ["Offset of field: rosidl_service_type_support_t::event_message_create_handle_function"][::std::mem::offset_of!(
+        rosidl_service_type_support_t,
+        event_message_create_handle_function
+    )
+        - 48usize];
+    ["Offset of field: rosidl_service_type_support_t::event_message_destroy_handle_function"][::std::mem::offset_of!(
+        rosidl_service_type_support_t,
+        event_message_destroy_handle_function
+    )
+        - 56usize];
+    ["Offset of field: rosidl_service_type_support_t::get_type_hash_func"]
+        [::std::mem::offset_of!(rosidl_service_type_support_t, get_type_hash_func) - 64usize];
+    ["Offset of field: rosidl_service_type_support_t::get_type_description_func"][::std::mem::offset_of!(
+        rosidl_service_type_support_t,
+        get_type_description_func
+    ) - 72usize];
+    ["Offset of field: rosidl_service_type_support_t::get_type_description_sources_func"][::std::mem::offset_of!(
+        rosidl_service_type_support_t,
+        get_type_description_sources_func
+    )
+        - 80usize];
+};
+pub type rosidl_action_get_type_hash_function = ::std::option::Option<
+    unsafe extern "C" fn(arg1: *const rosidl_action_type_support_t) -> *const rosidl_type_hash_t,
+>;
+pub type rosidl_action_get_type_description_function = ::std::option::Option<
+    unsafe extern "C" fn(
+        arg1: *const rosidl_action_type_support_t,
+    ) -> *const rosidl_runtime_c__type_description__TypeDescription,
+>;
+pub type rosidl_action_get_type_description_sources_function = ::std::option::Option<
+    unsafe extern "C" fn(
+        arg1: *const rosidl_action_type_support_t,
+    ) -> *const rosidl_runtime_c__type_description__TypeSource__Sequence,
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rosidl_action_type_support_t {
+    pub goal_service_type_support: *const rosidl_service_type_support_t,
+    pub result_service_type_support: *const rosidl_service_type_support_t,
+    pub cancel_service_type_support: *const rosidl_service_type_support_t,
+    pub feedback_message_type_support: *const rosidl_message_type_support_t,
+    pub status_message_type_support: *const rosidl_message_type_support_t,
+    pub get_type_hash_func: rosidl_action_get_type_hash_function,
+    pub get_type_description_func: rosidl_action_get_type_description_function,
+    pub get_type_description_sources_func: rosidl_action_get_type_description_sources_function,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of rosidl_action_type_support_t"]
+        [::std::mem::size_of::<rosidl_action_type_support_t>() - 64usize];
+    ["Alignment of rosidl_action_type_support_t"]
+        [::std::mem::align_of::<rosidl_action_type_support_t>() - 8usize];
+    ["Offset of field: rosidl_action_type_support_t::goal_service_type_support"]
+        [::std::mem::offset_of!(rosidl_action_type_support_t, goal_service_type_support) - 0usize];
+    ["Offset of field: rosidl_action_type_support_t::result_service_type_support"][::std::mem::offset_of!(
+        rosidl_action_type_support_t,
+        result_service_type_support
+    ) - 8usize];
+    ["Offset of field: rosidl_action_type_support_t::cancel_service_type_support"][::std::mem::offset_of!(
+        rosidl_action_type_support_t,
+        cancel_service_type_support
+    ) - 16usize];
+    ["Offset of field: rosidl_action_type_support_t::feedback_message_type_support"][::std::mem::offset_of!(
+        rosidl_action_type_support_t,
+        feedback_message_type_support
+    ) - 24usize];
+    ["Offset of field: rosidl_action_type_support_t::status_message_type_support"][::std::mem::offset_of!(
+        rosidl_action_type_support_t,
+        status_message_type_support
+    ) - 32usize];
+    ["Offset of field: rosidl_action_type_support_t::get_type_hash_func"]
+        [::std::mem::offset_of!(rosidl_action_type_support_t, get_type_hash_func) - 40usize];
+    ["Offset of field: rosidl_action_type_support_t::get_type_description_func"]
+        [::std::mem::offset_of!(rosidl_action_type_support_t, get_type_description_func) - 48usize];
+    ["Offset of field: rosidl_action_type_support_t::get_type_description_sources_func"][::std::mem::offset_of!(
+        rosidl_action_type_support_t,
+        get_type_description_sources_func
+    )
+        - 56usize];
+};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct rcl_node_impl_s {
@@ -1110,6 +1330,61 @@ const _: () = {
 pub type rcl_client_t = rcl_client_s;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct rcl_client_options_s {
+    pub qos: rmw_qos_profile_t,
+    pub allocator: rcl_allocator_t,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of rcl_client_options_s"][::std::mem::size_of::<rcl_client_options_s>() - 128usize];
+    ["Alignment of rcl_client_options_s"][::std::mem::align_of::<rcl_client_options_s>() - 8usize];
+    ["Offset of field: rcl_client_options_s::qos"]
+        [::std::mem::offset_of!(rcl_client_options_s, qos) - 0usize];
+    ["Offset of field: rcl_client_options_s::allocator"]
+        [::std::mem::offset_of!(rcl_client_options_s, allocator) - 88usize];
+};
+pub type rcl_client_options_t = rcl_client_options_s;
+unsafe extern "C" {
+    pub fn rcl_get_zero_initialized_client() -> rcl_client_t;
+}
+unsafe extern "C" {
+    pub fn rcl_client_init(
+        client: *mut rcl_client_t,
+        node: *const rcl_node_t,
+        type_support: *const rosidl_service_type_support_t,
+        service_name: *const ::std::os::raw::c_char,
+        options: *const rcl_client_options_t,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_client_fini(client: *mut rcl_client_t, node: *mut rcl_node_t) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_client_get_default_options() -> rcl_client_options_t;
+}
+unsafe extern "C" {
+    pub fn rcl_send_request(
+        client: *const rcl_client_t,
+        ros_request: *const ::std::os::raw::c_void,
+        sequence_number: *mut i64,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_take_response_with_info(
+        client: *const rcl_client_t,
+        request_header: *mut rmw_service_info_t,
+        ros_response: *mut ::std::os::raw::c_void,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_take_response(
+        client: *const rcl_client_t,
+        request_header: *mut rmw_request_id_t,
+        ros_response: *mut ::std::os::raw::c_void,
+    ) -> rcl_ret_t;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct rcl_service_impl_s {
     _unused: [u8; 0],
 }
@@ -1126,6 +1401,76 @@ const _: () = {
     ["Offset of field: rcl_service_s::impl_"]
         [::std::mem::offset_of!(rcl_service_s, impl_) - 0usize];
 };
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rcl_service_options_s {
+    pub qos: rmw_qos_profile_t,
+    pub allocator: rcl_allocator_t,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of rcl_service_options_s"][::std::mem::size_of::<rcl_service_options_s>() - 128usize];
+    ["Alignment of rcl_service_options_s"]
+        [::std::mem::align_of::<rcl_service_options_s>() - 8usize];
+    ["Offset of field: rcl_service_options_s::qos"]
+        [::std::mem::offset_of!(rcl_service_options_s, qos) - 0usize];
+    ["Offset of field: rcl_service_options_s::allocator"]
+        [::std::mem::offset_of!(rcl_service_options_s, allocator) - 88usize];
+};
+pub type rcl_service_options_t = rcl_service_options_s;
+unsafe extern "C" {
+    pub fn rcl_get_zero_initialized_service() -> rcl_service_t;
+}
+unsafe extern "C" {
+    pub fn rcl_service_init(
+        service: *mut rcl_service_t,
+        node: *const rcl_node_t,
+        type_support: *const rosidl_service_type_support_t,
+        service_name: *const ::std::os::raw::c_char,
+        options: *const rcl_service_options_t,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_service_fini(service: *mut rcl_service_t, node: *mut rcl_node_t) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_service_get_default_options() -> rcl_service_options_t;
+}
+unsafe extern "C" {
+    pub fn rcl_take_request_with_info(
+        service: *const rcl_service_t,
+        request_header: *mut rmw_service_info_t,
+        ros_request: *mut ::std::os::raw::c_void,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_take_request(
+        service: *const rcl_service_t,
+        request_header: *mut rmw_request_id_t,
+        ros_request: *mut ::std::os::raw::c_void,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_send_response(
+        service: *const rcl_service_t,
+        response_header: *mut rmw_request_id_t,
+        ros_response: *mut ::std::os::raw::c_void,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rmw_serialize(
+        ros_message: *const ::std::os::raw::c_void,
+        type_support: *const rosidl_message_type_support_t,
+        serialized_message: *mut rmw_serialized_message_t,
+    ) -> rmw_ret_t;
+}
+unsafe extern "C" {
+    pub fn rmw_deserialize(
+        serialized_message: *const rmw_serialized_message_t,
+        type_support: *const rosidl_message_type_support_t,
+        ros_message: *mut ::std::os::raw::c_void,
+    ) -> rmw_ret_t;
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct rcl_timer_impl_s {
@@ -1254,6 +1599,20 @@ unsafe extern "C" {
     ) -> rcl_ret_t;
 }
 unsafe extern "C" {
+    pub fn rcl_wait_set_add_client(
+        wait_set: *mut rcl_wait_set_t,
+        client: *const rcl_client_t,
+        index: *mut usize,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_wait_set_add_service(
+        wait_set: *mut rcl_wait_set_t,
+        service: *const rcl_service_t,
+        index: *mut usize,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
     pub fn rcl_wait(wait_set: *mut rcl_wait_set_t, timeout: i64) -> rcl_ret_t;
 }
 #[repr(C)]
@@ -1286,5 +1645,149 @@ unsafe extern "C" {
     ) -> rcl_ret_t;
 }
 unsafe extern "C" {
+    pub fn rcl_get_service_names_and_types(
+        node: *const rcl_node_t,
+        allocator: *mut rcl_allocator_t,
+        service_names_and_types: *mut rcl_names_and_types_t,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
     pub fn rcl_names_and_types_fini(names_and_types: *mut rcl_names_and_types_t) -> rcl_ret_t;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rcl_action_client_impl_s {
+    _unused: [u8; 0],
+}
+pub type rcl_action_client_impl_t = rcl_action_client_impl_s;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rcl_action_client_s {
+    pub impl_: *mut rcl_action_client_impl_t,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of rcl_action_client_s"][::std::mem::size_of::<rcl_action_client_s>() - 8usize];
+    ["Alignment of rcl_action_client_s"][::std::mem::align_of::<rcl_action_client_s>() - 8usize];
+    ["Offset of field: rcl_action_client_s::impl_"]
+        [::std::mem::offset_of!(rcl_action_client_s, impl_) - 0usize];
+};
+pub type rcl_action_client_t = rcl_action_client_s;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rcl_action_client_options_s {
+    pub goal_service_qos: rmw_qos_profile_t,
+    pub result_service_qos: rmw_qos_profile_t,
+    pub cancel_service_qos: rmw_qos_profile_t,
+    pub feedback_topic_qos: rmw_qos_profile_t,
+    pub status_topic_qos: rmw_qos_profile_t,
+    pub allocator: rcl_allocator_t,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of rcl_action_client_options_s"]
+        [::std::mem::size_of::<rcl_action_client_options_s>() - 480usize];
+    ["Alignment of rcl_action_client_options_s"]
+        [::std::mem::align_of::<rcl_action_client_options_s>() - 8usize];
+    ["Offset of field: rcl_action_client_options_s::goal_service_qos"]
+        [::std::mem::offset_of!(rcl_action_client_options_s, goal_service_qos) - 0usize];
+    ["Offset of field: rcl_action_client_options_s::result_service_qos"]
+        [::std::mem::offset_of!(rcl_action_client_options_s, result_service_qos) - 88usize];
+    ["Offset of field: rcl_action_client_options_s::cancel_service_qos"]
+        [::std::mem::offset_of!(rcl_action_client_options_s, cancel_service_qos) - 176usize];
+    ["Offset of field: rcl_action_client_options_s::feedback_topic_qos"]
+        [::std::mem::offset_of!(rcl_action_client_options_s, feedback_topic_qos) - 264usize];
+    ["Offset of field: rcl_action_client_options_s::status_topic_qos"]
+        [::std::mem::offset_of!(rcl_action_client_options_s, status_topic_qos) - 352usize];
+    ["Offset of field: rcl_action_client_options_s::allocator"]
+        [::std::mem::offset_of!(rcl_action_client_options_s, allocator) - 440usize];
+};
+pub type rcl_action_client_options_t = rcl_action_client_options_s;
+unsafe extern "C" {
+    pub fn rcl_action_get_zero_initialized_client() -> rcl_action_client_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_client_init(
+        action_client: *mut rcl_action_client_t,
+        node: *mut rcl_node_t,
+        type_support: *const rosidl_action_type_support_t,
+        action_name: *const ::std::os::raw::c_char,
+        options: *const rcl_action_client_options_t,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_client_fini(
+        action_client: *mut rcl_action_client_t,
+        node: *mut rcl_node_t,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_client_get_default_options() -> rcl_action_client_options_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_server_is_available(
+        node: *const rcl_node_t,
+        client: *const rcl_action_client_t,
+        is_available: *mut bool,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_send_goal_request(
+        action_client: *const rcl_action_client_t,
+        ros_goal_request: *const ::std::os::raw::c_void,
+        sequence_number: *mut i64,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_take_goal_response(
+        action_client: *const rcl_action_client_t,
+        response_header: *mut rmw_request_id_t,
+        ros_goal_response: *mut ::std::os::raw::c_void,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_send_result_request(
+        action_client: *const rcl_action_client_t,
+        ros_result_request: *const ::std::os::raw::c_void,
+        sequence_number: *mut i64,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_take_result_response(
+        action_client: *const rcl_action_client_t,
+        response_header: *mut rmw_request_id_t,
+        ros_result: *mut ::std::os::raw::c_void,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_send_cancel_request(
+        action_client: *const rcl_action_client_t,
+        ros_cancel_request: *const ::std::os::raw::c_void,
+        sequence_number: *mut i64,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_take_cancel_response(
+        action_client: *const rcl_action_client_t,
+        response_header: *mut rmw_request_id_t,
+        ros_cancel_response: *mut ::std::os::raw::c_void,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_wait_set_add_action_client(
+        wait_set: *mut rcl_wait_set_t,
+        action_client: *const rcl_action_client_t,
+        client_index: *mut usize,
+        subscription_index: *mut usize,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_client_wait_set_get_num_entities(
+        action_client: *const rcl_action_client_t,
+        num_subscriptions: *mut usize,
+        num_guard_conditions: *mut usize,
+        num_timers: *mut usize,
+        num_clients: *mut usize,
+        num_services: *mut usize,
+    ) -> rcl_ret_t;
 }

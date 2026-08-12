@@ -1,0 +1,35 @@
+{
+  "task": "R3-04",
+  "kind": "adapter-abi-dynamic-typesupport",
+  "abiVersion": "serialized-adapter-v1",
+  "abiMajor": 1,
+  "abiMinor": 0,
+  "surfaces": {
+    "cHeader": "rclwebd/adapter/include/rclweb_adapter_v1.h",
+    "rustMirror": "rclwebd/src/adapter/mod.rs",
+    "typesupportLoader": "rclwebd/src/ros/typesupport.rs",
+    "buildLink": "rcl/rcl_action/rcutils/rmw/rmw_implementation/rosidl_runtime_c (no static demo typesupport)"
+  },
+  "liveRos": {
+    "supportRow": "J-FT",
+    "rosDistro": "jazzy",
+    "topicLoopback": "serialized_loopback_publish_take_and_graph",
+    "serviceRoundTrip": "live_service_add_two_ints_round_trip",
+    "serviceType": "example_interfaces/srv/AddTwoInts",
+    "dynamicResolve": "add_two_ints_typesupport_resolves_via_dlopen",
+    "actionClient": "send_goal_result / cancel_goal attached",
+    "actionServer": "schema_unavailable (deferred)"
+  },
+  "nonRegression": {
+    "jFtTalkerE2e": "just e2e / CI e2e-ros-talker",
+    "hFtTalkerE2e": "just e2e-h-ft / CI e2e-ros-talker-h-ft"
+  },
+  "parked": [
+    "SchemaRequest/SchemaAdvertise/SchemaResponse wire exchange"
+  ],
+  "commands": [
+    "cargo test --locked -p rclwebd --lib adapter::",
+    "source /opt/ros/jazzy/setup.bash && cargo test --locked -p rclwebd --features ros --test ros_rcl",
+    "just check && just test && just build"
+  ]
+}

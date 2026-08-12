@@ -2,9 +2,10 @@
 //!
 //! The FFI bindings are vendored (rclwebd/src/ros/ffi/bindings.rs, regenerated
 //! by scripts/generate-rcl-bindings.sh), so default builds need no ROS
-//! installation; only ros-feature builds resolve these libraries. The demo
-//! types' generated C typesupport links here statically (link-time resolution;
-//! dynamic dlopen typesupport is R3 scope).
+//! installation; only ros-feature builds resolve these libraries.
+//!
+//! R3-04: demo message typesupport is resolved at runtime via dlopen (see
+//! `ros::typesupport`). Only core rcl/rmw/rcutils (+ rcl_action) link here.
 
 use std::env;
 use std::path::Path;
@@ -36,16 +37,14 @@ fn main() {
     println!("cargo:rustc-link-search=native={lib_dir}");
     for lib in [
         "rcl",
+        "rcl_action",
         "rcutils",
         "rmw",
         "rmw_implementation",
         "rosidl_runtime_c",
-        // Demo type typesupport, statically resolved at link time (R1).
-        "std_msgs__rosidl_typesupport_c",
-        "std_msgs__rosidl_generator_c",
-        "sensor_msgs__rosidl_typesupport_c",
-        "sensor_msgs__rosidl_generator_c",
     ] {
         println!("cargo:rustc-link-lib=dylib={lib}");
     }
+    // dlopen typesupport libraries at runtime (libdl).
+    println!("cargo:rustc-link-lib=dylib=dl");
 }

@@ -1,14 +1,14 @@
 //! Serialized-only rcl FFI attachment tests (row J-FT).
 //!
 //! Require `--features ros` and a sourced ROS 2 Jazzy environment
-//! (`just ros-test`). Domains 42/43 isolate the loopback traffic.
+//! (`just ros-test`). Domains 42/43/44 isolate the loopback traffic.
 
 #![cfg(feature = "ros")]
 
 use rclweb::{CdrEndian, CdrReader, CdrWriter};
 use rclwebd::backend::{ChannelSpec, RosBackend};
 use rclwebd::qos::{RequestedQos, resolve_effective};
-use rclwebd::ros::RclBackend;
+use rclwebd::ros::{LINKED_TYPES, RclBackend, typesupport};
 use std::time::{Duration, Instant};
 use tokio::sync::mpsc;
 
@@ -21,6 +21,18 @@ fn cdr_string_message(text: &str) -> Vec<u8> {
 fn decode_cdr_string(payload: &[u8]) -> String {
     let mut reader = CdrReader::open_default(payload).expect("open cdr");
     reader.read_string(None).expect("read string")
+}
+
+fn cdr_add_two_ints_request(a: i64, b: i64) -> Vec<u8> {
+    let mut writer = CdrWriter::new_default(CdrEndian::Little).expect("writer");
+    writer.write_i64(a).expect("write a");
+    writer.write_i64(b).expect("write b");
+    writer.to_bytes()
+}
+
+fn decode_add_two_ints_sum(payload: &[u8]) -> i64 {
+    let mut reader = CdrReader::open_default(payload).expect("open cdr");
+    reader.read_i64().expect("read sum")
 }
 
 fn reliable_spec(channel_id: u32, topic: &str, type_name: &str) -> ChannelSpec {
@@ -107,7 +119,74 @@ async fn unknown_type_is_schema_unavailable() {
         .expect_err("unknown type must fail");
     assert_eq!(err.code, 10, "schema_unavailable");
 
-    // The statically linked registry serves exactly the demo types.
-    assert!(rclwebd::ros::LINKED_TYPES.contains(&"std_msgs/msg/String"));
-    assert!(rclwebd::ros::LINKED_TYPES.contains(&"sensor_msgs/msg/PointCloud2"));
+    assert!(typesupport::message_type_support("std_msgs/msg/String").is_some());
+    assert!(typesupport::message_type_support("sensor_msgs/msg/PointCloud2").is_some());
+    assert!(LINKED_TYPES.contains(&"std_msgs/msg/String"));
+    assert!(LINKED_TYPES.contains(&"sensor_msgs/msg/PointCloud2"));
+}
+
+#[test]
+fn add_two_ints_typesupport_resolves_via_dlopen() {
+    assert!(
+        typesupport::service_type_support("example_interfaces/srv/AddTwoInts").is_some(),
+        "AddTwoInts service typesupport must resolve via dlopen"
+    );
+}
+
+#[tokio::test]
+async fn live_service_add_two_ints_round_trip() {
+    let backend = RclBackend::spawn(44).expect("rcl init on domain 44");
+    let service_name = "/rclwebd_add_two_ints";
+    let type_name = "example_interfaces/srv/AddTwoInts";
+
+    let (service_sink, mut service_rx) = mpsc::channel(8);
+    let service_entity = backend
+        .create_service(&reliable_spec(10, service_name, type_name), service_sink)
+        .await
+        .expect("create service server");
+
+    let client_entity = backend
+        .create_client(&reliable_spec(11, service_name, type_name))
+        .await
+        .expect("create service client");
+
+    // Allow discovery between client and server on the same node.
+    tokio::time::sleep(Duration::from_millis(500)).await;
+
+    let request_cdr = cdr_add_two_ints_request(40, 2);
+    let opid = [0x11u8; 16];
+
+    tokio::pin! {
+        let call_fut = backend.call(client_entity, opid, request_cdr);
+        let service_fut = async {
+            let deadline = Instant::now() + Duration::from_secs(10);
+            while Instant::now() < deadline {
+                match tokio::time::timeout(Duration::from_millis(200), service_rx.recv()).await {
+                    Ok(Some(request)) => {
+                        let mut reader = CdrReader::open_default(request.payload()).expect("cdr");
+                        let a = reader.read_i64().expect("a");
+                        let b = reader.read_i64().expect("b");
+                        let mut writer = CdrWriter::new_default(CdrEndian::Little).expect("writer");
+                        writer.write_i64(a + b).expect("sum");
+                        let response_cdr = writer.to_bytes();
+                        backend
+                            .send_service_response(service_entity, request.operation_id, response_cdr)
+                            .await
+                            .expect("send response");
+                        return;
+                    }
+                    Ok(None) => panic!("service request channel closed"),
+                    Err(_) => continue,
+                }
+            }
+            panic!("no service request received within 10s");
+        };
+    }
+
+    let (response_cdr, ()) = tokio::join!(call_fut, service_fut);
+    let response_cdr = response_cdr.expect("service call");
+    assert_eq!(decode_add_two_ints_sum(&response_cdr), 42);
+
+    backend.destroy(client_entity).await;
+    backend.destroy(service_entity).await;
 }

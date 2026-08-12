@@ -39,4 +39,4 @@ Notable: 18 identities → 9 descriptors; H-FT/J-FT `PrimitiveScalars` LE tail 4
 
 ## Ownership after completion
 
-R3-03 owns H-FT gating and WebTransport. R3-04 owns dynamic typesupport / adapter ABI (open-ended registration beyond the static Phase 1 set) and can un-park wire schema exchange against a gateway schema cache.
+R3-03 owns H-FT gating and WebTransport. R3-04 delivered dynamic typesupport / adapter ABI ([milestone](./r3-04-adapter-abi-typesupport.md)); wire schema exchange stays parked for a follow-up against a gateway schema cache.

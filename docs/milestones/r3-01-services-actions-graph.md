@@ -1,8 +1,9 @@
 # R3-01: Services, actions, parameters, and graph
 
 Status: Complete (implementation + automated evidence). Live ROS service/action
-typesupport remains stubbed on `RclBackend` (`schema_unavailable`) until R3-04
-dynamic typesupport; MockBackend proves the wire and SDK paths.
+on `RclBackend` landed in [R3-04](./r3-04-adapter-abi-typesupport.md) (service
+client/server + action client call-style; action server still stubbed).
+MockBackend remains the protocol/SDK oracle.
 
 ## Outcome
 
@@ -47,8 +48,6 @@ Notable tests:
 
 ## Ownership after completion
 
-R3-02 owns generated types and dual-scheme schema registry (schema control kinds
-stay parked until then). R3-03 owns H-FT + WebTransport. R3-04 owns versioned
-adapter ABI and dynamic typesupport that unblocks live ROS service/action on
-`RclBackend`. SchemaAdvertise for graph endpoints may land with R3-02 if OpenChannel
-forces it.
+R3-02 owns generated types and dual-scheme schema registry. R3-03 owns H-FT +
+WebTransport. R3-04 delivered the versioned adapter ABI, dlopen typesupport, and
+live service/action client attachment — see [R3-04](./r3-04-adapter-abi-typesupport.md).
