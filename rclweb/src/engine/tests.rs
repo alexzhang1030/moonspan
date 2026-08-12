@@ -132,7 +132,7 @@ fn sample_frame(channel_id: u32, sequence: u64, payload: &[u8]) -> Vec<u8> {
 }
 
 fn feed(engine: &mut ClientEngine, bytes: Vec<u8>) -> super::PollOutcome {
-    engine.poll(&[HostEvent::WsBytes {
+    engine.poll(vec![HostEvent::WsBytes {
         buffer_id: 0,
         bytes,
     }])
@@ -148,7 +148,7 @@ fn string_cdr_round_trip() {
 #[test]
 fn scripted_peer_reaches_subscribed_and_sample() {
     let mut engine = ClientEngine::new();
-    let start = engine.poll(&[HostEvent::Command(AppCommand::Start {
+    let start = engine.poll(vec![HostEvent::Command(AppCommand::Start {
         transferable_arraybuffer: true,
     })]);
     assert_eq!(start.outbound.len(), 1);
@@ -162,7 +162,7 @@ fn scripted_peer_reaches_subscribed_and_sample() {
     );
 
     let auth_corr = corr(0xA1);
-    let auth = engine.poll(&[HostEvent::Command(AppCommand::Authenticate {
+    let auth = engine.poll(vec![HostEvent::Command(AppCommand::Authenticate {
         correlation: auth_corr,
         scheme: "token".into(),
         token: b"anonymous".to_vec(),
@@ -178,7 +178,7 @@ fn scripted_peer_reaches_subscribed_and_sample() {
     assert_eq!(engine.phase(), SessionPhase::Ready);
 
     let sub_corr = corr(0xB2);
-    let sub = engine.poll(&[HostEvent::Command(AppCommand::Subscribe {
+    let sub = engine.poll(vec![HostEvent::Command(AppCommand::Subscribe {
         correlation: sub_corr,
         channel_id: 7,
         topic: "/chatter".into(),
@@ -223,7 +223,7 @@ fn scripted_peer_reaches_subscribed_and_sample() {
         Some(payload.as_slice())
     );
 
-    let released = engine.poll(&[HostEvent::ReleaseLease { lease_id }]);
+    let released = engine.poll(vec![HostEvent::ReleaseLease { lease_id }]);
     assert!(
         released
             .released_buffers
@@ -238,12 +238,12 @@ fn scripted_peer_reaches_subscribed_and_sample() {
 #[test]
 fn scripted_peer_publish_sends_ros_sample() {
     let mut engine = ClientEngine::new();
-    let _ = engine.poll(&[HostEvent::Command(AppCommand::Start {
+    let _ = engine.poll(vec![HostEvent::Command(AppCommand::Start {
         transferable_arraybuffer: true,
     })]);
     let _ = feed(&mut engine, server_hello_bytes());
     let auth_corr = corr(0xA1);
-    let _ = engine.poll(&[HostEvent::Command(AppCommand::Authenticate {
+    let _ = engine.poll(vec![HostEvent::Command(AppCommand::Authenticate {
         correlation: auth_corr,
         scheme: "token".into(),
         token: b"anonymous".to_vec(),
@@ -251,7 +251,7 @@ fn scripted_peer_publish_sends_ros_sample() {
     let _ = feed(&mut engine, session_ready_bytes(0, &auth_corr));
 
     let pub_corr = corr(0xC3);
-    let opened = engine.poll(&[HostEvent::Command(AppCommand::Publish {
+    let opened = engine.poll(vec![HostEvent::Command(AppCommand::Publish {
         correlation: pub_corr,
         channel_id: 3,
         topic: "/chatter".into(),
@@ -273,7 +273,7 @@ fn scripted_peer_publish_sends_ros_sample() {
         } if topic == "/chatter" && type_name == STD_MSGS_STRING
     )));
 
-    let sent = engine.poll(&[HostEvent::Command(AppCommand::SendSample {
+    let sent = engine.poll(vec![HostEvent::Command(AppCommand::SendSample {
         channel_id: 3,
         string_data: "hello from client".into(),
     })]);
@@ -295,15 +295,98 @@ fn scripted_peer_publish_sends_ros_sample() {
 #[test]
 fn close_command_terminates() {
     let mut engine = ClientEngine::new();
-    let _ = engine.poll(&[HostEvent::Command(AppCommand::Start {
+    let _ = engine.poll(vec![HostEvent::Command(AppCommand::Start {
         transferable_arraybuffer: true,
     })]);
-    let out = engine.poll(&[HostEvent::Command(AppCommand::Close)]);
+    let out = engine.poll(vec![HostEvent::Command(AppCommand::Close)]);
     assert!(
         out.events
             .iter()
             .any(|e| matches!(e, AppEvent::Closed { .. }))
     );
+}
+
+#[test]
+fn large_point_cloud2_sample_borrowed_view_and_single_retain_copy() {
+    use crate::cdr::{SENSOR_MSGS_POINT_CLOUD2, build_synthetic_xyz_cdr};
+
+    let mut engine = ClientEngine::new();
+    let _ = engine.poll(vec![HostEvent::Command(AppCommand::Start {
+        transferable_arraybuffer: true,
+    })]);
+    let _ = feed(&mut engine, server_hello_bytes());
+    let auth_corr = corr(0xC3);
+    let _ = engine.poll(vec![HostEvent::Command(AppCommand::Authenticate {
+        correlation: auth_corr,
+        scheme: "token".into(),
+        token: b"anonymous".to_vec(),
+    })]);
+    let _ = feed(&mut engine, session_ready_bytes(0, &auth_corr));
+
+    let sub_corr = corr(0xD4);
+    let _ = engine.poll(vec![HostEvent::Command(AppCommand::Subscribe {
+        correlation: sub_corr,
+        channel_id: 9,
+        topic: "/points".into(),
+        type_name: SENSOR_MSGS_POINT_CLOUD2.into(),
+        qos_reliability: 2,
+        qos_depth: 1,
+        domain_id: 0,
+    })]);
+    let _ = feed(&mut engine, channel_ready_allow_bytes(1, &sub_corr, 9));
+
+    // ~1 MiB point payload (87_381 * 12).
+    const POINTS: u32 = 87_381;
+    let cdr = build_synthetic_xyz_cdr(POINTS).expect("synthetic pc2");
+    assert!(cdr.len() > 1_000_000);
+
+    let before = engine.telemetry();
+    let frame = sample_frame(9, 0, &cdr);
+    let frame_len = frame.len();
+    let sample = feed(&mut engine, frame);
+    let after = engine.telemetry();
+
+    assert_eq!(after.copies_into_engine - before.copies_into_engine, 1);
+    assert_eq!(
+        after.bytes_copied_into_engine - before.bytes_copied_into_engine,
+        frame_len as u64
+    );
+
+    let AppEvent::Sample {
+        channel_id,
+        lease_id,
+        string_data,
+        ..
+    } = sample
+        .events
+        .iter()
+        .find(|e| matches!(e, AppEvent::Sample { .. }))
+        .expect("sample event")
+    else {
+        unreachable!()
+    };
+    assert_eq!(*channel_id, 9);
+    assert!(string_data.is_none());
+
+    let view = engine
+        .lease_point_cloud2_view(*lease_id)
+        .expect("lease")
+        .expect("pc2 decode");
+    assert_eq!(view.width, POINTS);
+    assert_eq!(view.data.len(), POINTS as usize * 12);
+
+    let payload = engine.lease_payload_view(*lease_id).expect("payload");
+    let payload_start = payload.as_ptr() as usize;
+    let data_start = view.data.as_ptr() as usize;
+    assert!(
+        data_start >= payload_start
+            && data_start + view.data.len() <= payload_start + payload.len(),
+        "PointCloud2 data must borrow from the leased CDR payload"
+    );
+
+    let _ = engine.poll(vec![HostEvent::ReleaseLease {
+        lease_id: *lease_id,
+    }]);
 }
 
 #[test]

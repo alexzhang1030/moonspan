@@ -89,6 +89,11 @@ build: toolchain-check
 poll-latency: toolchain-check
     cd "{{root}}" && bun run scripts/measure-poll-latency.ts
 
+# R2-02 large-message path evidence (both buffer strategies + encodeHostBatch).
+[group('quality')]
+large-message: toolchain-check
+    cd "{{root}}" && bun run scripts/measure-large-message.ts
+
 # Live ROS talker → rclwebd → SDK subscribe via docker compose (R1-05).
 [group('quality')]
 e2e: toolchain-check

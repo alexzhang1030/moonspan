@@ -23,6 +23,29 @@ export {
   type SubscriptionHandler,
 } from "./client.ts";
 
-export { encodeHostBatch, decodePollResult, loadWasm, pollEngine, readTelemetry } from "./wasm/abi.ts";
-export type { EngineTelemetrySnapshot } from "./wasm/abi.ts";
+export {
+  encodeHostBatch,
+  encodeHostBatchExternalWs,
+  decodePollResult,
+  decodePointCloud2Meta,
+  loadWasm,
+  pointCloud2DataView,
+  pollEngine,
+  readTelemetry,
+  LARGE_FRAME_INLINE_THRESHOLD,
+} from "./wasm/abi.ts";
+export type {
+  EngineTelemetrySnapshot,
+  PointCloud2Meta,
+} from "./wasm/abi.ts";
+export {
+  TransferableArrayBufferStrategy,
+  SharedArrayBufferRingStrategy,
+  createBufferStrategy,
+  sharedArrayBufferConstructible,
+  type BufferStrategy,
+  type BufferStrategyName,
+  type BufferStrategyStats,
+} from "./buffer/strategies.ts";
 export { IoHost } from "./host.ts";
+export const SENSOR_MSGS_POINT_CLOUD2 = "sensor_msgs/msg/PointCloud2";

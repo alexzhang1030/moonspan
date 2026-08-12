@@ -52,7 +52,7 @@ Notable tests:
 
 ## Ownership after completion
 
-R2-02 owns the large-message path and the preallocated host-batch encoder.
-R2-03 owns adversarial fixture regeneration and fuzzing. R2-04 owns the
-Foxglove/rosbridge baseline. SessionResume (capability 1) remains parked until
-a later phase re-freezes it.
+R2-02 owns the large-message path and the preallocated host-batch encoder —
+see [R2-02](./r2-02-large-message-path.md). R2-03 owns adversarial fixture
+regeneration and fuzzing. R2-04 owns the Foxglove/rosbridge baseline.
+SessionResume (capability 1) remains parked until a later phase re-freezes it.

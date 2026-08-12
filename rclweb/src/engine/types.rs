@@ -165,12 +165,13 @@ pub struct PollOutcome {
     pub next_deadline_ms: Option<u64>,
 }
 
-/// Controllable-copy and poll telemetry for the browser-side engine (R1-05).
+/// Controllable-copy and poll telemetry for the browser-side engine (R1-05 / R2-02).
 ///
 /// The standing copy budget is two controllable payload copies end-to-end:
 /// (1) gateway rcl-take → frame buffer, (2) Worker → wasm/engine retained
 /// memory. Application delivery uses borrowed views / decoded String fields
-/// (zero extra controllable copies).
+/// (zero extra controllable copies). Large-frame ingest moves owned bytes into
+/// a `Bytes` slab so parse/lease paths do not deep-copy the payload again.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct EngineTelemetry {
     /// Inbound WS/bootstrap/frame buffers retained (each is one controllable copy).
