@@ -561,3 +561,146 @@ async fn off_mode_ignores_token_and_stays_anonymous() {
   assert_eq!(kind, 2, "SessionReady");
   assert_eq!(text(&fields, 21), "anonymous");
 }
+
+async fn http_exchange(addr: &str, request: &str) -> (u16, String, String) {
+  use tokio::io::{AsyncReadExt, AsyncWriteExt};
+  let mut last = String::new();
+  for _ in 0..50 {
+    match tokio::net::TcpStream::connect(addr).await {
+      Ok(mut stream) => {
+        if stream.write_all(request.as_bytes()).await.is_err() {
+          tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+          continue;
+        }
+        let mut buf = Vec::new();
+        let _ = stream.read_to_end(&mut buf).await;
+        let text = String::from_utf8_lossy(&buf).into_owned();
+        if buf.is_empty() {
+          last = "empty response".to_owned();
+          tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+          continue;
+        }
+        let (head, body) = text.split_once("\r\n\r\n").unwrap_or((text.as_str(), ""));
+        let status = head
+          .lines()
+          .next()
+          .and_then(|line| line.split_whitespace().nth(1))
+          .and_then(|code| code.parse().ok())
+          .unwrap_or(0);
+        return (status, head.to_owned(), body.to_owned());
+      }
+      Err(err) => {
+        last = err.to_string();
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+      }
+    }
+  }
+  panic!("http connect {addr}: {last}");
+}
+
+async fn http_get(addr: &str, path: &str) -> (u16, String, String) {
+  http_exchange(addr, &format!("GET {path} HTTP/1.1\r\nHost: {addr}\r\nConnection: close\r\n\r\n"))
+    .await
+}
+
+#[tokio::test]
+async fn healthz_stays_plain_ok_and_readyz_is_json() {
+  let (addr, _backend) = start_gateway().await;
+  let (status, head, body) = http_get(&addr, "/healthz").await;
+  assert_eq!(status, 200, "healthz; head={head:?} body={body:?}");
+  assert_eq!(body.trim(), "ok", "R1-05 harness requires plain ok");
+
+  let (status, _, body) = http_get(&addr, "/livez").await;
+  assert_eq!(status, 200);
+  assert!(body.contains("\"status\":\"ok\""));
+
+  let (status, _, body) = http_get(&addr, "/readyz").await;
+  assert_eq!(status, 200);
+  assert!(body.contains("\"status\":\"ready\""));
+  assert!(body.contains("\"support_row_id\":\"J-FT\""));
+  assert!(body.contains("\"draining\":false"));
+}
+
+#[tokio::test]
+async fn configz_and_metrics_are_scrapeable() {
+  let (addr, _backend) = start_gateway().await;
+  let (status, _, body) = http_get(&addr, "/configz").await;
+  assert_eq!(status, 200);
+  assert!(body.contains("\"support_row_id\":\"J-FT\""));
+  assert!(body.contains("\"auth_mode\":\"off\""));
+  assert!(!body.contains("super-secret-value"));
+
+  let (status, headers, body) = http_get(&addr, "/metrics").await;
+  assert_eq!(status, 200);
+  assert!(headers.to_ascii_lowercase().contains("text/plain"));
+  assert!(body.contains("rclwebd_payload_copies_total"));
+  assert!(body.contains("rclwebd_sessions 0"));
+  assert!(body.contains("rclwebd_draining 0"));
+}
+
+#[tokio::test]
+async fn drain_keeps_healthz_ok_rejects_new_ws_and_keeps_live_session() {
+  let (addr, _backend) = start_gateway().await;
+  let mut client = TestClient::connect(&addr).await;
+  ready_session(&mut client).await;
+
+  let (status, _, body) = http_exchange(
+    &addr,
+    &format!(
+      "POST /drain HTTP/1.1\r\nHost: {addr}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+    ),
+  )
+  .await;
+  assert_eq!(status, 200);
+  assert!(body.contains("\"status\":\"draining\""));
+
+  let (status, _, body) = http_get(&addr, "/readyz").await;
+  assert_eq!(status, 503);
+  assert!(body.contains("\"reason\":\"draining\""));
+
+  let (status, _, body) = http_get(&addr, "/healthz").await;
+  assert_eq!(status, 200);
+  assert_eq!(body.trim(), "ok");
+
+  let (status, _, body) = http_get(&addr, "/metrics").await;
+  assert_eq!(status, 200);
+  assert!(body.contains("rclwebd_draining 1"));
+  assert!(body.contains("rclwebd_sessions 1"));
+
+  client.send_control(&TestClient::heartbeat_msg(1)).await;
+  let (_, effects) = client.recv_ingested().await.expect("heartbeat after drain");
+  assert!(effects.heartbeat);
+
+  let result = tokio_tungstenite::connect_async(format!("ws://{addr}/ws")).await;
+  let err = match result {
+    Ok(_) => panic!("new websocket should be rejected while draining"),
+    Err(err) => err.to_string(),
+  };
+  assert!(
+    err.contains("503") || err.to_ascii_lowercase().contains("service unavailable"),
+    "expected 503, got {err}"
+  );
+}
+
+#[tokio::test]
+async fn isolation_headers_opt_in() {
+  let (addr, _backend) = start_gateway_with_config(rclwebd::GatewayConfig {
+    gateway_instance_id: "gw-test".to_owned(),
+    isolation_headers: true,
+    cors_origins: vec!["https://app.example".to_owned()],
+    ..rclwebd::GatewayConfig::default()
+  })
+  .await;
+  let (status, headers, _) = http_exchange(
+        &addr,
+        &format!(
+            "GET /livez HTTP/1.1\r\nHost: {addr}\r\nOrigin: https://app.example\r\nConnection: close\r\n\r\n"
+        ),
+    )
+    .await;
+  assert_eq!(status, 200);
+  let headers = headers.to_ascii_lowercase();
+  assert!(headers.contains("cross-origin-opener-policy: same-origin"));
+  assert!(headers.contains("cross-origin-embedder-policy: require-corp"));
+  assert!(headers.contains("access-control-allow-origin: https://app.example"));
+}

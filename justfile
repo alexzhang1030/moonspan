@@ -244,3 +244,27 @@ e2e-h-ft: toolchain-check
     fi
     docker compose -f docker/compose.r3-03-h-ft-e2e.yml build
     docker compose -f docker/compose.r3-03-h-ft-e2e.yml run --rm e2e-h-ft
+
+# J-FT runtime image for rclwebd (R4-02). Requires Docker; not a CI foundation job.
+[group('quality')]
+image-rclwebd: toolchain-check
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{root}}"
+    if ! command -v docker >/dev/null 2>&1; then
+        echo "error: docker is required for just image-rclwebd" >&2
+        exit 1
+    fi
+    docker build -f docker/Dockerfile.rclwebd -t rclwebd:j-ft .
+
+# Run the packaged J-FT gateway (host network). Requires Docker.
+[group('quality')]
+gateway: toolchain-check
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{root}}"
+    if ! command -v docker >/dev/null 2>&1; then
+        echo "error: docker is required for just gateway" >&2
+        exit 1
+    fi
+    docker compose -f docker/compose.r4-02-gateway.yml up --build

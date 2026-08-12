@@ -1,4 +1,5 @@
 target/
+.pixi/
 node_modules/
 .bun/
 .git/

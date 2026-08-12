@@ -10,6 +10,14 @@ Traps already paid for in this repository, each with its why.
 
 R4-01 can evaluate Authenticate, but `RCLWEBD_AUTH_MODE` defaults to `off`: any credential is accepted, SessionReady field 21 stays `anonymous`, and no audit line is emitted — same as R1–R3. `dev` is an alias for `off`. Opt in with `oidc` plus issuer/audience/keys; missing keys fail process start, bad JWT is wire code 26. Do not treat a green e2e lane as proof that identity is on. Tenant choice remains D-04 ([R4-01](../../docs/milestones/r4-01-oidc-sros2-audit.md)). Landed in [`301c987`](https://github.com/alexzhang1030/rclweb/commit/301c987) (#18).
 
+## `/healthz` is liveness, not readiness
+
+`GET /healthz` must stay HTTP 200 with body `ok` (when local-dev TLS is off) even while the process is draining. The R1-05 e2e harness treats that exact body as “gateway is up”. Load balancers and deploy hooks must probe `GET /readyz` (503 after `POST /drain` / SIGTERM) and must not treat `/healthz` as admission. `/livez` is the JSON liveness twin. [R4-02](../../docs/milestones/r4-02-deployment-observability.md).
+
+## Gateway tests must not install ctrl_c on `serve`
+
+`axum::serve(...).with_graceful_shutdown(ctrl_c)` inside the test helper made raw HTTP/1.1 GETs (`/healthz`, `/readyz`) complete the TCP handshake and then read zero bytes. WebSocket upgrades on the same listener still worked, so protocol tests stayed green. `serve()` now runs until the task is dropped; the daemon calls `serve_with_os_signals` for SIGTERM drain. Reproduce with `cargo test --locked -p rclwebd --test ws_gateway healthz_stays_plain_ok`.
+
 ## Pixi ros-test must pin ROS_PREFIX over a host /opt/ros
 
 `just ros-test-pixi` exists for machines without apt ROS, but a host `/opt/ros/jazzy` on `PATH` / `LD_LIBRARY_PATH` makes link, dlopen, and `ros2 topic pub` silently use the apt prefix — mixed apt + RoboStack FastDDS then hangs the live talker e2e (GraphSnapshot / discovery) instead of failing cleanly. `scripts/pixi-ros-activate.sh` pins `ROS_PREFIX` / `AMENT_PREFIX_PATH` to `$CONDA_PREFIX`, sets `LD_LIBRARY_PATH` to that `lib` only, and forces `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST` (RoboStack's activate.d defaults to `SUBNET`). The pixi env includes `ros2cli` / `ros2topic` so the talker is the same prefix. `docs-check` skips `.pixi/` so a local install does not poison `just check`. RoboStack Jazzy is still not a substitute for digest-pinned Docker e2e (`just e2e` / `just e2e-h-ft`). Landed in [`25fb42f`](https://github.com/alexzhang1030/rclweb/commit/25fb42f) (#20); reproduce with `just ros-test-pixi`.

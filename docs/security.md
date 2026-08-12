@@ -32,7 +32,7 @@ Sessions and channels receive hard ceilings for connections, streams, channels, 
 - TLS protects WebTransport and WebSocket endpoints.
 - Certificate lifecycle and trust configuration receive deployment tests.
 - **Local-dev WebTransport** (opt-in) auto-mints short-lived ECDSA P-256 certificates and trusts them via `serverCertificateHashes`, with rotation before the browser's 14-day validity ceiling — see [ADR 0011](./adr/0011-local-dev-webtransport-tls.md). Production keeps normal PKI.
-- Cross-origin isolation enables the shared-buffer path through the required browser headers.
+- Cross-origin isolation enables the shared-buffer path through the required browser headers. `rclwebd` adds COOP/COEP/CORP only when `RCLWEBD_ISOLATION_HEADERS` is on ([R4-02](./milestones/r4-02-deployment-observability.md)).
 - Transferable buffers provide the general deployment path under the same SDK behavior.
 - Origin, CORS, content security, iframe, asset, and credential storage rules are explicit deployment inputs.
 - WebGPU needs a secure context: `http://localhost` / `http://127.0.0.1` already qualify; LAN IP page origins need HTTPS (local-dev TLS or proxy).

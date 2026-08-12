@@ -11,6 +11,7 @@
 use crate::backend::RosBackend;
 use crate::config::GatewayConfig;
 use crate::local_dev_tls::LocalDevTls;
+use crate::ops::OpsState;
 use std::sync::Arc;
 
 /// Spawn the WT accept loop when config + TLS + feature allow it.
@@ -22,6 +23,7 @@ pub fn maybe_spawn<B: RosBackend>(
   config: Arc<GatewayConfig>,
   backend: Arc<B>,
   tls: Option<Arc<LocalDevTls>>,
+  ops: Arc<OpsState>,
 ) -> Result<bool, String> {
   if !config.offer_webtransport {
     return Ok(false);
@@ -31,7 +33,7 @@ pub fn maybe_spawn<B: RosBackend>(
       "offer_webtransport requires local_dev_tls_enabled (or future PKI material)".to_owned(),
     );
   };
-  spawn_inner(config, backend, tls)
+  spawn_inner(config, backend, tls, ops)
 }
 
 #[cfg(feature = "webtransport")]
@@ -39,10 +41,11 @@ fn spawn_inner<B: RosBackend>(
   config: Arc<GatewayConfig>,
   backend: Arc<B>,
   tls: Arc<LocalDevTls>,
+  ops: Arc<OpsState>,
 ) -> Result<bool, String> {
   let bind = config.webtransport_bind.clone();
   tokio::spawn(async move {
-    if let Err(err) = serve_webtransport(bind, config, backend, tls).await {
+    if let Err(err) = serve_webtransport(bind, config, backend, tls, ops).await {
       eprintln!("rclwebd webtransport listener stopped: {err}");
     }
   });
@@ -54,6 +57,7 @@ fn spawn_inner<B: RosBackend>(
   _config: Arc<GatewayConfig>,
   _backend: Arc<B>,
   _tls: Arc<LocalDevTls>,
+  _ops: Arc<OpsState>,
 ) -> Result<bool, String> {
   // Stub: TLS mint/advertise + hello negotiation still work without quinn.
   // Rebuild with `--features webtransport` for the HTTP/3 accept loop.
@@ -70,6 +74,7 @@ async fn serve_webtransport<B: RosBackend>(
   config: Arc<GatewayConfig>,
   backend: Arc<B>,
   tls: Arc<LocalDevTls>,
+  ops: Arc<OpsState>,
 ) -> Result<(), String> {
   use std::net::SocketAddr;
   use wtransport::tls::{Certificate, CertificateChain, Identity, PrivateKey};
@@ -97,11 +102,12 @@ async fn serve_webtransport<B: RosBackend>(
     let config = Arc::clone(&config);
     let backend = Arc::clone(&backend);
     let tls = Arc::clone(&tls);
+    let ops = Arc::clone(&ops);
     tokio::spawn(async move {
       // Refresh cert material for advertisement; live sessions keep the
       // handshake cert until reconnect (ADR 0011).
       let _ = tls.ensure_fresh();
-      if let Err(err) = handle_session(incoming, config, backend).await {
+      if let Err(err) = handle_session(incoming, config, backend, ops).await {
         eprintln!("rclwebd webtransport session ended: {err}");
       }
     });
@@ -113,15 +119,20 @@ async fn handle_session<B: RosBackend>(
   incoming: wtransport::endpoint::IncomingSession,
   config: Arc<GatewayConfig>,
   backend: Arc<B>,
+  ops: Arc<OpsState>,
 ) -> Result<(), String> {
   use crate::config::ActiveTransport;
   use crate::connection::run_connection;
 
   let request = incoming.await.map_err(|e| e.to_string())?;
+  if ops.is_draining() {
+    return Err("draining".to_owned());
+  }
   let connection = request.accept().await.map_err(|e| e.to_string())?;
   // Client opens one bidirectional stream for reliable R2WP (control + data).
   let (send, recv) = connection.accept_bi().await.map_err(|e| e.to_string())?;
   let transport = LengthPrefixedBiTransport { send, recv };
+  let _session = ops.session_guard();
   run_connection(transport, backend.as_ref(), config.as_ref(), ActiveTransport::WebTransportHttp3)
     .await;
   Ok(())

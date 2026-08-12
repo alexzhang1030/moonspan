@@ -48,6 +48,8 @@ just build
 | `just poll-latency` | Record wasm poll latency + size evidence (R-D1) |
 | `just e2e` | Docker compose: Jazzy talker → rclwebd (J-FT) → SDK subscribe |
 | `just e2e-h-ft` | Docker compose: Humble talker → rclwebd (H-FT) → SDK subscribe |
+| `just image-rclwebd` | Docker: J-FT runtime image (`rclwebd:j-ft`) |
+| `just gateway` | Docker compose: packaged J-FT gateway (host network) |
 | `just ros-test` | Gateway tests against real rcl (sourced Jazzy env) |
 | `just ros-test-pixi` | Same, using optional RoboStack Jazzy via pixi (not CI evidence) |
 | `just protocol-check` | Validate the R2WP registry JSON and control CDDL |
@@ -55,10 +57,9 @@ just build
 
 ## Status
 
-R0–R3 are complete through R3-04: versioned adapter ABI (`serialized-adapter-v1`),
-dynamic typesupport, and live ROS service client/server (plus action client
-call-style) on `RclBackend`. MockBackend remains the protocol/SDK oracle; wire
-schema exchange stays parked. The walking skeleton reaches a live ROS talker in
+R0–R3 are complete through R3-04. R4-01 first slice (Authenticate off by
+default, opt-in `oidc`) and R4-02 first slice (operations endpoints + J-FT
+runtime image) are in progress. The walking skeleton reaches a live ROS talker in
 CI (`just e2e` / `e2e-ros-talker`, and Humble via `just e2e-h-ft` /
 `e2e-ros-talker-h-ft`) with a committed demo under `examples/subscribe-chatter`.
 Phases and gates live in the [plan](./tasks/plan.md); current state lives in the
