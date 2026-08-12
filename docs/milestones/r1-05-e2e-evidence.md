@@ -43,6 +43,13 @@ just e2e                          # requires Docker
 just check && just test && just build
 ```
 
+## Behavioral notes
+
+- [`docker/r1-e2e-entrypoint.sh`](../../docker/r1-e2e-entrypoint.sh) must
+  disable `nounset` while sourcing `/opt/ros/jazzy/setup.bash`. With
+  `set -u`, Jazzy's setup fails on optional unset vars such as
+  `AMENT_TRACE_SETUP_FILES`.
+
 ## Ownership after completion
 
 R1 gate closes when CI e2e is green and the demo has been human-reviewed.

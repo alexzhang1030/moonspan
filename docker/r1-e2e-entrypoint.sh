@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 # Start a ROS talker, rclwebd, and the SDK e2e harness inside one Jazzy container.
-set -euo pipefail
+set -eo pipefail
 
 cd /workspace
+# ROS setup scripts reference optional unset vars; nounset must be off while sourcing.
 # shellcheck disable=SC1091
+set +u
 source /opt/ros/jazzy/setup.bash
+set -u
 
 export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-0}"
 export RCLWEBD_BIND="${RCLWEBD_BIND:-127.0.0.1:8794}"
