@@ -126,7 +126,19 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
         if (!host) throw new Error("host not initialized");
         connectRequestId = msg.requestId;
         connectUrl = msg.url;
-        host.connect(msg.url);
+        const hashes = msg.serverCertificateHashes?.map((h) => ({
+          algorithm: h.algorithm,
+          value:
+            typeof h.value === "string"
+              ? h.value
+              : Uint8Array.from(h.value),
+        }));
+        host.connect(msg.url, {
+          transport: msg.transport,
+          serverCertificateHashes: hashes,
+          fetchLocalDevTls: msg.fetchLocalDevTls,
+          localDevTlsOrigin: msg.localDevTlsOrigin,
+        });
         break;
       }
       case "reconnect": {

@@ -55,7 +55,7 @@ export const APP_GRAPH_DELTA = 22;
 export const APP_OPERATION_CANCELLED = 23;
 
 export type HostCommand =
-  | { type: "start"; transferableArrayBuffer: boolean }
+  | { type: "start"; transferableArrayBuffer: boolean; webtransport?: boolean }
   | {
       type: "authenticate";
       correlation: Uint8Array;
@@ -447,7 +447,7 @@ function writeCommand(out: Uint8Array, offset: number, prepared: PreparedCommand
       out[offset++] = 0;
       out[offset++] = 0;
       out[offset++] = command.transferableArrayBuffer ? 1 : 0;
-      out[offset++] = 0;
+      out[offset++] = command.webtransport ? 1 : 0;
       out[offset++] = 0;
       out[offset++] = 0;
       return offset;

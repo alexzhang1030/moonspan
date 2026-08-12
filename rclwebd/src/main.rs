@@ -3,12 +3,30 @@
 //! Environment:
 //! - `RCLWEBD_BIND` — listen address (default `127.0.0.1:8794`)
 //! - `ROS_DOMAIN_ID` — ROS domain to attach (default 0)
+//! - `RCLWEBD_SUPPORT_ROW` — support row id (`J-FT` default; `H-FT` accepted)
+//! - `RCLWEBD_LOCAL_DEV_TLS` — `1`/`true` enables ADR 0011 local-dev TLS
+//! - `RCLWEBD_OFFER_WEBTRANSPORT` — `1`/`true` AND-negotiates WT + starts accept
+//! - `RCLWEBD_WT_BIND` — UDP bind for WebTransport (default `127.0.0.1:4433`)
 //!
-//! Requires a sourced ROS 2 Jazzy environment at runtime (row J-FT).
+//! The `ros` feature links a Jazzy installation (row J-FT). Selecting `H-FT`
+//! updates SessionReady / OpenChannel row identity for protocol tests; live
+//! Humble rcl attachment remains evidence-gated until a Humble-linked artifact
+//! lands (R3-04 / dedicated humble feature). Prefer mock-backend protocol e2e
+//! for H-FT until then.
 
 use rclwebd::ros::RclBackend;
-use rclwebd::{GatewayConfig, serve};
+use rclwebd::{GatewayConfig, SUPPORT_ROW_J_FT, parse_support_row, serve};
 use std::sync::Arc;
+
+fn env_flag(name: &str) -> bool {
+    match std::env::var(name) {
+        Ok(v) => {
+            let v = v.trim();
+            v == "1" || v.eq_ignore_ascii_case("true") || v.eq_ignore_ascii_case("yes")
+        }
+        Err(_) => false,
+    }
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let bind = std::env::var("RCLWEBD_BIND").unwrap_or_else(|_| "127.0.0.1:8794".to_owned());
@@ -18,8 +36,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .transpose()?
         .unwrap_or(0);
 
+    let support_row = match std::env::var("RCLWEBD_SUPPORT_ROW") {
+        Ok(raw) => parse_support_row(&raw).ok_or_else(|| {
+            format!("unsupported RCLWEBD_SUPPORT_ROW={raw:?}; expected J-FT or H-FT")
+        })?,
+        Err(_) => SUPPORT_ROW_J_FT,
+    };
+    if support_row.id == "H-FT" {
+        eprintln!(
+            "rclwebd: RCLWEBD_SUPPORT_ROW=H-FT — SessionReady identity is Humble; \
+             this binary still links Jazzy rcl (feature ros). Live Humble attachment \
+             is evidence-gated; use mock H-FT protocol e2e for row gating."
+        );
+    }
+
+    let local_dev_tls_enabled = env_flag("RCLWEBD_LOCAL_DEV_TLS");
+    let offer_webtransport = env_flag("RCLWEBD_OFFER_WEBTRANSPORT");
+    let webtransport_bind =
+        std::env::var("RCLWEBD_WT_BIND").unwrap_or_else(|_| "127.0.0.1:4433".to_owned());
+
     let config = GatewayConfig {
         domain_id,
+        support_row,
+        local_dev_tls_enabled,
+        offer_webtransport,
+        webtransport_bind,
         ..GatewayConfig::default()
     };
     let backend = Arc::new(RclBackend::spawn(domain_id)?);
@@ -30,8 +71,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     runtime.block_on(async move {
         let listener = tokio::net::TcpListener::bind(&bind).await?;
         eprintln!(
-            "rclwebd listening on ws://{}/ws (domain {domain_id}, row J-FT)",
-            listener.local_addr()?
+            "rclwebd listening on ws://{}/ws (domain {domain_id}, row {})",
+            listener.local_addr()?,
+            config.support_row.id
         );
         tokio::select! {
             result = serve(listener, Arc::new(config), backend) => result?,

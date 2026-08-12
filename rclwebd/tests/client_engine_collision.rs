@@ -86,6 +86,7 @@ async fn client_engine_collides_with_gateway_subscribe_path() {
     let mut engine = ClientEngine::new();
     let start = engine.poll(vec![HostEvent::Command(AppCommand::Start {
         transferable_arraybuffer: true,
+        webtransport: false,
     })]);
     for msg in start.outbound {
         ws.send(Message::Binary(bytes::Bytes::from(msg.bytes)))
@@ -204,6 +205,7 @@ async fn client_engine_collides_with_gateway_publish_path() {
     let mut engine = ClientEngine::new();
     let start = engine.poll(vec![HostEvent::Command(AppCommand::Start {
         transferable_arraybuffer: true,
+        webtransport: false,
     })]);
     for msg in start.outbound {
         ws.send(Message::Binary(bytes::Bytes::from(msg.bytes)))
@@ -295,6 +297,7 @@ async fn client_engine_outbound_client_hello_self_parses() {
     let mut engine = ClientEngine::new();
     let out = engine.poll(vec![HostEvent::Command(AppCommand::Start {
         transferable_arraybuffer: true,
+        webtransport: false,
     })]);
     assert_eq!(out.outbound.len(), 1);
     let record = rclweb::parse_bootstrap(&out.outbound[0].bytes).expect("client hello");

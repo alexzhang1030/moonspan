@@ -13,7 +13,7 @@ use crate::backend::{
     SubscriptionSample,
 };
 use crate::budgets::SampleWriteQueue;
-use crate::config::{GatewayConfig, SUPPORT_ROW_ID, new_session_id};
+use crate::config::{ActiveTransport, GatewayConfig, new_session_id};
 use crate::control;
 use crate::qos::{RequestedQos, resolve_effective};
 use bytes::Bytes;
@@ -76,6 +76,7 @@ struct ChannelRuntime {
 
 struct ConnState<'a> {
     config: &'a GatewayConfig,
+    active: ActiveTransport,
     session: Session,
     frame_options: FrameOptions,
     server_hello: Option<ServerHello>,
@@ -126,9 +127,10 @@ fn frame_operation_id(frame: &rclweb::DecodedFrame<'_>) -> Option<[u8; 16]> {
 }
 
 impl<'a> ConnState<'a> {
-    fn new(config: &'a GatewayConfig) -> Self {
+    fn new(config: &'a GatewayConfig, active: ActiveTransport) -> Self {
         Self {
             config,
+            active,
             session: Session::new(Role::Server),
             frame_options: FrameOptions::default(),
             server_hello: None,
@@ -271,7 +273,7 @@ impl<'a> ConnState<'a> {
             outcome.close = true;
             return;
         };
-        match control::negotiate_server_hello(hello, self.config) {
+        match control::negotiate_server_hello(hello, self.config, self.active) {
             Ok(server_hello) => match encode_server_hello(&server_hello) {
                 Ok(response) => {
                     let recorded = self
@@ -387,7 +389,10 @@ impl<'a> ConnState<'a> {
             return;
         };
         let generation = base.saturating_add(1);
-        let ops = vec![control::graph_delta_add_endpoint(endpoint)];
+        let ops = vec![control::graph_delta_add_endpoint(
+            endpoint,
+            self.config.support_row,
+        )];
         let delta = control::graph_delta(
             self.config,
             &control::ZERO_CORRELATION,
@@ -489,7 +494,8 @@ impl<'a> ConnState<'a> {
         let type_name = field_text(msg, 4).unwrap_or_default().to_owned();
         let priority = field_uint(msg, 32).unwrap_or(2) as u8;
 
-        let failure: Option<(u8, &str)> = if field_text(msg, 8) != Some(SUPPORT_ROW_ID) {
+        let failure: Option<(u8, &str)> = if field_text(msg, 8) != Some(self.config.support_row.id)
+        {
             Some((25, "support_row_mismatch"))
         } else if field_uint(msg, 9) != Some(u64::from(self.config.domain_id)) {
             Some((12, "domain_not_served"))
@@ -992,6 +998,7 @@ pub async fn run_connection<T: Transport, B: RosBackend>(
     mut transport: T,
     backend: &B,
     config: &GatewayConfig,
+    active: ActiveTransport,
 ) {
     // Deep enough that ROS take rarely blocks on try_send; the write queue is
     // the budgeted latest-wins surface (sample_queue_depth / max_bytes).
@@ -1001,7 +1008,7 @@ pub async fn run_connection<T: Transport, B: RosBackend>(
     let (action_tx, mut action_rx) = mpsc::channel::<ActionInbound>(depth);
     let mut write_queue =
         SampleWriteQueue::new(config.sample_queue_depth, config.sample_queue_max_bytes);
-    let mut conn = ConnState::new(config);
+    let mut conn = ConnState::new(config, active);
     loop {
         tokio::select! {
             inbound = transport.recv() => {

@@ -13,8 +13,9 @@ mod tests;
 
 pub use crate::cdr::SENSOR_MSGS_POINT_CLOUD2;
 pub use control::{
-    DEFAULT_QOS_DEPTH, DEMO_SCHEMA_HASH, ZERO_CORRELATION, authenticate, close_channel, heartbeat,
-    open_action, open_service, open_topic,
+    DEFAULT_QOS_DEPTH, DEMO_MOONSPAN_HASH, DEMO_SCHEMA_HASH, ZERO_CORRELATION, authenticate,
+    close_channel, heartbeat, open_action, open_service, open_topic, resolve_open_schema_identity,
+    schema_scheme_for_support_row,
 };
 pub use types::{
     AppCommand, AppEvent, EngineTelemetry, HostEvent, MAX_HOST_EVENTS_PER_POLL,
@@ -136,6 +137,8 @@ pub struct ClientEngine {
     active_publishes: HashMap<u32, ActivePublish>,
     active_services: HashMap<u32, ActiveService>,
     active_actions: HashMap<u32, ActiveAction>,
+    /// Support row from the last SessionReady (`J-FT` until Ready).
+    support_row_id: String,
     started: bool,
     closed: bool,
     last_timer_ms: Option<u64>,
@@ -167,6 +170,7 @@ impl ClientEngine {
             active_publishes: HashMap::new(),
             active_services: HashMap::new(),
             active_actions: HashMap::new(),
+            support_row_id: "J-FT".to_owned(),
             started: false,
             closed: false,
             last_timer_ms: None,
@@ -174,6 +178,11 @@ impl ClientEngine {
             heartbeat_counter: 0,
             telemetry: EngineTelemetry::default(),
         }
+    }
+
+    #[must_use]
+    pub fn support_row_id(&self) -> &str {
+        &self.support_row_id
     }
 
     #[must_use]
@@ -265,6 +274,7 @@ impl ClientEngine {
         match cmd {
             AppCommand::Start {
                 transferable_arraybuffer,
+                webtransport,
             } => {
                 if self.started {
                     return;
@@ -273,7 +283,9 @@ impl ClientEngine {
                 let hello = ClientHello {
                     wire_versions: vec![0],
                     transport_capabilities: TransportCapabilities {
-                        webtransport_http3: false,
+                        webtransport_http3: *webtransport,
+                        // Always offer binary_wss so WS peers AND-negotiate;
+                        // WT-only peers may leave binary_wss false on their side.
                         binary_wss: true,
                         max_datagram_size: None,
                     },
@@ -376,6 +388,7 @@ impl ClientEngine {
                     name,
                     type_name,
                     *domain_id,
+                    &self.support_row_id,
                 );
                 if !self.push_control(&msg, outcome) {
                     self.fail(outcome, 1, "open_service_encode_failed");
@@ -442,6 +455,7 @@ impl ClientEngine {
                     name,
                     type_name,
                     *domain_id,
+                    &self.support_row_id,
                 );
                 if !self.push_control(&msg, outcome) {
                     self.fail(outcome, 1, "open_action_encode_failed");
@@ -581,6 +595,7 @@ impl ClientEngine {
             u64::from(qos_reliability),
             depth,
             domain_id,
+            &self.support_row_id,
         );
         if !self.push_control(&msg, outcome) {
             self.fail(outcome, 1, "open_channel_encode_failed");
@@ -597,7 +612,7 @@ impl ClientEngine {
         );
     }
 
-    /// Phase 1 roots: registry lookup before activation (J-FT + CDR_LE).
+    /// Phase 1 roots: registry lookup before activation (row + CDR_LE).
     /// Missing material → schema_unavailable (wire code 10). Non-roots skip.
     fn emit_schema_unavailable_if_needed(
         &self,
@@ -606,7 +621,7 @@ impl ClientEngine {
         kind: PendingKind,
         outcome: &mut PollOutcome,
     ) -> bool {
-        match lookup_phase1_root_for_open(type_name, "J-FT", CdrRepresentation::Le) {
+        match lookup_phase1_root_for_open(type_name, &self.support_row_id, CdrRepresentation::Le) {
             Ok(_) => false,
             Err(err) => {
                 let code = err
@@ -933,6 +948,7 @@ impl ClientEngine {
         match kind {
             CONTROL_KIND_SESSION_READY if effects.entered_ready => {
                 let support_row = field_text(fields, 8).unwrap_or("J-FT").to_owned();
+                self.support_row_id = support_row.clone();
                 // SessionReady carries served domains as array key 10.
                 let domain_id = field_domain(fields).unwrap_or(0);
                 let gateway_instance_id = field_text(fields, 7).unwrap_or("").to_owned();

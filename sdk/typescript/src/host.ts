@@ -1,6 +1,6 @@
 /**
  * Shared I/O + wasm poll host used by the Worker and the inline (test) path.
- * Owns the WebSocket (`binaryType = "arraybuffer"`) and transferable ingest.
+ * Owns the transport (WebSocket or WebTransport) and transferable ingest.
  */
 
 import {
@@ -12,6 +12,12 @@ import {
   pollEngine,
   readTelemetry,
 } from "./wasm/abi.ts";
+import type { ServerCertificateHash } from "./types.ts";
+import {
+  decodeCertificateHashValue,
+  fetchLocalDevTlsHashes,
+  httpOriginFromWebTransportUrl,
+} from "./local-dev-tls.ts";
 
 export type HostCallbacks = {
   onEvent(event: AppEvent): void;
@@ -19,10 +25,41 @@ export type HostCallbacks = {
   onClosed(): void;
 };
 
+export type HostConnectOptions = {
+  transport?: "websocket" | "webtransport";
+  serverCertificateHashes?: ServerCertificateHash[];
+  fetchLocalDevTls?: boolean;
+  localDevTlsOrigin?: string;
+};
+
+type OutboundSink = {
+  send(bytes: Uint8Array): void | Promise<void>;
+  close(): void;
+};
+
+/** Minimal WebTransport surface used by the host (browser). */
+type WebTransportLike = {
+  ready: Promise<void>;
+  closed: Promise<unknown>;
+  close(): void;
+  createBidirectionalStream(): Promise<{
+    readable: ReadableStream<Uint8Array>;
+    writable: WritableStream<Uint8Array>;
+  }>;
+};
+
+type WebTransportConstructor = new (
+  url: string,
+  options?: { serverCertificateHashes?: Array<{ algorithm: string; value: BufferSource }> },
+) => WebTransportLike;
+
 export class IoHost {
   #wasm: WasmExports;
   #handle: number;
   #ws: WebSocket | null = null;
+  #wt: WebTransportLike | null = null;
+  #sink: OutboundSink | null = null;
+  #useWebTransport = false;
   #callbacks: HostCallbacks;
   #started = false;
   #closed = false;
@@ -31,6 +68,7 @@ export class IoHost {
   #flushScheduled = false;
   #lastTelemetry: EngineTelemetrySnapshot | null = null;
   #suppressCloseHandler = false;
+  #connectOptions: HostConnectOptions = {};
 
   private constructor(wasm: WasmExports, handle: number, callbacks: HostCallbacks) {
     this.#wasm = wasm;
@@ -50,17 +88,40 @@ export class IoHost {
     return new IoHost(wasm, handle, callbacks);
   }
 
-  connect(url: string): void {
-    if (this.#ws) {
+  connect(url: string, options: HostConnectOptions = {}): void {
+    if (this.#ws || this.#wt) {
       throw new Error("already connected");
     }
+    this.#connectOptions = options;
+    const transport = options.transport ?? "websocket";
+    if (transport === "webtransport") {
+      void this.#connectWebTransport(url, options);
+      return;
+    }
+    this.#connectWebSocket(url);
+  }
+
+  #connectWebSocket(url: string): void {
     const ws = new WebSocket(url);
     ws.binaryType = "arraybuffer";
     this.#ws = ws;
+    this.#useWebTransport = false;
+    this.#sink = {
+      send: (bytes) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(bytes.slice().buffer);
+        }
+      },
+      close: () => ws.close(),
+    };
     ws.addEventListener("open", () => {
       this.#enqueue({
         type: "command",
-        command: { type: "start", transferableArrayBuffer: true },
+        command: {
+          type: "start",
+          transferableArrayBuffer: true,
+          webtransport: false,
+        },
       });
     });
     ws.addEventListener("message", (ev) => {
@@ -69,7 +130,6 @@ export class IoHost {
         this.#callbacks.onTransportError("non-binary websocket message");
         return;
       }
-      // Transferable path: take ownership of the ArrayBuffer contents.
       this.#enqueue({
         type: "wsBytes",
         bufferId: 0,
@@ -87,6 +147,118 @@ export class IoHost {
     });
   }
 
+  async #connectWebTransport(
+    url: string,
+    options: HostConnectOptions,
+  ): Promise<void> {
+    const WT = (globalThis as { WebTransport?: WebTransportConstructor }).WebTransport;
+    if (!WT) {
+      this.#callbacks.onTransportError(
+        "WebTransport is not available in this runtime (use transport: \"websocket\")",
+      );
+      return;
+    }
+
+    let hashes = options.serverCertificateHashes ?? [];
+    if (hashes.length === 0 && options.fetchLocalDevTls !== false) {
+      const origin =
+        options.localDevTlsOrigin ?? httpOriginFromWebTransportUrl(url);
+      try {
+        hashes = await fetchLocalDevTlsHashes(origin);
+      } catch (err) {
+        this.#callbacks.onTransportError(
+          `failed to fetch /local-dev/tls: ${err instanceof Error ? err.message : String(err)}`,
+        );
+        return;
+      }
+    }
+
+    const serverCertificateHashes = hashes.map((h) => ({
+      algorithm: h.algorithm,
+      value: decodeCertificateHashValue(h.value),
+    }));
+
+    try {
+      const wt = new WT(url, { serverCertificateHashes });
+      this.#wt = wt;
+      this.#useWebTransport = true;
+      await wt.ready;
+      const stream = await wt.createBidirectionalStream();
+      const writer = stream.writable.getWriter();
+      const reader = stream.readable.getReader();
+      this.#sink = {
+        send: async (bytes) => {
+          const len = new Uint8Array(4);
+          new DataView(len.buffer).setUint32(0, bytes.byteLength, false);
+          await writer.write(len);
+          await writer.write(bytes.slice());
+        },
+        close: () => {
+          try {
+            wt.close();
+          } catch {
+            // ignore
+          }
+        },
+      };
+      this.#enqueue({
+        type: "command",
+        command: {
+          type: "start",
+          transferableArrayBuffer: true,
+          webtransport: true,
+        },
+      });
+      void this.#readWtLoop(reader);
+      void wt.closed.then(() => {
+        this.#closed = true;
+        if (!this.#suppressCloseHandler) {
+          this.#callbacks.onClosed();
+        }
+      });
+    } catch (err) {
+      this.#callbacks.onTransportError(
+        `webtransport connect failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  async #readWtLoop(
+    reader: ReadableStreamDefaultReader<Uint8Array>,
+  ): Promise<void> {
+    let pending = new Uint8Array(0);
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        if (!value || value.byteLength === 0) continue;
+        const merged = new Uint8Array(pending.length + value.length);
+        merged.set(pending, 0);
+        merged.set(value, pending.length);
+        pending = merged;
+        while (pending.length >= 4) {
+          const len = new DataView(
+            pending.buffer,
+            pending.byteOffset,
+            pending.byteLength,
+          ).getUint32(0, false);
+          if (pending.length < 4 + len) break;
+          const frame = pending.slice(4, 4 + len);
+          pending = pending.slice(4 + len);
+          this.#enqueue({
+            type: "wsBytes",
+            bufferId: 0,
+            bytes: frame,
+          });
+        }
+      }
+    } catch (err) {
+      this.#callbacks.onTransportError(
+        `webtransport read failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
   /** Feed scripted bytes (tests) as if they arrived on the WebSocket. */
   ingestBytes(bytes: Uint8Array): void {
     this.#enqueue({ type: "wsBytes", bufferId: 0, bytes });
@@ -96,7 +268,11 @@ export class IoHost {
   startOffline(): void {
     this.#enqueue({
       type: "command",
-      command: { type: "start", transferableArrayBuffer: true },
+      command: {
+        type: "start",
+        transferableArrayBuffer: true,
+        webtransport: false,
+      },
     });
   }
 
@@ -160,10 +336,10 @@ export class IoHost {
     });
   }
 
-  sendSample(channelId: number, stringData: string): void {
+  sendSample(channelId: number, data: string): void {
     this.#enqueue({
       type: "command",
-      command: { type: "sendSample", channelId, stringData },
+      command: { type: "sendSample", channelId, stringData: data },
     });
   }
 
@@ -294,9 +470,7 @@ export class IoHost {
     });
   }
 
-  /** Copy a leased payload view out of wasm linear memory (valid until release). */
   copyPayload(payloadPtr: number, payloadLen: number): Uint8Array {
-    if (payloadLen === 0) return new Uint8Array();
     return new Uint8Array(
       this.#wasm.memory.buffer,
       payloadPtr,
@@ -312,14 +486,16 @@ export class IoHost {
   }
 
   /**
-   * Replace the engine and reopen the WebSocket (fresh session reconnect).
+   * Replace the engine and reopen the transport (fresh session reconnect).
    * Caller must re-issue subscribe/publish after sessionReady.
    */
   async reconnect(url: string): Promise<void> {
     this.#suppressCloseHandler = true;
     try {
-      this.#ws?.close();
+      this.#sink?.close();
       this.#ws = null;
+      this.#wt = null;
+      this.#sink = null;
       this.#closed = false;
       this.#pending = [];
       if (this.#handle !== 0) {
@@ -330,7 +506,7 @@ export class IoHost {
         throw new Error("rclweb_engine_new failed on reconnect");
       }
       this.#started = false;
-      this.connect(url);
+      this.connect(url, this.#connectOptions);
     } finally {
       this.#suppressCloseHandler = false;
     }
@@ -343,7 +519,7 @@ export class IoHost {
   close(): void {
     if (this.#closed) return;
     this.#enqueue({ type: "command", command: { type: "close" } });
-    this.#ws?.close();
+    this.#sink?.close();
     this.#closed = true;
     this.#flush();
   }
@@ -392,15 +568,14 @@ export class IoHost {
     const result = pollEngine(this.#wasm, this.#handle, batch);
     this.#lastTelemetry = readTelemetry(this.#wasm, this.#handle);
     for (const msg of result.outbound) {
-      if (this.#ws && this.#ws.readyState === WebSocket.OPEN) {
-        // Send a copy — ws may retain the buffer.
-        this.#ws.send(msg.bytes.slice().buffer);
+      const sink = this.#sink;
+      if (sink) {
+        void sink.send(msg.bytes);
       }
     }
     for (const event of result.events) {
       if (event.type === "bootstrapComplete" && !this.#started) {
         this.#started = true;
-        // Fresh path: Authenticate immediately after ServerHello.
         this.#pending.push({
           type: "command",
           command: {
@@ -410,7 +585,6 @@ export class IoHost {
             token: new TextEncoder().encode("anonymous"),
           },
         });
-        // Continue flushing in the same turn so Authenticate leaves promptly.
         this.#scheduleFlush();
       }
       this.#callbacks.onEvent(event);
@@ -419,6 +593,10 @@ export class IoHost {
 
   get started(): boolean {
     return this.#started;
+  }
+
+  get usingWebTransport(): boolean {
+    return this.#useWebTransport;
   }
 
   /** Engine telemetry snapshot (copy counters + poll timing). */

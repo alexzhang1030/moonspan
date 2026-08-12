@@ -1,0 +1,14 @@
+# R3-03 H-FT mock protocol e2e — no Humble ROS packages.
+# Runs cargo tests that gate SessionReady H-FT + moonspan OpenChannel.
+FROM docker.io/library/rust:1.97.1-bookworm
+
+WORKDIR /workspace
+COPY . /workspace
+
+RUN cargo test --locked -p rclweb --lib h_ft_session_ready \
+  && cargo test --locked -p rclwebd --test ws_gateway h_ft \
+  && cargo test --locked -p rclweb --test generated_types_registry
+
+COPY docker/r3-03-h-ft-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

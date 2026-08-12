@@ -3,10 +3,10 @@
 
 mod common;
 
-use common::{TestClient, corr, start_gateway};
+use common::{TestClient, corr, start_gateway, start_gateway_with_row};
 use rclweb::{
     BootstrapRecord, CborValue, ChannelState, FrameHeader, FramePayload, OPCODE_ROS_SAMPLE,
-    encode_frame, parse_frame,
+    SCHEME_MOONSPAN_SCHEMA_V1, encode_frame, parse_frame, schema_identity_for_type,
 };
 use std::collections::BTreeMap;
 
@@ -33,6 +33,15 @@ fn text<'a>(fields: &'a BTreeMap<u64, CborValue<'_>>, key: u64) -> &'a str {
 }
 
 async fn ready_session(client: &mut TestClient) {
+    ready_session_expecting(client, "J-FT", "jazzy", "rmw_fastrtps_cpp").await;
+}
+
+async fn ready_session_expecting(
+    client: &mut TestClient,
+    support_row_id: &str,
+    ros_distro: &str,
+    rmw_identifier: &str,
+) {
     let hello = TestClient::default_hello();
     let record = client.bootstrap(&hello).await;
     let BootstrapRecord::ServerHello(server_hello) = record else {
@@ -51,9 +60,9 @@ async fn ready_session(client: &mut TestClient) {
     assert!(effects.auth_correlation_matched);
     let (kind, fields) = control_fields(&bytes);
     assert_eq!(kind, 2, "SessionReady");
-    assert_eq!(text(&fields, 8), "J-FT");
-    assert_eq!(text(&fields, 18), "jazzy");
-    assert_eq!(text(&fields, 19), "rmw_fastrtps_cpp");
+    assert_eq!(text(&fields, 8), support_row_id);
+    assert_eq!(text(&fields, 18), ros_distro);
+    assert_eq!(text(&fields, 19), rmw_identifier);
     assert_eq!(text(&fields, 7), "gw-test");
 
     // R3-01: GraphSnapshot generation=1 follows SessionReady.
@@ -62,6 +71,7 @@ async fn ready_session(client: &mut TestClient) {
     let (kind, fields) = control_fields(&bytes);
     assert_eq!(kind, 3, "GraphSnapshot");
     assert_eq!(uint(&fields, 14), 1, "generation");
+    assert_eq!(text(&fields, 8), support_row_id);
     assert_eq!(client.session.graph_generation(), Some(1));
 }
 
@@ -421,4 +431,82 @@ async fn service_client_round_trip_echoes_payload() {
         }
         FramePayload::Control(_) => panic!("expected application payload"),
     }
+}
+
+#[tokio::test]
+async fn h_ft_session_ready_and_moonspan_subscribe() {
+    let (addr, backend) = start_gateway_with_row(rclwebd::SUPPORT_ROW_H_FT).await;
+    let mut client = TestClient::connect(&addr).await;
+    ready_session_expecting(&mut client, "H-FT", "humble", "rmw_fastrtps_cpp").await;
+
+    let type_name = "moonspan_cdr_interfaces/msg/PrimitiveScalars";
+    let (scheme, value) = schema_identity_for_type(type_name, SCHEME_MOONSPAN_SCHEMA_V1)
+        .expect("lookup")
+        .expect("phase1 moonspan identity");
+    assert_eq!(scheme, SCHEME_MOONSPAN_SCHEMA_V1);
+
+    let open_corr = corr(0xB1);
+    client
+        .send_control(&TestClient::open_topic_msg_on_row(
+            &open_corr,
+            9,
+            0,
+            "/primitives",
+            type_name,
+            1,
+            0,
+            "H-FT",
+            &scheme,
+            &value,
+        ))
+        .await;
+    let (bytes, effects) = expect_channel_ready_then_optional_delta(&mut client).await;
+    assert!(effects.channel_correlation_matched);
+    let (kind, fields) = control_fields(&bytes);
+    assert_eq!(kind, 9, "ChannelReady");
+    assert_eq!(uint(&fields, 29), 9);
+    assert_eq!(uint(&fields, 33), 0, "result allow");
+    assert_eq!(text(&fields, 8), "H-FT");
+    assert_eq!(client.session.channel_state(9), ChannelState::Active);
+    assert_eq!(backend.created.lock().unwrap()[0].topic, "/primitives");
+
+    assert!(backend.emit(1, b"h-ft-sample"));
+    let (bytes, _) = client.recv_ingested().await.expect("sample");
+    let frame = parse_frame(&bytes, None).expect("parse sample");
+    assert_eq!(frame.opcode, OPCODE_ROS_SAMPLE);
+    assert_eq!(frame.channel_id, 9);
+    match frame.payload {
+        FramePayload::Application(p) => assert_eq!(p, b"h-ft-sample"),
+        FramePayload::Control(_) => panic!("expected sample payload"),
+    }
+}
+
+#[tokio::test]
+async fn h_ft_rejects_wrong_row_open_channel() {
+    let (addr, _backend) = start_gateway_with_row(rclwebd::SUPPORT_ROW_H_FT).await;
+    let mut client = TestClient::connect(&addr).await;
+    ready_session_expecting(&mut client, "H-FT", "humble", "rmw_fastrtps_cpp").await;
+
+    // OpenChannel still claims J-FT while the gateway is H-FT.
+    client
+        .send_control(&TestClient::open_topic_msg(
+            &corr(0xB2),
+            4,
+            0,
+            "/chatter",
+            "std_msgs/msg/String",
+            1,
+        ))
+        .await;
+    let (bytes, effects) = client.recv_ingested().await.expect("channel ready failure");
+    assert_eq!(effects.channel_failed, Some(4));
+    let (kind, fields) = control_fields(&bytes);
+    assert_eq!(kind, 9);
+    assert_eq!(uint(&fields, 33), 3, "result error");
+    let CborValue::Map(body) = fields.get(&15).expect("error body") else {
+        panic!("expected error body map");
+    };
+    let body: BTreeMap<u64, CborValue<'_>> = body.iter().map(|(k, v)| (*k, v.clone())).collect();
+    assert_eq!(uint(&body, 48), 25, "support_row_mismatch");
+    assert_eq!(client.session.channel_state(4), ChannelState::Failed);
 }

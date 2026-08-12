@@ -41,6 +41,7 @@ export type {
   GraphView,
   QosOptions,
   SampleLease,
+  ServerCertificateHash,
   ServiceClient,
   ServiceServer,
   ServiceServerHandler,
@@ -234,7 +235,12 @@ class InlineClient implements RclwebClient {
       },
     });
     client = new InlineClient(host, options, url);
-    host.connect(url);
+    host.connect(url, {
+      transport: options.transport,
+      serverCertificateHashes: options.serverCertificateHashes,
+      fetchLocalDevTls: options.fetchLocalDevTls,
+      localDevTlsOrigin: options.localDevTlsOrigin,
+    });
     await client.#waitSessionReady();
     return client;
   }
@@ -915,12 +921,38 @@ class WorkerClient implements RclwebClient {
     };
   }
 
-  static async create(url: string, wasmUrl: string): Promise<WorkerClient> {
+  static async create(
+    url: string,
+    wasmUrl: string,
+    options: ConnectOptions = {},
+  ): Promise<WorkerClient> {
     const workerUrl = new URL("./worker/io-worker.ts", import.meta.url);
     const worker = new Worker(workerUrl.href, { type: "module" });
     const client = new WorkerClient(worker);
     await client.#request({ type: "init", wasmUrl });
-    await client.#request({ type: "connect", url, requestId: 0 });
+    await client.#request({
+      type: "connect",
+      url,
+      requestId: 0,
+      transport: options.transport,
+      serverCertificateHashes: options.serverCertificateHashes?.map((h) => ({
+        algorithm: h.algorithm,
+        value:
+          typeof h.value === "string"
+            ? h.value
+            : Array.from(
+                h.value instanceof ArrayBuffer
+                  ? new Uint8Array(h.value)
+                  : new Uint8Array(
+                      h.value.buffer,
+                      h.value.byteOffset,
+                      h.value.byteLength,
+                    ),
+              ),
+      })),
+      fetchLocalDevTls: options.fetchLocalDevTls,
+      localDevTlsOrigin: options.localDevTlsOrigin,
+    });
     return client;
   }
 
@@ -1171,7 +1203,7 @@ export async function connect(
     const bytes = await response.arrayBuffer();
     return InlineClient.create(url, bytes, options);
   }
-  return WorkerClient.create(url, wasmUrl);
+  return WorkerClient.create(url, wasmUrl, options);
 }
 
 /** @internal Test helper: offline inline client for scripted peer bytes. */

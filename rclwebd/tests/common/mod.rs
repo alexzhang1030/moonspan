@@ -90,6 +90,7 @@ impl MockBackend {
             "example_interfaces/",
             "rcl_interfaces/",
             "std_srvs/",
+            "moonspan_cdr_interfaces/",
         ];
         if PREFIXES.iter().any(|p| spec.type_name.starts_with(p)) {
             Ok(())
@@ -606,7 +607,7 @@ impl TestClient {
         type_name: &str,
         qos_reliability: u64,
     ) -> CborValue<'static> {
-        Self::open_topic_msg_on_domain(
+        Self::open_topic_msg_on_row(
             correlation,
             channel_id,
             operation_kind,
@@ -614,6 +615,9 @@ impl TestClient {
             type_name,
             qos_reliability,
             0,
+            "J-FT",
+            "rep2011-rihs",
+            RIHS_DEMO,
         )
     }
 
@@ -627,6 +631,33 @@ impl TestClient {
         qos_reliability: u64,
         domain_id: u8,
     ) -> CborValue<'static> {
+        Self::open_topic_msg_on_row(
+            correlation,
+            channel_id,
+            operation_kind,
+            topic,
+            type_name,
+            qos_reliability,
+            domain_id,
+            "J-FT",
+            "rep2011-rihs",
+            RIHS_DEMO,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn open_topic_msg_on_row(
+        correlation: &[u8; 16],
+        channel_id: u32,
+        operation_kind: u64,
+        topic: &str,
+        type_name: &str,
+        qos_reliability: u64,
+        domain_id: u8,
+        support_row_id: &str,
+        schema_scheme: &str,
+        schema_value: &str,
+    ) -> CborValue<'static> {
         CborValue::Map(vec![
             (1, CborValue::Unsigned(8)),
             (2, bytes_val(correlation)),
@@ -637,8 +668,8 @@ impl TestClient {
             (
                 3,
                 CborValue::Map(vec![
-                    (1, text_val("rep2011-rihs")),
-                    (2, text_val(RIHS_DEMO)),
+                    (1, text_val(schema_scheme)),
+                    (2, text_val(schema_value)),
                 ]),
             ),
             (5, CborValue::Unsigned(1)),
@@ -655,7 +686,7 @@ impl TestClient {
             (32, CborValue::Unsigned(2)),
             (12, CborValue::Map(Vec::new())),
             (9, CborValue::Unsigned(u64::from(domain_id))),
-            (8, text_val("J-FT")),
+            (8, text_val(support_row_id)),
         ])
     }
 
@@ -788,9 +819,17 @@ impl TestClient {
 /// Start a gateway with the mock backend on an ephemeral port; returns the
 /// bound address and the backend handle.
 pub async fn start_gateway() -> (String, std::sync::Arc<MockBackend>) {
+    start_gateway_with_row(rclwebd::SUPPORT_ROW_J_FT).await
+}
+
+/// Start a mock gateway bound to the given support row (ADR 0008).
+pub async fn start_gateway_with_row(
+    support_row: rclwebd::SupportRow,
+) -> (String, std::sync::Arc<MockBackend>) {
     let backend = std::sync::Arc::new(MockBackend::default());
     let config = std::sync::Arc::new(rclwebd::GatewayConfig {
         gateway_instance_id: "gw-test".to_owned(),
+        support_row,
         ..rclwebd::GatewayConfig::default()
     });
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")

@@ -37,7 +37,12 @@ pub enum HostEvent {
 #[derive(Debug, Clone)]
 pub enum AppCommand {
     /// Begin bootstrap: emit ClientHello.
-    Start { transferable_arraybuffer: bool },
+    Start {
+        transferable_arraybuffer: bool,
+        /// When true, ClientHello offers `webtransport_http3` (and still offers
+        /// `binary_wss` so dual-capable peers can AND-negotiate).
+        webtransport: bool,
+    },
     /// Send Authenticate after ServerHello.
     Authenticate {
         correlation: [u8; 16],

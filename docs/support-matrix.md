@@ -17,7 +17,7 @@ Status: design baseline. Every row remains a **Qualification target** until its 
 
 | Row | ROS | RMW | Host | CPU | Status |
 |---|---|---|---|---|---|
-| H-FT | Humble Hawksbill | `rmw_fastrtps_cpp` | Ubuntu 22.04 | `amd64`, `arm64` | Qualification target |
+| H-FT | Humble Hawksbill | `rmw_fastrtps_cpp` | Ubuntu 22.04 | `amd64`, `arm64` | Delivery-gated (protocol + corpus + mock e2e); live Humble ROS attachment still Qualification target |
 | H-CY | Humble Hawksbill | `rmw_cyclonedds_cpp` | Ubuntu 22.04 | `amd64`, `arm64` | Qualification target |
 | H-ZN | Humble Hawksbill | `rmw_zenoh_cpp` | Ubuntu 22.04 | `amd64`, `arm64` | Qualification target |
 | J-FT | Jazzy Jalisco | `rmw_fastrtps_cpp` | Ubuntu 24.04 | `amd64`, `arm64` | Qualification target |
@@ -27,6 +27,8 @@ Status: design baseline. Every row remains a **Qualification target** until its 
 Fast DDS (`rmw_fastrtps_cpp`) is the reference and default row for each ROS distribution. Cyclone DDS (`rmw_cyclonedds_cpp`) and Zenoh (`rmw_zenoh_cpp`) are peer first-class Phase 1 rows. All three RMW implementations share the same support level.
 
 One gateway process binds one row and may host multiple domain IDs. `support_row_id` is fixed for the running artifact. `gateway_instance_id` identifies the deployment across eligible restart and upgrade paths. Applications use independent sessions across rows.
+
+**H-FT delivery gate (R3-03):** SessionReady / OpenChannel row identity and `moonspan-schema-v1` OpenChannel are proven on the mock gateway and corpus ([evidence](./evidence/r3-03-h-ft-row.json), [milestone](./milestones/r3-03-h-ft-webtransport.md)). Live Humble rcl attachment remains a Qualification target until a Humble-linked gateway artifact exists (current `feature = "ros"` links Jazzy).
 
 ## ROS base images
 

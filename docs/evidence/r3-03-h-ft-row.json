@@ -1,0 +1,32 @@
+{
+  "task": "R3-03",
+  "kind": "h-ft-support-row-protocol",
+  "recordedAt": "2026-08-12T15:15:05.670Z",
+  "supportRow": {
+    "id": "H-FT",
+    "ros_distro": "humble",
+    "rmw_identifier": "rmw_fastrtps_cpp",
+    "schema_scheme": "moonspan-schema-v1"
+  },
+  "scope": {
+    "protocolPath": "SessionReady fields 8/18/19 + OpenChannel moonspan + wrong-row reject",
+    "liveHumbleRcl": "evidence-gated \u2014 Jazzy FFI artifact does not link Humble; live attachment follows Humble-linked build / R3-04"
+  },
+  "commands": [
+    "cargo test --locked -p rclweb --lib engine::",
+    "cargo test --locked -p rclwebd --test ws_gateway h_ft",
+    "cargo test --locked -p rclweb --test generated_types_registry",
+    "just check"
+  ],
+  "results": {
+    "engine_h_ft_moonspan_open_channel": "pass",
+    "ws_gateway_h_ft_session_ready_and_moonspan_subscribe": "pass",
+    "ws_gateway_h_ft_rejects_wrong_row_open_channel": "pass",
+    "generated_types_registry": "pass"
+  },
+  "docker": {
+    "compose": "docker/compose.r3-03-h-ft.yml",
+    "note": "Mock protocol e2e only; optional CI job; does not pull Humble ROS packages"
+  },
+  "note": "H-FT is delivery-gated for protocol + corpus + mock e2e. Live Humble ROS attachment remains a Qualification target until a humble-linked artifact exists."
+}

@@ -33,6 +33,7 @@ The restructure plan governs sequencing: R0 stop-loss, R1 walking skeleton, R2 d
 | R2-04 performance baseline | [Completion note](./milestones/r2-04-perf-baseline.md) |
 | R3-01 services, actions, parameters, graph | [Completion note](./milestones/r3-01-services-actions-graph.md) |
 | R3-02 generated types + dual-scheme registry | [Completion note](./milestones/r3-02-generated-types.md) |
+| R3-03 H-FT row + WebTransport | [Completion note](./milestones/r3-03-h-ft-webtransport.md) |
 | Plan and current work | [Implementation plan](../tasks/plan.md), [execution checklist](../tasks/todo.md) |
 | Post-mainline Studio work | [Studio prototype](./prototypes/studio-ui.md), [design system](../.agents/docs/DESIGN.md) |
 
