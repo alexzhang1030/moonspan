@@ -59,7 +59,7 @@ The machine-readable qualification-report contract from the pre-restructure evid
 
 ## Foundation CI
 
-[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) installs the pinned toolchains with SHA-pinned `oven-sh/setup-bun` and `dtolnay/rust-toolchain`, caches the `just` binary (retrying GitHub fetch on miss), and runs the root check, test, and build commands (`foundation` job), including the `rclweb` wasm32 build. The `e2e-ros-talker` job runs the digest-pinned Jazzy compose lane (`docker/compose.r1-e2e.yml`) against a real ROS 2 talker. The `e2e-ros-talker-h-ft` job runs the digest-pinned Humble H-FT lane (`docker/compose.r3-03-h-ft-e2e.yml`) with in-image FFI regeneration. Both upload [`docs/evidence/`](./evidence/) artifacts. E2e images copy Bun from digest-pinned `oven/bun` (must match `.bun-version`); they must not pipe `bun.sh/install`.
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) installs the pinned toolchains with SHA-pinned setup actions (`oven-sh/setup-bun`, `extractions/setup-just` with one retry, `dtolnay/rust-toolchain`) and runs the root check, test, and build commands (`foundation` job), including the `rclweb` wasm32 build. The `e2e-ros-talker` job runs the digest-pinned Jazzy compose lane (`docker/compose.r1-e2e.yml`) against a real ROS 2 talker. The `e2e-ros-talker-h-ft` job runs the digest-pinned Humble H-FT lane (`docker/compose.r3-03-h-ft-e2e.yml`) with in-image FFI regeneration. Both upload [`docs/evidence/`](./evidence/) artifacts. E2e images copy Bun from digest-pinned `oven/bun` (must match `.bun-version`); they must not pipe `bun.sh/install`.
 
 ## Delivery gates
 
