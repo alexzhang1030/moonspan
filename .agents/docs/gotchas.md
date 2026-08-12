@@ -85,6 +85,6 @@ Foundation CI installs Bun with SHA-pinned `oven-sh/setup-bun` (`.bun-version`) 
 
 `[profile.release-wasm] inherits = "release"`. Adding `strip`, `lto`, or panic settings to native release also applies to the wasm ship profile unless that key is set again on `release-wasm`. Putting `strip = "symbols"` on native release dropped staged `rclweb.wasm` from 593631 bytes to 376519. Keep fat LTO, `panic = abort`, `opt-level = "z"`, and `strip` explicit on `release-wasm`. Reproduce with `just build` and [`docs/evidence/r1-04-wasm-size.json`](../../docs/evidence/r1-04-wasm-size.json).
 
-## Raw evidence JSON is not a qualification report
+## Do not add an evidence-check CI job
 
-`docs/evidence/*.json` are measurements. A report under [`docs/evidence/reports/`](../../docs/evidence/reports/) is only an index (gate, artifact sha256, review). Treating a green e2e JSON as **Qualified** skips human review. Promotion is `review.decision = accept`. Do not bring back the closed pre-restructure M0-05a ceremony (generated JSON Schema, synthetic fixtures, sorted-key maps, invocation bounds) — the owner rejected those checks as unnecessary. [R4-03](../../docs/milestones/r4-03-evidence-harness.md).
+`docs/evidence/*.json` are measurements. Git versions them. `just build` rewrites `recordedAt` on the wasm-size file, so a sha256 wrapper over those files fails for a timestamp. Qualification is a human edit of the [support matrix](../../docs/support-matrix.md). The owner cut `evidence-check` and the report-index JSON; do not bring back the closed pre-restructure M0-05a ceremony either. [R4-03](../../docs/milestones/r4-03-evidence-harness.md).

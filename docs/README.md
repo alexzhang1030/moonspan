@@ -37,7 +37,7 @@ The restructure plan governs sequencing: R0 stop-loss, R1 walking skeleton, R2 d
 | R3-04 adapter ABI + dynamic typesupport | [Completion note](./milestones/r3-04-adapter-abi-typesupport.md) |
 | R4-01 OIDC / SROS2 / audit (in progress) | [Milestone note](./milestones/r4-01-oidc-sros2-audit.md) |
 | R4-02 deployment + observability (in progress) | [Milestone note](./milestones/r4-02-deployment-observability.md), [deploy](./deploy.md) |
-| R4-03 evidence harness (in progress) | [Milestone note](./milestones/r4-03-evidence-harness.md), [evidence](./evidence/README.md) |
+| R4-03 support matrix vs committed evidence (in progress) | [Milestone note](./milestones/r4-03-evidence-harness.md), [evidence](./evidence/README.md) |
 | Plan and current work | [Implementation plan](../tasks/plan.md), [execution checklist](../tasks/todo.md) |
 | Post-mainline Studio work | [Studio prototype](./prototypes/studio-ui.md), [design system](../.agents/docs/DESIGN.md) |
 

@@ -55,7 +55,7 @@ Each accepted claim records:
 - artifact location and integrity;
 - reviewer, gate, decision, and known limits.
 
-The machine-readable report index lives under [`docs/evidence/reports/`](./evidence/reports/). Each report names a gate, points at raw `docs/evidence/*.json` with a sha256, and records `review.decision`. `just evidence-check` verifies those pointers still match; it does not recycle the closed pre-restructure M0-05a ceremony. Committed reports are `pending` until a human reviewer accepts them ([R4-03](./milestones/r4-03-evidence-harness.md)).
+The machine-readable measurements live under [`docs/evidence/`](./evidence/). A row becomes **Qualified** only when a human updates the [support matrix](./support-matrix.md). There is no `evidence-check` job: git versions the files, and the closed pre-restructure report ceremony stays parked ([R4-03](./milestones/r4-03-evidence-harness.md)).
 
 ## Foundation CI
 
@@ -69,7 +69,7 @@ The machine-readable report index lives under [`docs/evidence/reports/`](./evide
 | R1 Walking skeleton | Live end-to-end subscribe in CI, corpus-passing CDR port, wasm size and poll latency, copy counters | Core architecture approval |
 | R2 Data-plane hardening | Publish, QoS subset, budgets, reconnect, adversarial fixtures, fuzzing, performance baseline | Data-plane approval |
 | R3 Semantics and breadth | N2 subset, generated types, second row, WebTransport, versioned adapter ABI | Semantic capability approval |
-| R4 Productionization | Identity, policy, SROS2, audit, compatibility, deployment, evidence harness, SDK, and release artifacts | Release approval |
+| R4 Productionization | Identity, policy, SROS2, audit, compatibility, deployment, reviewed evidence, SDK, and release artifacts | Release approval |
 | U0 Studio | Released SDK integration, workflows, rendering, media, accessibility, and command safety | Prototype acceptance |
 
 ## Qualification scenarios

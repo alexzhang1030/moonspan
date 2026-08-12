@@ -35,7 +35,7 @@ MoonBit had been chosen for Wasm convenience. The accepted counter-argument: the
 
 - The R-phase plan in [tasks/plan.md](../../tasks/plan.md) replaces the M-phase plan.
 - The CDR contract, the ROS CDR corpus, tail-slack evidence, and the frozen generated-types contract survive as the oracle the Rust port must pass (R1).
-- The evidence harness returns in R4 with real reports to validate. R4-03 first slice is a thin index under [`docs/evidence/reports/`](../evidence/README.md), not the closed pre-restructure M0-05a ceremony.
+- The evidence harness does not return as a CI job in R4. Committed measurements stay under [`docs/evidence/`](../evidence/README.md); promotion to Qualified is a human edit of the support matrix.
 - ADRs 0001–0009 remain historical records; where they name MoonBit as the runtime language, this ADR supersedes that choice while preserving their boundaries (0004 host boundary, 0006 C ABI direction, 0007 schema identity).
 
 ## Revisit triggers

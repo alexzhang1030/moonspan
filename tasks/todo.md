@@ -43,7 +43,7 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified. Phase details live in
 
 - [~] R4-01 OIDC, SROS2/ACL, audit (Authenticate off-by-default / opt-in `oidc` + audit; ACL/SROS2 enclave still open).
 - [~] R4-02 Deployment and observability (ops endpoints + J-FT / H-FT runtime images; PKI/remaining-row images/orchestrators still open).
-- [~] R4-03 Evidence index over committed measurements (pending reports + sha256 check; remaining-row live e2e and human accept still open).
+- [~] R4-03 Support matrix against committed measurements (no evidence-check CI job; remaining-row live e2e and human Qualified promotion still open).
 - [ ] R4-04 SDK stabilization and release.
 
 ## Kickoff decisions

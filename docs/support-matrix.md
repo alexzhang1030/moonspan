@@ -28,19 +28,19 @@ Fast DDS (`rmw_fastrtps_cpp`) is the reference and default row for each ROS dist
 
 One gateway process binds one row and may host multiple domain IDs. `support_row_id` is fixed for the running artifact. `gateway_instance_id` identifies the deployment across eligible restart and upgrade paths. Applications use independent sessions across rows.
 
-**H-FT delivery gate (R3-03):** SessionReady / OpenChannel row identity and `moonspan-schema-v1` OpenChannel are proven on the mock gateway and corpus ([evidence](./evidence/r3-03-h-ft-row.json)). Live Humble rcl attachment is proven by the digest-pinned compose lane ([compose](../docker/compose.r3-03-h-ft-e2e.yml), CI `e2e-ros-talker-h-ft`, [evidence](./evidence/r3-03-h-ft-e2e.json), [milestone](./milestones/r3-03-h-ft-webtransport.md)): the image regenerates FFI against Humble headers, links `--features ros` with `ROS_PREFIX=/opt/ros/humble`, sets `RCLWEBD_SUPPORT_ROW=H-FT`, and runs talker → gateway → SDK. Default committed bindings remain Jazzy for host `just ros-test`. The wrapping qualification report is [`reports/r3-03-h-ft-live.json`](./evidence/reports/r3-03-h-ft-live.json) (`pending`).
+**H-FT delivery gate (R3-03):** SessionReady / OpenChannel row identity and `moonspan-schema-v1` OpenChannel are proven on the mock gateway and corpus ([evidence](./evidence/r3-03-h-ft-row.json)). Live Humble rcl attachment is proven by the digest-pinned compose lane ([compose](../docker/compose.r3-03-h-ft-e2e.yml), CI `e2e-ros-talker-h-ft`, [evidence](./evidence/r3-03-h-ft-e2e.json), [milestone](./milestones/r3-03-h-ft-webtransport.md)): the image regenerates FFI against Humble headers, links `--features ros` with `ROS_PREFIX=/opt/ros/humble`, sets `RCLWEBD_SUPPORT_ROW=H-FT`, and runs talker → gateway → SDK. Default committed bindings remain Jazzy for host `just ros-test`.
 
-## Qualification reports
+## Qualification
 
-Machine-readable reports live under [`docs/evidence/reports/`](./evidence/reports/) and must pass `just evidence-check` ([evidence](./evidence/README.md), [R4-03](./milestones/r4-03-evidence-harness.md)). Raw measurements stay as sibling JSON under [`docs/evidence/`](./evidence/). A row becomes **Qualified** only after human `review.decision = accept`.
+Committed measurements live under [`docs/evidence/`](./evidence/). A row becomes **Qualified** only after a human updates this matrix. There is no report-index CI job ([R4-03](./milestones/r4-03-evidence-harness.md)).
 
-| Row | Delivery evidence | Qualification report |
+| Row | Delivery evidence | Status |
 |---|---|---|
-| J-FT | Live Jazzy talker e2e (`just e2e`) plus R1/R2 host measurements | pending [`r1-walking-skeleton.json`](./evidence/reports/r1-walking-skeleton.json), [`r2-04-perf-baseline.json`](./evidence/reports/r2-04-perf-baseline.json) |
-| H-FT | Live Humble talker e2e (`just e2e-h-ft`) | pending [`r3-03-h-ft-live.json`](./evidence/reports/r3-03-h-ft-live.json) |
-| H-CY, H-ZN, J-CY, J-ZN | Corpus committed; no live gateway e2e lane yet | none |
+| J-FT | Live Jazzy talker e2e (`just e2e`); [`r1-04-wasm-size.json`](./evidence/r1-04-wasm-size.json), [`r1-05-poll-latency.json`](./evidence/r1-05-poll-latency.json), [`r2-04-perf-baseline.json`](./evidence/r2-04-perf-baseline.json) | Delivery-gated; Qualification pending review |
+| H-FT | Live Humble talker e2e (`just e2e-h-ft`); [`r3-03-h-ft-e2e.json`](./evidence/r3-03-h-ft-e2e.json), [`r3-03-h-ft-row.json`](./evidence/r3-03-h-ft-row.json) | Delivery-gated; Qualification pending review |
+| H-CY, H-ZN, J-CY, J-ZN | Corpus committed; no live gateway e2e lane yet | Qualification target |
 
-Live Cyclone DDS and Zenoh gateway lanes are R4-03 follow-up work. Do not treat a green corpus or a pending report as **Qualified**.
+Live Cyclone DDS and Zenoh gateway lanes are R4-03 follow-up work. Do not treat a green corpus or a green e2e job as **Qualified**.
 
 ## ROS base images
 
@@ -90,7 +90,7 @@ Studio graphics and media profiles begin at U0.
 
 ## Promotion
 
-A report records the release, environment, row and adapter identity, gateway and domain provenance, readiness, browser and buffer path, transport and network, semantic results, resource measurements, raw evidence, known limits, and reviewer. The machine-readable index is a thin file under [`docs/evidence/reports/`](./evidence/README.md); the rest of that list is for human review, not CI.
+A report records the release, environment, row and adapter identity, gateway and domain provenance, readiness, browser and buffer path, transport and network, semantic results, resource measurements, raw evidence, known limits, and reviewer. That list is for human review of this matrix, not a CI schema.
 
 A row becomes **Qualified** when its reports pass [validation](./validation.md) and human review accepts the row for a named release revision.
 

@@ -1,39 +1,36 @@
-# R4-03: Evidence harness and support-matrix reports
+# R4-03: Support matrix against committed evidence
 
 Status: In progress (first slice). Remaining-row live e2e (H-CY, H-ZN,
-J-CY, J-ZN) and human `accept` of Qualified rows remain follow-ups.
-This slice indexes committed measurements. It does not spin new RMW
-lanes and does not recycle the closed pre-restructure report ceremony.
+J-CY, J-ZN) and human promotion to **Qualified** remain follow-ups.
+This slice points the support matrix at real committed measurements.
+It does not add an evidence-check CI job and does not recycle the
+closed pre-restructure report ceremony.
 
 ## Outcome (this slice)
 
 | Area | Behavior |
 |---|---|
-| Index | Reports under [`docs/evidence/reports/`](../evidence/reports/) name a gate, point at raw `docs/evidence/*.json`, and record `review.decision`. |
-| Checker | `just evidence-check` verifies parse, known gate, artifact path + sha256, and reviewer rules for non-pending decisions. |
-| Review | Committed reports are `pending`. They do not make a support row **Qualified**. |
-| Matrix | [Support matrix](../support-matrix.md) records pending reports for J-FT and H-FT and keeps Cyclone/Zenoh rows as Qualification targets. |
+| Measurements | Existing [`docs/evidence/*.json`](../evidence/) stay the run records. |
+| Matrix | [Support matrix](../support-matrix.md) lists which files back J-FT and H-FT delivery gates. Cyclone/Zenoh rows stay Qualification targets. |
+| Promotion | A row becomes **Qualified** only by a human edit of that matrix. CI does not stamp `accept`. |
 
-The pre-restructure M0-05a contract (sorted maps, generated JSON Schema, synthetic fixtures, media types, invocation bounds) stays parked. The owner rejected bringing those checks back.
+The owner rejected a machine report index (`evidence-check`, sha256 wrappers, generated JSON Schema). Git plus the matrix are enough.
 
-## Committed reports (pending review)
+## Delivery evidence (not Qualified)
 
-| Report | Gate | Artifacts |
+| Row | Gate | Files |
 |---|---|---|
-| [`r1-walking-skeleton.json`](../evidence/reports/r1-walking-skeleton.json) | R1 | wasm size + poll latency |
-| [`r2-04-perf-baseline.json`](../evidence/reports/r2-04-perf-baseline.json) | R2 / J-FT | host + protocol-cost baseline |
-| [`r3-03-h-ft-live.json`](../evidence/reports/r3-03-h-ft-live.json) | R3 / H-FT | Humble talker e2e + row protocol |
+| J-FT | R1 / R2 | [`r1-04-wasm-size.json`](../evidence/r1-04-wasm-size.json), [`r1-05-poll-latency.json`](../evidence/r1-05-poll-latency.json), [`r2-04-perf-baseline.json`](../evidence/r2-04-perf-baseline.json) |
+| H-FT | R3 | [`r3-03-h-ft-e2e.json`](../evidence/r3-03-h-ft-e2e.json), [`r3-03-h-ft-row.json`](../evidence/r3-03-h-ft-row.json) |
 
 ## Acceptance evidence
 
 ```bash
-just evidence-check
-bun test scripts/evidence-check.test.ts
 just check && just test && just build
 ```
 
 ## Still open in R4-03
 
-- Human review (`accept` / `reject` / `provisional`) of the pending reports
+- Human promotion of J-FT / H-FT from delivery-gated to **Qualified**
 - Live gateway e2e lanes for H-CY, H-ZN, J-CY, and J-ZN
 - D-05 publication/retention beyond repository-committed artifacts

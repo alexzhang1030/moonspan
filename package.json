@@ -21,15 +21,13 @@
     "cdr-tail-slack:check": "bun run scripts/cdr-tail-slack.ts --check",
     "generated-types:write": "bun run scripts/generated-types.ts --write",
     "generated-types:check": "bun run scripts/generated-types.ts --check",
-    "evidence:check": "bun run scripts/evidence-check.ts --check",
     "toolchain-check": "bun run scripts/toolchain-check.ts",
-    "check": "bun run docs:check && bun run protocol-check && bun run cdr-corpus:check && bun run cdr-tail-slack:check && bun run generated-types:check && bun run evidence:check",
+    "check": "bun run docs:check && bun run protocol-check && bun run cdr-corpus:check && bun run cdr-tail-slack:check && bun run generated-types:check",
     "test:docs": "bun test scripts/docs-check.test.ts",
     "test:protocol": "bun test scripts/protocol-check.test.ts",
     "test:cdr-corpus": "bun test scripts/cdr-corpus.test.ts",
     "test:cdr-tail-slack": "bun test scripts/cdr-tail-slack.test.ts",
     "test:generated-types": "bun test scripts/generated-types.test.ts",
-    "test:evidence": "bun test scripts/evidence-check.test.ts",
     "test": "bun test"
   }
 }

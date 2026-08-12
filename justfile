@@ -122,17 +122,12 @@ cdr-tail-slack-write: toolchain-check
 generated-types-check: toolchain-check
     cd "{{root}}" && bun run generated-types:check
 
-# Qualification-report index: artifact sha256 + review disposition (R4-03).
-[group('quality')]
-evidence-check: toolchain-check
-    cd "{{root}}" && bun run evidence:check
-
 # Regenerate generated-types metadata under rclweb/generated/metadata/.
 [group('quality')]
 generated-types-write: toolchain-check
     cd "{{root}}" && bun run generated-types:write
 
-# Docs, protocol, corpus, and evidence checks; Rust fmt/clippy; SDK typecheck.
+# Docs, protocol, and corpus checks; Rust fmt/clippy; SDK typecheck.
 [group('quality')]
 check: toolchain-check
     #!/usr/bin/env bash
