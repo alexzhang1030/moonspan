@@ -59,7 +59,7 @@ The machine-readable qualification-report contract from the pre-restructure evid
 
 ## Foundation CI
 
-[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) installs the pinned toolchains and runs the root check, test, and build commands (`foundation` job), including the `rclweb` wasm32 build. The `e2e-ros-talker` job runs the digest-pinned Jazzy compose lane (`docker/compose.r1-e2e.yml`) against a real ROS 2 talker and uploads [`docs/evidence/`](./evidence/) artifacts.
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) installs the pinned toolchains and runs the root check, test, and build commands (`foundation` job), including the `rclweb` wasm32 build. The `e2e-ros-talker` job runs the digest-pinned Jazzy compose lane (`docker/compose.r1-e2e.yml`) against a real ROS 2 talker. The `e2e-ros-talker-h-ft` job runs the digest-pinned Humble H-FT lane (`docker/compose.r3-03-h-ft-e2e.yml`) with in-image FFI regeneration. Both upload [`docs/evidence/`](./evidence/) artifacts.
 
 ## Delivery gates
 

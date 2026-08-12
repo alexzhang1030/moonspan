@@ -1,0 +1,54 @@
+# R3-03 H-FT live e2e: Humble (H-FT) + Rust + Bun + Humble-linked rclwebd.
+# Digest-pinned base matches docs/support-matrix.md Humble pin.
+# Regenerates vendored rcl bindings against Humble headers before linking so the
+# artifact matches the process support row (ADR 0008: one row per process).
+FROM docker.io/library/ros:humble-ros-base-jammy@sha256:7bea3d9aa2483d3ca34c8e30d921b79273b0913bd7dc64bebf51d082b5d107e4
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    clang \
+    curl \
+    git \
+    libclang-dev \
+    pkg-config \
+    python3 \
+    unzip \
+  && rm -rf /var/lib/apt/lists/*
+
+# Rust (pinned to repo toolchain channel)
+COPY rust-toolchain.toml /tmp/rust-toolchain.toml
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+      --default-toolchain "$(awk -F'"' '/^[[:space:]]*channel[[:space:]]*=/{print $2; exit}' /tmp/rust-toolchain.toml)" \
+      --profile minimal \
+      --target wasm32-unknown-unknown \
+  && . "$HOME/.cargo/env" \
+  && rustup component add rustfmt clippy \
+  && cargo install bindgen-cli --locked
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Bun (pinned)
+COPY .bun-version /tmp/.bun-version
+RUN BUN_VERSION="$(tr -d '[:space:]' < /tmp/.bun-version)" \
+  && curl -fsSL "https://bun.sh/install" | bash -s "bun-v${BUN_VERSION}"
+ENV PATH="/root/.bun/bin:${PATH}"
+
+WORKDIR /workspace
+COPY . /workspace
+
+ENV ROS_PREFIX=/opt/ros/humble
+ENV RCLWEBD_SUPPORT_ROW=H-FT
+ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+
+RUN bun install --frozen-lockfile \
+  && . /opt/ros/humble/setup.sh \
+  && ROS_PREFIX=/opt/ros/humble bash scripts/generate-rcl-bindings.sh \
+  && cargo build --locked -p rclwebd --features ros --release \
+  && bun run scripts/build-wasm.ts \
+  && mkdir -p /opt/rclweb/evidence
+
+COPY docker/r3-03-h-ft-e2e-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

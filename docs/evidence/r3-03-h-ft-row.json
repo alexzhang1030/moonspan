@@ -1,0 +1,33 @@
+{
+  "task": "R3-03",
+  "kind": "h-ft-support-row-protocol",
+  "recordedAt": "2026-08-12T15:15:05.670Z",
+  "supportRow": {
+    "id": "H-FT",
+    "ros_distro": "humble",
+    "rmw_identifier": "rmw_fastrtps_cpp",
+    "schema_scheme": "moonspan-schema-v1"
+  },
+  "scope": {
+    "protocolPath": "SessionReady fields 8/18/19 + OpenChannel moonspan + wrong-row reject",
+    "liveHumbleRcl": "docker/compose.r3-03-h-ft-e2e.yml + CI e2e-ros-talker-h-ft (regenerate FFI against Humble, link --features ros, talker subscribe)"
+  },
+  "commands": [
+    "cargo test --locked -p rclweb --lib engine::",
+    "cargo test --locked -p rclwebd --test ws_gateway h_ft",
+    "cargo test --locked -p rclweb --test generated_types_registry",
+    "just check"
+  ],
+  "results": {
+    "engine_h_ft_moonspan_open_channel": "pass",
+    "ws_gateway_h_ft_session_ready_and_moonspan_subscribe": "pass",
+    "ws_gateway_h_ft_rejects_wrong_row_open_channel": "pass",
+    "generated_types_registry": "pass"
+  },
+  "docker": {
+    "mockCompose": "docker/compose.r3-03-h-ft.yml",
+    "liveCompose": "docker/compose.r3-03-h-ft-e2e.yml",
+    "note": "Mock protocol optional; live Humble talker is the CI gate (e2e-ros-talker-h-ft)"
+  },
+  "note": "H-FT is delivery-gated for protocol + corpus + live Humble talker e2e. Qualification report review remains separate."
+}

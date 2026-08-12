@@ -1,6 +1,7 @@
 /**
- * Headless R1-05 harness: connect (inline) → subscribe /chatter → assert samples.
- * Writes docs/evidence/r1-05-e2e.json when RCLWEB_EVIDENCE_DIR is set (or default).
+ * Headless live-subscribe harness: connect (inline) → subscribe /chatter → assert samples.
+ * Default evidence path is R1-05 / J-FT; H-FT live e2e overrides via env
+ * (`RCLWEB_SUPPORT_ROW`, `RCLWEB_EVIDENCE_FILE`, `RCLWEB_TASK`).
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -14,6 +15,9 @@ const telemetryUrl =
   process.env.RCLWEB_TELEMETRY_URL ?? "http://127.0.0.1:8794/telemetryz";
 const minSamples = Number(process.env.RCLWEB_MIN_SAMPLES ?? "3");
 const timeoutMs = Number(process.env.RCLWEB_TIMEOUT_MS ?? "30000");
+const supportRow = process.env.RCLWEB_SUPPORT_ROW ?? "J-FT";
+const evidenceFile = process.env.RCLWEB_EVIDENCE_FILE ?? "r1-05-e2e.json";
+const task = process.env.RCLWEB_TASK ?? "R1-05";
 const evidenceDir =
   process.env.RCLWEB_EVIDENCE_DIR ??
   path.resolve(import.meta.dir, "../../docs/evidence");
@@ -88,11 +92,11 @@ async function main(): Promise<void> {
   await client.close();
 
   const evidence = {
-    task: "R1-05",
+    task,
     kind: "e2e-live-subscribe",
     startedAt,
     finishedAt: new Date().toISOString(),
-    supportRow: "J-FT",
+    supportRow,
     gatewayUrl,
     topic: "/chatter",
     typeName: STD_MSGS_STRING,
@@ -114,9 +118,11 @@ async function main(): Promise<void> {
   };
 
   mkdirSync(evidenceDir, { recursive: true });
-  const outPath = path.join(evidenceDir, "r1-05-e2e.json");
+  const outPath = path.join(evidenceDir, evidenceFile);
   writeFileSync(outPath, `${JSON.stringify(evidence, null, 2)}\n`);
-  console.log(`e2e ok: ${samples.length} samples; evidence → ${outPath}`);
+  console.log(
+    `e2e ok (${supportRow}): ${samples.length} samples; evidence → ${outPath}`,
+  );
   if (
     engineTelemetry &&
     engineTelemetry.copiesIntoEngine > 0 &&

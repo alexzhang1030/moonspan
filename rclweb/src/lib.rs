@@ -24,10 +24,11 @@ pub use cdr::{
     decode_point_cloud2, decode_point_cloud2_le, encode_point_cloud2, encode_point_cloud2_le,
 };
 pub use engine::{
-    AppCommand, AppEvent, ClientEngine, DEFAULT_QOS_DEPTH, DEMO_SCHEMA_HASH, EngineTelemetry,
-    HostEvent, MAX_HOST_EVENTS_PER_POLL, MAX_OUTBOUND_PER_POLL, OutboundMessage, PollOutcome,
-    ReleasedBuffer, STD_MSGS_STRING, ZERO_CORRELATION, authenticate, close_channel, heartbeat,
-    open_action, open_service, open_topic,
+    AppCommand, AppEvent, ClientEngine, DEFAULT_QOS_DEPTH, DEMO_MOONSPAN_HASH, DEMO_SCHEMA_HASH,
+    EngineTelemetry, HostEvent, MAX_HOST_EVENTS_PER_POLL, MAX_OUTBOUND_PER_POLL, OutboundMessage,
+    PollOutcome, ReleasedBuffer, STD_MSGS_STRING, ZERO_CORRELATION, authenticate, close_channel,
+    heartbeat, open_action, open_service, open_topic, resolve_open_schema_identity,
+    schema_scheme_for_support_row,
 };
 pub use host::{
     BATCH_MAGIC, BatchError, LAYOUT_VERSION, RESULT_MAGIC, decode_host_batch,

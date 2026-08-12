@@ -9,16 +9,81 @@ pub const MAX_SESSION_BYTES_CEILING: u64 = 4_294_967_296;
 pub const MAX_MESSAGE_BYTES_CEILING: u32 = 67_108_864;
 pub const MAX_CONTROL_PAYLOAD_BYTES_CEILING: u32 = 1_048_576;
 
-/// Fixed identity of the built artifact's support row (Phase 1 gates J-FT).
-pub const SUPPORT_ROW_ID: &str = "J-FT";
-pub const ROS_DISTRO: &str = "jazzy";
-pub const RMW_IDENTIFIER: &str = "rmw_fastrtps_cpp";
+/// One adapter support row identity for this gateway process ([ADR 0008](../../docs/adr/0008-one-adapter-row-per-gateway-process.md)).
+///
+/// Immutable for the running process: SessionReady, ChannelReady, graph, and
+/// OpenChannel validation all carry `id`. Humble rows (`H-*`) use
+/// `moonspan-schema-v1` OpenChannel identity; Jazzy rows (`J-*`) use
+/// `rep2011-rihs`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SupportRow {
+    pub id: &'static str,
+    pub ros_distro: &'static str,
+    pub rmw_identifier: &'static str,
+}
+
+impl SupportRow {
+    /// Schema identity scheme for OpenChannel / graph placeholders on this row.
+    #[must_use]
+    pub fn schema_scheme(self) -> &'static str {
+        if self.id.starts_with('H') {
+            "moonspan-schema-v1"
+        } else {
+            "rep2011-rihs"
+        }
+    }
+}
+
+/// Jazzy + Fast DDS (Phase 1 default gated row).
+pub const SUPPORT_ROW_J_FT: SupportRow = SupportRow {
+    id: "J-FT",
+    ros_distro: "jazzy",
+    rmw_identifier: "rmw_fastrtps_cpp",
+};
+
+/// Humble + Fast DDS (R3-03 delivery-gated row).
+pub const SUPPORT_ROW_H_FT: SupportRow = SupportRow {
+    id: "H-FT",
+    ros_distro: "humble",
+    rmw_identifier: "rmw_fastrtps_cpp",
+};
+
+/// Deprecated alias for [`SUPPORT_ROW_J_FT`].id — prefer `config.support_row.id`.
+#[deprecated(note = "use GatewayConfig::support_row.id or SUPPORT_ROW_J_FT.id")]
+pub const SUPPORT_ROW_ID: &str = SUPPORT_ROW_J_FT.id;
+
+/// Deprecated alias for [`SUPPORT_ROW_J_FT`].ros_distro.
+#[deprecated(note = "use GatewayConfig::support_row.ros_distro")]
+pub const ROS_DISTRO: &str = SUPPORT_ROW_J_FT.ros_distro;
+
+/// Deprecated alias for [`SUPPORT_ROW_J_FT`].rmw_identifier.
+#[deprecated(note = "use GatewayConfig::support_row.rmw_identifier")]
+pub const RMW_IDENTIFIER: &str = SUPPORT_ROW_J_FT.rmw_identifier;
+
+/// Parse `RCLWEBD_SUPPORT_ROW` (`J-FT` default; `H-FT` accepted).
+#[must_use]
+pub fn parse_support_row(id: &str) -> Option<SupportRow> {
+    match id.trim() {
+        "J-FT" => Some(SUPPORT_ROW_J_FT),
+        "H-FT" => Some(SUPPORT_ROW_H_FT),
+        _ => None,
+    }
+}
+
+/// Which transport is carrying the current R2WP session.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ActiveTransport {
+    BinaryWebSocket,
+    WebTransportHttp3,
+}
 
 /// Gateway configuration. Identity/policy fields become real in R4; the R1
 /// values exist so every SessionReady carries complete provenance.
 #[derive(Debug, Clone)]
 pub struct GatewayConfig {
     pub gateway_instance_id: String,
+    /// Bound support row for this process (ADR 0008: one row per process).
+    pub support_row: SupportRow,
     /// Single ROS domain served in R1 (multi-domain rows return later).
     pub domain_id: u8,
     pub policy_revision: String,
@@ -33,12 +98,22 @@ pub struct GatewayConfig {
     pub sample_queue_depth: usize,
     /// Per-connection byte budget for the sample write queue.
     pub sample_queue_max_bytes: usize,
+    /// Opt-in ADR 0011 local-dev TLS (auto-mint ECDSA P-256, advertise SPKI).
+    /// Default false — production PKI unchanged.
+    pub local_dev_tls_enabled: bool,
+    /// When true, ServerHello AND-negotiates `webtransport_http3` if the client
+    /// offers it. Together with local-dev TLS (and `--features webtransport`)
+    /// starts the WT accept loop.
+    pub offer_webtransport: bool,
+    /// UDP bind for the WebTransport listener (default `127.0.0.1:4433`).
+    pub webtransport_bind: String,
 }
 
 impl Default for GatewayConfig {
     fn default() -> Self {
         Self {
             gateway_instance_id: format!("rclwebd-{:016x}", entropy64()),
+            support_row: SUPPORT_ROW_J_FT,
             domain_id: 0,
             policy_revision: "r1-dev".to_owned(),
             adapter_abi_version: "serialized-rcl-static-r1".to_owned(),
@@ -48,6 +123,9 @@ impl Default for GatewayConfig {
             max_control_payload_bytes: MAX_CONTROL_PAYLOAD_BYTES_CEILING,
             sample_queue_depth: 256,
             sample_queue_max_bytes: 4 * 1024 * 1024,
+            local_dev_tls_enabled: false,
+            offer_webtransport: false,
+            webtransport_bind: "127.0.0.1:4433".to_owned(),
         }
     }
 }

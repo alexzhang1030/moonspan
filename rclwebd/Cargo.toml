@@ -9,12 +9,20 @@ publish = false
 # Serialized-only rcl attachment (links a ROS 2 Jazzy installation; see
 # docs/gateway/rclwebd.md for the environment contract).
 ros = []
+# HTTP/3 WebTransport accept loop (wtransport/quinn). Off by default so
+# `just check` stays light; enable for local WT bring-up.
+webtransport = ["dep:wtransport"]
 
 [dependencies]
 axum = { version = "0.8.9", features = ["ws"] }
+base64 = "0.22"
 bytes = "1.12.1"
+rcgen = "0.14"
 rclweb = { path = "../rclweb" }
+sha2 = "0.10"
+time = { version = "0.3", features = ["formatting"] }
 tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros", "net", "sync", "time", "signal"] }
+wtransport = { version = "0.7", optional = true, default-features = true }
 
 [dev-dependencies]
 futures-util = { version = "0.3.34", default-features = false, features = ["sink", "std"] }

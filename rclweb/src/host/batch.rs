@@ -20,7 +20,7 @@
 //! - `4` ReleaseLease `{ lease_id:u32 }`
 //!
 //! Command kinds (`cmd:u8` after the event header):
-//! - `1` Start `{ transferable_arraybuffer:u8 }`
+//! - `1` Start `{ transferable_arraybuffer:u8, webtransport:u8, pad:u8*2 }`
 //! - `2` Authenticate `{ correlation:[u8;16], scheme_len:u16, scheme..., token_len:u16, token... }`
 //! - `3` Subscribe `{ correlation:[u8;16], channel_id:u32, qos:u8, domain:u8, depth:u16,
 //!                    topic_len:u16, topic..., type_len:u16, type... }`
@@ -242,9 +242,11 @@ fn decode_command(bytes: &[u8], offset: &mut usize, cmd: u8) -> Result<AppComman
                 return Err(BatchError::Truncated);
             }
             let transferable = bytes[*offset] != 0;
+            let webtransport = bytes[*offset + 1] != 0;
             *offset += 4;
             Ok(AppCommand::Start {
                 transferable_arraybuffer: transferable,
+                webtransport,
             })
         }
         CMD_AUTHENTICATE => {
@@ -926,9 +928,15 @@ fn encode_command(out: &mut Vec<u8>, cmd: &AppCommand) {
     match cmd {
         AppCommand::Start {
             transferable_arraybuffer,
+            webtransport,
         } => {
             out.extend_from_slice(&[CMD_START, 0, 0, 0]);
-            out.extend_from_slice(&[u8::from(*transferable_arraybuffer), 0, 0, 0]);
+            out.extend_from_slice(&[
+                u8::from(*transferable_arraybuffer),
+                u8::from(*webtransport),
+                0,
+                0,
+            ]);
         }
         AppCommand::Authenticate {
             correlation,
@@ -1208,6 +1216,7 @@ mod tests {
         let events = vec![
             HostEvent::Command(AppCommand::Start {
                 transferable_arraybuffer: true,
+                webtransport: false,
             }),
             HostEvent::WsBytes {
                 buffer_id: 9,

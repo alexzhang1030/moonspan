@@ -48,15 +48,24 @@ fn server_hello_bytes() -> Vec<u8> {
 }
 
 fn session_ready_bytes(seq: u64, correlation: &[u8; 16]) -> Vec<u8> {
+    session_ready_bytes_for_row(seq, correlation, "J-FT", "jazzy")
+}
+
+fn session_ready_bytes_for_row(
+    seq: u64,
+    correlation: &[u8; 16],
+    support_row: &str,
+    ros_distro: &str,
+) -> Vec<u8> {
     let msg = CborValue::Map(vec![
         (1, CborValue::Unsigned(2)),
         (2, bytes_val(correlation)),
         (7, text_val("gw-test")),
-        (8, text_val("J-FT")),
+        (8, text_val(support_row)),
         (10, CborValue::Array(vec![CborValue::Unsigned(0)])),
         (12, CborValue::Map(Vec::new())),
         (13, text_val("policy-v0")),
-        (18, text_val("jazzy")),
+        (18, text_val(ros_distro)),
         (19, text_val("rmw_fastrtps_cpp")),
         (20, text_val("0.1.0")),
         (21, text_val("anonymous")),
@@ -150,6 +159,7 @@ fn scripted_peer_reaches_subscribed_and_sample() {
     let mut engine = ClientEngine::new();
     let start = engine.poll(vec![HostEvent::Command(AppCommand::Start {
         transferable_arraybuffer: true,
+        webtransport: false,
     })]);
     assert_eq!(start.outbound.len(), 1);
     assert_eq!(engine.phase(), SessionPhase::AwaitServerHello);
@@ -240,6 +250,7 @@ fn scripted_peer_publish_sends_ros_sample() {
     let mut engine = ClientEngine::new();
     let _ = engine.poll(vec![HostEvent::Command(AppCommand::Start {
         transferable_arraybuffer: true,
+        webtransport: false,
     })]);
     let _ = feed(&mut engine, server_hello_bytes());
     let auth_corr = corr(0xA1);
@@ -297,6 +308,7 @@ fn close_command_terminates() {
     let mut engine = ClientEngine::new();
     let _ = engine.poll(vec![HostEvent::Command(AppCommand::Start {
         transferable_arraybuffer: true,
+        webtransport: false,
     })]);
     let out = engine.poll(vec![HostEvent::Command(AppCommand::Close)]);
     assert!(
@@ -313,6 +325,7 @@ fn large_point_cloud2_sample_borrowed_view_and_single_retain_copy() {
     let mut engine = ClientEngine::new();
     let _ = engine.poll(vec![HostEvent::Command(AppCommand::Start {
         transferable_arraybuffer: true,
+        webtransport: false,
     })]);
     let _ = feed(&mut engine, server_hello_bytes());
     let auth_corr = corr(0xC3);
@@ -397,6 +410,7 @@ fn unused_zero_correlation_constant() {
 fn through_ready(engine: &mut ClientEngine) -> u64 {
     let _ = engine.poll(vec![HostEvent::Command(AppCommand::Start {
         transferable_arraybuffer: true,
+        webtransport: false,
     })]);
     let _ = feed(engine, server_hello_bytes());
     let auth_corr = corr(0xA1);
@@ -560,4 +574,67 @@ fn graph_snapshot_control_emits_app_event() {
     assert!(nodes_json.contains("/talker"));
     assert!(nodes_json.contains("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"));
     assert_eq!(endpoints_json, "[]");
+}
+
+#[test]
+fn h_ft_session_ready_subscribe_emits_moonspan_open_channel() {
+    use crate::protocol::frame::OPCODE_CONTROL_CBOR;
+    use crate::types::SCHEME_MOONSPAN_SCHEMA_V1;
+
+    let mut engine = ClientEngine::new();
+    let _ = engine.poll(vec![HostEvent::Command(AppCommand::Start {
+        transferable_arraybuffer: true,
+        webtransport: false,
+    })]);
+    let _ = feed(&mut engine, server_hello_bytes());
+    let auth_corr = corr(0xA1);
+    let _ = engine.poll(vec![HostEvent::Command(AppCommand::Authenticate {
+        correlation: auth_corr,
+        scheme: "token".into(),
+        token: b"anonymous".to_vec(),
+    })]);
+    let ready = feed(
+        &mut engine,
+        session_ready_bytes_for_row(0, &auth_corr, "H-FT", "humble"),
+    );
+    assert!(
+        ready.events.iter().any(
+            |e| matches!(e, AppEvent::SessionReady { support_row, .. } if support_row == "H-FT")
+        )
+    );
+    assert_eq!(engine.support_row_id(), "H-FT");
+
+    let type_name = "moonspan_cdr_interfaces/msg/PrimitiveScalars";
+    let sub = engine.poll(vec![HostEvent::Command(AppCommand::Subscribe {
+        correlation: corr(0xB2),
+        channel_id: 7,
+        topic: "/primitives".into(),
+        type_name: type_name.into(),
+        qos_reliability: 1,
+        qos_depth: 5,
+        domain_id: 0,
+    })]);
+    assert_eq!(sub.outbound.len(), 1);
+    let bytes = &sub.outbound[0].bytes;
+    let frame = parse_frame(bytes, None).expect("parse open");
+    assert_eq!(frame.opcode, OPCODE_CONTROL_CBOR);
+    let FramePayload::Control(msg) = frame.payload else {
+        panic!("expected control");
+    };
+    assert_eq!(msg.kind, 8, "OpenChannel");
+    let row = match msg.fields.get(&8) {
+        Some(CborValue::Text(t)) => t.as_ref(),
+        other => panic!("expected support_row text, got {other:?}"),
+    };
+    assert_eq!(row, "H-FT");
+    let CborValue::Map(identity) = msg.fields.get(&3).expect("schema identity") else {
+        panic!("expected identity map");
+    };
+    let identity: std::collections::BTreeMap<u64, &CborValue<'_>> =
+        identity.iter().map(|(k, v)| (*k, v)).collect();
+    let scheme = match identity.get(&1) {
+        Some(CborValue::Text(t)) => t.as_ref(),
+        other => panic!("expected scheme, got {other:?}"),
+    };
+    assert_eq!(scheme, SCHEME_MOONSPAN_SCHEMA_V1);
 }

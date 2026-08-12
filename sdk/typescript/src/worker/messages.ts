@@ -6,7 +6,18 @@
 
 export type MainToWorker =
   | { type: "init"; wasmUrl: string }
-  | { type: "connect"; url: string; requestId: number }
+  | {
+      type: "connect";
+      url: string;
+      requestId: number;
+      transport?: "websocket" | "webtransport";
+      serverCertificateHashes?: Array<{
+        algorithm: "sha-256";
+        value: string | number[];
+      }>;
+      fetchLocalDevTls?: boolean;
+      localDevTlsOrigin?: string;
+    }
   | { type: "reconnect"; requestId: number }
   | {
       type: "subscribe";

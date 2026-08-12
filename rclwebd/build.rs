@@ -28,8 +28,9 @@ fn main() {
     let lib_dir = format!("{prefix}/lib");
     assert!(
         Path::new(&lib_dir).join("librcl.so").exists(),
-        "feature `ros` requires a ROS 2 Jazzy installation at {prefix} \
-         (source the environment or set ROS_PREFIX)"
+        "feature `ros` requires a ROS 2 installation at {prefix} \
+         (source the environment or set ROS_PREFIX; J-FT → /opt/ros/jazzy, \
+         H-FT → /opt/ros/humble)"
     );
 
     println!("cargo:rustc-link-search=native={lib_dir}");

@@ -3,14 +3,20 @@
 #
 # The bindings are committed (rclwebd/src/ros/ffi/bindings.rs) so that plain
 # `cargo build`/`clippy` need neither ROS headers nor libclang; only builds
-# with `--features ros` link the ROS libraries. Regenerate against the pinned
-# support row (J-FT: ROS 2 Jazzy) whenever the allowlist below changes, and
-# commit the result. Requires a ROS 2 Jazzy installation and bindgen-cli
+# with `--features ros` link the ROS libraries. Default committed file is
+# regenerated against J-FT (ROS 2 Jazzy). The H-FT live e2e image regenerates
+# against Humble (`ROS_PREFIX=/opt/ros/humble`) before linking so the artifact
+# matches that support row. Requires a ROS 2 installation and bindgen-cli
 # (`cargo install bindgen-cli`).
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 prefix="${ROS_PREFIX:-/opt/ros/jazzy}"
+row_label="J-FT"
+case "${prefix}" in
+  */humble*) row_label="H-FT" ;;
+  */jazzy*) row_label="J-FT" ;;
+esac
 
 if [ ! -d "$prefix/include/rcl" ]; then
   echo "error: ROS prefix $prefix has no rcl headers (set ROS_PREFIX)" >&2
@@ -81,7 +87,7 @@ bindgen "$root/rclwebd/src/ros/ffi/wrapper.h" \
   --allowlist-var '^(RCL_RET_[A-Z_]+|RMW_RET_[A-Z_]+|RMW_QOS_DEADLINE_DEFAULT|RMW_QOS_LIFESPAN_DEFAULT|RMW_QOS_LIVELINESS_LEASE_DURATION_DEFAULT)$' \
   --no-doc-comments \
   --no-prepend-enum-name \
-  --raw-line '//! Vendored bindgen output for the serialized-only rcl surface (J-FT).' \
+  --raw-line "//! Vendored bindgen output for the serialized-only rcl surface (${row_label})." \
   --raw-line '//! Regenerate with scripts/generate-rcl-bindings.sh; do not edit by hand.' \
   --raw-line '#![allow(non_upper_case_globals, non_camel_case_types, non_snake_case)]' \
   --raw-line '#![allow(unsafe_code, dead_code, clippy::all, missing_docs)]' \

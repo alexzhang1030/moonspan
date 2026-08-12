@@ -15,19 +15,25 @@ pub mod budgets;
 pub mod config;
 pub mod connection;
 pub mod control;
+pub mod local_dev_tls;
 pub mod qos;
 #[cfg(feature = "ros")]
 pub mod ros;
 pub mod telemetry;
 pub mod ws;
+pub mod wt;
 
 pub use backend::{
     ActionInbound, BackendError, ChannelSpec, EntityId, GraphEndpointInfo, GraphNodeInfo,
     GraphView, RosBackend, ServiceRequest, SubscriptionSample,
 };
 pub use budgets::{Disposition, DispositionCounters, SampleWriteQueue};
-pub use config::GatewayConfig;
+pub use config::{
+    ActiveTransport, GatewayConfig, SUPPORT_ROW_H_FT, SUPPORT_ROW_J_FT, SupportRow,
+    parse_support_row,
+};
 pub use connection::{Transport, TransportError, run_connection};
+pub use local_dev_tls::{LocalDevTls, TlsAdvertisement};
 pub use telemetry::{GatewayTelemetry, GatewayTelemetrySnapshot, PROCESS_TELEMETRY};
 pub use ws::{router, serve};
 

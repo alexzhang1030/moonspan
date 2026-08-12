@@ -7,9 +7,8 @@
 use crate::backend::{GraphEndpointInfo, GraphNodeInfo, GraphView};
 use crate::budgets::effective_budgets_map;
 use crate::config::{
-    GatewayConfig, MAX_CHANNELS_CEILING, MAX_CONTROL_PAYLOAD_BYTES_CEILING,
-    MAX_MESSAGE_BYTES_CEILING, MAX_SESSION_BYTES_CEILING, RMW_IDENTIFIER, ROS_DISTRO,
-    SUPPORT_ROW_ID,
+    ActiveTransport, GatewayConfig, MAX_CHANNELS_CEILING, MAX_CONTROL_PAYLOAD_BYTES_CEILING,
+    MAX_MESSAGE_BYTES_CEILING, MAX_SESSION_BYTES_CEILING, SupportRow,
 };
 use crate::qos::EffectiveQos;
 use rclweb::{
@@ -19,24 +18,35 @@ use std::borrow::Cow;
 
 pub const ZERO_CORRELATION: [u8; 16] = [0u8; 16];
 
-/// Demo RIHS01 hash used wherever the gateway needs a placeholder schema identity.
+/// Demo RIHS01 hash used wherever the gateway needs a Jazzy placeholder schema identity.
 pub const RIHS_DEMO: &str =
     "RIHS01_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
-/// Negotiate a ServerHello for a binary-WebSocket connection.
+/// Demo moonspan-schema-v1 value (64 lowercase hex) for Humble graph placeholders.
+pub const MOONSPAN_DEMO: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+/// Negotiate a ServerHello for the active transport.
 ///
-/// Returns the bootstrap error code on failure (2 no_common_version,
-/// 25 protocol_violation when the current transport would negotiate false).
+/// Transport booleans are AND of peer offers. The transport in use must remain
+/// true after negotiation (registry `transport_booleans`). Returns bootstrap
+/// error code 2 (`no_common_version`) or 25 (`protocol_violation`).
 pub fn negotiate_server_hello(
     hello: &ClientHello,
     config: &GatewayConfig,
+    active: ActiveTransport,
 ) -> Result<ServerHello, u8> {
     if !hello.wire_versions.contains(&0) {
         return Err(2);
     }
-    if !hello.transport_capabilities.binary_wss {
-        // The transport in use must stay true after AND-negotiation.
-        return Err(25);
+
+    let offer_wt = config.offer_webtransport;
+    let webtransport_http3 = hello.transport_capabilities.webtransport_http3 && offer_wt;
+    let binary_wss = hello.transport_capabilities.binary_wss;
+
+    match active {
+        ActiveTransport::BinaryWebSocket if !binary_wss => return Err(25),
+        ActiveTransport::WebTransportHttp3 if !webtransport_http3 => return Err(25),
+        _ => {}
     }
 
     let effective = |requested: Option<u64>, hard: u64, ceiling: u64| -> u64 {
@@ -46,8 +56,8 @@ pub fn negotiate_server_hello(
     Ok(ServerHello {
         selected_wire_version: 0,
         transport_capabilities: TransportCapabilities {
-            webtransport_http3: false,
-            binary_wss: true,
+            webtransport_http3,
+            binary_wss,
             max_datagram_size: None,
         },
         buffer_capabilities: BufferCapabilities {
@@ -142,11 +152,12 @@ pub fn session_ready(
     session_id: &[u8; 32],
     effective_identity: &str,
 ) -> CborValue<'static> {
+    let row = config.support_row;
     CborValue::Map(vec![
         (1, CborValue::Unsigned(2)),
         (2, bytes_value(correlation)),
         (7, text_value(&config.gateway_instance_id)),
-        (8, text_value(SUPPORT_ROW_ID)),
+        (8, text_value(row.id)),
         (
             10,
             CborValue::Array(vec![CborValue::Unsigned(u64::from(config.domain_id))]),
@@ -160,8 +171,8 @@ pub fn session_ready(
             ),
         ),
         (13, text_value(&config.policy_revision)),
-        (18, text_value(ROS_DISTRO)),
-        (19, text_value(RMW_IDENTIFIER)),
+        (18, text_value(row.ros_distro)),
+        (19, text_value(row.rmw_identifier)),
         (20, text_value(&config.adapter_abi_version)),
         (21, text_value(effective_identity)),
         (53, bytes_value(session_id)),
@@ -194,7 +205,7 @@ pub fn channel_ready_allow(
         (59, CborValue::Unsigned(u64::from(effective_priority))),
         (57, effective_qos.to_wire()),
         (9, CborValue::Unsigned(u64::from(config.domain_id))),
-        (8, text_value(SUPPORT_ROW_ID)),
+        (8, text_value(config.support_row.id)),
     ])
 }
 
@@ -279,7 +290,7 @@ pub fn channel_ready_service_allow(
         (59, CborValue::Unsigned(u64::from(effective_priority))),
         (60, effective_service_qos_wire()),
         (9, CborValue::Unsigned(u64::from(config.domain_id))),
-        (8, text_value(SUPPORT_ROW_ID)),
+        (8, text_value(config.support_row.id)),
     ])
 }
 
@@ -307,15 +318,17 @@ pub fn channel_ready_action_allow(
         (59, CborValue::Unsigned(u64::from(effective_priority))),
         (58, effective_action_qos_wire()),
         (9, CborValue::Unsigned(u64::from(config.domain_id))),
-        (8, text_value(SUPPORT_ROW_ID)),
+        (8, text_value(config.support_row.id)),
     ])
 }
 
-fn demo_schema_identity() -> CborValue<'static> {
-    CborValue::Map(vec![
-        (1, text_value("rep2011-rihs")),
-        (2, text_value(RIHS_DEMO)),
-    ])
+fn demo_schema_identity(row: SupportRow) -> CborValue<'static> {
+    let (scheme, value) = if row.id.starts_with('H') {
+        (row.schema_scheme(), MOONSPAN_DEMO)
+    } else {
+        (row.schema_scheme(), RIHS_DEMO)
+    };
+    CborValue::Map(vec![(1, text_value(scheme)), (2, text_value(value))])
 }
 
 fn advertised_topic_qos_wire() -> CborValue<'static> {
@@ -358,14 +371,14 @@ fn graph_node_value(node: &GraphNodeInfo) -> CborValue<'static> {
     CborValue::Map(entries)
 }
 
-fn graph_endpoint_value(endpoint: &GraphEndpointInfo) -> CborValue<'static> {
+fn graph_endpoint_value(endpoint: &GraphEndpointInfo, row: SupportRow) -> CborValue<'static> {
     let mut entries = vec![
         (56, bytes_value(&pad_id16(&endpoint.id))),
         (55, bytes_value(&pad_id16(&endpoint.node_id))),
         (1, text_value(&endpoint.name)),
         (2, CborValue::Unsigned(u64::from(endpoint.kind))),
         (3, text_value(&endpoint.type_name)),
-        (4, demo_schema_identity()),
+        (4, demo_schema_identity(row)),
         (5, CborValue::Unsigned(1)),
         (6, CborValue::Unsigned(0)),
     ];
@@ -375,7 +388,7 @@ fn graph_endpoint_value(endpoint: &GraphEndpointInfo) -> CborValue<'static> {
         entries.push((58, advertised_action_qos_wire()));
     }
     entries.push((9, CborValue::Unsigned(u64::from(endpoint.domain_id))));
-    entries.push((8, text_value(SUPPORT_ROW_ID)));
+    entries.push((8, text_value(row.id)));
     CborValue::Map(entries)
 }
 
@@ -385,10 +398,13 @@ fn sorted_graph_nodes(view: &GraphView) -> Vec<CborValue<'static>> {
     nodes.iter().map(graph_node_value).collect()
 }
 
-fn sorted_graph_endpoints(view: &GraphView) -> Vec<CborValue<'static>> {
+fn sorted_graph_endpoints(view: &GraphView, row: SupportRow) -> Vec<CborValue<'static>> {
     let mut endpoints = view.endpoints.clone();
     endpoints.sort_by_key(|a| pad_id16(&a.id));
-    endpoints.iter().map(graph_endpoint_value).collect()
+    endpoints
+        .iter()
+        .map(|e| graph_endpoint_value(e, row))
+        .collect()
 }
 
 /// GraphSnapshot (kind 3) for the current backend view.
@@ -399,14 +415,15 @@ pub fn graph_snapshot(
     generation: u64,
     view: &GraphView,
 ) -> CborValue<'static> {
+    let row = config.support_row;
     CborValue::Map(vec![
         (1, CborValue::Unsigned(3)),
         (2, bytes_value(correlation)),
         (14, CborValue::Unsigned(generation)),
         (7, text_value(&config.gateway_instance_id)),
-        (8, text_value(SUPPORT_ROW_ID)),
+        (8, text_value(row.id)),
         (22, CborValue::Array(sorted_graph_nodes(view))),
-        (23, CborValue::Array(sorted_graph_endpoints(view))),
+        (23, CborValue::Array(sorted_graph_endpoints(view, row))),
     ])
 }
 
@@ -425,17 +442,20 @@ pub fn graph_delta(
         (14, CborValue::Unsigned(generation)),
         (24, CborValue::Unsigned(base_generation)),
         (7, text_value(&config.gateway_instance_id)),
-        (8, text_value(SUPPORT_ROW_ID)),
+        (8, text_value(config.support_row.id)),
         (25, CborValue::Array(ops)),
     ])
 }
 
 /// `add_or_update_endpoint` delta op (graph_delta_ops = 2).
 #[must_use]
-pub fn graph_delta_add_endpoint(endpoint: &GraphEndpointInfo) -> CborValue<'static> {
+pub fn graph_delta_add_endpoint(
+    endpoint: &GraphEndpointInfo,
+    row: SupportRow,
+) -> CborValue<'static> {
     CborValue::Map(vec![
         (1, CborValue::Unsigned(2)),
-        (3, graph_endpoint_value(endpoint)),
+        (3, graph_endpoint_value(endpoint, row)),
     ])
 }
 
@@ -481,4 +501,81 @@ pub fn channel_error(channel_id: u32, code: u8, message: &str) -> CborValue<'sta
         (29, CborValue::Unsigned(u64::from(channel_id))),
         (51, text_value(message)),
     ])
+}
+
+#[cfg(test)]
+mod hello_tests {
+    use super::*;
+    use crate::config::ActiveTransport;
+    use rclweb::{BufferCapabilities, ClientHello, RequestedLimits, TransportCapabilities};
+
+    fn hello(wt: bool, wss: bool) -> ClientHello {
+        ClientHello {
+            wire_versions: vec![0],
+            transport_capabilities: TransportCapabilities {
+                webtransport_http3: wt,
+                binary_wss: wss,
+                max_datagram_size: None,
+            },
+            buffer_capabilities: BufferCapabilities {
+                transferable_arraybuffer: true,
+                shared_arraybuffer: false,
+            },
+            requested_limits: RequestedLimits::default(),
+            extension_capabilities: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn websocket_default_does_not_offer_webtransport() {
+        let config = GatewayConfig::default();
+        let sh = negotiate_server_hello(
+            &hello(true, true),
+            &config,
+            ActiveTransport::BinaryWebSocket,
+        )
+        .expect("negotiate");
+        assert!(sh.transport_capabilities.binary_wss);
+        assert!(!sh.transport_capabilities.webtransport_http3);
+    }
+
+    #[test]
+    fn offer_webtransport_and_negotiates_on_ws_path() {
+        let config = GatewayConfig {
+            offer_webtransport: true,
+            ..GatewayConfig::default()
+        };
+        let sh = negotiate_server_hello(
+            &hello(true, true),
+            &config,
+            ActiveTransport::BinaryWebSocket,
+        )
+        .expect("negotiate");
+        assert!(sh.transport_capabilities.binary_wss);
+        assert!(sh.transport_capabilities.webtransport_http3);
+    }
+
+    #[test]
+    fn wt_active_requires_negotiated_webtransport() {
+        let config = GatewayConfig {
+            offer_webtransport: true,
+            ..GatewayConfig::default()
+        };
+        let err = negotiate_server_hello(
+            &hello(false, true),
+            &config,
+            ActiveTransport::WebTransportHttp3,
+        )
+        .expect_err("must fail");
+        assert_eq!(err, 25);
+
+        let sh = negotiate_server_hello(
+            &hello(true, false),
+            &config,
+            ActiveTransport::WebTransportHttp3,
+        )
+        .expect("negotiate");
+        assert!(sh.transport_capabilities.webtransport_http3);
+        assert!(!sh.transport_capabilities.binary_wss);
+    }
 }

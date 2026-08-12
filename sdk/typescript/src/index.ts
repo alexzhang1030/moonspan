@@ -27,6 +27,7 @@ export {
   type RclwebClient,
   type RclwebSession,
   type SampleLease,
+  type ServerCertificateHash,
   type ServiceClient,
   type ServiceServer,
   type ServiceServerHandler,
@@ -34,6 +35,12 @@ export {
   type Subscription,
   type SubscriptionHandler,
 } from "./client.ts";
+
+export {
+  fetchLocalDevTlsHashes,
+  decodeCertificateHashValue,
+  httpOriginFromWebTransportUrl,
+} from "./local-dev-tls.ts";
 
 export {
   encodeHostBatch,

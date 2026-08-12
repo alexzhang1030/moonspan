@@ -43,6 +43,33 @@ export type ConnectOptions = {
   reconnect?: boolean;
   /** Max reconnect attempts (default 3). */
   reconnectAttempts?: number;
+  /**
+   * Transport for the session plane. Default `websocket`. `webtransport`
+   * requires a host that exposes `globalThis.WebTransport` (browsers); bun
+   * tests without WT should keep the default.
+   */
+  transport?: "websocket" | "webtransport";
+  /**
+   * Certificate hashes for `new WebTransport(url, { serverCertificateHashes })`
+   * (ADR 0011 local-dev path). `value` may be base64 text or raw bytes.
+   */
+  serverCertificateHashes?: Array<{
+    algorithm: "sha-256";
+    value: string | BufferSource;
+  }>;
+  /**
+   * When using WebTransport without explicit hashes, fetch
+   * `{httpOrigin}/local-dev/tls` and use the advertised SPKI hashes.
+   */
+  fetchLocalDevTls?: boolean;
+  /** HTTP origin for `/local-dev/tls` (defaults from the WT URL). */
+  localDevTlsOrigin?: string;
+};
+
+/** One entry for WebTransport `serverCertificateHashes`. */
+export type ServerCertificateHash = {
+  algorithm: "sha-256";
+  value: string | BufferSource;
 };
 
 export type ServiceClient = {
