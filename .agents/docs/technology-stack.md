@@ -43,7 +43,7 @@ Layout follows the owner's [vue-vet](https://github.com/alexzhang1030/vue-vet) R
 | File / key | Choice | Why |
 |---|---|---|
 | `rust-toolchain.toml` | 1.97.1 + `wasm32-unknown-unknown` + rustfmt/clippy | Existing pin; vue-vet is 1.97.0 without wasm |
-| `rustfmt.toml` | edition 2024, max heuristics, field-init shorthand, reorder modules; **4-space indent** | Same rustfmt surface as vue-vet except `tab_spaces = 2`, which would reformat the tree and fight bindgen output |
+| `rustfmt.toml` | edition 2024, `tab_spaces = 2`, max heuristics, field-init shorthand, reorder modules | Same rustfmt surface as vue-vet, including 2-space indent. rustc's 4-space default is not a project constraint; bindgen output is `rustfmt::skip` so regenerate does not fight the formatter |
 | `clippy.toml` | `too-many-lines-threshold = 200`, `avoid-breaking-exported-api = false` | Matches vue-vet; Clippy may suggest public-API breaks |
 | `[workspace.lints.rust]` | `unsafe_code = "deny"`, `warnings = "deny"` | Same force as `just clippy -- -D warnings`. **deny not forbid**: `forbid` cannot be overridden, and the host poll ABI plus rcl FFI modules need `#![allow(unsafe_code)]` |
 | `[workspace.lints.clippy]` | `all` and `cargo` deny; `multiple_crate_versions` allow | Floor matching current CI. Direct `sha2` 0.10 plus a 0.11 transitive is a reviewed duplicate, not a reason to weaken `cargo` |

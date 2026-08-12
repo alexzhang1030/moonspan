@@ -23,37 +23,37 @@ pub const SAMPLE_HEADER_PREFIX: usize = rclweb::FRAME_HEADER_LENGTH;
 /// gateway copy total: rcl take buffer → this buffer).
 #[derive(Debug)]
 pub struct SubscriptionSample {
-    pub channel_id: u32,
-    pub frame_buf: Vec<u8>,
+  pub channel_id: u32,
+  pub frame_buf: Vec<u8>,
 }
 
 impl SubscriptionSample {
-    /// Build a sample buffer from a serialized payload (the one controllable
-    /// gateway copy).
-    #[must_use]
-    pub fn from_payload(channel_id: u32, payload: &[u8]) -> Self {
-        Self::from_payload_with_telemetry(channel_id, payload, None)
-    }
+  /// Build a sample buffer from a serialized payload (the one controllable
+  /// gateway copy).
+  #[must_use]
+  pub fn from_payload(channel_id: u32, payload: &[u8]) -> Self {
+    Self::from_payload_with_telemetry(channel_id, payload, None)
+  }
 
-    /// As [`Self::from_payload`], also bump gateway copy counters when provided.
-    #[must_use]
-    pub fn from_payload_with_telemetry(
-        channel_id: u32,
-        payload: &[u8],
-        telemetry: Option<&GatewayTelemetry>,
-    ) -> Self {
-        let mut frame_buf = vec![0u8; SAMPLE_HEADER_PREFIX + payload.len()];
-        frame_buf[SAMPLE_HEADER_PREFIX..].copy_from_slice(payload);
-        if let Some(telemetry) = telemetry {
-            telemetry.record_payload_copy(payload.len());
-        }
-        Self { channel_id, frame_buf }
+  /// As [`Self::from_payload`], also bump gateway copy counters when provided.
+  #[must_use]
+  pub fn from_payload_with_telemetry(
+    channel_id: u32,
+    payload: &[u8],
+    telemetry: Option<&GatewayTelemetry>,
+  ) -> Self {
+    let mut frame_buf = vec![0u8; SAMPLE_HEADER_PREFIX + payload.len()];
+    frame_buf[SAMPLE_HEADER_PREFIX..].copy_from_slice(payload);
+    if let Some(telemetry) = telemetry {
+      telemetry.record_payload_copy(payload.len());
     }
+    Self { channel_id, frame_buf }
+  }
 
-    #[must_use]
-    pub fn payload(&self) -> &[u8] {
-        &self.frame_buf[SAMPLE_HEADER_PREFIX..]
-    }
+  #[must_use]
+  pub fn payload(&self) -> &[u8] {
+    &self.frame_buf[SAMPLE_HEADER_PREFIX..]
+  }
 }
 
 /// Inbound service request destined for a ServiceServer channel (browser server).
@@ -63,131 +63,131 @@ impl SubscriptionSample {
 /// area before sending.
 #[derive(Debug)]
 pub struct ServiceRequest {
-    pub channel_id: u32,
-    pub operation_id: [u8; 16],
-    pub frame_buf: Vec<u8>,
+  pub channel_id: u32,
+  pub operation_id: [u8; 16],
+  pub frame_buf: Vec<u8>,
 }
 
 impl ServiceRequest {
-    #[must_use]
-    pub fn from_payload(channel_id: u32, operation_id: [u8; 16], payload: &[u8]) -> Self {
-        let mut frame_buf = vec![0u8; SAMPLE_HEADER_PREFIX + payload.len()];
-        frame_buf[SAMPLE_HEADER_PREFIX..].copy_from_slice(payload);
-        Self { channel_id, operation_id, frame_buf }
-    }
+  #[must_use]
+  pub fn from_payload(channel_id: u32, operation_id: [u8; 16], payload: &[u8]) -> Self {
+    let mut frame_buf = vec![0u8; SAMPLE_HEADER_PREFIX + payload.len()];
+    frame_buf[SAMPLE_HEADER_PREFIX..].copy_from_slice(payload);
+    Self { channel_id, operation_id, frame_buf }
+  }
 
-    #[must_use]
-    pub fn payload(&self) -> &[u8] {
-        &self.frame_buf[SAMPLE_HEADER_PREFIX..]
-    }
+  #[must_use]
+  pub fn payload(&self) -> &[u8] {
+    &self.frame_buf[SAMPLE_HEADER_PREFIX..]
+  }
 }
 
 /// Inbound action goal or cancel for an ActionServer channel (browser server).
 #[derive(Debug)]
 pub enum ActionInbound {
-    Goal { channel_id: u32, operation_id: [u8; 16], frame_buf: Vec<u8> },
-    Cancel { channel_id: u32, operation_id: [u8; 16], frame_buf: Vec<u8> },
+  Goal { channel_id: u32, operation_id: [u8; 16], frame_buf: Vec<u8> },
+  Cancel { channel_id: u32, operation_id: [u8; 16], frame_buf: Vec<u8> },
 }
 
 impl ActionInbound {
-    #[must_use]
-    pub fn from_goal_payload(channel_id: u32, operation_id: [u8; 16], payload: &[u8]) -> Self {
-        Self::Goal { channel_id, operation_id, frame_buf: Self::prefixed(payload) }
-    }
+  #[must_use]
+  pub fn from_goal_payload(channel_id: u32, operation_id: [u8; 16], payload: &[u8]) -> Self {
+    Self::Goal { channel_id, operation_id, frame_buf: Self::prefixed(payload) }
+  }
 
-    #[must_use]
-    pub fn from_cancel_payload(channel_id: u32, operation_id: [u8; 16], payload: &[u8]) -> Self {
-        Self::Cancel { channel_id, operation_id, frame_buf: Self::prefixed(payload) }
-    }
+  #[must_use]
+  pub fn from_cancel_payload(channel_id: u32, operation_id: [u8; 16], payload: &[u8]) -> Self {
+    Self::Cancel { channel_id, operation_id, frame_buf: Self::prefixed(payload) }
+  }
 
-    fn prefixed(payload: &[u8]) -> Vec<u8> {
-        let mut frame_buf = vec![0u8; SAMPLE_HEADER_PREFIX + payload.len()];
-        frame_buf[SAMPLE_HEADER_PREFIX..].copy_from_slice(payload);
-        frame_buf
-    }
+  fn prefixed(payload: &[u8]) -> Vec<u8> {
+    let mut frame_buf = vec![0u8; SAMPLE_HEADER_PREFIX + payload.len()];
+    frame_buf[SAMPLE_HEADER_PREFIX..].copy_from_slice(payload);
+    frame_buf
+  }
 
-    #[must_use]
-    pub fn channel_id(&self) -> u32 {
-        match self {
-            Self::Goal { channel_id, .. } | Self::Cancel { channel_id, .. } => *channel_id,
-        }
+  #[must_use]
+  pub fn channel_id(&self) -> u32 {
+    match self {
+      Self::Goal { channel_id, .. } | Self::Cancel { channel_id, .. } => *channel_id,
     }
+  }
 
-    #[must_use]
-    pub fn operation_id(&self) -> [u8; 16] {
-        match self {
-            Self::Goal { operation_id, .. } | Self::Cancel { operation_id, .. } => *operation_id,
-        }
+  #[must_use]
+  pub fn operation_id(&self) -> [u8; 16] {
+    match self {
+      Self::Goal { operation_id, .. } | Self::Cancel { operation_id, .. } => *operation_id,
     }
+  }
 
-    #[must_use]
-    pub fn frame_buf(&self) -> &[u8] {
-        match self {
-            Self::Goal { frame_buf, .. } | Self::Cancel { frame_buf, .. } => frame_buf,
-        }
+  #[must_use]
+  pub fn frame_buf(&self) -> &[u8] {
+    match self {
+      Self::Goal { frame_buf, .. } | Self::Cancel { frame_buf, .. } => frame_buf,
     }
+  }
 
-    #[must_use]
-    pub fn payload(&self) -> &[u8] {
-        &self.frame_buf()[SAMPLE_HEADER_PREFIX..]
-    }
+  #[must_use]
+  pub fn payload(&self) -> &[u8] {
+    &self.frame_buf()[SAMPLE_HEADER_PREFIX..]
+  }
 }
 
 /// Graph node row for GraphSnapshot / GraphDelta builders.
 #[derive(Debug, Clone)]
 pub struct GraphNodeInfo {
-    pub id: Vec<u8>,
-    pub name: String,
-    pub namespace: Option<String>,
-    pub domain_id: u8,
+  pub id: Vec<u8>,
+  pub name: String,
+  pub namespace: Option<String>,
+  pub domain_id: u8,
 }
 
 /// Graph endpoint row (`graph_endpoint_kinds` in the registry).
 #[derive(Debug, Clone)]
 pub struct GraphEndpointInfo {
-    pub id: Vec<u8>,
-    pub node_id: Vec<u8>,
-    pub name: String,
-    /// Registry `graph_endpoint_kinds`: 0 topic_pub, 1 topic_sub, 2 service_server,
-    /// 3 service_client, 4 action_server, 5 action_client.
-    pub kind: u8,
-    pub type_name: String,
-    pub domain_id: u8,
+  pub id: Vec<u8>,
+  pub node_id: Vec<u8>,
+  pub name: String,
+  /// Registry `graph_endpoint_kinds`: 0 topic_pub, 1 topic_sub, 2 service_server,
+  /// 3 service_client, 4 action_server, 5 action_client.
+  pub kind: u8,
+  pub type_name: String,
+  pub domain_id: u8,
 }
 
 /// Current backend graph view used to build GraphSnapshot / GraphDelta.
 #[derive(Debug, Clone, Default)]
 pub struct GraphView {
-    pub nodes: Vec<GraphNodeInfo>,
-    pub endpoints: Vec<GraphEndpointInfo>,
+  pub nodes: Vec<GraphNodeInfo>,
+  pub endpoints: Vec<GraphEndpointInfo>,
 }
 
 /// Backend failure carrying the wire error code used in error bodies.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BackendError {
-    /// Registry wire error code (for example 10 schema_unavailable,
-    /// 11 qos_incompatible, 13 resource_exhausted).
-    pub code: u8,
-    pub message: String,
+  /// Registry wire error code (for example 10 schema_unavailable,
+  /// 11 qos_incompatible, 13 resource_exhausted).
+  pub code: u8,
+  pub message: String,
 }
 
 impl BackendError {
-    #[must_use]
-    pub fn new(code: u8, message: impl Into<String>) -> Self {
-        Self { code, message: message.into() }
-    }
+  #[must_use]
+  pub fn new(code: u8, message: impl Into<String>) -> Self {
+    Self { code, message: message.into() }
+  }
 
-    /// Live ROS service/action FFI is not linked in this build.
-    #[must_use]
-    pub fn schema_unavailable(message: impl Into<String>) -> Self {
-        Self::new(10, message)
-    }
+  /// Live ROS service/action FFI is not linked in this build.
+  #[must_use]
+  pub fn schema_unavailable(message: impl Into<String>) -> Self {
+    Self::new(10, message)
+  }
 }
 
 impl std::fmt::Display for BackendError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "backend error {}: {}", self.code, self.message)
-    }
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "backend error {}: {}", self.code, self.message)
+  }
 }
 
 impl std::error::Error for BackendError {}
@@ -195,11 +195,11 @@ impl std::error::Error for BackendError {}
 /// Channel attachment request resolved from OpenChannel.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ChannelSpec {
-    pub channel_id: u32,
-    pub topic: String,
-    /// ROS type name (`pkg/msg/Type`, `pkg/srv/Type`, or `pkg/action/Type`).
-    pub type_name: String,
-    pub qos: EffectiveQos,
+  pub channel_id: u32,
+  pub topic: String,
+  /// ROS type name (`pkg/msg/Type`, `pkg/srv/Type`, or `pkg/action/Type`).
+  pub type_name: String,
+  pub qos: EffectiveQos,
 }
 
 /// Serialized-only ROS attachment surface used by the session engine.
@@ -207,112 +207,112 @@ pub struct ChannelSpec {
 /// Methods return quickly; the rcl implementation forwards commands to its
 /// dedicated ROS thread and awaits the reply.
 pub trait RosBackend: Send + Sync + 'static {
-    /// Create a serialized subscription; samples flow into `sink` tagged with
-    /// the channel id.
-    fn create_subscription(
-        &self,
-        spec: &ChannelSpec,
-        sink: mpsc::Sender<SubscriptionSample>,
-    ) -> impl Future<Output = Result<EntityId, BackendError>> + Send;
+  /// Create a serialized subscription; samples flow into `sink` tagged with
+  /// the channel id.
+  fn create_subscription(
+    &self,
+    spec: &ChannelSpec,
+    sink: mpsc::Sender<SubscriptionSample>,
+  ) -> impl Future<Output = Result<EntityId, BackendError>> + Send;
 
-    /// Create a serialized publisher.
-    fn create_publisher(
-        &self,
-        spec: &ChannelSpec,
-    ) -> impl Future<Output = Result<EntityId, BackendError>> + Send;
+  /// Create a serialized publisher.
+  fn create_publisher(
+    &self,
+    spec: &ChannelSpec,
+  ) -> impl Future<Output = Result<EntityId, BackendError>> + Send;
 
-    /// Publish one serialized CDR payload on a previously created publisher.
-    fn publish(
-        &self,
-        entity: EntityId,
-        payload: Vec<u8>,
-    ) -> impl Future<Output = Result<(), BackendError>> + Send;
+  /// Publish one serialized CDR payload on a previously created publisher.
+  fn publish(
+    &self,
+    entity: EntityId,
+    payload: Vec<u8>,
+  ) -> impl Future<Output = Result<(), BackendError>> + Send;
 
-    /// Destroy a publisher, subscription, service, or action entity (idempotent).
-    fn destroy(&self, entity: EntityId) -> impl Future<Output = ()> + Send;
+  /// Destroy a publisher, subscription, service, or action entity (idempotent).
+  fn destroy(&self, entity: EntityId) -> impl Future<Output = ()> + Send;
 
-    /// Opaque service client entity.
-    fn create_client(
-        &self,
-        spec: &ChannelSpec,
-    ) -> impl Future<Output = Result<EntityId, BackendError>> + Send;
+  /// Opaque service client entity.
+  fn create_client(
+    &self,
+    spec: &ChannelSpec,
+  ) -> impl Future<Output = Result<EntityId, BackendError>> + Send;
 
-    /// Opaque service server; inbound requests are pushed to `sink`.
-    fn create_service(
-        &self,
-        spec: &ChannelSpec,
-        sink: mpsc::Sender<ServiceRequest>,
-    ) -> impl Future<Output = Result<EntityId, BackendError>> + Send;
+  /// Opaque service server; inbound requests are pushed to `sink`.
+  fn create_service(
+    &self,
+    spec: &ChannelSpec,
+    sink: mpsc::Sender<ServiceRequest>,
+  ) -> impl Future<Output = Result<EntityId, BackendError>> + Send;
 
-    /// Call a service client entity; returns the serialized response.
-    fn call(
-        &self,
-        entity: EntityId,
-        operation_id: [u8; 16],
-        request: Vec<u8>,
-    ) -> impl Future<Output = Result<Vec<u8>, BackendError>> + Send;
+  /// Call a service client entity; returns the serialized response.
+  fn call(
+    &self,
+    entity: EntityId,
+    operation_id: [u8; 16],
+    request: Vec<u8>,
+  ) -> impl Future<Output = Result<Vec<u8>, BackendError>> + Send;
 
-    /// Reply on a service server entity for an inbound request.
-    fn send_service_response(
-        &self,
-        entity: EntityId,
-        operation_id: [u8; 16],
-        response: Vec<u8>,
-    ) -> impl Future<Output = Result<(), BackendError>> + Send;
+  /// Reply on a service server entity for an inbound request.
+  fn send_service_response(
+    &self,
+    entity: EntityId,
+    operation_id: [u8; 16],
+    response: Vec<u8>,
+  ) -> impl Future<Output = Result<(), BackendError>> + Send;
 
-    /// Opaque action client entity.
-    fn create_action_client(
-        &self,
-        spec: &ChannelSpec,
-    ) -> impl Future<Output = Result<EntityId, BackendError>> + Send;
+  /// Opaque action client entity.
+  fn create_action_client(
+    &self,
+    spec: &ChannelSpec,
+  ) -> impl Future<Output = Result<EntityId, BackendError>> + Send;
 
-    /// Opaque action server; inbound goals/cancels are pushed to `sink`.
-    fn create_action_server(
-        &self,
-        spec: &ChannelSpec,
-        sink: mpsc::Sender<ActionInbound>,
-    ) -> impl Future<Output = Result<EntityId, BackendError>> + Send;
+  /// Opaque action server; inbound goals/cancels are pushed to `sink`.
+  fn create_action_server(
+    &self,
+    spec: &ChannelSpec,
+    sink: mpsc::Sender<ActionInbound>,
+  ) -> impl Future<Output = Result<EntityId, BackendError>> + Send;
 
-    /// Send a goal on an action client; mock returns the result payload.
-    fn send_action_goal(
-        &self,
-        entity: EntityId,
-        operation_id: [u8; 16],
-        request: Vec<u8>,
-    ) -> impl Future<Output = Result<Vec<u8>, BackendError>> + Send;
+  /// Send a goal on an action client; mock returns the result payload.
+  fn send_action_goal(
+    &self,
+    entity: EntityId,
+    operation_id: [u8; 16],
+    request: Vec<u8>,
+  ) -> impl Future<Output = Result<Vec<u8>, BackendError>> + Send;
 
-    /// Cancel on an action client; mock returns the cancel response payload.
-    fn cancel_action(
-        &self,
-        entity: EntityId,
-        operation_id: [u8; 16],
-        request: Vec<u8>,
-    ) -> impl Future<Output = Result<Vec<u8>, BackendError>> + Send;
+  /// Cancel on an action client; mock returns the cancel response payload.
+  fn cancel_action(
+    &self,
+    entity: EntityId,
+    operation_id: [u8; 16],
+    request: Vec<u8>,
+  ) -> impl Future<Output = Result<Vec<u8>, BackendError>> + Send;
 
-    /// Forward feedback from an ActionServer (browser) toward ROS.
-    fn send_action_feedback(
-        &self,
-        entity: EntityId,
-        operation_id: [u8; 16],
-        payload: Vec<u8>,
-    ) -> impl Future<Output = Result<(), BackendError>> + Send;
+  /// Forward feedback from an ActionServer (browser) toward ROS.
+  fn send_action_feedback(
+    &self,
+    entity: EntityId,
+    operation_id: [u8; 16],
+    payload: Vec<u8>,
+  ) -> impl Future<Output = Result<(), BackendError>> + Send;
 
-    /// Forward result from an ActionServer (browser) toward ROS.
-    fn send_action_result(
-        &self,
-        entity: EntityId,
-        operation_id: [u8; 16],
-        payload: Vec<u8>,
-    ) -> impl Future<Output = Result<(), BackendError>> + Send;
+  /// Forward result from an ActionServer (browser) toward ROS.
+  fn send_action_result(
+    &self,
+    entity: EntityId,
+    operation_id: [u8; 16],
+    payload: Vec<u8>,
+  ) -> impl Future<Output = Result<(), BackendError>> + Send;
 
-    /// Forward status from an ActionServer (browser) toward ROS.
-    fn send_action_status(
-        &self,
-        entity: EntityId,
-        operation_id: [u8; 16],
-        payload: Vec<u8>,
-    ) -> impl Future<Output = Result<(), BackendError>> + Send;
+  /// Forward status from an ActionServer (browser) toward ROS.
+  fn send_action_status(
+    &self,
+    entity: EntityId,
+    operation_id: [u8; 16],
+    payload: Vec<u8>,
+  ) -> impl Future<Output = Result<(), BackendError>> + Send;
 
-    /// Current graph view for GraphSnapshot / GraphDelta.
-    fn graph_view(&self) -> impl Future<Output = Result<GraphView, BackendError>> + Send;
+  /// Current graph view for GraphSnapshot / GraphDelta.
+  fn graph_view(&self) -> impl Future<Output = Result<GraphView, BackendError>> + Send;
 }

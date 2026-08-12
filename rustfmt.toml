@@ -1,7 +1,7 @@
-# rustfmt 1.97 (edition 2024). Indent stays at rustc's default 4 spaces.
-# vue-vet uses tab_spaces = 2; that would reformat this tree and fight
-# generated bindgen output. See .agents/docs/technology-stack.md.
+# rustfmt 1.97 (edition 2024). Same indent as vue-vet.
+# Vendored bindgen output is rustfmt::skip (see generate-rcl-bindings.sh).
 style_edition = "2024"
+tab_spaces = 2
 use_small_heuristics = "Max"
 use_field_init_shorthand = true
 reorder_modules = true
