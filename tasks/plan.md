@@ -43,7 +43,7 @@ A browser page subscribes to a live ROS 2 topic end-to-end on row J-FT over bina
 |---|---|---|
 | R1-01 | Complete | Port the CDR core to `rclweb` in Rust against the frozen [CDR contract](../docs/runtime/cdr.md); pass the committed corpus (56 fixtures, semantic decode, exact re-encode, tail-slack, adversarial cases) |
 | R1-02 | Complete | Session/channel state machine for the v0.1 subset (bootstrap, authenticate, session ready, channel open/ready/close, data, error, heartbeat) |
-| R1-03 | Queued | Gateway WebSocket endpoint (tokio/axum) and serialized-only rcl FFI attachment (init, node, serialized publish/take, wait set, graph); demo types' C typesupport linked statically; no third-party rcl binding |
+| R1-03 | Complete | Gateway WebSocket endpoint (tokio/axum) and serialized-only rcl FFI attachment (init, node, serialized publish/take, wait set, graph); demo types' C typesupport linked statically; no third-party rcl binding |
 | R1-04 | Queued | Wasm host boundary per ADR 0004: poll ABI, I/O Worker, transferable `ArrayBuffer` path; SDK `connect` → `subscribe` → typed events with borrowed data views |
 | R1-05 | Queued | End-to-end evidence: docker-compose integration test against a real ROS 2 talker in CI; committed demo under `examples/`; recorded wasm artifact size and poll latency (R-D1 reopen inputs); copy counters in telemetry |
 
