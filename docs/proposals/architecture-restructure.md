@@ -93,6 +93,30 @@ A browser page subscribes to a live ROS 2 topic end-to-end on one row (R-D2) and
 - Support matrix expansion to remaining rows; SDK stabilization; release.
 - Gate: release review.
 
+## Performance plan
+
+The sample path is won by copy discipline and drop discipline, not micro-optimization. Both are contracts from R1, with counters in telemetry, not aspirations.
+
+**Copy budget.** Two controllable payload copies end-to-end for an inbound sample; anything beyond is a regression:
+
+| Stage | Copies | Mechanism |
+|---|---|---|
+| rmw → serialized buffer | 1 (inherent) | `rcl_take_serialized_message` with pooled buffers; RMW loaned messages may remove it later |
+| Gateway framing | 0 | Header and payload as separate chunks; `bytes::Bytes` + vectored writes; the gateway never parses or moves the CDR body |
+| Gateway fan-out | 0 | Per-client policy on headers; one framed payload shared via `Bytes::clone` |
+| Worker → wasm linear memory | 1 (inherent) | One whole-payload copy in; Wasm cannot view external `ArrayBuffer`s |
+| Wasm → application | 0 | TypedArray views into wasm memory under the existing lease model; no per-sample materialization |
+
+**CDR is O(1) for blob-heavy types.** Decoding PointCloud2 is metadata reads plus an (offset, length) for `data`; the point payload is never iterated. Generated codecs must keep the borrowed-view contract (`BytesView`); no `Vec<u8>`-materializing paths. The SDK exposes `dataView()`-style accessors so payloads go straight to WebGL/WebGPU upload. The browser-side cost center is per-sample JS object allocation, not wasm decode: poll results return flat binary batches with lazy accessors.
+
+**Drop at the edge.** Best-effort channels enforce latest-wins admission and byte budgets at the gateway with stable dispositions; a slow client degrades cleanly instead of ballooning queues. Data channels never use permessage-deflate.
+
+**Transport ceiling.** WebSocket is one TCP stream: a stalled reliable channel head-of-line blocks the connection. That is the structural limit R3's WebTransport (independent streams + datagrams) removes; the channel semantics are already transport-neutral, so nothing in R1/R2 designs for it early.
+
+**Wasm build and boundary.** WebSocket lives in the I/O Worker (`binaryType = "arraybuffer"`); payloads never touch the main thread. Transferable `ArrayBuffer` path first; the SharedArrayBuffer ring stays evidence-gated per ADR 0004. Build with fat LTO, `codegen-units = 1`, `panic = "abort"`, wasm-opt; no steady-state `memory.grow` (preallocate against the frozen limits). R1 records artifact size and poll latency — the R-D1 reopen inputs.
+
+**Measurement.** Fixed workloads from R1: PointCloud2 1 MB at 10 Hz; ten image topics; one thousand small topics. Metrics: end-to-end p50/p99 latency (ROS publish → application callback, with a stated clock-sync method), copies per sample, steady-state memory. R2 runs the same workloads against Foxglove bridge and rosbridge for the baseline.
+
 ## Cut list (R0)
 
 | Asset | Size at baseline | Action |
