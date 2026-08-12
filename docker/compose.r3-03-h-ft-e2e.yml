@@ -1,0 +1,24 @@
+# R3-03 H-FT live end-to-end lane (Humble + rmw_fastrtps_cpp).
+# One container: ROS talker + Humble-linked rclwebd (RCLWEBD_SUPPORT_ROW=H-FT) + bun SDK harness.
+services:
+  e2e-h-ft:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.r3-03-h-ft-e2e
+    environment:
+      ROS_DOMAIN_ID: "0"
+      RCLWEBD_BIND: "127.0.0.1:8794"
+      RCLWEBD_SUPPORT_ROW: "H-FT"
+      ROS_PREFIX: "/opt/ros/humble"
+      RMW_IMPLEMENTATION: "rmw_fastrtps_cpp"
+      RCLWEB_GATEWAY_URL: "ws://127.0.0.1:8794/ws"
+      RCLWEB_HEALTH_URL: "http://127.0.0.1:8794/healthz"
+      RCLWEB_TELEMETRY_URL: "http://127.0.0.1:8794/telemetryz"
+      RCLWEB_SUPPORT_ROW: "H-FT"
+      RCLWEB_TASK: "R3-03"
+      RCLWEB_EVIDENCE_FILE: "r3-03-h-ft-e2e.json"
+      RCLWEB_MIN_SAMPLES: "3"
+      RCLWEB_TIMEOUT_MS: "60000"
+      RCLWEB_EVIDENCE_DIR: "/workspace/docs/evidence"
+    volumes:
+      - ../docs/evidence:/workspace/docs/evidence

@@ -44,7 +44,8 @@ just build
 | `just test` | Bun and Cargo test suites |
 | `just build` | Native build, fat-LTO `rclweb` wasm staged into the SDK, and SDK build |
 | `just poll-latency` | Record wasm poll latency + size evidence (R-D1) |
-| `just e2e` | Docker compose: ROS talker → rclwebd → SDK subscribe |
+| `just e2e` | Docker compose: Jazzy talker → rclwebd (J-FT) → SDK subscribe |
+| `just e2e-h-ft` | Docker compose: Humble talker → rclwebd (H-FT) → SDK subscribe |
 | `just protocol-check` | Validate the R2WP registry JSON and control CDDL |
 | `just cdr-corpus-check` | Verify the committed ROS CDR corpus |
 
@@ -53,7 +54,7 @@ just build
 R0–R2 are complete and R3-01 lands services, actions, parameters, and graph
 on the wire (MockBackend-proven; live ROS service/action typesupport waits on
 R3-04). The walking skeleton still reaches a live ROS talker in CI
-(`just e2e` / `e2e-ros-talker` job) with a committed demo under
+(`just e2e` / `e2e-ros-talker`, and Humble via `just e2e-h-ft` / `e2e-ros-talker-h-ft`) with a committed demo under
 `examples/subscribe-chatter`. Phases and gates live in the
 [plan](./tasks/plan.md); current state lives in the
 [checklist](./tasks/todo.md).

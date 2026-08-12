@@ -87,14 +87,17 @@ test: toolchain-check
     bun test
     cargo test --locked --workspace
 
-# Gateway tests against real rcl (requires a sourced ROS 2 Jazzy env, row J-FT).
+# Gateway tests against real rcl (requires a sourced ROS 2 env matching the row).
+# Default committed bindings target J-FT (`/opt/ros/jazzy`). For H-FT, use
+# `just e2e-h-ft` (regenerates FFI against Humble inside the digest-pinned image)
+# or `ROS_PREFIX=/opt/ros/humble bash scripts/generate-rcl-bindings.sh` then link.
 [group('quality')]
 ros-test: toolchain-check
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{root}}"
     if [ -z "${AMENT_PREFIX_PATH:-}" ]; then
-        echo "error: source a ROS 2 Jazzy environment first (e.g. /opt/ros/jazzy/setup.bash)" >&2
+        echo "error: source a ROS 2 environment first (e.g. /opt/ros/jazzy/setup.bash or /opt/ros/humble/setup.bash)" >&2
         exit 1
     fi
     cargo test --locked -p rclwebd --features ros
@@ -139,7 +142,7 @@ perf-baseline-live: toolchain-check
     docker compose -f docker/compose.r2-04-perf.yml run --rm perf
     bun run scripts/measure-perf-baseline.ts
 
-# Live ROS talker → rclwebd → SDK subscribe via docker compose (R1-05).
+# Live ROS talker → rclwebd → SDK subscribe via docker compose (R1-05 / J-FT).
 [group('quality')]
 e2e: toolchain-check
     #!/usr/bin/env bash
@@ -151,3 +154,16 @@ e2e: toolchain-check
     fi
     docker compose -f docker/compose.r1-e2e.yml build
     docker compose -f docker/compose.r1-e2e.yml run --rm e2e
+
+# Live Humble talker → H-FT rclwebd → SDK subscribe (R3-03).
+[group('quality')]
+e2e-h-ft: toolchain-check
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{root}}"
+    if ! command -v docker >/dev/null 2>&1; then
+        echo "error: docker is required for just e2e-h-ft" >&2
+        exit 1
+    fi
+    docker compose -f docker/compose.r3-03-h-ft-e2e.yml build
+    docker compose -f docker/compose.r3-03-h-ft-e2e.yml run --rm e2e-h-ft

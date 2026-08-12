@@ -4,7 +4,7 @@ Traps already paid for in this repository, each with its why.
 
 ## One gateway process binds one support row
 
-`rclwebd` carries a single [`SupportRow`](../../rclwebd/src/config.rs) for the process lifetime ([ADR 0008](../../docs/adr/0008-one-adapter-row-per-gateway-process.md)). `RCLWEBD_SUPPORT_ROW` selects `J-FT` (default) or `H-FT`. Mixing rows in one process is unsupported — run separate gateways and compose SDK sessions. H-FT OpenChannel uses `moonspan-schema-v1`; J-FT uses `rep2011-rihs`. Wrong-row OpenChannel fails with wire code 25 (`support_row_mismatch`).
+`rclwebd` carries a single [`SupportRow`](../../rclwebd/src/config.rs) for the process lifetime ([ADR 0008](../../docs/adr/0008-one-adapter-row-per-gateway-process.md)). `RCLWEBD_SUPPORT_ROW` selects `J-FT` (default) or `H-FT`. Mixing rows in one process is unsupported — run separate gateways and compose SDK sessions. H-FT OpenChannel uses `moonspan-schema-v1`; J-FT uses `rep2011-rihs`. Wrong-row OpenChannel fails with wire code 25 (`support_row_mismatch`). Pair the row with the linked ROS prefix (`J-FT` ↔ `/opt/ros/jazzy`, `H-FT` ↔ `/opt/ros/humble`); the H-FT live image regenerates vendored FFI against Humble before `cargo build --features ros` so layouts match that distro.
 
 ## Every sample lease has exactly one owner
 

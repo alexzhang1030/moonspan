@@ -8,11 +8,10 @@
 //! - `RCLWEBD_OFFER_WEBTRANSPORT` — `1`/`true` AND-negotiates WT + starts accept
 //! - `RCLWEBD_WT_BIND` — UDP bind for WebTransport (default `127.0.0.1:4433`)
 //!
-//! The `ros` feature links a Jazzy installation (row J-FT). Selecting `H-FT`
-//! updates SessionReady / OpenChannel row identity for protocol tests; live
-//! Humble rcl attachment remains evidence-gated until a Humble-linked artifact
-//! lands (R3-04 / dedicated humble feature). Prefer mock-backend protocol e2e
-//! for H-FT until then.
+//! The `ros` feature links whatever ROS prefix is on `ROS_PREFIX` /
+//! `AMENT_PREFIX_PATH` (default `/opt/ros/jazzy`). Pair `RCLWEBD_SUPPORT_ROW`
+//! with that prefix: `J-FT` ↔ Jazzy, `H-FT` ↔ Humble. The H-FT live compose
+//! regenerates FFI bindings against Humble before linking.
 
 use rclwebd::ros::RclBackend;
 use rclwebd::{GatewayConfig, SUPPORT_ROW_J_FT, parse_support_row, serve};
@@ -42,12 +41,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         })?,
         Err(_) => SUPPORT_ROW_J_FT,
     };
-    if support_row.id == "H-FT" {
-        eprintln!(
-            "rclwebd: RCLWEBD_SUPPORT_ROW=H-FT — SessionReady identity is Humble; \
-             this binary still links Jazzy rcl (feature ros). Live Humble attachment \
-             is evidence-gated; use mock H-FT protocol e2e for row gating."
-        );
+    if let Ok(distro) = std::env::var("ROS_DISTRO") {
+        let distro = distro.trim();
+        if !distro.is_empty() && distro != support_row.ros_distro {
+            eprintln!(
+                "rclwebd: warning: ROS_DISTRO={distro} but RCLWEBD_SUPPORT_ROW={} \
+                 expects ros_distro={}; SessionReady will advertise the support row \
+                 (link the matching prefix / regenerate FFI for that distro)",
+                support_row.id, support_row.ros_distro
+            );
+        }
     }
 
     let local_dev_tls_enabled = env_flag("RCLWEBD_LOCAL_DEV_TLS");

@@ -1,0 +1,17 @@
+{
+  "task": "R3-03",
+  "kind": "e2e-live-subscribe",
+  "startedAt": null,
+  "finishedAt": null,
+  "supportRow": "H-FT",
+  "gatewayUrl": "ws://127.0.0.1:8794/ws",
+  "topic": "/chatter",
+  "typeName": "std_msgs/msg/String",
+  "samplesReceived": 0,
+  "samplePreview": [],
+  "note": "Placeholder overwritten by docker/compose.r3-03-h-ft-e2e.yml / CI e2e-ros-talker-h-ft.",
+  "revision": {
+    "note": "filled by CI when available",
+    "githubSha": null
+  }
+}

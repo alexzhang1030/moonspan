@@ -10,7 +10,7 @@
   },
   "scope": {
     "protocolPath": "SessionReady fields 8/18/19 + OpenChannel moonspan + wrong-row reject",
-    "liveHumbleRcl": "evidence-gated \u2014 Jazzy FFI artifact does not link Humble; live attachment follows Humble-linked build / R3-04"
+    "liveHumbleRcl": "docker/compose.r3-03-h-ft-e2e.yml + CI e2e-ros-talker-h-ft (regenerate FFI against Humble, link --features ros, talker subscribe)"
   },
   "commands": [
     "cargo test --locked -p rclweb --lib engine::",
@@ -25,8 +25,9 @@
     "generated_types_registry": "pass"
   },
   "docker": {
-    "compose": "docker/compose.r3-03-h-ft.yml",
-    "note": "Mock protocol e2e only; optional CI job; does not pull Humble ROS packages"
+    "mockCompose": "docker/compose.r3-03-h-ft.yml",
+    "liveCompose": "docker/compose.r3-03-h-ft-e2e.yml",
+    "note": "Mock protocol optional; live Humble talker is the CI gate (e2e-ros-talker-h-ft)"
   },
-  "note": "H-FT is delivery-gated for protocol + corpus + mock e2e. Live Humble ROS attachment remains a Qualification target until a humble-linked artifact exists."
+  "note": "H-FT is delivery-gated for protocol + corpus + live Humble talker e2e. Qualification report review remains separate."
 }
