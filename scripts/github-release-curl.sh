@@ -10,9 +10,10 @@ if [[ $# -lt 1 ]]; then
   exit 2
 fi
 exec curl \
-  --retry 8 \
+  --retry 12 \
   --retry-all-errors \
-  --retry-delay 2 \
+  --retry-delay 4 \
+  --retry-max-time 180 \
   --connect-timeout 20 \
   --http1.1 \
   -fsSL \

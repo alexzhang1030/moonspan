@@ -59,15 +59,43 @@ jobs:
           echo "just=${just_version}" >> "${GITHUB_OUTPUT}"
           echo "rust=${channel}" >> "${GITHUB_OUTPUT}"
 
+      - name: Restore cached just
+        id: just-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ${{ runner.temp }}/rclweb-bin
+          key: ${{ runner.os }}-${{ runner.arch }}-just-${{ steps.pins.outputs.just }}
+
       - name: Set up Bun from .bun-version
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: .bun-version
 
-      - name: Set up just from .just-version
-        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
-        with:
-          just-version: ${{ steps.pins.outputs.just }}
+      # setup-just talks to GitHub Releases and 503'd after two retries.
+      # Cache the musl binary; on miss fetch with HTTP/1.1 + long retries.
+      - name: Install just from GitHub Releases
+        if: steps.just-cache.outputs.cache-hit != 'true'
+        env:
+          JUST_ARCHIVE_SHA256: 27e011cd6328fadd632e59233d2cf5f18460b8a8c4269acd324c1a8669f34db0
+        shell: bash
+        run: |
+          set -euo pipefail
+          just_version="${{ steps.pins.outputs.just }}"
+          asset="just-${just_version}-x86_64-unknown-linux-musl.tar.gz"
+          url="https://github.com/casey/just/releases/download/${just_version}/${asset}"
+          archive="${RUNNER_TEMP}/${asset}"
+          mkdir -p "${RUNNER_TEMP}/rclweb-bin"
+          bash scripts/github-release-curl.sh -o "${archive}" "${url}"
+          echo "${JUST_ARCHIVE_SHA256}  ${archive}" | sha256sum -c -
+          tar -xzf "${archive}" -C "${RUNNER_TEMP}/rclweb-bin" just
+          chmod +x "${RUNNER_TEMP}/rclweb-bin/just"
+
+      - name: Add just to PATH
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "${RUNNER_TEMP}/rclweb-bin" >> "${GITHUB_PATH}"
+          "${RUNNER_TEMP}/rclweb-bin/just" --version
 
       - name: Set up Rust from rust-toolchain.toml
         uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
