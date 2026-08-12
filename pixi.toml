@@ -18,6 +18,9 @@ ros-jazzy-rmw-fastrtps-cpp = "*"
 ros-jazzy-std-msgs = "*"
 ros-jazzy-sensor-msgs = "*"
 ros-jazzy-example-interfaces = "*"
+# Live talker e2e (`ros2 topic pub`) must be this prefix, not a host /opt/ros.
+ros-jazzy-ros2cli = "*"
+ros-jazzy-ros2topic = "*"
 
 [activation]
 scripts = ["scripts/pixi-ros-activate.sh"]

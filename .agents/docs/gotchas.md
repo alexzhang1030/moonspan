@@ -10,6 +10,10 @@ Traps already paid for in this repository, each with its why.
 
 R4-01 can evaluate Authenticate, but `RCLWEBD_AUTH_MODE` defaults to `off`: any credential is accepted, SessionReady field 21 stays `anonymous`, and no audit line is emitted — same as R1–R3. `dev` is an alias for `off`. Opt in with `oidc` plus issuer/audience/keys; missing keys fail process start, bad JWT is wire code 26. Do not treat a green e2e lane as proof that identity is on. Tenant choice remains D-04 ([R4-01](../../docs/milestones/r4-01-oidc-sros2-audit.md)).
 
+## Pixi ros-test must pin ROS_PREFIX over a host /opt/ros
+
+`just ros-test-pixi` exists for machines without apt ROS, but a host `/opt/ros/jazzy` on `PATH` / `LD_LIBRARY_PATH` makes link, dlopen, and `ros2 topic pub` silently use the apt prefix — mixed apt + RoboStack FastDDS then hangs the live talker e2e (GraphSnapshot / discovery) instead of failing cleanly. `scripts/pixi-ros-activate.sh` pins `ROS_PREFIX` / `AMENT_PREFIX_PATH` to `$CONDA_PREFIX`, sets `LD_LIBRARY_PATH` to that `lib` only, and forces `ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST` (RoboStack's activate.d defaults to `SUBNET`). The pixi env includes `ros2cli` / `ros2topic` so the talker is the same prefix. RoboStack Jazzy is still not a substitute for digest-pinned Docker e2e (`just e2e` / `just e2e-h-ft`).
+
 ## Typesupport is dlopen, not link-time
 
 R3-04 dropped the R1 static link of `std_msgs` / `sensor_msgs` typesupport from `rclwebd/build.rs`. At runtime the ROS thread `dlopen`s `lib{pkg}__rosidl_typesupport_c.so` and `lib{pkg}__rosidl_generator_c.so` under `ROS_PREFIX/lib` (or `AMENT_PREFIX_PATH`). A missing package yields wire code 10 (`schema_unavailable`) the same as the old static miss — install the interface package in the image/environment rather than adding a link line. Service/action live paths also need those packages (for example `example_interfaces` for the AddTwoInts and Fibonacci loopbacks in `just ros-test`).
