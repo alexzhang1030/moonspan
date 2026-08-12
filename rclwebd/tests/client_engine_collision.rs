@@ -175,6 +175,9 @@ async fn client_engine_collides_with_gateway_subscribe_path() {
         panic!("expected sample");
     };
     assert_eq!(string_data.as_deref(), Some("collision-ok"));
+    // The CDR payload stays reachable as a borrowed view under the lease.
+    let view = engine.lease_payload_view(lease_id).expect("payload view");
+    assert!(!view.is_empty(), "borrowed payload should be non-empty");
 
     // Lease release reclaims the retained inbound slab.
     let released = engine.poll(&[HostEvent::ReleaseLease { lease_id }]);

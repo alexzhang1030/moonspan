@@ -87,15 +87,16 @@ pub enum AppEvent {
     },
     /// Inbound ROS_SAMPLE on a subscribe channel.
     ///
-    /// `payload` is a borrowed view into engine-retained memory. For
-    /// `std_msgs/msg/String`, `string_data` carries the decoded field so the
-    /// SDK can deliver a typed event without parsing CDR itself.
+    /// The CDR payload is reachable as a borrowed view via
+    /// [`super::ClientEngine::lease_payload_view`] with `lease_id` while the
+    /// lease is outstanding. For `std_msgs/msg/String`, `string_data` carries
+    /// the decoded field so the SDK can deliver a typed event without parsing
+    /// CDR itself.
     Sample {
         channel_id: u32,
         lease_id: u32,
         sequence: u64,
         source_time_ns: i64,
-        payload: Vec<u8>,
         string_data: Option<String>,
     },
     /// Peer heartbeat observed (and optionally replied).

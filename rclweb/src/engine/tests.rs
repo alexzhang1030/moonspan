@@ -216,6 +216,11 @@ fn scripted_peer_reaches_subscribed_and_sample() {
     };
     assert_eq!(channel_id, 7);
     assert_eq!(string_data.as_deref(), Some("ping"));
+    // The CDR payload stays reachable as a borrowed view under the lease.
+    assert_eq!(
+        engine.lease_payload_view(lease_id),
+        Some(payload.as_slice())
+    );
 
     let released = engine.poll(&[HostEvent::ReleaseLease { lease_id }]);
     assert!(
