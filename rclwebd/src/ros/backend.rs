@@ -3,8 +3,8 @@
 //! and are woken via the guard condition.
 
 use super::rcl::{
-    ActionClient, Attachment, GuardCondition, GuardTrigger, SerializedClient, SerializedPublisher,
-    SerializedService, SerializedSubscription, TakeBuffer, WaitSet,
+    ActionClient, ActionServer, Attachment, GuardCondition, GuardTrigger, SerializedClient,
+    SerializedPublisher, SerializedService, SerializedSubscription, TakeBuffer, WaitSet,
 };
 use super::typesupport::{self, ActionTypeSupport, ServiceTypeSupport};
 use crate::adapter::{AdapterProbe, QueueLimits};
@@ -79,6 +79,27 @@ enum Command {
         request: Vec<u8>,
         reply: oneshot::Sender<Result<Vec<u8>, BackendError>>,
     },
+    CreateActionServer {
+        spec: ChannelSpec,
+        sink: mpsc::Sender<ActionInbound>,
+        reply: oneshot::Sender<Result<EntityId, BackendError>>,
+    },
+    SendActionFeedback {
+        entity: EntityId,
+        operation_id: [u8; 16],
+        payload: Vec<u8>,
+        reply: oneshot::Sender<Result<(), BackendError>>,
+    },
+    SendActionResult {
+        entity: EntityId,
+        operation_id: [u8; 16],
+        payload: Vec<u8>,
+        reply: oneshot::Sender<Result<(), BackendError>>,
+    },
+    SendActionStatus {
+        entity: EntityId,
+        reply: oneshot::Sender<Result<(), BackendError>>,
+    },
     Destroy {
         entity: EntityId,
         reply: oneshot::Sender<()>,
@@ -146,13 +167,6 @@ impl RclBackend {
         self.send(Command::GraphTopics { reply })?;
         Self::await_reply(rx).await?
     }
-}
-
-fn action_server_unavailable(what: impl Into<String>) -> BackendError {
-    BackendError::schema_unavailable(format!(
-        "{}: action server live path is not yet attached (browser-as-server)",
-        what.into()
-    ))
 }
 
 impl RosBackend for RclBackend {
@@ -262,10 +276,16 @@ impl RosBackend for RclBackend {
 
     async fn create_action_server(
         &self,
-        _spec: &ChannelSpec,
-        _sink: mpsc::Sender<ActionInbound>,
+        spec: &ChannelSpec,
+        sink: mpsc::Sender<ActionInbound>,
     ) -> Result<EntityId, BackendError> {
-        Err(action_server_unavailable("create_action_server"))
+        let (reply, rx) = oneshot::channel();
+        self.send(Command::CreateActionServer {
+            spec: spec.clone(),
+            sink,
+            reply,
+        })?;
+        Self::await_reply(rx).await?
     }
 
     async fn send_action_goal(
@@ -303,23 +323,33 @@ impl RosBackend for RclBackend {
     async fn send_action_feedback(
         &self,
         entity: EntityId,
-        _operation_id: [u8; 16],
-        _payload: Vec<u8>,
+        operation_id: [u8; 16],
+        payload: Vec<u8>,
     ) -> Result<(), BackendError> {
-        Err(action_server_unavailable(format!(
-            "send_action_feedback on entity {entity}"
-        )))
+        let (reply, rx) = oneshot::channel();
+        self.send(Command::SendActionFeedback {
+            entity,
+            operation_id,
+            payload,
+            reply,
+        })?;
+        Self::await_reply(rx).await?
     }
 
     async fn send_action_result(
         &self,
         entity: EntityId,
-        _operation_id: [u8; 16],
-        _payload: Vec<u8>,
+        operation_id: [u8; 16],
+        payload: Vec<u8>,
     ) -> Result<(), BackendError> {
-        Err(action_server_unavailable(format!(
-            "send_action_result on entity {entity}"
-        )))
+        let (reply, rx) = oneshot::channel();
+        self.send(Command::SendActionResult {
+            entity,
+            operation_id,
+            payload,
+            reply,
+        })?;
+        Self::await_reply(rx).await?
     }
 
     async fn send_action_status(
@@ -328,9 +358,9 @@ impl RosBackend for RclBackend {
         _operation_id: [u8; 16],
         _payload: Vec<u8>,
     ) -> Result<(), BackendError> {
-        Err(action_server_unavailable(format!(
-            "send_action_status on entity {entity}"
-        )))
+        let (reply, rx) = oneshot::channel();
+        self.send(Command::SendActionStatus { entity, reply })?;
+        Self::await_reply(rx).await?
     }
 
     async fn graph_view(&self) -> Result<GraphView, BackendError> {
@@ -377,6 +407,22 @@ struct ActionClientEntry {
     action_ts: ActionTypeSupport,
 }
 
+/// Goal handle is owned by the rcl action server until `fini`.
+struct GoalSlot {
+    handle: *mut super::ffi::bindings::rcl_action_goal_handle_t,
+    pending_result_header: Option<super::ffi::bindings::rmw_request_id_t>,
+    result_cdr: Option<Vec<u8>>,
+    succeeded: bool,
+}
+
+struct ActionServerEntry {
+    channel_id: u32,
+    server: ActionServer,
+    action_ts: ActionTypeSupport,
+    sink: mpsc::Sender<ActionInbound>,
+    goals: HashMap<[u8; 16], GoalSlot>,
+}
+
 struct Worker {
     domain_id: u8,
     attachment: Attachment,
@@ -389,6 +435,7 @@ struct Worker {
     clients: HashMap<EntityId, ClientEntry>,
     services: HashMap<EntityId, ServiceEntry>,
     action_clients: HashMap<EntityId, ActionClientEntry>,
+    action_servers: HashMap<EntityId, ActionServerEntry>,
 }
 
 fn worker_entry(
@@ -412,6 +459,13 @@ fn worker_entry(
 
 fn map_rcl_error(err: super::rcl::RclError) -> BackendError {
     BackendError::new(13, err.message)
+}
+
+fn map_pump_error(err: BackendError) -> super::rcl::RclError {
+    super::rcl::RclError {
+        ret: i32::from(err.code),
+        message: err.message,
+    }
 }
 
 fn check_adapter_probe() -> Result<(), BackendError> {
@@ -458,6 +512,7 @@ impl Worker {
             clients: HashMap::new(),
             services: HashMap::new(),
             action_clients: HashMap::new(),
+            action_servers: HashMap::new(),
         })
     }
 
@@ -534,13 +589,16 @@ impl Worker {
             Command::CreateActionClient { spec, reply } => {
                 let _ = reply.send(self.create_action_client(&spec));
             }
+            Command::CreateActionServer { spec, sink, reply } => {
+                let _ = reply.send(self.create_action_server(&spec, sink));
+            }
             Command::SendActionGoal {
                 entity,
                 operation_id,
                 request,
                 reply,
             } => {
-                let result = self.send_action_goal(entity, operation_id, &request);
+                let result = self.send_action_goal(commands, entity, operation_id, &request);
                 let _ = reply.send(result);
             }
             Command::CancelAction {
@@ -550,6 +608,28 @@ impl Worker {
                 reply,
             } => {
                 let result = self.cancel_action(entity, operation_id);
+                let _ = reply.send(result);
+            }
+            Command::SendActionFeedback {
+                entity,
+                operation_id,
+                payload,
+                reply,
+            } => {
+                let result = self.send_action_feedback(entity, operation_id, &payload);
+                let _ = reply.send(result);
+            }
+            Command::SendActionResult {
+                entity,
+                operation_id,
+                payload,
+                reply,
+            } => {
+                let result = self.send_action_result(entity, operation_id, &payload);
+                let _ = reply.send(result);
+            }
+            Command::SendActionStatus { entity, reply } => {
+                let result = self.send_action_status(entity);
                 let _ = reply.send(result);
             }
             Command::Destroy { entity, reply } => {
@@ -742,6 +822,33 @@ impl Worker {
         Ok(entity)
     }
 
+    fn create_action_server(
+        &mut self,
+        spec: &ChannelSpec,
+        sink: mpsc::Sender<ActionInbound>,
+    ) -> Result<EntityId, BackendError> {
+        let Some(action_ts) = typesupport::action_type_support(&spec.type_name) else {
+            return Err(BackendError::new(
+                10,
+                format!("no dynamic typesupport for {}", spec.type_name),
+            ));
+        };
+        let server = ActionServer::create(&mut self.attachment, &spec.topic, action_ts, &spec.qos)
+            .map_err(map_rcl_error)?;
+        let entity = self.allocate();
+        self.action_servers.insert(
+            entity,
+            ActionServerEntry {
+                channel_id: spec.channel_id,
+                server,
+                action_ts,
+                sink,
+                goals: HashMap::new(),
+            },
+        );
+        Ok(entity)
+    }
+
     fn call_client(
         &mut self,
         commands: &std::sync::mpsc::Receiver<Command>,
@@ -801,25 +908,37 @@ impl Worker {
 
     fn send_action_goal(
         &mut self,
+        commands: &std::sync::mpsc::Receiver<Command>,
         entity: EntityId,
         operation_id: [u8; 16],
         goal_cdr: &[u8],
     ) -> Result<Vec<u8>, BackendError> {
-        let entry = self
+        let mut entry = self
             .action_clients
-            .get_mut(&entity)
+            .remove(&entity)
             .ok_or_else(|| BackendError::new(13, "unknown action client entity"))?;
-        entry
+        let action_ts = entry.action_ts;
+        let context = self.attachment.context_ptr();
+        let guard = self.guard.raw();
+        let result = entry
             .client
-            .send_goal_result(
-                self.attachment.context_ptr(),
-                &self.guard,
-                &entry.action_ts,
+            .send_goal_result_with_pump(
+                context,
+                guard,
+                &action_ts,
                 operation_id,
                 goal_cdr,
                 ACTION_CALL_TIMEOUT,
+                || {
+                    self.drain_commands(commands);
+                    self.pump_services_and_subscriptions()
+                        .map_err(map_pump_error)?;
+                    self.pump_action_servers().map_err(map_pump_error)
+                },
             )
-            .map_err(map_rcl_error)
+            .map_err(map_rcl_error);
+        self.action_clients.insert(entity, entry);
+        result
     }
 
     fn cancel_action(
@@ -835,12 +954,76 @@ impl Worker {
             .client
             .cancel_goal(
                 self.attachment.context_ptr(),
-                &self.guard,
+                self.guard.raw(),
                 &entry.action_ts,
                 operation_id,
                 ACTION_CALL_TIMEOUT,
             )
             .map_err(map_rcl_error)
+    }
+
+    fn send_action_feedback(
+        &mut self,
+        entity: EntityId,
+        operation_id: [u8; 16],
+        payload: &[u8],
+    ) -> Result<(), BackendError> {
+        let entry = self
+            .action_servers
+            .get_mut(&entity)
+            .ok_or_else(|| BackendError::new(13, "unknown action server entity"))?;
+        if !entry.goals.contains_key(&operation_id) {
+            return Err(BackendError::new(13, "unknown action goal operation_id"));
+        }
+        entry
+            .server
+            .publish_feedback(&entry.action_ts, operation_id, payload)
+            .map_err(map_rcl_error)
+    }
+
+    fn send_action_result(
+        &mut self,
+        entity: EntityId,
+        operation_id: [u8; 16],
+        payload: &[u8],
+    ) -> Result<(), BackendError> {
+        let entry = self
+            .action_servers
+            .get_mut(&entity)
+            .ok_or_else(|| BackendError::new(13, "unknown action server entity"))?;
+        let (handle, pending, already_succeeded) = {
+            let slot = entry
+                .goals
+                .get_mut(&operation_id)
+                .ok_or_else(|| BackendError::new(13, "unknown action goal operation_id"))?;
+            slot.result_cdr = Some(payload.to_vec());
+            (
+                slot.handle,
+                slot.pending_result_header.take(),
+                slot.succeeded,
+            )
+        };
+        if !already_succeeded {
+            entry.server.succeed_goal(handle).map_err(map_rcl_error)?;
+            if let Some(slot) = entry.goals.get_mut(&operation_id) {
+                slot.succeeded = true;
+            }
+        }
+        if let Some(mut header) = pending {
+            entry
+                .server
+                .send_result(&entry.action_ts, &mut header, payload)
+                .map_err(map_rcl_error)?;
+        }
+        Ok(())
+    }
+
+    fn send_action_status(&mut self, entity: EntityId) -> Result<(), BackendError> {
+        let entry = self
+            .action_servers
+            .get_mut(&entity)
+            .ok_or_else(|| BackendError::new(13, "unknown action server entity"))?;
+        entry.server.publish_status().map_err(map_rcl_error)
     }
 
     fn destroy_entity(&mut self, entity: EntityId) {
@@ -863,6 +1046,9 @@ impl Worker {
         }
         if let Some(entry) = self.action_clients.remove(&entity) {
             entry.client.fini(&mut self.attachment);
+        }
+        if let Some(entry) = self.action_servers.remove(&entity) {
+            entry.server.fini(&mut self.attachment);
         }
     }
 
@@ -938,6 +1124,113 @@ impl Worker {
         Ok(())
     }
 
+    fn pump_action_servers(&mut self) -> Result<(), BackendError> {
+        let entities: Vec<EntityId> = self.action_servers.keys().copied().collect();
+        for entity in entities {
+            self.pump_one_action_server(entity);
+        }
+        Ok(())
+    }
+
+    fn pump_one_action_server(&mut self, entity: EntityId) {
+        let Some(entry) = self.action_servers.get_mut(&entity) else {
+            return;
+        };
+        loop {
+            match entry.server.take_goal(&entry.action_ts) {
+                Ok(Some((mut header, uuid, goal_cdr))) => {
+                    match entry
+                        .server
+                        .accept_goal(&entry.action_ts, &mut header, uuid)
+                    {
+                        Ok(handle) => {
+                            entry.goals.insert(
+                                uuid,
+                                GoalSlot {
+                                    handle,
+                                    pending_result_header: None,
+                                    result_cdr: None,
+                                    succeeded: false,
+                                },
+                            );
+                            let inbound =
+                                ActionInbound::from_goal_payload(entry.channel_id, uuid, &goal_cdr);
+                            let _ = entry.sink.try_send(inbound);
+                        }
+                        Err(err) => {
+                            eprintln!("rclwebd action accept_goal failed: {err}");
+                            break;
+                        }
+                    }
+                }
+                Ok(None) => break,
+                Err(err) => {
+                    eprintln!("rclwebd action take_goal failed: {err}");
+                    break;
+                }
+            }
+        }
+
+        loop {
+            match entry.server.take_result_request(&entry.action_ts) {
+                Ok(Some((header, uuid))) => {
+                    let Some((ready_cdr, handle, already)) =
+                        entry.goals.get_mut(&uuid).map(|slot| {
+                            let ready = slot.result_cdr.clone();
+                            if ready.is_none() {
+                                slot.pending_result_header = Some(header);
+                            } else {
+                                slot.pending_result_header = None;
+                            }
+                            (ready, slot.handle, slot.succeeded)
+                        })
+                    else {
+                        eprintln!("rclwebd action GetResult for unknown goal");
+                        continue;
+                    };
+                    let Some(cdr) = ready_cdr else {
+                        continue;
+                    };
+                    if !already {
+                        if let Err(err) = entry.server.succeed_goal(handle) {
+                            eprintln!("rclwebd action succeed_goal failed: {err}");
+                            continue;
+                        }
+                        if let Some(slot) = entry.goals.get_mut(&uuid) {
+                            slot.succeeded = true;
+                        }
+                    }
+                    let mut header = header;
+                    if let Err(err) = entry
+                        .server
+                        .send_result(&entry.action_ts, &mut header, &cdr)
+                    {
+                        eprintln!("rclwebd action send_result failed: {err}");
+                    }
+                }
+                Ok(None) => break,
+                Err(err) => {
+                    eprintln!("rclwebd action take_result_request failed: {err}");
+                    break;
+                }
+            }
+        }
+
+        loop {
+            match entry.server.take_cancel(&entry.action_ts) {
+                Ok(Some((_header, uuid, cdr))) => {
+                    let inbound = ActionInbound::from_cancel_payload(entry.channel_id, uuid, &cdr);
+                    let _ = entry.sink.try_send(inbound);
+                }
+                Ok(None) => break,
+                Err(err) => {
+                    eprintln!("rclwebd action take_cancel failed: {err}");
+                    break;
+                }
+            }
+        }
+    }
+
     fn wait_and_pump(&mut self) -> Result<(), BackendError> {
         self.resize_wait_set_if_needed()?;
         let sub_handles: Vec<&SerializedSubscription> = self
@@ -955,6 +1248,7 @@ impl Worker {
         drop(svc_handles);
 
         self.pump_services_and_subscriptions()?;
+        self.pump_action_servers()?;
         Ok(())
     }
 
@@ -973,6 +1267,9 @@ impl Worker {
         }
         for (_, entry) in self.action_clients.drain() {
             entry.client.fini(&mut self.attachment);
+        }
+        for (_, entry) in self.action_servers.drain() {
+            entry.server.fini(&mut self.attachment);
         }
         self.wait_set.fini();
         self.take.fini();

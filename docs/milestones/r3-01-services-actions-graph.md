@@ -2,7 +2,7 @@
 
 Status: Complete (implementation + automated evidence). Live ROS service/action
 on `RclBackend` landed in [R3-04](./r3-04-adapter-abi-typesupport.md) (service
-client/server + action client call-style; action server still stubbed).
+client/server + action client/server).
 MockBackend remains the protocol/SDK oracle.
 
 ## Outcome

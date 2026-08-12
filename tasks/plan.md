@@ -67,7 +67,7 @@ Gate: PointCloud2 at target rate with recorded evidence; adversarial suite green
 | R3-01 | Complete | Services, actions, parameters, and graph events; re-freeze their parked protocol sections |
 | R3-02 | Complete | Generated types for the nine corpus roots and the dual-scheme schema registry (recycles the frozen [generated-types contract](../docs/runtime/generated-types.md), retargeted to Rust codegen) |
 | R3-03 | Complete | Second support row (H-FT) gated; WebTransport as second transport |
-| R3-04 | Complete | Versioned serialized adapter ABI per ADR 0006; dynamic (dlopen) typesupport resolution replaces R1 static links; live service client/server + action client call-style on `RclBackend` |
+| R3-04 | Complete | Versioned serialized adapter ABI per ADR 0006; dynamic (dlopen) typesupport resolution replaces R1 static links; live service and action client/server on `RclBackend` |
 
 Gate: N2 subset demonstrated; conformance green on two rows and two transports.
 

@@ -25,6 +25,8 @@ pub const RCL_CLIENT_TAKE_FAILED: b::rcl_ret_t = b::RCL_RET_CLIENT_TAKE_FAILED a
 pub const RCL_SERVICE_TAKE_FAILED: b::rcl_ret_t = b::RCL_RET_SERVICE_TAKE_FAILED as b::rcl_ret_t;
 pub const RCL_ACTION_CLIENT_TAKE_FAILED: b::rcl_ret_t =
     b::RCL_RET_ACTION_CLIENT_TAKE_FAILED as b::rcl_ret_t;
+pub const RCL_ACTION_SERVER_TAKE_FAILED: b::rcl_ret_t =
+    b::RCL_RET_ACTION_SERVER_TAKE_FAILED as b::rcl_ret_t;
 
 /// rcl call failure with the drained rcutils error string.
 #[derive(Debug, Clone)]
@@ -715,15 +717,43 @@ impl ActionClient {
     }
 
     /// Send goal, wait for acceptance, fetch result; returns GetResult_Response CDR.
+    #[allow(dead_code)]
     pub fn send_goal_result(
         &mut self,
         context: *mut b::rcl_context_t,
-        guard: &GuardCondition,
+        guard: *const b::rcl_guard_condition_t,
         action_ts: &ActionTypeSupport,
         operation_id: [u8; 16],
         goal_cdr: &[u8],
         timeout: Duration,
     ) -> Result<Vec<u8>, RclError> {
+        self.send_goal_result_with_pump(
+            context,
+            guard,
+            action_ts,
+            operation_id,
+            goal_cdr,
+            timeout,
+            || Ok(()),
+        )
+    }
+
+    /// As [`Self::send_goal_result`], interleaving `pump` so a same-thread
+    /// action server can accept the goal and supply the result.
+    #[allow(clippy::too_many_arguments)]
+    pub fn send_goal_result_with_pump<F>(
+        &mut self,
+        context: *mut b::rcl_context_t,
+        guard: *const b::rcl_guard_condition_t,
+        action_ts: &ActionTypeSupport,
+        operation_id: [u8; 16],
+        goal_cdr: &[u8],
+        timeout: Duration,
+        mut pump: F,
+    ) -> Result<Vec<u8>, RclError>
+    where
+        F: FnMut() -> Result<(), RclError>,
+    {
         let send_goal_req = allocate_message(action_ts.send_goal_request)?;
         let send_goal_resp = allocate_message(action_ts.send_goal_response)?;
         let get_result_req = allocate_message(action_ts.get_result_request)?;
@@ -746,13 +776,7 @@ impl ActionClient {
                 )?;
             }
 
-            self.wait_and_take_goal_response(
-                context,
-                guard,
-                action_ts.send_goal_response,
-                send_goal_resp,
-                timeout,
-            )?;
+            self.wait_and_take_goal_response(context, guard, send_goal_resp, timeout, &mut pump)?;
 
             let accepted = unsafe { *(send_goal_resp as *const bool) };
             if !accepted {
@@ -780,9 +804,9 @@ impl ActionClient {
             self.wait_and_take_result_response(
                 context,
                 guard,
-                action_ts.get_result_response,
                 get_result_resp,
                 timeout,
+                &mut pump,
             )?;
 
             serialize_message(action_ts.get_result_response, get_result_resp)
@@ -799,7 +823,7 @@ impl ActionClient {
     pub fn cancel_goal(
         &mut self,
         context: *mut b::rcl_context_t,
-        guard: &GuardCondition,
+        guard: *const b::rcl_guard_condition_t,
         action_ts: &ActionTypeSupport,
         operation_id: [u8; 16],
         timeout: Duration,
@@ -834,16 +858,20 @@ impl ActionClient {
         result
     }
 
-    fn wait_and_take_goal_response(
+    fn wait_and_take_goal_response<F>(
         &self,
         context: *mut b::rcl_context_t,
-        guard: &GuardCondition,
-        _response_ts: MessageTypeSupport,
+        guard: *const b::rcl_guard_condition_t,
         response: *mut c_void,
         timeout: Duration,
-    ) -> Result<(), RclError> {
+        pump: &mut F,
+    ) -> Result<(), RclError>
+    where
+        F: FnMut() -> Result<(), RclError>,
+    {
         let deadline = Instant::now() + timeout;
         loop {
+            pump()?;
             let remaining = deadline.saturating_duration_since(Instant::now());
             if remaining.is_zero() {
                 return Err(RclError {
@@ -851,33 +879,37 @@ impl ActionClient {
                     message: "action goal response timed out".to_owned(),
                 });
             }
-            if self.wait_action_ready(context, guard, remaining)? {
-                let mut header = b::rmw_request_id_t {
-                    writer_guid: [0; 16],
-                    sequence_number: 0,
-                };
-                let ret = unsafe {
-                    b::rcl_action_take_goal_response(self.client.as_ref(), &mut header, response)
-                };
-                if ret == RCL_ACTION_CLIENT_TAKE_FAILED {
-                    unsafe { b::rcutils_reset_error() };
-                    continue;
-                }
-                return check(ret, "rcl_action_take_goal_response");
+            let slice = remaining.min(Duration::from_millis(50));
+            let _ = self.wait_action_ready(context, guard, slice)?;
+            let mut header = b::rmw_request_id_t {
+                writer_guid: [0; 16],
+                sequence_number: 0,
+            };
+            let ret = unsafe {
+                b::rcl_action_take_goal_response(self.client.as_ref(), &mut header, response)
+            };
+            if ret == RCL_ACTION_CLIENT_TAKE_FAILED {
+                unsafe { b::rcutils_reset_error() };
+                continue;
             }
+            return check(ret, "rcl_action_take_goal_response");
         }
     }
 
-    fn wait_and_take_result_response(
+    fn wait_and_take_result_response<F>(
         &self,
         context: *mut b::rcl_context_t,
-        guard: &GuardCondition,
-        _response_ts: MessageTypeSupport,
+        guard: *const b::rcl_guard_condition_t,
         response: *mut c_void,
         timeout: Duration,
-    ) -> Result<(), RclError> {
+        pump: &mut F,
+    ) -> Result<(), RclError>
+    where
+        F: FnMut() -> Result<(), RclError>,
+    {
         let deadline = Instant::now() + timeout;
         loop {
+            pump()?;
             let remaining = deadline.saturating_duration_since(Instant::now());
             if remaining.is_zero() {
                 return Err(RclError {
@@ -885,27 +917,27 @@ impl ActionClient {
                     message: "action result response timed out".to_owned(),
                 });
             }
-            if self.wait_action_ready(context, guard, remaining)? {
-                let mut header = b::rmw_request_id_t {
-                    writer_guid: [0; 16],
-                    sequence_number: 0,
-                };
-                let ret = unsafe {
-                    b::rcl_action_take_result_response(self.client.as_ref(), &mut header, response)
-                };
-                if ret == RCL_ACTION_CLIENT_TAKE_FAILED {
-                    unsafe { b::rcutils_reset_error() };
-                    continue;
-                }
-                return check(ret, "rcl_action_take_result_response");
+            let slice = remaining.min(Duration::from_millis(50));
+            let _ = self.wait_action_ready(context, guard, slice)?;
+            let mut header = b::rmw_request_id_t {
+                writer_guid: [0; 16],
+                sequence_number: 0,
+            };
+            let ret = unsafe {
+                b::rcl_action_take_result_response(self.client.as_ref(), &mut header, response)
+            };
+            if ret == RCL_ACTION_CLIENT_TAKE_FAILED {
+                unsafe { b::rcutils_reset_error() };
+                continue;
             }
+            return check(ret, "rcl_action_take_result_response");
         }
     }
 
     fn wait_and_take_cancel_response(
         &self,
         context: *mut b::rcl_context_t,
-        guard: &GuardCondition,
+        guard: *const b::rcl_guard_condition_t,
         _response_ts: MessageTypeSupport,
         response: *mut c_void,
         timeout: Duration,
@@ -919,27 +951,27 @@ impl ActionClient {
                     message: "action cancel response timed out".to_owned(),
                 });
             }
-            if self.wait_action_ready(context, guard, remaining)? {
-                let mut header = b::rmw_request_id_t {
-                    writer_guid: [0; 16],
-                    sequence_number: 0,
-                };
-                let ret = unsafe {
-                    b::rcl_action_take_cancel_response(self.client.as_ref(), &mut header, response)
-                };
-                if ret == RCL_ACTION_CLIENT_TAKE_FAILED {
-                    unsafe { b::rcutils_reset_error() };
-                    continue;
-                }
-                return check(ret, "rcl_action_take_cancel_response");
+            let slice = remaining.min(Duration::from_millis(50));
+            let _ = self.wait_action_ready(context, guard, slice)?;
+            let mut header = b::rmw_request_id_t {
+                writer_guid: [0; 16],
+                sequence_number: 0,
+            };
+            let ret = unsafe {
+                b::rcl_action_take_cancel_response(self.client.as_ref(), &mut header, response)
+            };
+            if ret == RCL_ACTION_CLIENT_TAKE_FAILED {
+                unsafe { b::rcutils_reset_error() };
+                continue;
             }
+            return check(ret, "rcl_action_take_cancel_response");
         }
     }
 
     fn wait_action_ready(
         &self,
         context: *mut b::rcl_context_t,
-        guard: &GuardCondition,
+        guard: *const b::rcl_guard_condition_t,
         timeout: Duration,
     ) -> Result<bool, RclError> {
         let mut num_subs = 0;
@@ -970,6 +1002,299 @@ impl ActionClient {
         // SAFETY: action client outlived by node until this call.
         unsafe {
             let _ = b::rcl_action_client_fini(self.client.as_mut(), attachment.node_ptr());
+        }
+    }
+}
+
+/// Action server for browser-as-server: take goals/cancels, publish
+/// feedback/status, and send GetResult responses as CDR.
+pub struct ActionServer {
+    server: Box<b::rcl_action_server_t>,
+    clock: Box<b::rcl_clock_t>,
+}
+
+impl ActionServer {
+    pub fn create(
+        attachment: &mut Attachment,
+        action_name: &str,
+        type_support: ActionTypeSupport,
+        qos: &EffectiveQos,
+    ) -> Result<Self, RclError> {
+        let name_c = CString::new(action_name).map_err(|_| RclError {
+            ret: -1,
+            message: "action name contains NUL".to_owned(),
+        })?;
+        // SAFETY: clock then server init; clock outlives the server in this struct.
+        unsafe {
+            let mut clock = Box::new(std::mem::zeroed::<b::rcl_clock_t>());
+            let mut alloc = allocator();
+            check(
+                b::rcl_clock_init(b::RCL_STEADY_TIME, clock.as_mut(), &mut alloc),
+                "rcl_clock_init",
+            )?;
+            let mut server = Box::new(b::rcl_action_get_zero_initialized_server());
+            let mut options = b::rcl_action_server_get_default_options();
+            let profile = rmw_profile(qos);
+            options.goal_service_qos = profile;
+            options.result_service_qos = profile;
+            options.cancel_service_qos = profile;
+            options.feedback_topic_qos = profile;
+            options.status_topic_qos = profile;
+            let ret = b::rcl_action_server_init(
+                server.as_mut(),
+                attachment.node_ptr(),
+                clock.as_mut(),
+                type_support.handle,
+                name_c.as_ptr(),
+                &options,
+            );
+            if let Err(err) = check(ret, "rcl_action_server_init") {
+                let _ = b::rcl_clock_fini(clock.as_mut());
+                return Err(err);
+            }
+            Ok(Self { server, clock })
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn raw(&self) -> *const b::rcl_action_server_t {
+        self.server.as_ref()
+    }
+
+    /// Take one SendGoal request. `Ok(None)` when the queue is empty.
+    #[allow(clippy::type_complexity)]
+    pub fn take_goal(
+        &mut self,
+        action_ts: &ActionTypeSupport,
+    ) -> Result<Option<(b::rmw_request_id_t, [u8; 16], Vec<u8>)>, RclError> {
+        let request = allocate_message(action_ts.send_goal_request)?;
+        let mut header = b::rmw_request_id_t {
+            writer_guid: [0; 16],
+            sequence_number: 0,
+        };
+        let ret =
+            unsafe { b::rcl_action_take_goal_request(self.server.as_ref(), &mut header, request) };
+        if ret == RCL_ACTION_SERVER_TAKE_FAILED {
+            unsafe { b::rcutils_reset_error() };
+            destroy_message(action_ts.send_goal_request, request);
+            return Ok(None);
+        }
+        let result = (|| {
+            check(ret, "rcl_action_take_goal_request")?;
+            let mut uuid = [0u8; 16];
+            unsafe {
+                std::ptr::copy_nonoverlapping(request as *const u8, uuid.as_mut_ptr(), 16);
+            }
+            let goal_cdr =
+                serialize_message(action_ts.goal, unsafe { request.add(16) as *const c_void })?;
+            Ok((header, uuid, goal_cdr))
+        })();
+        destroy_message(action_ts.send_goal_request, request);
+        result.map(Some)
+    }
+
+    /// Accept the goal and send SendGoal_Response `{accepted: true}`.
+    pub fn accept_goal(
+        &mut self,
+        action_ts: &ActionTypeSupport,
+        header: &mut b::rmw_request_id_t,
+        uuid: [u8; 16],
+    ) -> Result<*mut b::rcl_action_goal_handle_t, RclError> {
+        let mut info = unsafe { b::rcl_action_get_zero_initialized_goal_info() };
+        info.goal_id.uuid = uuid;
+        let handle = unsafe { b::rcl_action_accept_new_goal(self.server.as_mut(), &info) };
+        if handle.is_null() {
+            return Err(RclError {
+                ret: b::RCL_RET_ACTION_SERVER_INVALID as b::rcl_ret_t,
+                message: format!("rcl_action_accept_new_goal: {}", drain_error_string()),
+            });
+        }
+        let response = allocate_message(action_ts.send_goal_response)?;
+        unsafe {
+            *(response as *mut bool) = true;
+        }
+        let send =
+            unsafe { b::rcl_action_send_goal_response(self.server.as_ref(), header, response) };
+        destroy_message(action_ts.send_goal_response, response);
+        check(send, "rcl_action_send_goal_response")?;
+        Ok(handle)
+    }
+
+    pub fn take_result_request(
+        &mut self,
+        action_ts: &ActionTypeSupport,
+    ) -> Result<Option<(b::rmw_request_id_t, [u8; 16])>, RclError> {
+        let request = allocate_message(action_ts.get_result_request)?;
+        let mut header = b::rmw_request_id_t {
+            writer_guid: [0; 16],
+            sequence_number: 0,
+        };
+        let ret = unsafe {
+            b::rcl_action_take_result_request(self.server.as_ref(), &mut header, request)
+        };
+        if ret == RCL_ACTION_SERVER_TAKE_FAILED {
+            unsafe { b::rcutils_reset_error() };
+            destroy_message(action_ts.get_result_request, request);
+            return Ok(None);
+        }
+        let result = (|| {
+            check(ret, "rcl_action_take_result_request")?;
+            let mut uuid = [0u8; 16];
+            unsafe {
+                std::ptr::copy_nonoverlapping(request as *const u8, uuid.as_mut_ptr(), 16);
+            }
+            Ok((header, uuid))
+        })();
+        destroy_message(action_ts.get_result_request, request);
+        result.map(Some)
+    }
+
+    pub fn send_result(
+        &mut self,
+        action_ts: &ActionTypeSupport,
+        header: &mut b::rmw_request_id_t,
+        result_cdr: &[u8],
+    ) -> Result<(), RclError> {
+        let response = allocate_message(action_ts.get_result_response)?;
+        let result = (|| {
+            deserialize_into(action_ts.get_result_response, result_cdr, response)?;
+            unsafe {
+                check(
+                    b::rcl_action_send_result_response(self.server.as_ref(), header, response),
+                    "rcl_action_send_result_response",
+                )
+            }
+        })();
+        destroy_message(action_ts.get_result_response, response);
+        result
+    }
+
+    pub fn succeed_goal(
+        &mut self,
+        handle: *mut b::rcl_action_goal_handle_t,
+    ) -> Result<(), RclError> {
+        unsafe {
+            let exec = b::rcl_action_update_goal_state(handle, b::GOAL_EVENT_EXECUTE);
+            if exec != RCL_OK {
+                // Already executing is fine; drain and continue to succeed.
+                b::rcutils_reset_error();
+            }
+            check(
+                b::rcl_action_update_goal_state(handle, b::GOAL_EVENT_SUCCEED),
+                "rcl_action_update_goal_state SUCCEED",
+            )?;
+            check(
+                b::rcl_action_notify_goal_done(self.server.as_ref()),
+                "rcl_action_notify_goal_done",
+            )
+        }
+    }
+
+    pub fn publish_feedback(
+        &mut self,
+        action_ts: &ActionTypeSupport,
+        uuid: [u8; 16],
+        feedback_cdr: &[u8],
+    ) -> Result<(), RclError> {
+        let msg = allocate_message(action_ts.feedback_message)?;
+        let result = (|| {
+            unsafe {
+                std::ptr::copy_nonoverlapping(uuid.as_ptr(), msg as *mut u8, 16);
+            }
+            deserialize_into(action_ts.feedback, feedback_cdr, unsafe {
+                msg.add(16) as *mut c_void
+            })?;
+            unsafe {
+                check(
+                    b::rcl_action_publish_feedback(self.server.as_ref(), msg),
+                    "rcl_action_publish_feedback",
+                )
+            }
+        })();
+        destroy_message(action_ts.feedback_message, msg);
+        result
+    }
+
+    pub fn publish_status(&mut self) -> Result<(), RclError> {
+        unsafe {
+            let mut array = b::rcl_action_get_zero_initialized_goal_status_array();
+            check(
+                b::rcl_action_get_goal_status_array(self.server.as_ref(), &mut array),
+                "rcl_action_get_goal_status_array",
+            )?;
+            let pub_ret = b::rcl_action_publish_status(
+                self.server.as_ref(),
+                (&array as *const b::rcl_action_goal_status_array_t).cast(),
+            );
+            let _ = b::rcl_action_goal_status_array_fini(&mut array);
+            check(pub_ret, "rcl_action_publish_status")
+        }
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub fn take_cancel(
+        &mut self,
+        action_ts: &ActionTypeSupport,
+    ) -> Result<Option<(b::rmw_request_id_t, [u8; 16], Vec<u8>)>, RclError> {
+        let request = allocate_message(action_ts.cancel_request)?;
+        let mut header = b::rmw_request_id_t {
+            writer_guid: [0; 16],
+            sequence_number: 0,
+        };
+        let ret = unsafe {
+            b::rcl_action_take_cancel_request(self.server.as_ref(), &mut header, request)
+        };
+        if ret == RCL_ACTION_SERVER_TAKE_FAILED {
+            unsafe { b::rcutils_reset_error() };
+            destroy_message(action_ts.cancel_request, request);
+            return Ok(None);
+        }
+        let result = (|| {
+            check(ret, "rcl_action_take_cancel_request")?;
+            let mut uuid = [0u8; 16];
+            unsafe {
+                std::ptr::copy_nonoverlapping(request as *const u8, uuid.as_mut_ptr(), 16);
+            }
+            let cdr = serialize_message(action_ts.cancel_request, request)?;
+            // SAFETY: request is a taken CancelGoal_Request; response is
+            // zero-initialized and fini'd after process on every path.
+            let mut cancel_response =
+                unsafe { b::rcl_action_get_zero_initialized_cancel_response() };
+            let process = unsafe {
+                b::rcl_action_process_cancel_request(
+                    self.server.as_ref(),
+                    request.cast(),
+                    &mut cancel_response,
+                )
+            };
+            if let Err(err) = check(process, "rcl_action_process_cancel_request") {
+                unsafe {
+                    let _ = b::rcl_action_cancel_response_fini(&mut cancel_response);
+                }
+                return Err(err);
+            }
+            let send = unsafe {
+                b::rcl_action_send_cancel_response(
+                    self.server.as_ref(),
+                    &mut header,
+                    (&mut cancel_response.msg as *mut b::action_msgs__srv__CancelGoal_Response)
+                        .cast(),
+                )
+            };
+            unsafe {
+                let _ = b::rcl_action_cancel_response_fini(&mut cancel_response);
+            }
+            check(send, "rcl_action_send_cancel_response")?;
+            Ok((header, uuid, cdr))
+        })();
+        destroy_message(action_ts.cancel_request, request);
+        result.map(Some)
+    }
+
+    pub fn fini(mut self, attachment: &mut Attachment) {
+        unsafe {
+            let _ = b::rcl_action_server_fini(self.server.as_mut(), attachment.node_ptr());
+            let _ = b::rcl_clock_fini(self.clock.as_mut());
         }
     }
 }
@@ -1302,7 +1627,7 @@ impl WaitSet {
     pub fn wait_action_client(
         &mut self,
         action_client: &ActionClient,
-        guard: &GuardCondition,
+        guard: *const b::rcl_guard_condition_t,
         timeout_ns: i64,
     ) -> Result<bool, RclError> {
         unsafe {
@@ -1321,7 +1646,16 @@ impl WaitSet {
                 ),
                 "rcl_action_wait_set_add_action_client",
             )?;
-            self.add_guard(guard)?;
+            if !guard.is_null() {
+                check(
+                    b::rcl_wait_set_add_guard_condition(
+                        self.wait_set.as_mut(),
+                        guard,
+                        std::ptr::null_mut(),
+                    ),
+                    "rcl_wait_set_add_guard_condition",
+                )?;
+            }
             let ret = b::rcl_wait(self.wait_set.as_mut(), timeout_ns);
             if ret == RCL_TIMEOUT {
                 b::rcutils_reset_error();

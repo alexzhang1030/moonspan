@@ -107,13 +107,26 @@ pub enum ActionInbound {
 impl ActionInbound {
     #[must_use]
     pub fn from_goal_payload(channel_id: u32, operation_id: [u8; 16], payload: &[u8]) -> Self {
-        let mut frame_buf = vec![0u8; SAMPLE_HEADER_PREFIX + payload.len()];
-        frame_buf[SAMPLE_HEADER_PREFIX..].copy_from_slice(payload);
         Self::Goal {
             channel_id,
             operation_id,
-            frame_buf,
+            frame_buf: Self::prefixed(payload),
         }
+    }
+
+    #[must_use]
+    pub fn from_cancel_payload(channel_id: u32, operation_id: [u8; 16], payload: &[u8]) -> Self {
+        Self::Cancel {
+            channel_id,
+            operation_id,
+            frame_buf: Self::prefixed(payload),
+        }
+    }
+
+    fn prefixed(payload: &[u8]) -> Vec<u8> {
+        let mut frame_buf = vec![0u8; SAMPLE_HEADER_PREFIX + payload.len()];
+        frame_buf[SAMPLE_HEADER_PREFIX..].copy_from_slice(payload);
+        frame_buf
     }
 
     #[must_use]
@@ -135,6 +148,11 @@ impl ActionInbound {
         match self {
             Self::Goal { frame_buf, .. } | Self::Cancel { frame_buf, .. } => frame_buf,
         }
+    }
+
+    #[must_use]
+    pub fn payload(&self) -> &[u8] {
+        &self.frame_buf()[SAMPLE_HEADER_PREFIX..]
     }
 }
 

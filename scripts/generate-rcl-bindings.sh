@@ -119,13 +119,41 @@ functions=(
   rcl_action_take_cancel_response
   rcl_action_client_wait_set_get_num_entities
   rcl_action_wait_set_add_action_client
+  # Action server (browser-as-server) + clock for server init.
+  rcl_clock_init
+  rcl_clock_fini
+  rcl_action_get_zero_initialized_server
+  rcl_action_server_get_default_options
+  rcl_action_server_init
+  rcl_action_server_fini
+  rcl_action_take_goal_request
+  rcl_action_send_goal_response
+  rcl_action_accept_new_goal
+  rcl_action_publish_feedback
+  rcl_action_get_goal_status_array
+  rcl_action_publish_status
+  rcl_action_take_result_request
+  rcl_action_send_result_response
+  rcl_action_notify_goal_done
+  rcl_action_take_cancel_request
+  rcl_action_process_cancel_request
+  rcl_action_send_cancel_response
+  rcl_action_update_goal_state
+  rcl_action_get_zero_initialized_goal_info
+  rcl_action_get_zero_initialized_goal_status_array
+  rcl_action_get_zero_initialized_cancel_request
+  rcl_action_get_zero_initialized_cancel_response
+  rcl_action_goal_status_array_fini
+  rcl_action_cancel_response_fini
+  rcl_action_wait_set_add_action_server
+  rcl_action_server_wait_set_get_num_entities
 )
 allowlist="$(IFS='|'; echo "${functions[*]}")"
 
 bindgen "$root/rclwebd/src/ros/ffi/wrapper.h" \
   --allowlist-function "^(${allowlist})\$" \
   --allowlist-var '^(RCL_RET_[A-Z_]+|RMW_RET_[A-Z_]+|RCL_ACTION_RET_[A-Z_]+|RMW_QOS_DEADLINE_DEFAULT|RMW_QOS_LIFESPAN_DEFAULT|RMW_QOS_LIVELINESS_LEASE_DURATION_DEFAULT)$' \
-  --allowlist-type '^(rmw_request_id_t|rmw_service_info_t|rosidl_service_type_support_t|rosidl_action_type_support_t)$' \
+  --allowlist-type '^(rmw_request_id_t|rmw_service_info_t|rosidl_service_type_support_t|rosidl_action_type_support_t|rcl_clock_t|rcl_clock_type_t|rcl_action_goal_info_t|rcl_action_goal_handle_t|rcl_action_goal_event_t|rcl_action_cancel_request_t|rcl_action_cancel_response_t|rcl_action_goal_status_array_t|rcl_action_server_t)$' \
   --no-doc-comments \
   --no-prepend-enum-name \
   --raw-line "//! Vendored bindgen output for the serialized-only rcl surface (${row_label})." \

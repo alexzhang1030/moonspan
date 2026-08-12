@@ -192,6 +192,7 @@ unsafe extern "C" {
     pub fn rcutils_uint8_array_fini(uint8_array: *mut rcutils_uint8_array_t) -> rcutils_ret_t;
 }
 pub type rcutils_time_point_value_t = i64;
+pub type rcutils_duration_value_t = i64;
 pub type rmw_serialized_message_t = rcutils_uint8_array_t;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -670,6 +671,23 @@ const _: () = {
         [::std::mem::offset_of!(rosidl_runtime_c__String, size) - 8usize];
     ["Offset of field: rosidl_runtime_c__String::capacity"]
         [::std::mem::offset_of!(rosidl_runtime_c__String, capacity) - 16usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct builtin_interfaces__msg__Time {
+    pub sec: i32,
+    pub nanosec: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of builtin_interfaces__msg__Time"]
+        [::std::mem::size_of::<builtin_interfaces__msg__Time>() - 8usize];
+    ["Alignment of builtin_interfaces__msg__Time"]
+        [::std::mem::align_of::<builtin_interfaces__msg__Time>() - 4usize];
+    ["Offset of field: builtin_interfaces__msg__Time::sec"]
+        [::std::mem::offset_of!(builtin_interfaces__msg__Time, sec) - 0usize];
+    ["Offset of field: builtin_interfaces__msg__Time::nanosec"]
+        [::std::mem::offset_of!(builtin_interfaces__msg__Time, nanosec) - 4usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -1170,6 +1188,137 @@ unsafe extern "C" {
 unsafe extern "C" {
     pub fn rcl_node_fini(node: *mut rcl_node_t) -> rcl_ret_t;
 }
+pub type rcl_time_point_value_t = rcutils_time_point_value_t;
+pub type rcl_duration_value_t = rcutils_duration_value_t;
+pub const RCL_CLOCK_UNINITIALIZED: rcl_clock_type_e = 0;
+pub const RCL_ROS_TIME: rcl_clock_type_e = 1;
+pub const RCL_SYSTEM_TIME: rcl_clock_type_e = 2;
+pub const RCL_STEADY_TIME: rcl_clock_type_e = 3;
+pub type rcl_clock_type_e = ::std::os::raw::c_uint;
+pub use self::rcl_clock_type_e as rcl_clock_type_t;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rcl_duration_s {
+    pub nanoseconds: rcl_duration_value_t,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of rcl_duration_s"][::std::mem::size_of::<rcl_duration_s>() - 8usize];
+    ["Alignment of rcl_duration_s"][::std::mem::align_of::<rcl_duration_s>() - 8usize];
+    ["Offset of field: rcl_duration_s::nanoseconds"]
+        [::std::mem::offset_of!(rcl_duration_s, nanoseconds) - 0usize];
+};
+pub type rcl_duration_t = rcl_duration_s;
+pub const RCL_ROS_TIME_NO_CHANGE: rcl_clock_change_e = 1;
+pub const RCL_ROS_TIME_ACTIVATED: rcl_clock_change_e = 2;
+pub const RCL_ROS_TIME_DEACTIVATED: rcl_clock_change_e = 3;
+pub const RCL_SYSTEM_TIME_NO_CHANGE: rcl_clock_change_e = 4;
+pub type rcl_clock_change_e = ::std::os::raw::c_uint;
+pub use self::rcl_clock_change_e as rcl_clock_change_t;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rcl_time_jump_s {
+    pub clock_change: rcl_clock_change_t,
+    pub delta: rcl_duration_t,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of rcl_time_jump_s"][::std::mem::size_of::<rcl_time_jump_s>() - 16usize];
+    ["Alignment of rcl_time_jump_s"][::std::mem::align_of::<rcl_time_jump_s>() - 8usize];
+    ["Offset of field: rcl_time_jump_s::clock_change"]
+        [::std::mem::offset_of!(rcl_time_jump_s, clock_change) - 0usize];
+    ["Offset of field: rcl_time_jump_s::delta"]
+        [::std::mem::offset_of!(rcl_time_jump_s, delta) - 8usize];
+};
+pub type rcl_time_jump_t = rcl_time_jump_s;
+pub type rcl_jump_callback_t = ::std::option::Option<
+    unsafe extern "C" fn(
+        time_jump: *const rcl_time_jump_t,
+        before_jump: bool,
+        user_data: *mut ::std::os::raw::c_void,
+    ),
+>;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rcl_jump_threshold_s {
+    pub on_clock_change: bool,
+    pub min_forward: rcl_duration_t,
+    pub min_backward: rcl_duration_t,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of rcl_jump_threshold_s"][::std::mem::size_of::<rcl_jump_threshold_s>() - 24usize];
+    ["Alignment of rcl_jump_threshold_s"][::std::mem::align_of::<rcl_jump_threshold_s>() - 8usize];
+    ["Offset of field: rcl_jump_threshold_s::on_clock_change"]
+        [::std::mem::offset_of!(rcl_jump_threshold_s, on_clock_change) - 0usize];
+    ["Offset of field: rcl_jump_threshold_s::min_forward"]
+        [::std::mem::offset_of!(rcl_jump_threshold_s, min_forward) - 8usize];
+    ["Offset of field: rcl_jump_threshold_s::min_backward"]
+        [::std::mem::offset_of!(rcl_jump_threshold_s, min_backward) - 16usize];
+};
+pub type rcl_jump_threshold_t = rcl_jump_threshold_s;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rcl_jump_callback_info_s {
+    pub callback: rcl_jump_callback_t,
+    pub threshold: rcl_jump_threshold_t,
+    pub user_data: *mut ::std::os::raw::c_void,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of rcl_jump_callback_info_s"]
+        [::std::mem::size_of::<rcl_jump_callback_info_s>() - 40usize];
+    ["Alignment of rcl_jump_callback_info_s"]
+        [::std::mem::align_of::<rcl_jump_callback_info_s>() - 8usize];
+    ["Offset of field: rcl_jump_callback_info_s::callback"]
+        [::std::mem::offset_of!(rcl_jump_callback_info_s, callback) - 0usize];
+    ["Offset of field: rcl_jump_callback_info_s::threshold"]
+        [::std::mem::offset_of!(rcl_jump_callback_info_s, threshold) - 8usize];
+    ["Offset of field: rcl_jump_callback_info_s::user_data"]
+        [::std::mem::offset_of!(rcl_jump_callback_info_s, user_data) - 32usize];
+};
+pub type rcl_jump_callback_info_t = rcl_jump_callback_info_s;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rcl_clock_s {
+    pub type_: rcl_clock_type_t,
+    pub jump_callbacks: *mut rcl_jump_callback_info_t,
+    pub num_jump_callbacks: usize,
+    pub get_now: ::std::option::Option<
+        unsafe extern "C" fn(
+            data: *mut ::std::os::raw::c_void,
+            now: *mut rcl_time_point_value_t,
+        ) -> rcl_ret_t,
+    >,
+    pub data: *mut ::std::os::raw::c_void,
+    pub allocator: rcl_allocator_t,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of rcl_clock_s"][::std::mem::size_of::<rcl_clock_s>() - 80usize];
+    ["Alignment of rcl_clock_s"][::std::mem::align_of::<rcl_clock_s>() - 8usize];
+    ["Offset of field: rcl_clock_s::type_"][::std::mem::offset_of!(rcl_clock_s, type_) - 0usize];
+    ["Offset of field: rcl_clock_s::jump_callbacks"]
+        [::std::mem::offset_of!(rcl_clock_s, jump_callbacks) - 8usize];
+    ["Offset of field: rcl_clock_s::num_jump_callbacks"]
+        [::std::mem::offset_of!(rcl_clock_s, num_jump_callbacks) - 16usize];
+    ["Offset of field: rcl_clock_s::get_now"]
+        [::std::mem::offset_of!(rcl_clock_s, get_now) - 24usize];
+    ["Offset of field: rcl_clock_s::data"][::std::mem::offset_of!(rcl_clock_s, data) - 32usize];
+    ["Offset of field: rcl_clock_s::allocator"]
+        [::std::mem::offset_of!(rcl_clock_s, allocator) - 40usize];
+};
+pub type rcl_clock_t = rcl_clock_s;
+unsafe extern "C" {
+    pub fn rcl_clock_init(
+        clock_type: rcl_clock_type_t,
+        clock: *mut rcl_clock_t,
+        allocator: *mut rcl_allocator_t,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_clock_fini(clock: *mut rcl_clock_t) -> rcl_ret_t;
+}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct rcl_publisher_impl_s {
@@ -1656,6 +1805,207 @@ unsafe extern "C" {
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct unique_identifier_msgs__msg__UUID {
+    pub uuid: [u8; 16usize],
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of unique_identifier_msgs__msg__UUID"]
+        [::std::mem::size_of::<unique_identifier_msgs__msg__UUID>() - 16usize];
+    ["Alignment of unique_identifier_msgs__msg__UUID"]
+        [::std::mem::align_of::<unique_identifier_msgs__msg__UUID>() - 1usize];
+    ["Offset of field: unique_identifier_msgs__msg__UUID::uuid"]
+        [::std::mem::offset_of!(unique_identifier_msgs__msg__UUID, uuid) - 0usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct action_msgs__msg__GoalInfo {
+    pub goal_id: unique_identifier_msgs__msg__UUID,
+    pub stamp: builtin_interfaces__msg__Time,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of action_msgs__msg__GoalInfo"]
+        [::std::mem::size_of::<action_msgs__msg__GoalInfo>() - 24usize];
+    ["Alignment of action_msgs__msg__GoalInfo"]
+        [::std::mem::align_of::<action_msgs__msg__GoalInfo>() - 4usize];
+    ["Offset of field: action_msgs__msg__GoalInfo::goal_id"]
+        [::std::mem::offset_of!(action_msgs__msg__GoalInfo, goal_id) - 0usize];
+    ["Offset of field: action_msgs__msg__GoalInfo::stamp"]
+        [::std::mem::offset_of!(action_msgs__msg__GoalInfo, stamp) - 16usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct action_msgs__msg__GoalInfo__Sequence {
+    pub data: *mut action_msgs__msg__GoalInfo,
+    pub size: usize,
+    pub capacity: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of action_msgs__msg__GoalInfo__Sequence"]
+        [::std::mem::size_of::<action_msgs__msg__GoalInfo__Sequence>() - 24usize];
+    ["Alignment of action_msgs__msg__GoalInfo__Sequence"]
+        [::std::mem::align_of::<action_msgs__msg__GoalInfo__Sequence>() - 8usize];
+    ["Offset of field: action_msgs__msg__GoalInfo__Sequence::data"]
+        [::std::mem::offset_of!(action_msgs__msg__GoalInfo__Sequence, data) - 0usize];
+    ["Offset of field: action_msgs__msg__GoalInfo__Sequence::size"]
+        [::std::mem::offset_of!(action_msgs__msg__GoalInfo__Sequence, size) - 8usize];
+    ["Offset of field: action_msgs__msg__GoalInfo__Sequence::capacity"]
+        [::std::mem::offset_of!(action_msgs__msg__GoalInfo__Sequence, capacity) - 16usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct action_msgs__msg__GoalStatus {
+    pub goal_info: action_msgs__msg__GoalInfo,
+    pub status: i8,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of action_msgs__msg__GoalStatus"]
+        [::std::mem::size_of::<action_msgs__msg__GoalStatus>() - 28usize];
+    ["Alignment of action_msgs__msg__GoalStatus"]
+        [::std::mem::align_of::<action_msgs__msg__GoalStatus>() - 4usize];
+    ["Offset of field: action_msgs__msg__GoalStatus::goal_info"]
+        [::std::mem::offset_of!(action_msgs__msg__GoalStatus, goal_info) - 0usize];
+    ["Offset of field: action_msgs__msg__GoalStatus::status"]
+        [::std::mem::offset_of!(action_msgs__msg__GoalStatus, status) - 24usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct action_msgs__msg__GoalStatus__Sequence {
+    pub data: *mut action_msgs__msg__GoalStatus,
+    pub size: usize,
+    pub capacity: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of action_msgs__msg__GoalStatus__Sequence"]
+        [::std::mem::size_of::<action_msgs__msg__GoalStatus__Sequence>() - 24usize];
+    ["Alignment of action_msgs__msg__GoalStatus__Sequence"]
+        [::std::mem::align_of::<action_msgs__msg__GoalStatus__Sequence>() - 8usize];
+    ["Offset of field: action_msgs__msg__GoalStatus__Sequence::data"]
+        [::std::mem::offset_of!(action_msgs__msg__GoalStatus__Sequence, data) - 0usize];
+    ["Offset of field: action_msgs__msg__GoalStatus__Sequence::size"]
+        [::std::mem::offset_of!(action_msgs__msg__GoalStatus__Sequence, size) - 8usize];
+    ["Offset of field: action_msgs__msg__GoalStatus__Sequence::capacity"]
+        [::std::mem::offset_of!(action_msgs__msg__GoalStatus__Sequence, capacity) - 16usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct action_msgs__msg__GoalStatusArray {
+    pub status_list: action_msgs__msg__GoalStatus__Sequence,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of action_msgs__msg__GoalStatusArray"]
+        [::std::mem::size_of::<action_msgs__msg__GoalStatusArray>() - 24usize];
+    ["Alignment of action_msgs__msg__GoalStatusArray"]
+        [::std::mem::align_of::<action_msgs__msg__GoalStatusArray>() - 8usize];
+    ["Offset of field: action_msgs__msg__GoalStatusArray::status_list"]
+        [::std::mem::offset_of!(action_msgs__msg__GoalStatusArray, status_list) - 0usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct action_msgs__srv__CancelGoal_Request {
+    pub goal_info: action_msgs__msg__GoalInfo,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of action_msgs__srv__CancelGoal_Request"]
+        [::std::mem::size_of::<action_msgs__srv__CancelGoal_Request>() - 24usize];
+    ["Alignment of action_msgs__srv__CancelGoal_Request"]
+        [::std::mem::align_of::<action_msgs__srv__CancelGoal_Request>() - 4usize];
+    ["Offset of field: action_msgs__srv__CancelGoal_Request::goal_info"]
+        [::std::mem::offset_of!(action_msgs__srv__CancelGoal_Request, goal_info) - 0usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct action_msgs__srv__CancelGoal_Response {
+    pub return_code: i8,
+    pub goals_canceling: action_msgs__msg__GoalInfo__Sequence,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of action_msgs__srv__CancelGoal_Response"]
+        [::std::mem::size_of::<action_msgs__srv__CancelGoal_Response>() - 32usize];
+    ["Alignment of action_msgs__srv__CancelGoal_Response"]
+        [::std::mem::align_of::<action_msgs__srv__CancelGoal_Response>() - 8usize];
+    ["Offset of field: action_msgs__srv__CancelGoal_Response::return_code"]
+        [::std::mem::offset_of!(action_msgs__srv__CancelGoal_Response, return_code) - 0usize];
+    ["Offset of field: action_msgs__srv__CancelGoal_Response::goals_canceling"]
+        [::std::mem::offset_of!(action_msgs__srv__CancelGoal_Response, goals_canceling) - 8usize];
+};
+pub type rcl_action_goal_info_t = action_msgs__msg__GoalInfo;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rcl_action_goal_status_array_s {
+    pub msg: action_msgs__msg__GoalStatusArray,
+    pub allocator: rcl_allocator_t,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of rcl_action_goal_status_array_s"]
+        [::std::mem::size_of::<rcl_action_goal_status_array_s>() - 64usize];
+    ["Alignment of rcl_action_goal_status_array_s"]
+        [::std::mem::align_of::<rcl_action_goal_status_array_s>() - 8usize];
+    ["Offset of field: rcl_action_goal_status_array_s::msg"]
+        [::std::mem::offset_of!(rcl_action_goal_status_array_s, msg) - 0usize];
+    ["Offset of field: rcl_action_goal_status_array_s::allocator"]
+        [::std::mem::offset_of!(rcl_action_goal_status_array_s, allocator) - 24usize];
+};
+pub type rcl_action_goal_status_array_t = rcl_action_goal_status_array_s;
+pub type rcl_action_cancel_request_t = action_msgs__srv__CancelGoal_Request;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rcl_action_cancel_response_s {
+    pub msg: action_msgs__srv__CancelGoal_Response,
+    pub allocator: rcl_allocator_t,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of rcl_action_cancel_response_s"]
+        [::std::mem::size_of::<rcl_action_cancel_response_s>() - 72usize];
+    ["Alignment of rcl_action_cancel_response_s"]
+        [::std::mem::align_of::<rcl_action_cancel_response_s>() - 8usize];
+    ["Offset of field: rcl_action_cancel_response_s::msg"]
+        [::std::mem::offset_of!(rcl_action_cancel_response_s, msg) - 0usize];
+    ["Offset of field: rcl_action_cancel_response_s::allocator"]
+        [::std::mem::offset_of!(rcl_action_cancel_response_s, allocator) - 32usize];
+};
+pub type rcl_action_cancel_response_t = rcl_action_cancel_response_s;
+pub const GOAL_EVENT_EXECUTE: rcl_action_goal_event_e = 0;
+pub const GOAL_EVENT_CANCEL_GOAL: rcl_action_goal_event_e = 1;
+pub const GOAL_EVENT_SUCCEED: rcl_action_goal_event_e = 2;
+pub const GOAL_EVENT_ABORT: rcl_action_goal_event_e = 3;
+pub const GOAL_EVENT_CANCELED: rcl_action_goal_event_e = 4;
+pub const GOAL_EVENT_NUM_EVENTS: rcl_action_goal_event_e = 5;
+pub type rcl_action_goal_event_e = ::std::os::raw::c_uint;
+pub use self::rcl_action_goal_event_e as rcl_action_goal_event_t;
+unsafe extern "C" {
+    pub fn rcl_action_get_zero_initialized_goal_info() -> rcl_action_goal_info_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_get_zero_initialized_goal_status_array() -> rcl_action_goal_status_array_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_get_zero_initialized_cancel_request() -> rcl_action_cancel_request_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_get_zero_initialized_cancel_response() -> rcl_action_cancel_response_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_goal_status_array_fini(
+        status_array: *mut rcl_action_goal_status_array_t,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_cancel_response_fini(
+        cancel_response: *mut rcl_action_cancel_response_t,
+    ) -> rcl_ret_t;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct rcl_action_client_impl_s {
     _unused: [u8; 0],
 }
@@ -1773,6 +2123,183 @@ unsafe extern "C" {
         ros_cancel_response: *mut ::std::os::raw::c_void,
     ) -> rcl_ret_t;
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rcl_action_goal_handle_impl_s {
+    _unused: [u8; 0],
+}
+pub type rcl_action_goal_handle_impl_t = rcl_action_goal_handle_impl_s;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rcl_action_goal_handle_s {
+    pub impl_: *mut rcl_action_goal_handle_impl_t,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of rcl_action_goal_handle_s"]
+        [::std::mem::size_of::<rcl_action_goal_handle_s>() - 8usize];
+    ["Alignment of rcl_action_goal_handle_s"]
+        [::std::mem::align_of::<rcl_action_goal_handle_s>() - 8usize];
+    ["Offset of field: rcl_action_goal_handle_s::impl_"]
+        [::std::mem::offset_of!(rcl_action_goal_handle_s, impl_) - 0usize];
+};
+pub type rcl_action_goal_handle_t = rcl_action_goal_handle_s;
+unsafe extern "C" {
+    pub fn rcl_action_update_goal_state(
+        goal_handle: *mut rcl_action_goal_handle_t,
+        goal_event: rcl_action_goal_event_t,
+    ) -> rcl_ret_t;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rcl_action_server_impl_s {
+    _unused: [u8; 0],
+}
+pub type rcl_action_server_impl_t = rcl_action_server_impl_s;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rcl_action_server_s {
+    pub impl_: *mut rcl_action_server_impl_t,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of rcl_action_server_s"][::std::mem::size_of::<rcl_action_server_s>() - 8usize];
+    ["Alignment of rcl_action_server_s"][::std::mem::align_of::<rcl_action_server_s>() - 8usize];
+    ["Offset of field: rcl_action_server_s::impl_"]
+        [::std::mem::offset_of!(rcl_action_server_s, impl_) - 0usize];
+};
+pub type rcl_action_server_t = rcl_action_server_s;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct rcl_action_server_options_s {
+    pub goal_service_qos: rmw_qos_profile_t,
+    pub cancel_service_qos: rmw_qos_profile_t,
+    pub result_service_qos: rmw_qos_profile_t,
+    pub feedback_topic_qos: rmw_qos_profile_t,
+    pub status_topic_qos: rmw_qos_profile_t,
+    pub allocator: rcl_allocator_t,
+    pub result_timeout: rcl_duration_t,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of rcl_action_server_options_s"]
+        [::std::mem::size_of::<rcl_action_server_options_s>() - 488usize];
+    ["Alignment of rcl_action_server_options_s"]
+        [::std::mem::align_of::<rcl_action_server_options_s>() - 8usize];
+    ["Offset of field: rcl_action_server_options_s::goal_service_qos"]
+        [::std::mem::offset_of!(rcl_action_server_options_s, goal_service_qos) - 0usize];
+    ["Offset of field: rcl_action_server_options_s::cancel_service_qos"]
+        [::std::mem::offset_of!(rcl_action_server_options_s, cancel_service_qos) - 88usize];
+    ["Offset of field: rcl_action_server_options_s::result_service_qos"]
+        [::std::mem::offset_of!(rcl_action_server_options_s, result_service_qos) - 176usize];
+    ["Offset of field: rcl_action_server_options_s::feedback_topic_qos"]
+        [::std::mem::offset_of!(rcl_action_server_options_s, feedback_topic_qos) - 264usize];
+    ["Offset of field: rcl_action_server_options_s::status_topic_qos"]
+        [::std::mem::offset_of!(rcl_action_server_options_s, status_topic_qos) - 352usize];
+    ["Offset of field: rcl_action_server_options_s::allocator"]
+        [::std::mem::offset_of!(rcl_action_server_options_s, allocator) - 440usize];
+    ["Offset of field: rcl_action_server_options_s::result_timeout"]
+        [::std::mem::offset_of!(rcl_action_server_options_s, result_timeout) - 480usize];
+};
+pub type rcl_action_server_options_t = rcl_action_server_options_s;
+unsafe extern "C" {
+    pub fn rcl_action_get_zero_initialized_server() -> rcl_action_server_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_server_init(
+        action_server: *mut rcl_action_server_t,
+        node: *mut rcl_node_t,
+        clock: *mut rcl_clock_t,
+        type_support: *const rosidl_action_type_support_t,
+        action_name: *const ::std::os::raw::c_char,
+        options: *const rcl_action_server_options_t,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_server_fini(
+        action_server: *mut rcl_action_server_t,
+        node: *mut rcl_node_t,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_server_get_default_options() -> rcl_action_server_options_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_take_goal_request(
+        action_server: *const rcl_action_server_t,
+        request_header: *mut rmw_request_id_t,
+        ros_goal_request: *mut ::std::os::raw::c_void,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_send_goal_response(
+        action_server: *const rcl_action_server_t,
+        response_header: *mut rmw_request_id_t,
+        ros_goal_response: *mut ::std::os::raw::c_void,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_accept_new_goal(
+        action_server: *mut rcl_action_server_t,
+        goal_info: *const rcl_action_goal_info_t,
+    ) -> *mut rcl_action_goal_handle_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_publish_feedback(
+        action_server: *const rcl_action_server_t,
+        ros_feedback: *mut ::std::os::raw::c_void,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_get_goal_status_array(
+        action_server: *const rcl_action_server_t,
+        status_message: *mut rcl_action_goal_status_array_t,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_publish_status(
+        action_server: *const rcl_action_server_t,
+        status_message: *const ::std::os::raw::c_void,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_take_result_request(
+        action_server: *const rcl_action_server_t,
+        request_header: *mut rmw_request_id_t,
+        ros_result_request: *mut ::std::os::raw::c_void,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_send_result_response(
+        action_server: *const rcl_action_server_t,
+        response_header: *mut rmw_request_id_t,
+        ros_result_response: *mut ::std::os::raw::c_void,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_notify_goal_done(action_server: *const rcl_action_server_t) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_take_cancel_request(
+        action_server: *const rcl_action_server_t,
+        request_header: *mut rmw_request_id_t,
+        ros_cancel_request: *mut ::std::os::raw::c_void,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_process_cancel_request(
+        action_server: *const rcl_action_server_t,
+        cancel_request: *const rcl_action_cancel_request_t,
+        cancel_response: *mut rcl_action_cancel_response_t,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_send_cancel_response(
+        action_server: *const rcl_action_server_t,
+        response_header: *mut rmw_request_id_t,
+        ros_cancel_response: *mut ::std::os::raw::c_void,
+    ) -> rcl_ret_t;
+}
 unsafe extern "C" {
     pub fn rcl_action_wait_set_add_action_client(
         wait_set: *mut rcl_wait_set_t,
@@ -1782,8 +2309,25 @@ unsafe extern "C" {
     ) -> rcl_ret_t;
 }
 unsafe extern "C" {
+    pub fn rcl_action_wait_set_add_action_server(
+        wait_set: *mut rcl_wait_set_t,
+        action_server: *const rcl_action_server_t,
+        service_index: *mut usize,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
     pub fn rcl_action_client_wait_set_get_num_entities(
         action_client: *const rcl_action_client_t,
+        num_subscriptions: *mut usize,
+        num_guard_conditions: *mut usize,
+        num_timers: *mut usize,
+        num_clients: *mut usize,
+        num_services: *mut usize,
+    ) -> rcl_ret_t;
+}
+unsafe extern "C" {
+    pub fn rcl_action_server_wait_set_get_num_entities(
+        action_server: *const rcl_action_server_t,
         num_subscriptions: *mut usize,
         num_guard_conditions: *mut usize,
         num_timers: *mut usize,

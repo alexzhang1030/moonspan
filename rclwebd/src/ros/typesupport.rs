@@ -49,6 +49,8 @@ pub struct ActionTypeSupport {
     pub handle: *const rosidl_action_type_support_t,
     pub goal: MessageTypeSupport,
     pub result: MessageTypeSupport,
+    pub feedback: MessageTypeSupport,
+    pub feedback_message: MessageTypeSupport,
     pub send_goal_request: MessageTypeSupport,
     pub send_goal_response: MessageTypeSupport,
     pub get_result_request: MessageTypeSupport,
@@ -277,6 +279,22 @@ pub fn action_type_support(type_name: &str) -> Option<ActionTypeSupport> {
         goal: load_message_ts(&mut cache, &dirs, pkg, "action", &format!("{name}_Goal")).ok()?,
         result: load_message_ts(&mut cache, &dirs, pkg, "action", &format!("{name}_Result"))
             .ok()?,
+        feedback: load_message_ts(
+            &mut cache,
+            &dirs,
+            pkg,
+            "action",
+            &format!("{name}_Feedback"),
+        )
+        .ok()?,
+        feedback_message: load_message_ts(
+            &mut cache,
+            &dirs,
+            pkg,
+            "action",
+            &format!("{name}_FeedbackMessage"),
+        )
+        .ok()?,
         send_goal_request: load_message_ts(
             &mut cache,
             &dirs,

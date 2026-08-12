@@ -17,8 +17,10 @@
     "serviceRoundTrip": "live_service_add_two_ints_round_trip",
     "serviceType": "example_interfaces/srv/AddTwoInts",
     "dynamicResolve": "add_two_ints_typesupport_resolves_via_dlopen",
-    "actionClient": "send_goal_result / cancel_goal attached",
-    "actionServer": "schema_unavailable (deferred)"
+    "actionClient": "send_goal_result_with_pump / cancel_goal attached",
+    "actionServer": "live_action_fibonacci_round_trip",
+    "actionType": "example_interfaces/action/Fibonacci",
+    "actionTypeResolve": "fibonacci_action_typesupport_resolves_via_dlopen"
   },
   "nonRegression": {
     "jFtTalkerE2e": "just e2e / CI e2e-ros-talker",
