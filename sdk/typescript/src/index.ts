@@ -20,5 +20,6 @@ export {
   type SubscriptionHandler,
 } from "./client.ts";
 
-export { encodeHostBatch, decodePollResult, loadWasm, pollEngine } from "./wasm/abi.ts";
+export { encodeHostBatch, decodePollResult, loadWasm, pollEngine, readTelemetry } from "./wasm/abi.ts";
+export type { EngineTelemetrySnapshot } from "./wasm/abi.ts";
 export { IoHost } from "./host.ts";

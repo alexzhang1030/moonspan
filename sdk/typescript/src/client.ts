@@ -45,6 +45,8 @@ export type RclwebSession = {
 
 export type RclwebClient = {
   readonly session: RclwebSession;
+  /** Browser-engine copy/poll counters when running on the inline host. */
+  telemetry(): import("./wasm/abi.ts").EngineTelemetrySnapshot | null;
   close(): Promise<void>;
 };
 
@@ -116,6 +118,10 @@ class InlineClient implements RclwebClient {
       subscribe: (topic, typeName = STD_MSGS_STRING) =>
         this.#subscribe(topic, typeName),
     };
+  }
+
+  telemetry() {
+    return this.#host.engineTelemetry();
   }
 
   async close(): Promise<void> {
@@ -231,6 +237,10 @@ class WorkerClient implements RclwebClient {
 
   get session(): RclwebSession {
     return this.#session;
+  }
+
+  telemetry() {
+    return null;
   }
 
   async close(): Promise<void> {

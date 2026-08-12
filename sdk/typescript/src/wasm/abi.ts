@@ -380,6 +380,16 @@ export type WasmExports = {
   rclweb_poll(handle: number, batchPtr: number, batchLen: number): number;
   rclweb_last_result_ptr(handle: number): number;
   rclweb_last_result_len(handle: number): number;
+  rclweb_telemetry(handle: number, outPtr: number): number;
+};
+
+export type EngineTelemetrySnapshot = {
+  copiesIntoEngine: number;
+  bytesCopiedIntoEngine: number;
+  pollTurns: number;
+  pollNanosTotal: number;
+  samplesEmitted: number;
+  leasesReleased: number;
 };
 
 export async function loadWasm(wasmBytes: ArrayBuffer): Promise<WasmExports> {
@@ -394,12 +404,40 @@ export async function loadWasm(wasmBytes: ArrayBuffer): Promise<WasmExports> {
     "rclweb_poll",
     "rclweb_last_result_ptr",
     "rclweb_last_result_len",
+    "rclweb_telemetry",
   ] as const) {
     if (!(name in exports) || exports[name] == null) {
       throw new Error(`wasm missing export ${name}`);
     }
   }
   return exports;
+}
+
+export function readTelemetry(
+  wasm: WasmExports,
+  handle: number,
+): EngineTelemetrySnapshot {
+  const ptr = wasm.rclweb_alloc(48);
+  if (ptr === 0) {
+    throw new Error("rclweb_alloc failed for telemetry");
+  }
+  try {
+    const rc = wasm.rclweb_telemetry(handle, ptr);
+    if (rc !== 0) {
+      throw new Error(`rclweb_telemetry failed with code ${rc}`);
+    }
+    const view = new DataView(wasm.memory.buffer, ptr, 48);
+    return {
+      copiesIntoEngine: Number(view.getBigUint64(0, true)),
+      bytesCopiedIntoEngine: Number(view.getBigUint64(8, true)),
+      pollTurns: Number(view.getBigUint64(16, true)),
+      pollNanosTotal: Number(view.getBigUint64(24, true)),
+      samplesEmitted: Number(view.getBigUint64(32, true)),
+      leasesReleased: Number(view.getBigUint64(40, true)),
+    };
+  } finally {
+    wasm.rclweb_free(ptr, 48);
+  }
 }
 
 export function pollEngine(

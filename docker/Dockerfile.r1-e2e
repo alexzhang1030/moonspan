@@ -1,0 +1,45 @@
+# R1-05 end-to-end image: Jazzy (J-FT) + Rust + Bun + repo build.
+# Digest-pinned base matches the CDR corpus Jazzy pin.
+FROM docker.io/library/ros:jazzy-ros-base-noble@sha256:da725acf8b0f9f30c683e33ffbdcd6482d077af96d6fdc7688c5f4f280b7d923
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    curl \
+    git \
+    pkg-config \
+    python3 \
+  && rm -rf /var/lib/apt/lists/*
+
+# Rust (pinned to repo toolchain channel)
+COPY rust-toolchain.toml /tmp/rust-toolchain.toml
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+      --default-toolchain "$(awk -F'"' '/^[[:space:]]*channel[[:space:]]*=/{print $2; exit}' /tmp/rust-toolchain.toml)" \
+      --profile minimal \
+      --target wasm32-unknown-unknown \
+  && . "$HOME/.cargo/env" \
+  && rustup component add rustfmt clippy
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Bun (pinned)
+COPY .bun-version /tmp/.bun-version
+RUN BUN_VERSION="$(tr -d '[:space:]' < /tmp/.bun-version)" \
+  && curl -fsSL "https://bun.sh/install" | bash -s "bun-v${BUN_VERSION}"
+ENV PATH="/root/.bun/bin:${PATH}"
+
+WORKDIR /workspace
+COPY . /workspace
+
+RUN bun install --frozen-lockfile \
+  && . /opt/ros/jazzy/setup.sh \
+  && cargo build --locked -p rclwebd --features ros --release \
+  && bun run scripts/build-wasm.ts \
+  && bun run scripts/measure-poll-latency.ts \
+  && mkdir -p /opt/rclweb/evidence \
+  && cp docs/evidence/r1-04-wasm-size.json docs/evidence/r1-05-poll-latency.json /opt/rclweb/evidence/
+
+COPY docker/r1-e2e-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

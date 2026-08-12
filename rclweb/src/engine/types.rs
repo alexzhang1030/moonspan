@@ -131,3 +131,25 @@ pub struct PollOutcome {
     /// Next timer deadline in the same clock domain as [`HostEvent::Timer`], if any.
     pub next_deadline_ms: Option<u64>,
 }
+
+/// Controllable-copy and poll telemetry for the browser-side engine (R1-05).
+///
+/// The standing copy budget is two controllable payload copies end-to-end:
+/// (1) gateway rcl-take → frame buffer, (2) Worker → wasm/engine retained
+/// memory. Application delivery uses borrowed views / decoded String fields
+/// (zero extra controllable copies).
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct EngineTelemetry {
+    /// Inbound WS/bootstrap/frame buffers retained (each is one controllable copy).
+    pub copies_into_engine: u64,
+    /// Total bytes copied into engine retained storage.
+    pub bytes_copied_into_engine: u64,
+    /// Number of poll turns executed.
+    pub poll_turns: u64,
+    /// Cumulative nanoseconds spent inside [`super::ClientEngine::poll`] (host-measured optional).
+    pub poll_nanos_total: u64,
+    /// Samples emitted as application events.
+    pub samples_emitted: u64,
+    /// Leases explicitly released by the host.
+    pub leases_released: u64,
+}

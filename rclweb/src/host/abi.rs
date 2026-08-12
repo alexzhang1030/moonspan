@@ -156,3 +156,38 @@ pub extern "C" fn rclweb_last_result_ptr(handle: u32) -> *const u8 {
 pub extern "C" fn rclweb_last_result_len(handle: u32) -> u32 {
     SCRATCH.with(|scratch| scratch.borrow().get(&handle).map_or(0, |v| v.len() as u32))
 }
+
+/// Write six little-endian `u64` telemetry fields into `out_ptr` (48 bytes):
+/// copies_into_engine, bytes_copied_into_engine, poll_turns, poll_nanos_total,
+/// samples_emitted, leases_released. Returns 0 on success, -6 if unknown handle.
+///
+/// # Safety
+/// `out_ptr` must point at at least 48 writable bytes.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rclweb_telemetry(handle: u32, out_ptr: *mut u8) -> i32 {
+    if out_ptr.is_null() {
+        return -1;
+    }
+    let Some(snapshot) = ENGINES.with(|engines| {
+        engines
+            .borrow()
+            .get(&handle)
+            .map(|engine| engine.telemetry())
+    }) else {
+        return -6;
+    };
+    let fields = [
+        snapshot.copies_into_engine,
+        snapshot.bytes_copied_into_engine,
+        snapshot.poll_turns,
+        snapshot.poll_nanos_total,
+        snapshot.samples_emitted,
+        snapshot.leases_released,
+    ];
+    // SAFETY: host provides a 48-byte writable region.
+    let out = unsafe { std::slice::from_raw_parts_mut(out_ptr, 48) };
+    for (i, value) in fields.iter().enumerate() {
+        out[i * 8..(i + 1) * 8].copy_from_slice(&value.to_le_bytes());
+    }
+    0
+}

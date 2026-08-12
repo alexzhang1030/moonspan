@@ -485,6 +485,7 @@ impl<'a> ConnState<'a> {
         let mut frame_buf = sample.frame_buf;
         write_frame_header(&header, payload_len as u32, 0, &mut frame_buf).ok()?;
         runtime.seq_out += 1;
+        crate::telemetry::PROCESS_TELEMETRY.record_sample_framed();
         Some(Bytes::from(frame_buf))
     }
 

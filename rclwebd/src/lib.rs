@@ -17,11 +17,13 @@ pub mod control;
 pub mod qos;
 #[cfg(feature = "ros")]
 pub mod ros;
+pub mod telemetry;
 pub mod ws;
 
 pub use backend::{BackendError, ChannelSpec, EntityId, RosBackend, SubscriptionSample};
 pub use config::GatewayConfig;
 pub use connection::{Transport, TransportError, run_connection};
+pub use telemetry::{GatewayTelemetry, GatewayTelemetrySnapshot, PROCESS_TELEMETRY};
 pub use ws::{router, serve};
 
 #[cfg(test)]
