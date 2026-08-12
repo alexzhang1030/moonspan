@@ -48,7 +48,7 @@ The generator validates every M1 generated root against closed joins. Failure yi
 
 | Rule | Contract |
 |---|---|
-| Bundle digest identity | SHA-256 of the committed canonical bundle bytes equals the `rclweb-schema-v1` `SchemaKey.value` **and** the bundle file name stem (`fixtures/bundles/<value>.json`) |
+| Bundle digest identity | SHA-256 of the committed canonical bundle bytes equals the `rclweb-schema-v1` `SchemaKey.value`. Bundle files are named from the root type (`fixtures/bundles/rclweb_cdr_interfaces.msg.PrimitiveScalars.json`), not from the digest. |
 | Source type names | Source `type_name` values inside one bundle are unique |
 | Root present | Bundle `root_type_name` equals the generated root, and a source entry for that root (or its parent `.srv` / `.action` type for sectioned roots) is present |
 | Dependency endpoints | Every `from` and `to` in `dependency_graph` names a source `type_name` present in the same bundle |

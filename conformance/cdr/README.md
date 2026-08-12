@@ -20,7 +20,7 @@ This corpus is the oracle for `rclweb::cdr` ([R1-01](../../docs/milestones/r1-01
 | `manifest.json` | Corpus index: environments, fixtures, coverage, RMW comparisons, provenance |
 | `tail-slack.json` | Top-level zero-tail evidence overlay (canonical prefix + zero suffix) |
 | `fixtures/<row>/` | Per-row serialized `.bin` artifacts and `row.json` metadata |
-| `fixtures/bundles/` | Canonical `rclweb-schema-v1` recursive interface bundles |
+| `fixtures/bundles/` | Canonical recursive interface bundles, named from the root type |
 | `fixtures/provenance/jazzy-rihs-to-bundle.json` | Jazzy RIHS-to-bundle mapping |
 | `generate/` | Dockerized ROS generator package and Dockerfile |
 | `../interfaces/rclweb_cdr_interfaces/` | Corpus message, service, and action interfaces |

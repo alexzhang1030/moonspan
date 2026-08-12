@@ -854,7 +854,7 @@
   ],
   "policy": "canonical-prefix-plus-zero-tail-v1",
   "schema_version": 1,
-  "source_manifest_sha256": "3b38fc637d5f196a3f67ed99d9b534d8822668e9c097acb3756c8978acb19ff1",
+  "source_manifest_sha256": "0dec96bd1b5672ef021588b84da7a0cfbeb451448888d980fcab5eeef005578a",
   "summary": {
     "comparisons": 18,
     "exact_fixtures": 24,

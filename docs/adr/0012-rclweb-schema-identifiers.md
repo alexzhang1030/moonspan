@@ -25,7 +25,7 @@ The project name is rclweb. Hash stability is not a reason to keep the previous 
 
 ## Consequences
 
-- Committed Humble `SchemaKey.value` values and `fixtures/bundles/<digest>.json` names change. Generated-types metadata and Humble OpenChannel identities follow the new digests.
+- Committed Humble `SchemaKey.value` values change when bundle bytes change. Bundle files are named from the root type, not from that digest.
 - Protocol CDDL/registry, parked SchemaRequest fixtures, and H-FT OpenChannel use `rclweb-schema-v1`.
 - Historical ADRs 0001–0009 remain contemporaneous records. Where they named MoonBit as the runtime language, ADR 0010 still supersedes that choice.
 

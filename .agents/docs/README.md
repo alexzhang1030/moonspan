@@ -23,7 +23,7 @@ rclweb is one Rust core (`rclweb`) serving the gateway natively and the browser 
 |---|---|
 | Formal documentation | [Documentation index](../../docs/README.md) |
 | Architecture decisions | [ADR register](../../docs/adr/README.md) |
-| Humble scheme / corpus / ROS package names | [ADR 0012](../../docs/adr/0012-rclweb-schema-identifiers.md), [gotchas](./gotchas.md#humble-bundle-identity-strings-are-in-the-hash) |
+| Humble scheme / corpus / ROS package names | [ADR 0012](../../docs/adr/0012-rclweb-schema-identifiers.md), [gotchas](./gotchas.md#bundle-files-are-named-by-type) |
 | Local WebTransport TLS (cert-hash, 14-day rotate) | [ADR 0011](../../docs/adr/0011-local-dev-webtransport-tls.md) |
 | J-FT runtime image and operations endpoints | [Deploy](../../docs/deploy.md), [R4-02](../../docs/milestones/r4-02-deployment-observability.md) |
 | Support-matrix status | [R4-03](../../docs/milestones/r4-03-support-matrix.md) |

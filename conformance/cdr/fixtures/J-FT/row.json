@@ -13,7 +13,7 @@
       "expected": {
         "roundtrip": "semantic-equality"
       },
-      "generator_revision": "sha256:f871f8b8e96e404ee9cbab198b7b3627551962bcc27b998695e0bcfbf23b70d1",
+      "generator_revision": "sha256:11ae39f138a7aa15551324ccfcc714e505fbec88323c14d3607f0bcf72b53b01",
       "id": "J-FT-collections",
       "platform": "linux/arm64",
       "rmw_identifier": "rmw_fastrtps_cpp",
@@ -35,8 +35,8 @@
       },
       "support_row_id": "J-FT",
       "type_description": {
-        "canonical_bundle_path": "fixtures/bundles/541c9cce354b191ddf3c52e172e854bd4a723d3a4c7de7f98275a34e8ed90d92.json",
-        "canonical_bundle_sha256": "541c9cce354b191ddf3c52e172e854bd4a723d3a4c7de7f98275a34e8ed90d92"
+        "canonical_bundle_path": "fixtures/bundles/rclweb_cdr_interfaces.msg.Collections.json",
+        "canonical_bundle_sha256": "413d09e0d961f4d727a2345316d615bdc67df3f7d4aaaf458682b38deab1e5e5"
       },
       "type_name": "rclweb_cdr_interfaces/msg/Collections",
       "values": {
@@ -73,7 +73,7 @@
       "expected": {
         "roundtrip": "semantic-equality"
       },
-      "generator_revision": "sha256:f871f8b8e96e404ee9cbab198b7b3627551962bcc27b998695e0bcfbf23b70d1",
+      "generator_revision": "sha256:11ae39f138a7aa15551324ccfcc714e505fbec88323c14d3607f0bcf72b53b01",
       "id": "J-FT-echo_nested_request",
       "platform": "linux/arm64",
       "rmw_identifier": "rmw_fastrtps_cpp",
@@ -95,8 +95,8 @@
       },
       "support_row_id": "J-FT",
       "type_description": {
-        "canonical_bundle_path": "fixtures/bundles/f0cf8653e7ee318ccd3fcfe6c21de8aec1e948c9a9b5e1aeb867927d75768533.json",
-        "canonical_bundle_sha256": "f0cf8653e7ee318ccd3fcfe6c21de8aec1e948c9a9b5e1aeb867927d75768533"
+        "canonical_bundle_path": "fixtures/bundles/rclweb_cdr_interfaces.srv.EchoNested_Request.json",
+        "canonical_bundle_sha256": "076a7cc7e74f71868d8ac29377d352e27fe4467f9902c02c576a7b7139b33e4c"
       },
       "type_name": "rclweb_cdr_interfaces/srv/EchoNested_Request",
       "values": {
@@ -158,7 +158,7 @@
       "expected": {
         "roundtrip": "semantic-equality"
       },
-      "generator_revision": "sha256:f871f8b8e96e404ee9cbab198b7b3627551962bcc27b998695e0bcfbf23b70d1",
+      "generator_revision": "sha256:11ae39f138a7aa15551324ccfcc714e505fbec88323c14d3607f0bcf72b53b01",
       "id": "J-FT-echo_nested_response",
       "platform": "linux/arm64",
       "rmw_identifier": "rmw_fastrtps_cpp",
@@ -180,8 +180,8 @@
       },
       "support_row_id": "J-FT",
       "type_description": {
-        "canonical_bundle_path": "fixtures/bundles/ef8ef2d8c5bf9782e926cecfbf1b32fff88d62069e2a57fd64d773c54c74b849.json",
-        "canonical_bundle_sha256": "ef8ef2d8c5bf9782e926cecfbf1b32fff88d62069e2a57fd64d773c54c74b849"
+        "canonical_bundle_path": "fixtures/bundles/rclweb_cdr_interfaces.srv.EchoNested_Response.json",
+        "canonical_bundle_sha256": "68fe0af8467e4494f73a4ed317f365ead279ca9eb58abd75fe6c817806d9f69d"
       },
       "type_name": "rclweb_cdr_interfaces/srv/EchoNested_Response",
       "values": {
@@ -244,7 +244,7 @@
       "expected": {
         "roundtrip": "semantic-equality"
       },
-      "generator_revision": "sha256:f871f8b8e96e404ee9cbab198b7b3627551962bcc27b998695e0bcfbf23b70d1",
+      "generator_revision": "sha256:11ae39f138a7aa15551324ccfcc714e505fbec88323c14d3607f0bcf72b53b01",
       "id": "J-FT-measure_sequence_feedback",
       "platform": "linux/arm64",
       "rmw_identifier": "rmw_fastrtps_cpp",
@@ -266,8 +266,8 @@
       },
       "support_row_id": "J-FT",
       "type_description": {
-        "canonical_bundle_path": "fixtures/bundles/de6e6e1605a9240f471f16919cab19f2048a34b9b9c20e3dc431f3fd07a4f90e.json",
-        "canonical_bundle_sha256": "de6e6e1605a9240f471f16919cab19f2048a34b9b9c20e3dc431f3fd07a4f90e"
+        "canonical_bundle_path": "fixtures/bundles/rclweb_cdr_interfaces.action.MeasureSequence_Feedback.json",
+        "canonical_bundle_sha256": "d2081aa35743fabf07c7c10c91bd2aa3b9a359028c7ac4c5a15a3ec9bf7ff969"
       },
       "type_name": "rclweb_cdr_interfaces/action/MeasureSequence_Feedback",
       "values": {
@@ -330,7 +330,7 @@
       "expected": {
         "roundtrip": "semantic-equality"
       },
-      "generator_revision": "sha256:f871f8b8e96e404ee9cbab198b7b3627551962bcc27b998695e0bcfbf23b70d1",
+      "generator_revision": "sha256:11ae39f138a7aa15551324ccfcc714e505fbec88323c14d3607f0bcf72b53b01",
       "id": "J-FT-measure_sequence_goal",
       "platform": "linux/arm64",
       "rmw_identifier": "rmw_fastrtps_cpp",
@@ -352,8 +352,8 @@
       },
       "support_row_id": "J-FT",
       "type_description": {
-        "canonical_bundle_path": "fixtures/bundles/fd28f31bea6ac6fa3e90d0c4534f70fe70b1cf8533eb15bc0d4a70db1000a329.json",
-        "canonical_bundle_sha256": "fd28f31bea6ac6fa3e90d0c4534f70fe70b1cf8533eb15bc0d4a70db1000a329"
+        "canonical_bundle_path": "fixtures/bundles/rclweb_cdr_interfaces.action.MeasureSequence_Goal.json",
+        "canonical_bundle_sha256": "82cf112e24d661548cb2f22fbef5e12e46abecbc08aa8ccdd7b97b59af7b3410"
       },
       "type_name": "rclweb_cdr_interfaces/action/MeasureSequence_Goal",
       "values": {
@@ -392,7 +392,7 @@
       "expected": {
         "roundtrip": "semantic-equality"
       },
-      "generator_revision": "sha256:f871f8b8e96e404ee9cbab198b7b3627551962bcc27b998695e0bcfbf23b70d1",
+      "generator_revision": "sha256:11ae39f138a7aa15551324ccfcc714e505fbec88323c14d3607f0bcf72b53b01",
       "id": "J-FT-measure_sequence_result",
       "platform": "linux/arm64",
       "rmw_identifier": "rmw_fastrtps_cpp",
@@ -414,8 +414,8 @@
       },
       "support_row_id": "J-FT",
       "type_description": {
-        "canonical_bundle_path": "fixtures/bundles/9de8db17ca58c851f62f33d0e20a5db0b5cbe0b53c493327666fbd75efaa1820.json",
-        "canonical_bundle_sha256": "9de8db17ca58c851f62f33d0e20a5db0b5cbe0b53c493327666fbd75efaa1820"
+        "canonical_bundle_path": "fixtures/bundles/rclweb_cdr_interfaces.action.MeasureSequence_Result.json",
+        "canonical_bundle_sha256": "73f8dc76a92d7776c7ca3c422da79d98fc62d0a36ff17714e809b14affdcf89c"
       },
       "type_name": "rclweb_cdr_interfaces/action/MeasureSequence_Result",
       "values": {
@@ -476,7 +476,7 @@
       "expected": {
         "roundtrip": "semantic-equality"
       },
-      "generator_revision": "sha256:f871f8b8e96e404ee9cbab198b7b3627551962bcc27b998695e0bcfbf23b70d1",
+      "generator_revision": "sha256:11ae39f138a7aa15551324ccfcc714e505fbec88323c14d3607f0bcf72b53b01",
       "id": "J-FT-nested_sample",
       "platform": "linux/arm64",
       "rmw_identifier": "rmw_fastrtps_cpp",
@@ -498,8 +498,8 @@
       },
       "support_row_id": "J-FT",
       "type_description": {
-        "canonical_bundle_path": "fixtures/bundles/425db40fbd3d22e009bc971334156e29538517dad291dbd87c9a37acd53bff37.json",
-        "canonical_bundle_sha256": "425db40fbd3d22e009bc971334156e29538517dad291dbd87c9a37acd53bff37"
+        "canonical_bundle_path": "fixtures/bundles/rclweb_cdr_interfaces.msg.NestedSample.json",
+        "canonical_bundle_sha256": "c72c1f0832821c4893e78a6de5513e8ec0b49a690232ef168610ad758f16b83f"
       },
       "type_name": "rclweb_cdr_interfaces/msg/NestedSample",
       "values": {
@@ -560,7 +560,7 @@
       "expected": {
         "roundtrip": "semantic-equality"
       },
-      "generator_revision": "sha256:f871f8b8e96e404ee9cbab198b7b3627551962bcc27b998695e0bcfbf23b70d1",
+      "generator_revision": "sha256:11ae39f138a7aa15551324ccfcc714e505fbec88323c14d3607f0bcf72b53b01",
       "id": "J-FT-point_cloud2",
       "platform": "linux/arm64",
       "rmw_identifier": "rmw_fastrtps_cpp",
@@ -582,8 +582,8 @@
       },
       "support_row_id": "J-FT",
       "type_description": {
-        "canonical_bundle_path": "fixtures/bundles/bbef4a1f31153d5344a2efb1793b06847b453497895a4c127da4a7a79379a7d0.json",
-        "canonical_bundle_sha256": "bbef4a1f31153d5344a2efb1793b06847b453497895a4c127da4a7a79379a7d0"
+        "canonical_bundle_path": "fixtures/bundles/sensor_msgs.msg.PointCloud2.json",
+        "canonical_bundle_sha256": "5cac773adf5161dbc3be02a8a3eac96ed3fcba58253b5504d58fba2175b47efb"
       },
       "type_name": "sensor_msgs/msg/PointCloud2",
       "values": {
@@ -690,7 +690,7 @@
       "expected": {
         "roundtrip": "semantic-equality"
       },
-      "generator_revision": "sha256:f871f8b8e96e404ee9cbab198b7b3627551962bcc27b998695e0bcfbf23b70d1",
+      "generator_revision": "sha256:11ae39f138a7aa15551324ccfcc714e505fbec88323c14d3607f0bcf72b53b01",
       "id": "J-FT-primitive_scalars",
       "platform": "linux/arm64",
       "rmw_identifier": "rmw_fastrtps_cpp",
@@ -712,8 +712,8 @@
       },
       "support_row_id": "J-FT",
       "type_description": {
-        "canonical_bundle_path": "fixtures/bundles/ec92f53bd1a60ed2b7aaf4df51159a7330e3eddc6ac24341973f60bffec6a0c7.json",
-        "canonical_bundle_sha256": "ec92f53bd1a60ed2b7aaf4df51159a7330e3eddc6ac24341973f60bffec6a0c7"
+        "canonical_bundle_path": "fixtures/bundles/rclweb_cdr_interfaces.msg.PrimitiveScalars.json",
+        "canonical_bundle_sha256": "d5d0a3d49f52d81a21b93f6d49e9f64f37de0057ef387189740d6510e9048280"
       },
       "type_name": "rclweb_cdr_interfaces/msg/PrimitiveScalars",
       "values": {
@@ -746,7 +746,7 @@
       "expected": {
         "roundtrip": "semantic-equality"
       },
-      "generator_revision": "sha256:f871f8b8e96e404ee9cbab198b7b3627551962bcc27b998695e0bcfbf23b70d1",
+      "generator_revision": "sha256:11ae39f138a7aa15551324ccfcc714e505fbec88323c14d3607f0bcf72b53b01",
       "id": "J-FT-primitive_scalars_big_endian",
       "platform": "linux/arm64",
       "rmw_identifier": "rmw_fastrtps_cpp",
@@ -768,8 +768,8 @@
       },
       "support_row_id": "J-FT",
       "type_description": {
-        "canonical_bundle_path": "fixtures/bundles/ec92f53bd1a60ed2b7aaf4df51159a7330e3eddc6ac24341973f60bffec6a0c7.json",
-        "canonical_bundle_sha256": "ec92f53bd1a60ed2b7aaf4df51159a7330e3eddc6ac24341973f60bffec6a0c7"
+        "canonical_bundle_path": "fixtures/bundles/rclweb_cdr_interfaces.msg.PrimitiveScalars.json",
+        "canonical_bundle_sha256": "d5d0a3d49f52d81a21b93f6d49e9f64f37de0057ef387189740d6510e9048280"
       },
       "type_name": "rclweb_cdr_interfaces/msg/PrimitiveScalars",
       "values": {
@@ -791,7 +791,7 @@
       }
     }
   ],
-  "generator_revision": "sha256:f871f8b8e96e404ee9cbab198b7b3627551962bcc27b998695e0bcfbf23b70d1",
+  "generator_revision": "sha256:11ae39f138a7aa15551324ccfcc714e505fbec88323c14d3607f0bcf72b53b01",
   "schema_version": 1,
   "support_row": {
     "id": "J-FT",

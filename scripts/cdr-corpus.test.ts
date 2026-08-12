@@ -18,6 +18,8 @@ import {
   sortKeysDeep,
   stableJsonCompact,
   stableJsonPretty,
+  bundleFileName,
+  bundleRelPath,
 } from "./cdr-corpus.ts";
 
 describe("cdr-corpus helpers", () => {
@@ -65,6 +67,12 @@ describe("cdr-corpus helpers", () => {
     expect(normalizeSourceText("a  \r\nb\t\n\n")).toBe("a\nb\n");
     expect(asciiCompare("a", "b")).toBe(-1);
     expect(sha256Hex("rclweb")).toHaveLength(64);
+    expect(bundleFileName("rclweb_cdr_interfaces/msg/PrimitiveScalars")).toBe(
+      "rclweb_cdr_interfaces.msg.PrimitiveScalars.json",
+    );
+    expect(bundleRelPath("sensor_msgs/msg/PointCloud2")).toBe(
+      "fixtures/bundles/sensor_msgs.msg.PointCloud2.json",
+    );
   });
 
   test("summary.tsv parser validates header and rows", () => {

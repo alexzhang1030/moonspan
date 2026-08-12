@@ -145,7 +145,7 @@ mod tests {
   fn accepts_bundle_and_rihs() {
     SchemaKey::new(
       SCHEME_RCLWEB_SCHEMA_V1,
-      "ec92f53bd1a60ed2b7aaf4df51159a7330e3eddc6ac24341973f60bffec6a0c7",
+      "d5d0a3d49f52d81a21b93f6d49e9f64f37de0057ef387189740d6510e9048280",
       "rclweb_cdr_interfaces/msg/PrimitiveScalars",
       1,
       1,
@@ -176,7 +176,7 @@ mod tests {
     assert!(
       SchemaKey::new(
         SCHEME_RCLWEB_SCHEMA_V1,
-        "ec92f53bd1a60ed2b7aaf4df51159a7330e3eddc6ac24341973f60bffec6a0c7",
+        "d5d0a3d49f52d81a21b93f6d49e9f64f37de0057ef387189740d6510e9048280",
         "t",
         2,
         1,

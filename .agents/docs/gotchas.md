@@ -85,9 +85,9 @@ Foundation CI installs Bun with SHA-pinned `oven-sh/setup-bun` (`.bun-version`) 
 
 `[profile.release-wasm] inherits = "release"`. Adding `strip`, `lto`, or panic settings to native release also applies to the wasm ship profile unless that key is set again on `release-wasm`. Putting `strip = "symbols"` on native release dropped staged `rclweb.wasm` from 593631 bytes to 376519. Keep fat LTO, `panic = abort`, `opt-level = "z"`, and `strip` explicit on `release-wasm`. Reproduce with `just build` (it prints the staged size).
 
-## Humble bundle identity strings are in the hash
+## Bundle files are named by type
 
-Canonical bundle JSON includes `format`, ROS type names, and `generator_revision` (which hashes generator source paths). Renaming `rclweb-schema-v1`, `rclweb-schema-bundle-v1`, `rclweb_cdr_interfaces`, or the generator package changes Humble `SchemaKey.value` and `fixtures/bundles/<digest>.json` filenames. CDR `.bin` payloads do not embed those identity strings — rehash committed bundles and rewrite metadata; do not Docker `--write` the corpus for a name change. Sample *values* that still spelled the old project name were same-length UTF-8 patches (a length change would shift CDR layout). Parked protocol fixtures that carry the scheme string in CBOR must be patched (text length prefix plus frame `payload_len`); a 1 MiB control payload keeps its bound by growing the fill bstr. [ADR 0012](../../docs/adr/0012-rclweb-schema-identifiers.md).
+Canonical bundles live at `conformance/cdr/fixtures/bundles/<type with / → .>.json` (for example `rclweb_cdr_interfaces.msg.PrimitiveScalars.json`). Humble `SchemaKey.value` is still the SHA-256 of those bytes — that digest is a wire field, not a filename. Renaming scheme/package strings inside the JSON changes the digest; do not Docker `--write` the corpus for a name change. [ADR 0012](../../docs/adr/0012-rclweb-schema-identifiers.md).
 
 ## Do not commit measurement JSON
 

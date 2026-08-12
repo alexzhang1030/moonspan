@@ -446,6 +446,16 @@ export function sha256Hex(value: string | Uint8Array): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
+/** On-disk bundle name from a ROS type. Humble wire identity stays the content SHA-256. */
+export function bundleFileName(typeName: string): string {
+  if (!typeName.includes("/")) throw new Error(`invalid type name ${typeName}`);
+  return `${typeName.replaceAll("/", ".")}.json`;
+}
+
+export function bundleRelPath(typeName: string): string {
+  return `fixtures/bundles/${bundleFileName(typeName)}`;
+}
+
 export function sortKeysDeep(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sortKeysDeep);
   if (value === null || typeof value !== "object") return value;
@@ -721,9 +731,11 @@ async function buildRowRecord(
       entry.typeName,
       generatorRevision,
     );
-    const prior = bundles.get(bundle.sha256);
-    if (prior && prior !== bundle.text) throw new Error(`bundle digest collision ${bundle.sha256}`);
-    bundles.set(bundle.sha256, bundle.text);
+    const prior = bundles.get(bundleRelPath(entry.typeName));
+    if (prior && prior !== bundle.text) {
+      throw new Error(`bundle text collision ${bundleRelPath(entry.typeName)}`);
+    }
+    bundles.set(bundleRelPath(entry.typeName), bundle.text);
 
     let scheme: "rclweb-schema-v1" | "rep2011-rihs";
     let schemaValue: string;
@@ -757,7 +769,7 @@ async function buildRowRecord(
       schema_generation: SCHEMA_GENERATION,
       schema_identity: { scheme, value: schemaValue },
       type_description: {
-        canonical_bundle_path: `fixtures/bundles/${bundle.sha256}.json`,
+        canonical_bundle_path: bundleRelPath(entry.typeName),
         canonical_bundle_sha256: bundle.sha256,
       },
       serialized: {
@@ -907,8 +919,8 @@ async function assembleCorpus(
   }
 
   await mkdir(path.join(corpusRoot, "fixtures/bundles"), { recursive: true });
-  for (const [digest, text] of [...bundles.entries()].sort(([a], [b]) => asciiCompare(a, b))) {
-    await writeFile(path.join(corpusRoot, `fixtures/bundles/${digest}.json`), text);
+  for (const [rel, text] of [...bundles.entries()].sort(([a], [b]) => asciiCompare(a, b))) {
+    await writeFile(path.join(corpusRoot, rel), text);
   }
 
   const allFixtures = rowRecords.flatMap((record) => record.fixtures);
@@ -999,6 +1011,9 @@ async function validateRowRecord(
       throw new Error(`${fixture.id}: padding policy mismatch`);
     }
     const bundlePath = path.join(corpusRoot, fixture.type_description.canonical_bundle_path);
+    if (fixture.type_description.canonical_bundle_path !== bundleRelPath(fixture.type_name)) {
+      throw new Error(`${fixture.id}: bundle path mismatch`);
+    }
     const bundleText = await readFile(bundlePath, "utf8");
     const parsedBundle = JSON.parse(bundleText) as JsonObject;
     if (`${stableJsonCompact(parsedBundle)}\n` !== bundleText) {
