@@ -1,0 +1,149 @@
+{
+  "identities": [
+    {
+      "descriptor_id": "moonspan_cdr_interfaces/action/MeasureSequence_Feedback",
+      "encoding": 1,
+      "schema_generation": 1,
+      "scheme": "moonspan-schema-v1",
+      "type_name": "moonspan_cdr_interfaces/action/MeasureSequence_Feedback",
+      "value": "c0905d3b3a0cf993b71cad476cb5496e4cdfb1693e131f5e0a6e8feb66e612c7"
+    },
+    {
+      "descriptor_id": "moonspan_cdr_interfaces/action/MeasureSequence_Feedback",
+      "encoding": 1,
+      "schema_generation": 1,
+      "scheme": "rep2011-rihs",
+      "type_name": "moonspan_cdr_interfaces/action/MeasureSequence_Feedback",
+      "value": "RIHS01_0a9d749108b3db136f0bf90cbfe4c797c4580beea8b49329e5016e18b7ddde32"
+    },
+    {
+      "descriptor_id": "moonspan_cdr_interfaces/action/MeasureSequence_Goal",
+      "encoding": 1,
+      "schema_generation": 1,
+      "scheme": "moonspan-schema-v1",
+      "type_name": "moonspan_cdr_interfaces/action/MeasureSequence_Goal",
+      "value": "772e46f5b66bf3daac68ae0dfa043de8130d865e6635c5464239cd73dab0313a"
+    },
+    {
+      "descriptor_id": "moonspan_cdr_interfaces/action/MeasureSequence_Goal",
+      "encoding": 1,
+      "schema_generation": 1,
+      "scheme": "rep2011-rihs",
+      "type_name": "moonspan_cdr_interfaces/action/MeasureSequence_Goal",
+      "value": "RIHS01_0b448dd8d3c307b4432e83757dcb7c866ca5a4b1dc5251c353c1bc357718831f"
+    },
+    {
+      "descriptor_id": "moonspan_cdr_interfaces/action/MeasureSequence_Result",
+      "encoding": 1,
+      "schema_generation": 1,
+      "scheme": "moonspan-schema-v1",
+      "type_name": "moonspan_cdr_interfaces/action/MeasureSequence_Result",
+      "value": "234bcc45bb3a5906514651c0a9dfa9a75a1d6e174e8af4e49849909b86850828"
+    },
+    {
+      "descriptor_id": "moonspan_cdr_interfaces/action/MeasureSequence_Result",
+      "encoding": 1,
+      "schema_generation": 1,
+      "scheme": "rep2011-rihs",
+      "type_name": "moonspan_cdr_interfaces/action/MeasureSequence_Result",
+      "value": "RIHS01_4aeb18ab839da6cb72cb3d6689ed8900cf2a333bc652691bffa0186ba0267a44"
+    },
+    {
+      "descriptor_id": "moonspan_cdr_interfaces/msg/Collections",
+      "encoding": 1,
+      "schema_generation": 1,
+      "scheme": "moonspan-schema-v1",
+      "type_name": "moonspan_cdr_interfaces/msg/Collections",
+      "value": "bc40edc0f49c73a9fa9367f2621fec1c0338e03ed67575b4cbc11e098c31a1c4"
+    },
+    {
+      "descriptor_id": "moonspan_cdr_interfaces/msg/Collections",
+      "encoding": 1,
+      "schema_generation": 1,
+      "scheme": "rep2011-rihs",
+      "type_name": "moonspan_cdr_interfaces/msg/Collections",
+      "value": "RIHS01_e6bf92925264144744c345f1cb13fba0c4189c02a5b8afdf68326a084ea768e3"
+    },
+    {
+      "descriptor_id": "moonspan_cdr_interfaces/msg/NestedSample",
+      "encoding": 1,
+      "schema_generation": 1,
+      "scheme": "moonspan-schema-v1",
+      "type_name": "moonspan_cdr_interfaces/msg/NestedSample",
+      "value": "089d65e60b695ecaecde1fbcfcb7226d6514b038a9c31d9f3193e11c53562f22"
+    },
+    {
+      "descriptor_id": "moonspan_cdr_interfaces/msg/NestedSample",
+      "encoding": 1,
+      "schema_generation": 1,
+      "scheme": "rep2011-rihs",
+      "type_name": "moonspan_cdr_interfaces/msg/NestedSample",
+      "value": "RIHS01_4ea14613956492167209ed78febea89be53fdb174082c1d59fd4f73ecd2136e8"
+    },
+    {
+      "descriptor_id": "moonspan_cdr_interfaces/msg/PrimitiveScalars",
+      "encoding": 1,
+      "schema_generation": 1,
+      "scheme": "moonspan-schema-v1",
+      "type_name": "moonspan_cdr_interfaces/msg/PrimitiveScalars",
+      "value": "3aba18ec187625b72e035716e63d060ece2e68946990bf04f77c93802eb669fd"
+    },
+    {
+      "descriptor_id": "moonspan_cdr_interfaces/msg/PrimitiveScalars",
+      "encoding": 1,
+      "schema_generation": 1,
+      "scheme": "rep2011-rihs",
+      "type_name": "moonspan_cdr_interfaces/msg/PrimitiveScalars",
+      "value": "RIHS01_db44c373c05fc055970958730d7cb835f816b091b68bfdf93d6ed50086092cea"
+    },
+    {
+      "descriptor_id": "moonspan_cdr_interfaces/srv/EchoNested_Request",
+      "encoding": 1,
+      "schema_generation": 1,
+      "scheme": "moonspan-schema-v1",
+      "type_name": "moonspan_cdr_interfaces/srv/EchoNested_Request",
+      "value": "2408836caae922def813faf61de8a93d73ce1c71ec6c823b0c50698d416c7570"
+    },
+    {
+      "descriptor_id": "moonspan_cdr_interfaces/srv/EchoNested_Request",
+      "encoding": 1,
+      "schema_generation": 1,
+      "scheme": "rep2011-rihs",
+      "type_name": "moonspan_cdr_interfaces/srv/EchoNested_Request",
+      "value": "RIHS01_b9b2265bac2539a16b26ce2672ce68536db8c069948757b9b8647e843af5a06a"
+    },
+    {
+      "descriptor_id": "moonspan_cdr_interfaces/srv/EchoNested_Response",
+      "encoding": 1,
+      "schema_generation": 1,
+      "scheme": "moonspan-schema-v1",
+      "type_name": "moonspan_cdr_interfaces/srv/EchoNested_Response",
+      "value": "7e67edbd18182a48e6169db141bf7d297dc60415348c27c70dd3b2124c6f49c8"
+    },
+    {
+      "descriptor_id": "moonspan_cdr_interfaces/srv/EchoNested_Response",
+      "encoding": 1,
+      "schema_generation": 1,
+      "scheme": "rep2011-rihs",
+      "type_name": "moonspan_cdr_interfaces/srv/EchoNested_Response",
+      "value": "RIHS01_5018c51e449db53278796f65adaa2dcf36ed821fcc55f938693e824716738352"
+    },
+    {
+      "descriptor_id": "sensor_msgs/msg/PointCloud2",
+      "encoding": 1,
+      "schema_generation": 1,
+      "scheme": "moonspan-schema-v1",
+      "type_name": "sensor_msgs/msg/PointCloud2",
+      "value": "e6d132e8044bbddcbcfe0f240f09780f8f8146bd8c13299e211d76634313dedf"
+    },
+    {
+      "descriptor_id": "sensor_msgs/msg/PointCloud2",
+      "encoding": 1,
+      "schema_generation": 1,
+      "scheme": "rep2011-rihs",
+      "type_name": "sensor_msgs/msg/PointCloud2",
+      "value": "RIHS01_9198cabf7da3796ae6fe19c4cb3bdd3525492988c70522628af5daa124bae2b5"
+    }
+  ],
+  "schema_version": 1
+}

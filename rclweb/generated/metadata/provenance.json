@@ -1,0 +1,50 @@
+{
+  "mappings": [
+    {
+      "bundle_sha256": "c0905d3b3a0cf993b71cad476cb5496e4cdfb1693e131f5e0a6e8feb66e612c7",
+      "rihs": "RIHS01_0a9d749108b3db136f0bf90cbfe4c797c4580beea8b49329e5016e18b7ddde32",
+      "type_name": "moonspan_cdr_interfaces/action/MeasureSequence_Feedback"
+    },
+    {
+      "bundle_sha256": "772e46f5b66bf3daac68ae0dfa043de8130d865e6635c5464239cd73dab0313a",
+      "rihs": "RIHS01_0b448dd8d3c307b4432e83757dcb7c866ca5a4b1dc5251c353c1bc357718831f",
+      "type_name": "moonspan_cdr_interfaces/action/MeasureSequence_Goal"
+    },
+    {
+      "bundle_sha256": "234bcc45bb3a5906514651c0a9dfa9a75a1d6e174e8af4e49849909b86850828",
+      "rihs": "RIHS01_4aeb18ab839da6cb72cb3d6689ed8900cf2a333bc652691bffa0186ba0267a44",
+      "type_name": "moonspan_cdr_interfaces/action/MeasureSequence_Result"
+    },
+    {
+      "bundle_sha256": "bc40edc0f49c73a9fa9367f2621fec1c0338e03ed67575b4cbc11e098c31a1c4",
+      "rihs": "RIHS01_e6bf92925264144744c345f1cb13fba0c4189c02a5b8afdf68326a084ea768e3",
+      "type_name": "moonspan_cdr_interfaces/msg/Collections"
+    },
+    {
+      "bundle_sha256": "089d65e60b695ecaecde1fbcfcb7226d6514b038a9c31d9f3193e11c53562f22",
+      "rihs": "RIHS01_4ea14613956492167209ed78febea89be53fdb174082c1d59fd4f73ecd2136e8",
+      "type_name": "moonspan_cdr_interfaces/msg/NestedSample"
+    },
+    {
+      "bundle_sha256": "3aba18ec187625b72e035716e63d060ece2e68946990bf04f77c93802eb669fd",
+      "rihs": "RIHS01_db44c373c05fc055970958730d7cb835f816b091b68bfdf93d6ed50086092cea",
+      "type_name": "moonspan_cdr_interfaces/msg/PrimitiveScalars"
+    },
+    {
+      "bundle_sha256": "2408836caae922def813faf61de8a93d73ce1c71ec6c823b0c50698d416c7570",
+      "rihs": "RIHS01_b9b2265bac2539a16b26ce2672ce68536db8c069948757b9b8647e843af5a06a",
+      "type_name": "moonspan_cdr_interfaces/srv/EchoNested_Request"
+    },
+    {
+      "bundle_sha256": "7e67edbd18182a48e6169db141bf7d297dc60415348c27c70dd3b2124c6f49c8",
+      "rihs": "RIHS01_5018c51e449db53278796f65adaa2dcf36ed821fcc55f938693e824716738352",
+      "type_name": "moonspan_cdr_interfaces/srv/EchoNested_Response"
+    },
+    {
+      "bundle_sha256": "e6d132e8044bbddcbcfe0f240f09780f8f8146bd8c13299e211d76634313dedf",
+      "rihs": "RIHS01_9198cabf7da3796ae6fe19c4cb3bdd3525492988c70522628af5daa124bae2b5",
+      "type_name": "sensor_msgs/msg/PointCloud2"
+    }
+  ],
+  "schema_version": 1
+}

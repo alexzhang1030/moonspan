@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "sources": [
+    {
+      "field_names": [
+        "progress",
+        "sample"
+      ],
+      "section_sha256": "635108a49a83a4869f6b0f3687dc5d5a6fc4677a3ccea3ae4ceb6420f29eca3b",
+      "type_name": "moonspan_cdr_interfaces/action/MeasureSequence_Feedback"
+    },
+    {
+      "field_names": [
+        "target"
+      ],
+      "section_sha256": "8810d171330f86c3c7f1ffb06e6ceeda2669e8ee7f9bd76ab63ace6a3134953d",
+      "type_name": "moonspan_cdr_interfaces/action/MeasureSequence_Goal"
+    },
+    {
+      "field_names": [
+        "result"
+      ],
+      "section_sha256": "73bc1e10ada5c3f232c229b8a069d7c51061620729ef6a8965714ccef0b9c7a8",
+      "type_name": "moonspan_cdr_interfaces/action/MeasureSequence_Result"
+    },
+    {
+      "field_names": [
+        "fixed_i32",
+        "bytes_value"
+      ],
+      "section_sha256": "2aafeff1b9a36d5aed590f546902443a9ef5e3e1d64f2c15154cef0e7aca3fcf",
+      "type_name": "moonspan_cdr_interfaces/msg/Collections"
+    },
+    {
+      "field_names": [
+        "stamp",
+        "scalars",
+        "collections"
+      ],
+      "section_sha256": "6eac495315681c76658c790683034af94bb63c7dec82a828f5e7afcea49308fd",
+      "type_name": "moonspan_cdr_interfaces/msg/NestedSample"
+    },
+    {
+      "field_names": [
+        "bool_value",
+        "byte_value",
+        "char_value",
+        "float32_value",
+        "float64_value",
+        "int8_value",
+        "uint8_value",
+        "int16_value",
+        "uint16_value",
+        "int32_value",
+        "uint32_value",
+        "int64_value",
+        "uint64_value",
+        "string_value",
+        "wstring_value"
+      ],
+      "section_sha256": "8abe47d2882ed76da564c6a7f6be5e43e7bbf1af49898d8e5571e779309aec54",
+      "type_name": "moonspan_cdr_interfaces/msg/PrimitiveScalars"
+    },
+    {
+      "field_names": [
+        "input"
+      ],
+      "section_sha256": "41e101ae9f831d686bc1f95e877305ccf1249fc98b4b294ba6d1312a8f87810e",
+      "type_name": "moonspan_cdr_interfaces/srv/EchoNested_Request"
+    },
+    {
+      "field_names": [
+        "output",
+        "accepted"
+      ],
+      "section_sha256": "e0cffdec4c7a7894ad005b981c221b7847b9e9e1ff17021e473ab1b1b5c2f6c1",
+      "type_name": "moonspan_cdr_interfaces/srv/EchoNested_Response"
+    },
+    {
+      "field_names": [
+        "header",
+        "height",
+        "width",
+        "fields",
+        "is_bigendian",
+        "point_step",
+        "row_step",
+        "data",
+        "is_dense"
+      ],
+      "section_sha256": "22699bfd6c68be148363a2e889408833a5a37d3464ea20032d1c757336b80f2a",
+      "type_name": "sensor_msgs/msg/PointCloud2"
+    }
+  ]
+}
