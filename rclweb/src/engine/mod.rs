@@ -224,9 +224,7 @@ impl ClientEngine {
         let started = std::time::Instant::now();
         let mut outcome = PollOutcome::default();
         if self.closed {
-            outcome.events.push(AppEvent::Closed {
-                phase: self.session.phase(),
-            });
+            outcome.events.push(AppEvent::Closed { phase: self.session.phase() });
             self.telemetry.poll_turns = self.telemetry.poll_turns.saturating_add(1);
             #[cfg(not(target_arch = "wasm32"))]
             {
@@ -249,10 +247,8 @@ impl ClientEngine {
         self.telemetry.poll_turns = self.telemetry.poll_turns.saturating_add(1);
         #[cfg(not(target_arch = "wasm32"))]
         {
-            self.telemetry.poll_nanos_total = self
-                .telemetry
-                .poll_nanos_total
-                .saturating_add(started.elapsed().as_nanos() as u64);
+            self.telemetry.poll_nanos_total =
+                self.telemetry.poll_nanos_total.saturating_add(started.elapsed().as_nanos() as u64);
         }
         outcome
     }
@@ -272,10 +268,7 @@ impl ClientEngine {
 
     fn handle_command(&mut self, cmd: &AppCommand, outcome: &mut PollOutcome) {
         match cmd {
-            AppCommand::Start {
-                transferable_arraybuffer,
-                webtransport,
-            } => {
+            AppCommand::Start { transferable_arraybuffer, webtransport } => {
                 if self.started {
                     return;
                 }
@@ -305,11 +298,7 @@ impl ClientEngine {
                     Err(_) => self.fail(outcome, 1, "client_hello_encode_failed"),
                 }
             }
-            AppCommand::Authenticate {
-                correlation,
-                scheme,
-                token,
-            } => {
+            AppCommand::Authenticate { correlation, scheme, token } => {
                 let msg = authenticate(correlation, scheme, token);
                 if !self.push_control(&msg, outcome) {
                     self.fail(outcome, 1, "authenticate_encode_failed");
@@ -359,10 +348,7 @@ impl ClientEngine {
                     outcome,
                 );
             }
-            AppCommand::SendSample {
-                channel_id,
-                string_data,
-            } => {
+            AppCommand::SendSample { channel_id, string_data } => {
                 self.send_sample(*channel_id, string_data, outcome);
             }
             AppCommand::OpenService {
@@ -373,11 +359,8 @@ impl ClientEngine {
                 domain_id,
                 client,
             } => {
-                let kind = if *client {
-                    PendingKind::ServiceClient
-                } else {
-                    PendingKind::ServiceServer
-                };
+                let kind =
+                    if *client { PendingKind::ServiceClient } else { PendingKind::ServiceServer };
                 if self.emit_schema_unavailable_if_needed(type_name, *channel_id, kind, outcome) {
                     return;
                 }
@@ -404,11 +387,7 @@ impl ClientEngine {
                     },
                 );
             }
-            AppCommand::CallService {
-                channel_id,
-                operation_id,
-                request,
-            } => {
+            AppCommand::CallService { channel_id, operation_id, request } => {
                 self.send_service_action_frame(
                     *channel_id,
                     OPCODE_SERVICE_REQUEST,
@@ -418,11 +397,7 @@ impl ClientEngine {
                     outcome,
                 );
             }
-            AppCommand::SendServiceResponse {
-                channel_id,
-                operation_id,
-                response,
-            } => {
+            AppCommand::SendServiceResponse { channel_id, operation_id, response } => {
                 self.send_service_action_frame(
                     *channel_id,
                     OPCODE_SERVICE_RESPONSE,
@@ -440,11 +415,8 @@ impl ClientEngine {
                 domain_id,
                 client,
             } => {
-                let kind = if *client {
-                    PendingKind::ActionClient
-                } else {
-                    PendingKind::ActionServer
-                };
+                let kind =
+                    if *client { PendingKind::ActionClient } else { PendingKind::ActionServer };
                 if self.emit_schema_unavailable_if_needed(type_name, *channel_id, kind, outcome) {
                     return;
                 }
@@ -471,11 +443,7 @@ impl ClientEngine {
                     },
                 );
             }
-            AppCommand::SendActionGoal {
-                channel_id,
-                operation_id,
-                goal,
-            } => {
+            AppCommand::SendActionGoal { channel_id, operation_id, goal } => {
                 self.send_service_action_frame(
                     *channel_id,
                     OPCODE_ACTION_GOAL,
@@ -485,10 +453,7 @@ impl ClientEngine {
                     outcome,
                 );
             }
-            AppCommand::CancelAction {
-                channel_id,
-                operation_id,
-            } => {
+            AppCommand::CancelAction { channel_id, operation_id } => {
                 self.send_service_action_frame(
                     *channel_id,
                     OPCODE_ACTION_CANCEL,
@@ -498,11 +463,7 @@ impl ClientEngine {
                     outcome,
                 );
             }
-            AppCommand::SendActionFeedback {
-                channel_id,
-                operation_id,
-                feedback,
-            } => {
+            AppCommand::SendActionFeedback { channel_id, operation_id, feedback } => {
                 self.send_service_action_frame(
                     *channel_id,
                     OPCODE_ACTION_FEEDBACK,
@@ -512,11 +473,7 @@ impl ClientEngine {
                     outcome,
                 );
             }
-            AppCommand::SendActionResult {
-                channel_id,
-                operation_id,
-                result,
-            } => {
+            AppCommand::SendActionResult { channel_id, operation_id, result } => {
                 self.send_service_action_frame(
                     *channel_id,
                     OPCODE_ACTION_RESULT,
@@ -526,11 +483,7 @@ impl ClientEngine {
                     outcome,
                 );
             }
-            AppCommand::SendActionStatus {
-                channel_id,
-                operation_id,
-                status,
-            } => {
+            AppCommand::SendActionStatus { channel_id, operation_id, status } => {
                 self.send_service_action_frame(
                     *channel_id,
                     OPCODE_ACTION_STATUS,
@@ -540,10 +493,7 @@ impl ClientEngine {
                     outcome,
                 );
             }
-            AppCommand::Unsubscribe {
-                correlation,
-                channel_id,
-            } => {
+            AppCommand::Unsubscribe { correlation, channel_id } => {
                 let msg = close_channel(correlation, *channel_id);
                 if !self.push_control(&msg, outcome) {
                     self.fail(outcome, 1, "close_channel_encode_failed");
@@ -557,9 +507,7 @@ impl ClientEngine {
             }
             AppCommand::Close => {
                 self.closed = true;
-                outcome.events.push(AppEvent::Closed {
-                    phase: self.session.phase(),
-                });
+                outcome.events.push(AppEvent::Closed { phase: self.session.phase() });
             }
         }
     }
@@ -581,11 +529,7 @@ impl ClientEngine {
         if self.emit_schema_unavailable_if_needed(type_name, channel_id, kind, outcome) {
             return;
         }
-        let depth = if qos_depth == 0 {
-            control::DEFAULT_QOS_DEPTH
-        } else {
-            qos_depth
-        };
+        let depth = if qos_depth == 0 { control::DEFAULT_QOS_DEPTH } else { qos_depth };
         let msg = open_topic(
             correlation,
             channel_id,
@@ -624,10 +568,7 @@ impl ClientEngine {
         match lookup_phase1_root_for_open(type_name, &self.support_row_id, CdrRepresentation::Le) {
             Ok(_) => false,
             Err(err) => {
-                let code = err
-                    .code
-                    .wire_error_code()
-                    .unwrap_or(WIRE_ERROR_SCHEMA_UNAVAILABLE);
+                let code = err.code.wire_error_code().unwrap_or(WIRE_ERROR_SCHEMA_UNAVAILABLE);
                 let message = err.to_string();
                 match kind {
                     PendingKind::Subscribe => {
@@ -638,25 +579,13 @@ impl ClientEngine {
                         });
                     }
                     PendingKind::Publish => {
-                        outcome.events.push(AppEvent::PublishFailed {
-                            channel_id,
-                            code,
-                            message,
-                        });
+                        outcome.events.push(AppEvent::PublishFailed { channel_id, code, message });
                     }
                     PendingKind::ServiceClient | PendingKind::ServiceServer => {
-                        outcome.events.push(AppEvent::ServiceFailed {
-                            channel_id,
-                            code,
-                            message,
-                        });
+                        outcome.events.push(AppEvent::ServiceFailed { channel_id, code, message });
                     }
                     PendingKind::ActionClient | PendingKind::ActionServer => {
-                        outcome.events.push(AppEvent::ActionFailed {
-                            channel_id,
-                            code,
-                            message,
-                        });
+                        outcome.events.push(AppEvent::ActionFailed { channel_id, code, message });
                     }
                 }
                 true
@@ -681,11 +610,7 @@ impl ClientEngine {
             });
             return;
         };
-        let flags = if pub_ch.reliable {
-            FLAG_ROS_RELIABLE
-        } else {
-            0
-        };
+        let flags = if pub_ch.reliable { FLAG_ROS_RELIABLE } else { 0 };
         let sequence = pub_ch.seq_out;
         let header = FrameHeader {
             version: 0,
@@ -822,21 +747,13 @@ impl ClientEngine {
         // controllable copy (budget slot 2) when the host already placed bytes
         // in engine-owned storage; `Bytes` keeps later parse clones O(1).
         self.telemetry.copies_into_engine = self.telemetry.copies_into_engine.saturating_add(1);
-        self.telemetry.bytes_copied_into_engine = self
-            .telemetry
-            .bytes_copied_into_engine
-            .saturating_add(bytes.len() as u64);
+        self.telemetry.bytes_copied_into_engine =
+            self.telemetry.bytes_copied_into_engine.saturating_add(bytes.len() as u64);
         let id = if buffer_id == 0 {
             self.alloc_buffer(bytes)
         } else {
-            self.retained.insert(
-                buffer_id,
-                RetainedBuffer {
-                    bytes,
-                    lease_refs: 0,
-                    ingest_done: false,
-                },
-            );
+            self.retained
+                .insert(buffer_id, RetainedBuffer { bytes, lease_refs: 0, ingest_done: false });
             self.next_buffer_id = self.next_buffer_id.max(buffer_id.saturating_add(1));
             buffer_id
         };
@@ -873,20 +790,15 @@ impl ClientEngine {
         };
         if effects.bootstrap_failed {
             self.closed = true;
-            outcome.events.push(AppEvent::Error {
-                code: 1,
-                message: "bootstrap_failed".to_owned(),
-            });
-            outcome.events.push(AppEvent::Closed {
-                phase: self.session.phase(),
-            });
+            outcome
+                .events
+                .push(AppEvent::Error { code: 1, message: "bootstrap_failed".to_owned() });
+            outcome.events.push(AppEvent::Closed { phase: self.session.phase() });
             return;
         }
         if effects.entered_selected_plane {
             let version = self.session.selected_wire_version().unwrap_or(0);
-            outcome.events.push(AppEvent::BootstrapComplete {
-                selected_wire_version: version,
-            });
+            outcome.events.push(AppEvent::BootstrapComplete { selected_wire_version: version });
         }
     }
 
@@ -1111,14 +1023,9 @@ impl ClientEngine {
                     self.fail(outcome, code, &message);
                 } else if let Some(channel_id) = effects.operation_cancelled {
                     let code = field_uint(fields, 48).unwrap_or(15) as u8;
-                    let message = field_text(fields, 51)
-                        .unwrap_or("operation_cancelled")
-                        .to_owned();
-                    outcome.events.push(AppEvent::OperationCancelled {
-                        channel_id,
-                        code,
-                        message,
-                    });
+                    let message =
+                        field_text(fields, 51).unwrap_or("operation_cancelled").to_owned();
+                    outcome.events.push(AppEvent::OperationCancelled { channel_id, code, message });
                 } else if let Some(channel_id) = effects.channel_failed {
                     let (code, message) = channel_ready_error_body(fields);
                     let code = field_uint(fields, 48).unwrap_or(u64::from(code)) as u8;
@@ -1196,14 +1103,7 @@ impl ClientEngine {
         if let Some(buf) = self.retained.get_mut(&buffer_id) {
             buf.lease_refs = buf.lease_refs.saturating_add(1);
         }
-        self.leases.insert(
-            lease_id,
-            Lease {
-                buffer_id,
-                payload_offset,
-                payload_len,
-            },
-        );
+        self.leases.insert(lease_id, Lease { buffer_id, payload_offset, payload_len });
 
         // Hosts read the CDR payload through [`Self::lease_payload_view`]
         // into the retained slab. The SDK String path delivers `string_data`
@@ -1255,54 +1155,29 @@ impl ClientEngine {
         if let Some(buf) = self.retained.get_mut(&buffer_id) {
             buf.lease_refs = buf.lease_refs.saturating_add(1);
         }
-        self.leases.insert(
-            lease_id,
-            Lease {
-                buffer_id,
-                payload_offset,
-                payload_len,
-            },
-        );
+        self.leases.insert(lease_id, Lease { buffer_id, payload_offset, payload_len });
 
         let channel_id = frame.channel_id;
         let sequence = frame.sequence;
         let event = match frame.opcode {
-            OPCODE_SERVICE_REQUEST => AppEvent::ServiceRequest {
-                channel_id,
-                operation_id,
-                lease_id,
-                sequence,
-            },
-            OPCODE_SERVICE_RESPONSE => AppEvent::ServiceResponse {
-                channel_id,
-                operation_id,
-                lease_id,
-                sequence,
-            },
-            OPCODE_ACTION_GOAL => AppEvent::ActionGoal {
-                channel_id,
-                operation_id,
-                lease_id,
-                sequence,
-            },
-            OPCODE_ACTION_FEEDBACK => AppEvent::ActionFeedback {
-                channel_id,
-                operation_id,
-                lease_id,
-                sequence,
-            },
-            OPCODE_ACTION_RESULT => AppEvent::ActionResult {
-                channel_id,
-                operation_id,
-                lease_id,
-                sequence,
-            },
-            OPCODE_ACTION_STATUS => AppEvent::ActionStatus {
-                channel_id,
-                operation_id,
-                lease_id,
-                sequence,
-            },
+            OPCODE_SERVICE_REQUEST => {
+                AppEvent::ServiceRequest { channel_id, operation_id, lease_id, sequence }
+            }
+            OPCODE_SERVICE_RESPONSE => {
+                AppEvent::ServiceResponse { channel_id, operation_id, lease_id, sequence }
+            }
+            OPCODE_ACTION_GOAL => {
+                AppEvent::ActionGoal { channel_id, operation_id, lease_id, sequence }
+            }
+            OPCODE_ACTION_FEEDBACK => {
+                AppEvent::ActionFeedback { channel_id, operation_id, lease_id, sequence }
+            }
+            OPCODE_ACTION_RESULT => {
+                AppEvent::ActionResult { channel_id, operation_id, lease_id, sequence }
+            }
+            OPCODE_ACTION_STATUS => {
+                AppEvent::ActionStatus { channel_id, operation_id, lease_id, sequence }
+            }
             _ => {
                 self.release_lease(lease_id);
                 return;
@@ -1367,14 +1242,7 @@ impl ClientEngine {
     fn alloc_buffer(&mut self, bytes: Bytes) -> u32 {
         let id = self.next_buffer_id;
         self.next_buffer_id = self.next_buffer_id.saturating_add(1);
-        self.retained.insert(
-            id,
-            RetainedBuffer {
-                bytes,
-                lease_refs: 0,
-                ingest_done: false,
-            },
-        );
+        self.retained.insert(id, RetainedBuffer { bytes, lease_refs: 0, ingest_done: false });
         id
     }
 
@@ -1397,23 +1265,17 @@ impl ClientEngine {
             .collect();
         for id in reclaim {
             if let Some(buf) = self.retained.remove(&id) {
-                outcome.released_buffers.push(ReleasedBuffer {
-                    buffer_id: id,
-                    len: buf.bytes.len() as u32,
-                });
+                outcome
+                    .released_buffers
+                    .push(ReleasedBuffer { buffer_id: id, len: buf.bytes.len() as u32 });
             }
         }
     }
 
     fn fail(&mut self, outcome: &mut PollOutcome, code: u8, message: &str) {
         self.closed = true;
-        outcome.events.push(AppEvent::Error {
-            code,
-            message: message.to_owned(),
-        });
-        outcome.events.push(AppEvent::Closed {
-            phase: self.session.phase(),
-        });
+        outcome.events.push(AppEvent::Error { code, message: message.to_owned() });
+        outcome.events.push(AppEvent::Closed { phase: self.session.phase() });
     }
 
     /// Borrow retained buffer bytes by id (used by the wasm ABI to expose
@@ -1434,8 +1296,7 @@ impl ClientEngine {
     pub fn lease_payload_view(&self, lease_id: u32) -> Option<&[u8]> {
         let lease = self.leases.get(&lease_id)?;
         let buf = self.retained.get(&lease.buffer_id)?;
-        buf.bytes
-            .get(lease.payload_offset..lease.payload_offset + lease.payload_len)
+        buf.bytes.get(lease.payload_offset..lease.payload_offset + lease.payload_len)
     }
 
     /// Decode PointCloud2 from a lease as an O(1) borrowed view (R2-02).
@@ -1608,9 +1469,7 @@ fn graph_nodes_json(fields: &std::collections::BTreeMap<u64, CborValue<'_>>) -> 
             out.push_str("{}");
             continue;
         };
-        let id = map_field_bytes(entries, 55)
-            .map(hex_encode)
-            .unwrap_or_default();
+        let id = map_field_bytes(entries, 55).map(hex_encode).unwrap_or_default();
         let name = map_field_text(entries, 1).unwrap_or("");
         let domain_id = map_field_uint(entries, 9).unwrap_or(0);
         out.push_str(&format!(
@@ -1637,12 +1496,8 @@ fn graph_endpoints_json(fields: &std::collections::BTreeMap<u64, CborValue<'_>>)
             out.push_str("{}");
             continue;
         };
-        let id = map_field_bytes(entries, 56)
-            .map(hex_encode)
-            .unwrap_or_default();
-        let node_id = map_field_bytes(entries, 55)
-            .map(hex_encode)
-            .unwrap_or_default();
+        let id = map_field_bytes(entries, 56).map(hex_encode).unwrap_or_default();
+        let node_id = map_field_bytes(entries, 55).map(hex_encode).unwrap_or_default();
         let name = map_field_text(entries, 1).unwrap_or("");
         let kind = map_field_uint(entries, 2).unwrap_or(0);
         let type_name = map_field_text(entries, 3).unwrap_or("");

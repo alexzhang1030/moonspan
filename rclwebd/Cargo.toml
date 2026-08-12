@@ -5,6 +5,9 @@ edition.workspace = true
 rust-version.workspace = true
 publish = false
 
+[lints]
+workspace = true
+
 [features]
 # Serialized-only rcl attachment (links a ROS 2 installation; see
 # docs/gateway/rclwebd.md for the environment contract). Typesupport is
@@ -15,23 +18,23 @@ ros = ["dep:libloading"]
 webtransport = ["dep:wtransport"]
 
 [dependencies]
-axum = { version = "0.8.9", features = ["ws"] }
-base64 = "0.22"
-bytes = "1.12.1"
-jsonwebtoken = "9"
-libloading = { version = "0.8", optional = true }
-rcgen = "0.14"
+axum.workspace = true
+base64.workspace = true
+bytes.workspace = true
+jsonwebtoken.workspace = true
+libloading = { workspace = true, optional = true }
+rcgen.workspace = true
 rclweb = { path = "../rclweb" }
-serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.151"
-sha2 = "0.10"
-time = { version = "0.3", features = ["formatting"] }
-tokio = { version = "1.53.1", features = ["rt-multi-thread", "macros", "net", "sync", "time", "signal"] }
-wtransport = { version = "0.7", optional = true, default-features = true }
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+time.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "net", "sync", "time", "signal"] }
+wtransport = { workspace = true, optional = true }
 
 [dev-dependencies]
-futures-util = { version = "0.3.34", default-features = false, features = ["sink", "std"] }
-tokio-tungstenite = "0.30.0"
+futures-util = { workspace = true, features = ["sink", "std"] }
+tokio-tungstenite.workspace = true
 
 [[bin]]
 name = "rclwebd"

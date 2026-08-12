@@ -91,16 +91,7 @@ fn read_u32_be(b: &[u8], o: usize) -> u32 {
     u32::from_be_bytes([b[o], b[o + 1], b[o + 2], b[o + 3]])
 }
 fn read_u64_be(b: &[u8], o: usize) -> u64 {
-    u64::from_be_bytes([
-        b[o],
-        b[o + 1],
-        b[o + 2],
-        b[o + 3],
-        b[o + 4],
-        b[o + 5],
-        b[o + 6],
-        b[o + 7],
-    ])
+    u64::from_be_bytes([b[o], b[o + 1], b[o + 2], b[o + 3], b[o + 4], b[o + 5], b[o + 6], b[o + 7]])
 }
 fn read_i64_be(b: &[u8], o: usize) -> i64 {
     read_u64_be(b, o) as i64
@@ -158,34 +149,18 @@ pub fn parse_frame<'a>(
 
     // Step 2
     if version != opts.selected_version {
-        return Err(ProtocolError::unsupported_version_frame(
-            "unsupported_version",
-            0,
-            2,
-        ));
+        return Err(ProtocolError::unsupported_version_frame("unsupported_version", 0, 2));
     }
 
     // Step 3 — compare header u16 extension_len via lossless usize widen.
     if usize::from(extension_len) > FRAME_EXTENSION_MAX_BYTES {
-        return Err(ProtocolError::message_too_large_frame(
-            "extension_too_large",
-            28,
-            3,
-        ));
+        return Err(ProtocolError::message_too_large_frame("extension_too_large", 28, 3));
     }
     if payload_len > FRAME_PAYLOAD_MAX_BYTES {
-        return Err(ProtocolError::message_too_large_frame(
-            "payload_too_large",
-            24,
-            3,
-        ));
+        return Err(ProtocolError::message_too_large_frame("payload_too_large", 24, 3));
     }
     if opcode == OPCODE_CONTROL_CBOR && payload_len as usize > CONTROL_PAYLOAD_MAX_BYTES {
-        return Err(ProtocolError::message_too_large_frame(
-            "control_payload_too_large",
-            24,
-            3,
-        ));
+        return Err(ProtocolError::message_too_large_frame("control_payload_too_large", 24, 3));
     }
 
     // Step 4
@@ -200,18 +175,10 @@ pub fn parse_frame<'a>(
         // ok
     } else if is_experimental_opcode(opcode) {
         if !opts.experimental_opcodes_enabled {
-            return Err(ProtocolError::unsupported_opcode(
-                "unsupported_opcode",
-                1,
-                5,
-            ));
+            return Err(ProtocolError::unsupported_opcode("unsupported_opcode", 1, 5));
         }
     } else {
-        return Err(ProtocolError::unsupported_opcode(
-            "unsupported_opcode",
-            1,
-            5,
-        ));
+        return Err(ProtocolError::unsupported_opcode("unsupported_opcode", 1, 5));
     }
 
     // Step 6
@@ -221,11 +188,7 @@ pub fn parse_frame<'a>(
 
     // Step 7
     if flags & FLAG_FRAGMENT != 0 {
-        return Err(ProtocolError::unsupported_flags(
-            "fragment_prohibited",
-            2,
-            7,
-        ));
+        return Err(ProtocolError::unsupported_flags("fragment_prohibited", 2, 7));
     }
     if flags & FLAG_KEYFRAME != 0 && opcode != OPCODE_MEDIA_CHUNK {
         return Err(ProtocolError::unsupported_flags("keyframe_opcode", 2, 7));
@@ -250,11 +213,7 @@ pub fn parse_frame<'a>(
 
     // Step 9
     if priority > 4 {
-        return Err(ProtocolError::protocol_violation(
-            "unassigned_priority",
-            30,
-            9,
-        ));
+        return Err(ProtocolError::protocol_violation("unassigned_priority", 30, 9));
     }
     if opcode == OPCODE_CONTROL_CBOR && priority != PRIORITY_CONTROL {
         return Err(ProtocolError::protocol_violation("control_priority", 30, 9));
@@ -262,29 +221,17 @@ pub fn parse_frame<'a>(
 
     // Step 10
     if clock_id > 4 {
-        return Err(ProtocolError::protocol_violation(
-            "unassigned_clock",
-            31,
-            10,
-        ));
+        return Err(ProtocolError::protocol_violation("unassigned_clock", 31, 10));
     }
 
     // Step 11
     if clock_id == CLOCK_NONE && source_time_ns != 0 {
-        return Err(ProtocolError::protocol_violation(
-            "none_requires_zero_time",
-            16,
-            11,
-        ));
+        return Err(ProtocolError::protocol_violation("none_requires_zero_time", 16, 11));
     }
 
     // Step 12
     if clock_id != CLOCK_NONE && !opts.available_clock_ids.contains(&clock_id) {
-        return Err(ProtocolError::clock_unavailable(
-            "clock_unavailable",
-            31,
-            12,
-        ));
+        return Err(ProtocolError::clock_unavailable("clock_unavailable", 31, 12));
     }
 
     let ext_start = FRAME_HEADER_LENGTH;
@@ -298,11 +245,7 @@ pub fn parse_frame<'a>(
         match decode_extension_area(area) {
             Ok(exts) => exts,
             Err(e) => {
-                let step = if e.reason == "unknown_critical" {
-                    14
-                } else {
-                    13
-                };
+                let step = if e.reason == "unknown_critical" { 14 } else { 13 };
                 return Err(map_extension_error(e, ext_start, step));
             }
         }
@@ -312,16 +255,10 @@ pub fn parse_frame<'a>(
 
     // Step 15
     let trace_flag = flags & FLAG_TRACE_PRESENT != 0;
-    let has_trace_ctx = extensions
-        .iter()
-        .any(|e| e.type_id == TRACE_CONTEXT_EXTENSION_TYPE);
+    let has_trace_ctx = extensions.iter().any(|e| e.type_id == TRACE_CONTEXT_EXTENSION_TYPE);
     if trace_flag != has_trace_ctx {
         let offset = if trace_flag { 2 } else { ext_start };
-        return Err(ProtocolError::protocol_violation(
-            "trace_consistency",
-            offset,
-            15,
-        ));
+        return Err(ProtocolError::protocol_violation("trace_consistency", offset, 15));
     }
 
     // Step 16
@@ -396,10 +333,7 @@ mod unit_tests {
         bytes[4..8].copy_from_slice(&1u32.to_be_bytes());
         bytes[30] = 2;
         bytes[31] = 0;
-        let opts = FrameOptions {
-            experimental_opcodes_enabled: true,
-            ..FrameOptions::default()
-        };
+        let opts = FrameOptions { experimental_opcodes_enabled: true, ..FrameOptions::default() };
         let frame = parse_frame(&bytes, Some(&opts)).expect("experimental opcode 128");
         assert_eq!(frame.opcode, 128);
         assert_eq!(frame.channel_id, 1);

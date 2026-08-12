@@ -38,14 +38,7 @@ impl CdrWriter {
         } else {
             buf.extend_from_slice(&[0x00, 0x00, 0x00, 0x00]);
         }
-        Ok(Self {
-            buf,
-            capacity,
-            limits,
-            endian,
-            representation,
-            options: 0,
-        })
+        Ok(Self { buf, capacity, limits, endian, representation, options: 0 })
     }
 
     /// Construct with frozen default limits.
@@ -119,11 +112,7 @@ impl CdrWriter {
         let next = parent.depth + 1;
         let max_d = self.limits.max_nesting_depth;
         if next > max_d {
-            return Err(CdrError::bounds_exceeded(
-                self.position(),
-                next as u64,
-                max_d as u64,
-            ));
+            return Err(CdrError::bounds_exceeded(self.position(), next as u64, max_d as u64));
         }
         Ok(CdrNesting { depth: next })
     }
@@ -139,11 +128,7 @@ impl CdrWriter {
             return Err(CdrError::length_overflow(field_start, 0, rem_cap as u64));
         };
         if end > self.capacity {
-            return Err(CdrError::bounds_exceeded(
-                field_start,
-                needed as u64,
-                rem_cap as u64,
-            ));
+            return Err(CdrError::bounds_exceeded(field_start, needed as u64, rem_cap as u64));
         }
         // Mutate only after full preflight success.
         self.buf.resize(field_start + pad, 0);
@@ -259,11 +244,7 @@ impl CdrWriter {
         if let Some(bound) = type_bound_ceiling(max_bytes)
             && payload_len > bound
         {
-            return Err(CdrError::bounds_exceeded(
-                field_start,
-                payload_len as u64,
-                bound as u64,
-            ));
+            return Err(CdrError::bounds_exceeded(field_start, payload_len as u64, bound as u64));
         }
         let cap_max = max_payload_for_writer(field_start, rem_cap);
         if cap_max < 0 {
@@ -271,12 +252,7 @@ impl CdrWriter {
                 return Err(capacity_bounds_error(field_start, rem_cap, pad, 1));
             }
         } else if payload_len > cap_max as usize {
-            return Err(capacity_bounds_error(
-                field_start,
-                rem_cap,
-                pad,
-                (cap_max as usize) + 1,
-            ));
+            return Err(capacity_bounds_error(field_start, rem_cap, pad, (cap_max as usize) + 1));
         }
         let Some(wire_len) = checked_add_usize(payload_len, 1) else {
             return Err(CdrError::length_overflow(field_start, 0, rem_cap as u64));
@@ -306,33 +282,17 @@ impl CdrWriter {
         for ch in value.chars() {
             let slot = u32::from(ch);
             if !is_accepted_wstring_scalar(slot) {
-                return Err(CdrError::invalid_wstring_scalar(
-                    field_start,
-                    rem_cap as u64,
-                ));
+                return Err(CdrError::invalid_wstring_scalar(field_start, rem_cap as u64));
             }
             let next_count = count + 1;
             if let Some(t) = type_max
                 && next_count > t
             {
-                return Err(CdrError::bounds_exceeded(
-                    field_start,
-                    next_count as u64,
-                    t as u64,
-                ));
+                return Err(CdrError::bounds_exceeded(field_start, next_count as u64, t as u64));
             }
             if cap_max < 0 || next_count > cap_max as usize {
-                let min_n = if cap_max < 0 {
-                    1
-                } else {
-                    (cap_max as usize) + 1
-                };
-                return Err(wstring_capacity_bounds_error(
-                    field_start,
-                    rem_cap,
-                    pad,
-                    min_n,
-                ));
+                let min_n = if cap_max < 0 { 1 } else { (cap_max as usize) + 1 };
+                return Err(wstring_capacity_bounds_error(field_start, rem_cap, pad, min_n));
             }
             count = next_count;
         }
@@ -393,19 +353,11 @@ impl CdrWriter {
         if let Some(bound) = max_elements
             && n as u64 > u64::from(bound)
         {
-            return Err(CdrError::bounds_exceeded(
-                field_start,
-                n as u64,
-                u64::from(bound),
-            ));
+            return Err(CdrError::bounds_exceeded(field_start, n as u64, u64::from(bound)));
         }
         let max_stream = self.limits.max_stream_bytes;
         if n > max_stream {
-            return Err(CdrError::bounds_exceeded(
-                field_start,
-                n as u64,
-                max_stream as u64,
-            ));
+            return Err(CdrError::bounds_exceeded(field_start, n as u64, max_stream as u64));
         }
         let Some(body_size) = checked_add_usize(4, n) else {
             return Err(CdrError::length_overflow(field_start, 0, rem_cap as u64));

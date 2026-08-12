@@ -146,10 +146,7 @@ fn truncated_and_alignment_overflow() {
     let mut r = CdrReader::open_default(&bytes).unwrap();
     r.read_bool().unwrap();
     let err = r.read_f64().unwrap_err();
-    assert!(matches!(
-        err.code,
-        CdrErrorCode::AlignmentOverflow | CdrErrorCode::Truncated
-    ));
+    assert!(matches!(err.code, CdrErrorCode::AlignmentOverflow | CdrErrorCode::Truncated));
     assert_eq!(r.position(), 5);
 }
 

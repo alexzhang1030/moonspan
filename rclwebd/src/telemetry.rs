@@ -44,14 +44,10 @@ impl GatewayTelemetry {
     }
 
     pub fn merge_dispositions(&self, counters: &DispositionCounters) {
-        self.delivered
-            .fetch_add(counters.delivered, Ordering::Relaxed);
-        self.sequence_gap
-            .fetch_add(counters.sequence_gap, Ordering::Relaxed);
-        self.stale_sequence
-            .fetch_add(counters.stale_sequence, Ordering::Relaxed);
-        self.reliable_queue_drop
-            .fetch_add(counters.reliable_queue_drop, Ordering::Relaxed);
+        self.delivered.fetch_add(counters.delivered, Ordering::Relaxed);
+        self.sequence_gap.fetch_add(counters.sequence_gap, Ordering::Relaxed);
+        self.stale_sequence.fetch_add(counters.stale_sequence, Ordering::Relaxed);
+        self.reliable_queue_drop.fetch_add(counters.reliable_queue_drop, Ordering::Relaxed);
     }
 
     pub fn add_delivered(&self, n: u64) {
@@ -107,7 +103,7 @@ pub struct GatewayTelemetrySnapshot {
 impl GatewayTelemetrySnapshot {
     /// Compact JSON for `/telemetryz` (no serde dependency).
     #[must_use]
-    pub fn to_json(&self) -> String {
+    pub fn to_json(self) -> String {
         format!(
             "{{\"payload_copies\":{},\"bytes_copied\":{},\"samples_framed\":{},\"controllable_copies_per_sample\":{},\"delivered\":{},\"sequence_gap\":{},\"stale_sequence\":{},\"reliable_queue_drop\":{}}}",
             self.payload_copies,

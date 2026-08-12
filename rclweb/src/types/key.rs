@@ -111,10 +111,8 @@ pub fn validate_scheme_value(scheme: &str, value: &str) -> Result<(), SchemaErro
             }
         }
         _ => {
-            return Err(
-                SchemaError::invalid_schema_key(format!("unsupported scheme `{scheme}`"))
-                    .with_field("scheme"),
-            );
+            return Err(SchemaError::invalid_schema_key(format!("unsupported scheme `{scheme}`"))
+                .with_field("scheme"));
         }
     }
     Ok(())

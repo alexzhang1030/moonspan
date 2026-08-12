@@ -95,10 +95,7 @@ impl MockBackend {
         if PREFIXES.iter().any(|p| spec.type_name.starts_with(p)) {
             Ok(())
         } else {
-            Err(BackendError::new(
-                10,
-                format!("no typesupport for {}", spec.type_name),
-            ))
+            Err(BackendError::new(10, format!("no typesupport for {}", spec.type_name)))
         }
     }
 
@@ -111,10 +108,7 @@ impl MockBackend {
         };
         subscription
             .sink
-            .try_send(SubscriptionSample::from_payload(
-                subscription.channel_id,
-                payload,
-            ))
+            .try_send(SubscriptionSample::from_payload(subscription.channel_id, payload))
             .is_ok()
     }
 
@@ -132,12 +126,8 @@ impl MockBackend {
         let Some(sink) = &service.sink else {
             return false;
         };
-        sink.try_send(ServiceRequest::from_payload(
-            service.channel_id,
-            operation_id,
-            payload,
-        ))
-        .is_ok()
+        sink.try_send(ServiceRequest::from_payload(service.channel_id, operation_id, payload))
+            .is_ok()
     }
 
     /// Inject an action goal toward an ActionServer entity.
@@ -154,12 +144,8 @@ impl MockBackend {
         let Some(sink) = &action.sink else {
             return false;
         };
-        sink.try_send(ActionInbound::from_goal_payload(
-            action.channel_id,
-            operation_id,
-            payload,
-        ))
-        .is_ok()
+        sink.try_send(ActionInbound::from_goal_payload(action.channel_id, operation_id, payload))
+            .is_ok()
     }
 
     pub fn live_subscriptions(&self) -> usize {
@@ -196,11 +182,7 @@ impl RosBackend for MockBackend {
         Self::check_type(spec)?;
         let entity = self.allocate();
         self.created.lock().unwrap().push(spec.clone());
-        self.inner
-            .lock()
-            .unwrap()
-            .publishers
-            .insert(entity, spec.clone());
+        self.inner.lock().unwrap().publishers.insert(entity, spec.clone());
         Ok(entity)
     }
 
@@ -227,11 +209,7 @@ impl RosBackend for MockBackend {
         self.created.lock().unwrap().push(spec.clone());
         self.inner.lock().unwrap().services.insert(
             entity,
-            MockService {
-                channel_id: spec.channel_id,
-                spec: spec.clone(),
-                sink: None,
-            },
+            MockService { channel_id: spec.channel_id, spec: spec.clone(), sink: None },
         );
         Ok(entity)
     }
@@ -246,11 +224,7 @@ impl RosBackend for MockBackend {
         self.created.lock().unwrap().push(spec.clone());
         self.inner.lock().unwrap().services.insert(
             entity,
-            MockService {
-                channel_id: spec.channel_id,
-                spec: spec.clone(),
-                sink: Some(sink),
-            },
+            MockService { channel_id: spec.channel_id, spec: spec.clone(), sink: Some(sink) },
         );
         Ok(entity)
     }
@@ -288,9 +262,7 @@ impl RosBackend for MockBackend {
         if service.sink.is_none() {
             return Err(BackendError::new(13, "response on service client entity"));
         }
-        inner
-            .service_responses
-            .push((entity, operation_id, response));
+        inner.service_responses.push((entity, operation_id, response));
         Ok(())
     }
 
@@ -300,11 +272,7 @@ impl RosBackend for MockBackend {
         self.created.lock().unwrap().push(spec.clone());
         self.inner.lock().unwrap().actions.insert(
             entity,
-            MockAction {
-                channel_id: spec.channel_id,
-                spec: spec.clone(),
-                sink: None,
-            },
+            MockAction { channel_id: spec.channel_id, spec: spec.clone(), sink: None },
         );
         Ok(entity)
     }
@@ -319,11 +287,7 @@ impl RosBackend for MockBackend {
         self.created.lock().unwrap().push(spec.clone());
         self.inner.lock().unwrap().actions.insert(
             entity,
-            MockAction {
-                channel_id: spec.channel_id,
-                spec: spec.clone(),
-                sink: Some(sink),
-            },
+            MockAction { channel_id: spec.channel_id, spec: spec.clone(), sink: Some(sink) },
         );
         Ok(entity)
     }
@@ -453,10 +417,7 @@ impl RosBackend for MockBackend {
                 domain_id: 0,
             });
         }
-        Ok(GraphView {
-            nodes: vec![node],
-            endpoints,
-        })
+        Ok(GraphView { nodes: vec![node], endpoints })
     }
 }
 
@@ -487,30 +448,20 @@ pub struct TestClient {
 
 impl TestClient {
     pub async fn connect(addr: &str) -> Self {
-        let (ws, _) = connect_async(format!("ws://{addr}/ws"))
-            .await
-            .expect("websocket connect");
-        Self {
-            ws,
-            session: Session::new(Role::Client),
-            control_seq_out: 0,
-        }
+        let (ws, _) = connect_async(format!("ws://{addr}/ws")).await.expect("websocket connect");
+        Self { ws, session: Session::new(Role::Client), control_seq_out: 0 }
     }
 
     pub async fn send_raw(&mut self, bytes: Vec<u8>) {
-        self.ws
-            .send(Message::Binary(Bytes::from(bytes)))
-            .await
-            .expect("ws send");
+        self.ws.send(Message::Binary(Bytes::from(bytes))).await.expect("ws send");
     }
 
     /// Next binary message within a 5s deadline; None when the server closed.
     pub async fn recv_raw(&mut self) -> Option<Vec<u8>> {
         let deadline = Duration::from_secs(5);
         loop {
-            let msg = tokio::time::timeout(deadline, self.ws.next())
-                .await
-                .expect("recv timeout")?;
+            let msg =
+                tokio::time::timeout(deadline, self.ws.next()).await.expect("recv timeout")?;
             match msg.expect("ws recv") {
                 Message::Binary(bytes) => return Some(bytes.to_vec()),
                 Message::Close(_) => return None,
@@ -543,24 +494,18 @@ impl TestClient {
     pub async fn bootstrap(&mut self, hello: &ClientHello) -> BootstrapRecord {
         let bytes = encode_client_hello(hello).expect("encode client hello");
         let record = parse_bootstrap(&bytes).expect("self-parse client hello");
-        self.session
-            .record_send_bootstrap(&record)
-            .expect("record client hello");
+        self.session.record_send_bootstrap(&record).expect("record client hello");
         self.send_raw(bytes).await;
         let response = self.recv_raw().await.expect("bootstrap response");
         let record = parse_bootstrap(&response).expect("parse bootstrap response");
-        self.session
-            .ingest_bootstrap(&record)
-            .expect("ingest bootstrap response");
+        self.session.ingest_bootstrap(&record).expect("ingest bootstrap response");
         record
     }
 
     pub async fn send_control(&mut self, message: &CborValue<'_>) {
         let bytes = encode_control_frame(0, self.control_seq_out, message).expect("encode control");
         let frame = parse_frame(&bytes, None).expect("self-parse control");
-        self.session
-            .record_send_frame(&frame)
-            .expect("record control send");
+        self.session.record_send_frame(&frame).expect("record control send");
         self.control_seq_out += 1;
         self.send_raw(bytes).await;
     }
@@ -577,10 +522,7 @@ impl TestClient {
     pub async fn recv_ingested(&mut self) -> Option<(Vec<u8>, rclweb::SessionEffects)> {
         let bytes = self.recv_raw().await?;
         let frame = parse_frame(&bytes, None).expect("parse inbound frame");
-        let effects = self
-            .session
-            .ingest_frame(&frame)
-            .expect("ingest inbound frame");
+        let effects = self.session.ingest_frame(&frame).expect("ingest inbound frame");
         Some((bytes, effects))
     }
 
@@ -673,13 +615,7 @@ impl TestClient {
             (30, CborValue::Unsigned(operation_kind)),
             (31, text_val(topic)),
             (4, text_val(type_name)),
-            (
-                3,
-                CborValue::Map(vec![
-                    (1, text_val(schema_scheme)),
-                    (2, text_val(schema_value)),
-                ]),
-            ),
+            (3, CborValue::Map(vec![(1, text_val(schema_scheme)), (2, text_val(schema_value))])),
             (5, CborValue::Unsigned(1)),
             (6, CborValue::Unsigned(0)),
             (
@@ -713,13 +649,7 @@ impl TestClient {
             (30, CborValue::Unsigned(operation_kind)),
             (31, text_val(service_name)),
             (4, text_val(type_name)),
-            (
-                3,
-                CborValue::Map(vec![
-                    (1, text_val("rep2011-rihs")),
-                    (2, text_val(RIHS_DEMO)),
-                ]),
-            ),
+            (3, CborValue::Map(vec![(1, text_val("rep2011-rihs")), (2, text_val(RIHS_DEMO))])),
             (5, CborValue::Unsigned(1)),
             (6, CborValue::Unsigned(0)),
             (
@@ -779,9 +709,7 @@ impl TestClient {
         )
         .expect("encode sample");
         let frame = parse_frame(&bytes, None).expect("self-parse sample");
-        self.session
-            .record_send_frame(&frame)
-            .expect("record sample send");
+        self.session.record_send_frame(&frame).expect("record sample send");
         self.send_raw(bytes).await;
     }
 
@@ -815,9 +743,7 @@ impl TestClient {
         )
         .expect("encode service request");
         let frame = parse_frame(&bytes, None).expect("self-parse service request");
-        self.session
-            .record_send_frame(&frame)
-            .expect("record service request");
+        self.session.record_send_frame(&frame).expect("record service request");
         self.send_raw(bytes).await;
     }
 }
@@ -848,9 +774,7 @@ pub async fn start_gateway_with_config(
 ) -> (String, std::sync::Arc<MockBackend>) {
     let backend = std::sync::Arc::new(MockBackend::default());
     let config = std::sync::Arc::new(config);
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("bind");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("bind");
     let addr = listener.local_addr().expect("local addr").to_string();
     let serve_backend = std::sync::Arc::clone(&backend);
     tokio::spawn(async move {

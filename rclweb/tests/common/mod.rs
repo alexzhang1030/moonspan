@@ -8,10 +8,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 pub fn repo_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("workspace root")
-        .to_path_buf()
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().expect("workspace root").to_path_buf()
 }
 
 pub fn cdr_root() -> PathBuf {
@@ -63,24 +60,15 @@ pub fn json_u64(v: &Value) -> u64 {
 }
 
 pub fn json_f64(v: &Value) -> f64 {
-    v.as_f64()
-        .unwrap_or_else(|| panic!("expected f64, got {v}"))
+    v.as_f64().unwrap_or_else(|| panic!("expected f64, got {v}"))
 }
 
 pub fn assert_f64_bits(got: f64, expected: f64) {
-    assert_eq!(
-        got.to_bits(),
-        expected.to_bits(),
-        "f64 bits {got} vs {expected}"
-    );
+    assert_eq!(got.to_bits(), expected.to_bits(), "f64 bits {got} vs {expected}");
 }
 
 pub fn assert_f32_bits(got: f32, expected: f32) {
-    assert_eq!(
-        got.to_bits(),
-        expected.to_bits(),
-        "f32 bits {got} vs {expected}"
-    );
+    assert_eq!(got.to_bits(), expected.to_bits(), "f32 bits {got} vs {expected}");
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -156,23 +144,11 @@ pub enum CorpusValue<'a> {
     PrimitiveScalars(PrimitiveScalars),
     Collections(Collections),
     NestedSample(NestedSample),
-    EchoNestedRequest {
-        input: NestedSample,
-    },
-    EchoNestedResponse {
-        output: NestedSample,
-        accepted: bool,
-    },
-    MeasureSequenceGoal {
-        target: Collections,
-    },
-    MeasureSequenceResult {
-        result: NestedSample,
-    },
-    MeasureSequenceFeedback {
-        progress: f32,
-        sample: NestedSample,
-    },
+    EchoNestedRequest { input: NestedSample },
+    EchoNestedResponse { output: NestedSample, accepted: bool },
+    MeasureSequenceGoal { target: Collections },
+    MeasureSequenceResult { result: NestedSample },
+    MeasureSequenceFeedback { progress: f32, sample: NestedSample },
     PointCloud2(PointCloud2<'a>),
 }
 
@@ -187,10 +163,8 @@ pub fn decode_time(r: &mut CdrReader<'_>, _n: CdrNesting) -> Time {
 }
 
 pub fn encode_time(w: &mut CdrWriter, v: &Time, _n: CdrNesting) {
-    w.write_i32(v.sec)
-        .unwrap_or_else(|e| abort("enc Time.sec", e));
-    w.write_u32(v.nanosec)
-        .unwrap_or_else(|e| abort("enc Time.nanosec", e));
+    w.write_i32(v.sec).unwrap_or_else(|e| abort("enc Time.sec", e));
+    w.write_u32(v.nanosec).unwrap_or_else(|e| abort("enc Time.nanosec", e));
 }
 
 pub fn decode_primitive_scalars(r: &mut CdrReader<'_>, _n: CdrNesting) -> PrimitiveScalars {
@@ -208,46 +182,27 @@ pub fn decode_primitive_scalars(r: &mut CdrReader<'_>, _n: CdrNesting) -> Primit
         uint32_value: r.read_u32().unwrap_or_else(|e| abort("uint32_value", e)),
         int64_value: r.read_i64().unwrap_or_else(|e| abort("int64_value", e)),
         uint64_value: r.read_u64().unwrap_or_else(|e| abort("uint64_value", e)),
-        string_value: r
-            .read_string(None)
-            .unwrap_or_else(|e| abort("string_value", e)),
-        wstring_value: r
-            .read_wstring(None)
-            .unwrap_or_else(|e| abort("wstring_value", e)),
+        string_value: r.read_string(None).unwrap_or_else(|e| abort("string_value", e)),
+        wstring_value: r.read_wstring(None).unwrap_or_else(|e| abort("wstring_value", e)),
     }
 }
 
 pub fn encode_primitive_scalars(w: &mut CdrWriter, v: &PrimitiveScalars, _n: CdrNesting) {
-    w.write_bool(v.bool_value)
-        .unwrap_or_else(|e| abort("enc bool", e));
-    w.write_u8(v.byte_value)
-        .unwrap_or_else(|e| abort("enc byte", e));
-    w.write_u8(v.char_value)
-        .unwrap_or_else(|e| abort("enc char", e));
-    w.write_f32(v.float32_value)
-        .unwrap_or_else(|e| abort("enc f32", e));
-    w.write_f64(v.float64_value)
-        .unwrap_or_else(|e| abort("enc f64", e));
-    w.write_i8(v.int8_value)
-        .unwrap_or_else(|e| abort("enc i8", e));
-    w.write_u8(v.uint8_value)
-        .unwrap_or_else(|e| abort("enc u8", e));
-    w.write_i16(v.int16_value)
-        .unwrap_or_else(|e| abort("enc i16", e));
-    w.write_u16(v.uint16_value)
-        .unwrap_or_else(|e| abort("enc u16", e));
-    w.write_i32(v.int32_value)
-        .unwrap_or_else(|e| abort("enc i32", e));
-    w.write_u32(v.uint32_value)
-        .unwrap_or_else(|e| abort("enc u32", e));
-    w.write_i64(v.int64_value)
-        .unwrap_or_else(|e| abort("enc i64", e));
-    w.write_u64(v.uint64_value)
-        .unwrap_or_else(|e| abort("enc u64", e));
-    w.write_string(&v.string_value, None)
-        .unwrap_or_else(|e| abort("enc string", e));
-    w.write_wstring(&v.wstring_value, None)
-        .unwrap_or_else(|e| abort("enc wstring", e));
+    w.write_bool(v.bool_value).unwrap_or_else(|e| abort("enc bool", e));
+    w.write_u8(v.byte_value).unwrap_or_else(|e| abort("enc byte", e));
+    w.write_u8(v.char_value).unwrap_or_else(|e| abort("enc char", e));
+    w.write_f32(v.float32_value).unwrap_or_else(|e| abort("enc f32", e));
+    w.write_f64(v.float64_value).unwrap_or_else(|e| abort("enc f64", e));
+    w.write_i8(v.int8_value).unwrap_or_else(|e| abort("enc i8", e));
+    w.write_u8(v.uint8_value).unwrap_or_else(|e| abort("enc u8", e));
+    w.write_i16(v.int16_value).unwrap_or_else(|e| abort("enc i16", e));
+    w.write_u16(v.uint16_value).unwrap_or_else(|e| abort("enc u16", e));
+    w.write_i32(v.int32_value).unwrap_or_else(|e| abort("enc i32", e));
+    w.write_u32(v.uint32_value).unwrap_or_else(|e| abort("enc u32", e));
+    w.write_i64(v.int64_value).unwrap_or_else(|e| abort("enc i64", e));
+    w.write_u64(v.uint64_value).unwrap_or_else(|e| abort("enc u64", e));
+    w.write_string(&v.string_value, None).unwrap_or_else(|e| abort("enc string", e));
+    w.write_wstring(&v.wstring_value, None).unwrap_or_else(|e| abort("enc wstring", e));
 }
 
 pub fn decode_collections(r: &mut CdrReader<'_>, _n: CdrNesting) -> Collections {
@@ -255,30 +210,17 @@ pub fn decode_collections(r: &mut CdrReader<'_>, _n: CdrNesting) -> Collections 
     for slot in &mut fixed_i32 {
         *slot = r.read_i32().unwrap_or_else(|e| abort("fixed_i32", e));
     }
-    let f64_count = r
-        .read_sequence_length(Some(4))
-        .unwrap_or_else(|e| abort("bounded_f64 count", e));
+    let f64_count =
+        r.read_sequence_length(Some(4)).unwrap_or_else(|e| abort("bounded_f64 count", e));
     let mut bounded_f64 = Vec::with_capacity(f64_count as usize);
     for _ in 0..f64_count {
         bounded_f64.push(r.read_f64().unwrap_or_else(|e| abort("bounded_f64", e)));
     }
-    let bytes_view = r
-        .read_byte_sequence(None)
-        .unwrap_or_else(|e| abort("bytes_value", e));
+    let bytes_view = r.read_byte_sequence(None).unwrap_or_else(|e| abort("bytes_value", e));
     let bytes_value = bytes_view.to_vec();
-    let bounded_string = r
-        .read_string(Some(16))
-        .unwrap_or_else(|e| abort("bounded_string", e));
-    let bounded_wstring = r
-        .read_wstring(Some(16))
-        .unwrap_or_else(|e| abort("bounded_wstring", e));
-    Collections {
-        fixed_i32,
-        bounded_f64,
-        bytes_value,
-        bounded_string,
-        bounded_wstring,
-    }
+    let bounded_string = r.read_string(Some(16)).unwrap_or_else(|e| abort("bounded_string", e));
+    let bounded_wstring = r.read_wstring(Some(16)).unwrap_or_else(|e| abort("bounded_wstring", e));
+    Collections { fixed_i32, bounded_f64, bytes_value, bounded_string, bounded_wstring }
 }
 
 pub fn encode_collections(w: &mut CdrWriter, v: &Collections, _n: CdrNesting) {
@@ -288,124 +230,81 @@ pub fn encode_collections(w: &mut CdrWriter, v: &Collections, _n: CdrNesting) {
     w.write_sequence_length(v.bounded_f64.len() as u32, Some(4))
         .unwrap_or_else(|e| abort("enc bounded_f64 count", e));
     for x in &v.bounded_f64 {
-        w.write_f64(*x)
-            .unwrap_or_else(|e| abort("enc bounded_f64", e));
+        w.write_f64(*x).unwrap_or_else(|e| abort("enc bounded_f64", e));
     }
-    w.write_byte_sequence(&v.bytes_value, None)
-        .unwrap_or_else(|e| abort("enc bytes", e));
-    w.write_string(&v.bounded_string, Some(16))
-        .unwrap_or_else(|e| abort("enc bounded_string", e));
+    w.write_byte_sequence(&v.bytes_value, None).unwrap_or_else(|e| abort("enc bytes", e));
+    w.write_string(&v.bounded_string, Some(16)).unwrap_or_else(|e| abort("enc bounded_string", e));
     w.write_wstring(&v.bounded_wstring, Some(16))
         .unwrap_or_else(|e| abort("enc bounded_wstring", e));
 }
 
 pub fn decode_nested_sample(r: &mut CdrReader<'_>, current: CdrNesting) -> NestedSample {
-    let time_n = r
-        .enter_nested(current)
-        .unwrap_or_else(|e| abort("NestedSample.Time", e));
+    let time_n = r.enter_nested(current).unwrap_or_else(|e| abort("NestedSample.Time", e));
     let stamp = decode_time(r, time_n);
-    let scalars_n = r
-        .enter_nested(current)
-        .unwrap_or_else(|e| abort("NestedSample.PrimitiveScalars", e));
+    let scalars_n =
+        r.enter_nested(current).unwrap_or_else(|e| abort("NestedSample.PrimitiveScalars", e));
     let scalars = decode_primitive_scalars(r, scalars_n);
-    let coll_n = r
-        .enter_nested(current)
-        .unwrap_or_else(|e| abort("NestedSample.Collections", e));
+    let coll_n = r.enter_nested(current).unwrap_or_else(|e| abort("NestedSample.Collections", e));
     let collections = decode_collections(r, coll_n);
-    NestedSample {
-        stamp,
-        scalars,
-        collections,
-    }
+    NestedSample { stamp, scalars, collections }
 }
 
 pub fn encode_nested_sample(w: &mut CdrWriter, v: &NestedSample, current: CdrNesting) {
-    let time_n = w
-        .enter_nested(current)
-        .unwrap_or_else(|e| abort("enc NestedSample.Time", e));
+    let time_n = w.enter_nested(current).unwrap_or_else(|e| abort("enc NestedSample.Time", e));
     encode_time(w, &v.stamp, time_n);
-    let scalars_n = w
-        .enter_nested(current)
-        .unwrap_or_else(|e| abort("enc NestedSample.PrimitiveScalars", e));
+    let scalars_n =
+        w.enter_nested(current).unwrap_or_else(|e| abort("enc NestedSample.PrimitiveScalars", e));
     encode_primitive_scalars(w, &v.scalars, scalars_n);
-    let coll_n = w
-        .enter_nested(current)
-        .unwrap_or_else(|e| abort("enc NestedSample.Collections", e));
+    let coll_n =
+        w.enter_nested(current).unwrap_or_else(|e| abort("enc NestedSample.Collections", e));
     encode_collections(w, &v.collections, coll_n);
 }
 
 fn decode_point_field(r: &mut CdrReader<'_>) -> PointField {
     PointField {
-        name: r
-            .read_string(None)
-            .unwrap_or_else(|e| abort("PointField.name", e)),
-        offset: r
-            .read_u32()
-            .unwrap_or_else(|e| abort("PointField.offset", e)),
-        datatype: r
-            .read_u8()
-            .unwrap_or_else(|e| abort("PointField.datatype", e)),
-        count: r
-            .read_u32()
-            .unwrap_or_else(|e| abort("PointField.count", e)),
+        name: r.read_string(None).unwrap_or_else(|e| abort("PointField.name", e)),
+        offset: r.read_u32().unwrap_or_else(|e| abort("PointField.offset", e)),
+        datatype: r.read_u8().unwrap_or_else(|e| abort("PointField.datatype", e)),
+        count: r.read_u32().unwrap_or_else(|e| abort("PointField.count", e)),
     }
 }
 
 fn encode_point_field(w: &mut CdrWriter, v: &PointField) {
-    w.write_string(&v.name, None)
-        .unwrap_or_else(|e| abort("enc PointField.name", e));
-    w.write_u32(v.offset)
-        .unwrap_or_else(|e| abort("enc PointField.offset", e));
-    w.write_u8(v.datatype)
-        .unwrap_or_else(|e| abort("enc PointField.datatype", e));
-    w.write_u32(v.count)
-        .unwrap_or_else(|e| abort("enc PointField.count", e));
+    w.write_string(&v.name, None).unwrap_or_else(|e| abort("enc PointField.name", e));
+    w.write_u32(v.offset).unwrap_or_else(|e| abort("enc PointField.offset", e));
+    w.write_u8(v.datatype).unwrap_or_else(|e| abort("enc PointField.datatype", e));
+    w.write_u32(v.count).unwrap_or_else(|e| abort("enc PointField.count", e));
 }
 
 fn decode_header(r: &mut CdrReader<'_>, parent: CdrNesting) -> Header {
-    let current = r
-        .enter_nested(parent)
-        .unwrap_or_else(|e| abort("Header", e));
-    let time_n = r
-        .enter_nested(current)
-        .unwrap_or_else(|e| abort("Header.Time", e));
+    let current = r.enter_nested(parent).unwrap_or_else(|e| abort("Header", e));
+    let time_n = r.enter_nested(current).unwrap_or_else(|e| abort("Header.Time", e));
     let stamp = decode_time(r, time_n);
     let frame_id = r.read_string(None).unwrap_or_else(|e| abort("frame_id", e));
     Header { stamp, frame_id }
 }
 
 fn encode_header(w: &mut CdrWriter, v: &Header, parent: CdrNesting) {
-    let current = w
-        .enter_nested(parent)
-        .unwrap_or_else(|e| abort("enc Header", e));
-    let time_n = w
-        .enter_nested(current)
-        .unwrap_or_else(|e| abort("enc Header.Time", e));
+    let current = w.enter_nested(parent).unwrap_or_else(|e| abort("enc Header", e));
+    let time_n = w.enter_nested(current).unwrap_or_else(|e| abort("enc Header.Time", e));
     encode_time(w, &v.stamp, time_n);
-    w.write_string(&v.frame_id, None)
-        .unwrap_or_else(|e| abort("enc frame_id", e));
+    w.write_string(&v.frame_id, None).unwrap_or_else(|e| abort("enc frame_id", e));
 }
 
 pub fn decode_point_cloud2<'a>(r: &mut CdrReader<'a>, parent: CdrNesting) -> PointCloud2<'a> {
     let header = decode_header(r, parent);
     let height = r.read_u32().unwrap_or_else(|e| abort("height", e));
     let width = r.read_u32().unwrap_or_else(|e| abort("width", e));
-    let field_count = r
-        .read_sequence_length(None)
-        .unwrap_or_else(|e| abort("fields count", e));
+    let field_count = r.read_sequence_length(None).unwrap_or_else(|e| abort("fields count", e));
     let mut fields = Vec::with_capacity(field_count as usize);
     for _ in 0..field_count {
-        let _fnest = r
-            .enter_nested(parent)
-            .unwrap_or_else(|e| abort("PointField", e));
+        let _fnest = r.enter_nested(parent).unwrap_or_else(|e| abort("PointField", e));
         fields.push(decode_point_field(r));
     }
     let is_bigendian = r.read_bool().unwrap_or_else(|e| abort("is_bigendian", e));
     let point_step = r.read_u32().unwrap_or_else(|e| abort("point_step", e));
     let row_step = r.read_u32().unwrap_or_else(|e| abort("row_step", e));
-    let data = r
-        .read_byte_sequence(None)
-        .unwrap_or_else(|e| abort("data", e));
+    let data = r.read_byte_sequence(None).unwrap_or_else(|e| abort("data", e));
     let is_dense = r.read_bool().unwrap_or_else(|e| abort("is_dense", e));
     PointCloud2 {
         header,
@@ -422,28 +321,19 @@ pub fn decode_point_cloud2<'a>(r: &mut CdrReader<'a>, parent: CdrNesting) -> Poi
 
 pub fn encode_point_cloud2(w: &mut CdrWriter, v: &PointCloud2<'_>, parent: CdrNesting) {
     encode_header(w, &v.header, parent);
-    w.write_u32(v.height)
-        .unwrap_or_else(|e| abort("enc height", e));
-    w.write_u32(v.width)
-        .unwrap_or_else(|e| abort("enc width", e));
+    w.write_u32(v.height).unwrap_or_else(|e| abort("enc height", e));
+    w.write_u32(v.width).unwrap_or_else(|e| abort("enc width", e));
     w.write_sequence_length(v.fields.len() as u32, None)
         .unwrap_or_else(|e| abort("enc fields count", e));
     for f in &v.fields {
-        let _fnest = w
-            .enter_nested(parent)
-            .unwrap_or_else(|e| abort("enc PointField", e));
+        let _fnest = w.enter_nested(parent).unwrap_or_else(|e| abort("enc PointField", e));
         encode_point_field(w, f);
     }
-    w.write_bool(v.is_bigendian)
-        .unwrap_or_else(|e| abort("enc is_bigendian", e));
-    w.write_u32(v.point_step)
-        .unwrap_or_else(|e| abort("enc point_step", e));
-    w.write_u32(v.row_step)
-        .unwrap_or_else(|e| abort("enc row_step", e));
-    w.write_byte_sequence(v.data, None)
-        .unwrap_or_else(|e| abort("enc data", e));
-    w.write_bool(v.is_dense)
-        .unwrap_or_else(|e| abort("enc is_dense", e));
+    w.write_bool(v.is_bigendian).unwrap_or_else(|e| abort("enc is_bigendian", e));
+    w.write_u32(v.point_step).unwrap_or_else(|e| abort("enc point_step", e));
+    w.write_u32(v.row_step).unwrap_or_else(|e| abort("enc row_step", e));
+    w.write_byte_sequence(v.data, None).unwrap_or_else(|e| abort("enc data", e));
+    w.write_bool(v.is_dense).unwrap_or_else(|e| abort("enc is_dense", e));
 }
 
 pub fn decode_case<'a>(r: &mut CdrReader<'a>, case_id: &str) -> CorpusValue<'a> {
@@ -455,42 +345,31 @@ pub fn decode_case<'a>(r: &mut CdrReader<'a>, case_id: &str) -> CorpusValue<'a> 
         "collections" => CorpusValue::Collections(decode_collections(r, root)),
         "nested_sample" => CorpusValue::NestedSample(decode_nested_sample(r, root)),
         "echo_nested_request" => {
-            let input_n = r
-                .enter_nested(root)
-                .unwrap_or_else(|e| abort("EchoNestedRequest.input", e));
-            CorpusValue::EchoNestedRequest {
-                input: decode_nested_sample(r, input_n),
-            }
+            let input_n =
+                r.enter_nested(root).unwrap_or_else(|e| abort("EchoNestedRequest.input", e));
+            CorpusValue::EchoNestedRequest { input: decode_nested_sample(r, input_n) }
         }
         "echo_nested_response" => {
-            let output_n = r
-                .enter_nested(root)
-                .unwrap_or_else(|e| abort("EchoNestedResponse.output", e));
+            let output_n =
+                r.enter_nested(root).unwrap_or_else(|e| abort("EchoNestedResponse.output", e));
             let output = decode_nested_sample(r, output_n);
             let accepted = r.read_bool().unwrap_or_else(|e| abort("accepted", e));
             CorpusValue::EchoNestedResponse { output, accepted }
         }
         "measure_sequence_goal" => {
-            let target_n = r
-                .enter_nested(root)
-                .unwrap_or_else(|e| abort("MeasureSequenceGoal.target", e));
-            CorpusValue::MeasureSequenceGoal {
-                target: decode_collections(r, target_n),
-            }
+            let target_n =
+                r.enter_nested(root).unwrap_or_else(|e| abort("MeasureSequenceGoal.target", e));
+            CorpusValue::MeasureSequenceGoal { target: decode_collections(r, target_n) }
         }
         "measure_sequence_result" => {
-            let result_n = r
-                .enter_nested(root)
-                .unwrap_or_else(|e| abort("MeasureSequenceResult.result", e));
-            CorpusValue::MeasureSequenceResult {
-                result: decode_nested_sample(r, result_n),
-            }
+            let result_n =
+                r.enter_nested(root).unwrap_or_else(|e| abort("MeasureSequenceResult.result", e));
+            CorpusValue::MeasureSequenceResult { result: decode_nested_sample(r, result_n) }
         }
         "measure_sequence_feedback" => {
             let progress = r.read_f32().unwrap_or_else(|e| abort("progress", e));
-            let sample_n = r
-                .enter_nested(root)
-                .unwrap_or_else(|e| abort("MeasureSequenceFeedback.sample", e));
+            let sample_n =
+                r.enter_nested(root).unwrap_or_else(|e| abort("MeasureSequenceFeedback.sample", e));
             CorpusValue::MeasureSequenceFeedback {
                 progress,
                 sample: decode_nested_sample(r, sample_n),
@@ -508,37 +387,25 @@ pub fn encode_case(w: &mut CdrWriter, value: &CorpusValue<'_>) {
         CorpusValue::Collections(v) => encode_collections(w, v, root),
         CorpusValue::NestedSample(v) => encode_nested_sample(w, v, root),
         CorpusValue::EchoNestedRequest { input } => {
-            let n = w
-                .enter_nested(root)
-                .unwrap_or_else(|e| abort("enc request.input", e));
+            let n = w.enter_nested(root).unwrap_or_else(|e| abort("enc request.input", e));
             encode_nested_sample(w, input, n);
         }
         CorpusValue::EchoNestedResponse { output, accepted } => {
-            let n = w
-                .enter_nested(root)
-                .unwrap_or_else(|e| abort("enc response.output", e));
+            let n = w.enter_nested(root).unwrap_or_else(|e| abort("enc response.output", e));
             encode_nested_sample(w, output, n);
-            w.write_bool(*accepted)
-                .unwrap_or_else(|e| abort("enc accepted", e));
+            w.write_bool(*accepted).unwrap_or_else(|e| abort("enc accepted", e));
         }
         CorpusValue::MeasureSequenceGoal { target } => {
-            let n = w
-                .enter_nested(root)
-                .unwrap_or_else(|e| abort("enc goal.target", e));
+            let n = w.enter_nested(root).unwrap_or_else(|e| abort("enc goal.target", e));
             encode_collections(w, target, n);
         }
         CorpusValue::MeasureSequenceResult { result } => {
-            let n = w
-                .enter_nested(root)
-                .unwrap_or_else(|e| abort("enc result.result", e));
+            let n = w.enter_nested(root).unwrap_or_else(|e| abort("enc result.result", e));
             encode_nested_sample(w, result, n);
         }
         CorpusValue::MeasureSequenceFeedback { progress, sample } => {
-            w.write_f32(*progress)
-                .unwrap_or_else(|e| abort("enc progress", e));
-            let n = w
-                .enter_nested(root)
-                .unwrap_or_else(|e| abort("enc feedback.sample", e));
+            w.write_f32(*progress).unwrap_or_else(|e| abort("enc progress", e));
+            let n = w.enter_nested(root).unwrap_or_else(|e| abort("enc feedback.sample", e));
             encode_nested_sample(w, sample, n);
         }
         CorpusValue::PointCloud2(v) => encode_point_cloud2(w, v, root),
@@ -584,10 +451,7 @@ pub fn assert_collections_vs_json(v: &Collections, j: &Value) {
 
 pub fn assert_nested_vs_json(v: &NestedSample, j: &Value) {
     assert_eq!(v.stamp.sec as i64, json_i64(&j["stamp"]["sec"]));
-    assert_eq!(
-        u64::from(v.stamp.nanosec),
-        j["stamp"]["nanosec"].as_u64().unwrap()
-    );
+    assert_eq!(u64::from(v.stamp.nanosec), j["stamp"]["nanosec"].as_u64().unwrap());
     assert_primitive_vs_json(&v.scalars, &j["scalars"]);
     assert_collections_vs_json(&v.collections, &j["collections"]);
 }
@@ -601,10 +465,7 @@ fn read_u16_le(data: &[u8], off: usize) -> u16 {
 }
 
 pub fn assert_point_cloud2_vs_json(v: &PointCloud2<'_>, j: &Value) {
-    assert_eq!(
-        v.header.stamp.sec as i64,
-        json_i64(&j["header"]["stamp"]["sec"])
-    );
+    assert_eq!(v.header.stamp.sec as i64, json_i64(&j["header"]["stamp"]["sec"]));
     assert_eq!(
         u64::from(v.header.stamp.nanosec),
         j["header"]["stamp"]["nanosec"].as_u64().unwrap()
@@ -633,14 +494,8 @@ pub fn assert_point_cloud2_vs_json(v: &PointCloud2<'_>, j: &Value) {
         assert_f32_bits(read_f32_le(v.data, base), json_f64(&p["x"]) as f32);
         assert_f32_bits(read_f32_le(v.data, base + 4), json_f64(&p["y"]) as f32);
         assert_f32_bits(read_f32_le(v.data, base + 8), json_f64(&p["z"]) as f32);
-        assert_eq!(
-            u64::from(read_u16_le(v.data, base + 12)),
-            p["intensity"].as_u64().unwrap()
-        );
-        assert_eq!(
-            u64::from(read_u16_le(v.data, base + 14)),
-            p["ring"].as_u64().unwrap()
-        );
+        assert_eq!(u64::from(read_u16_le(v.data, base + 12)), p["intensity"].as_u64().unwrap());
+        assert_eq!(u64::from(read_u16_le(v.data, base + 14)), p["ring"].as_u64().unwrap());
     }
 }
 
@@ -702,10 +557,7 @@ pub fn semantic_eq(a: &CorpusValue<'_>, b: &CorpusValue<'_>) -> bool {
         (CorpusValue::Collections(x), CorpusValue::Collections(y)) => {
             x.fixed_i32 == y.fixed_i32
                 && x.bounded_f64.len() == y.bounded_f64.len()
-                && x.bounded_f64
-                    .iter()
-                    .zip(&y.bounded_f64)
-                    .all(|(a, b)| a.to_bits() == b.to_bits())
+                && x.bounded_f64.iter().zip(&y.bounded_f64).all(|(a, b)| a.to_bits() == b.to_bits())
                 && x.bytes_value == y.bytes_value
                 && x.bounded_string == y.bounded_string
                 && x.bounded_wstring == y.bounded_wstring
@@ -727,14 +579,8 @@ pub fn semantic_eq(a: &CorpusValue<'_>, b: &CorpusValue<'_>) -> bool {
             &CorpusValue::NestedSample(y.clone()),
         ),
         (
-            CorpusValue::EchoNestedResponse {
-                output: xo,
-                accepted: xa,
-            },
-            CorpusValue::EchoNestedResponse {
-                output: yo,
-                accepted: ya,
-            },
+            CorpusValue::EchoNestedResponse { output: xo, accepted: xa },
+            CorpusValue::EchoNestedResponse { output: yo, accepted: ya },
         ) => {
             xa == ya
                 && semantic_eq(
@@ -745,10 +591,9 @@ pub fn semantic_eq(a: &CorpusValue<'_>, b: &CorpusValue<'_>) -> bool {
         (
             CorpusValue::MeasureSequenceGoal { target: x },
             CorpusValue::MeasureSequenceGoal { target: y },
-        ) => semantic_eq(
-            &CorpusValue::Collections(x.clone()),
-            &CorpusValue::Collections(y.clone()),
-        ),
+        ) => {
+            semantic_eq(&CorpusValue::Collections(x.clone()), &CorpusValue::Collections(y.clone()))
+        }
         (
             CorpusValue::MeasureSequenceResult { result: x },
             CorpusValue::MeasureSequenceResult { result: y },
@@ -757,14 +602,8 @@ pub fn semantic_eq(a: &CorpusValue<'_>, b: &CorpusValue<'_>) -> bool {
             &CorpusValue::NestedSample(y.clone()),
         ),
         (
-            CorpusValue::MeasureSequenceFeedback {
-                progress: xp,
-                sample: xs,
-            },
-            CorpusValue::MeasureSequenceFeedback {
-                progress: yp,
-                sample: ys,
-            },
+            CorpusValue::MeasureSequenceFeedback { progress: xp, sample: xs },
+            CorpusValue::MeasureSequenceFeedback { progress: yp, sample: ys },
         ) => {
             xp.to_bits() == yp.to_bits()
                 && semantic_eq(

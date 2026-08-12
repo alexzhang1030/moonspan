@@ -141,10 +141,8 @@ fn owned_map(entries: Vec<(u64, CborValue<'static>)>) -> CborValue<'static> {
 }
 
 fn transport_value(caps: &TransportCapabilities) -> CborValue<'static> {
-    let mut entries = vec![
-        (1, CborValue::Bool(caps.webtransport_http3)),
-        (2, CborValue::Bool(caps.binary_wss)),
-    ];
+    let mut entries =
+        vec![(1, CborValue::Bool(caps.webtransport_http3)), (2, CborValue::Bool(caps.binary_wss))];
     if let Some(size) = caps.max_datagram_size {
         entries.push((3, CborValue::Unsigned(u64::from(size))));
     }
@@ -159,11 +157,7 @@ fn buffer_value(caps: &BufferCapabilities) -> CborValue<'static> {
 }
 
 fn capability_list_value(ids: &[u16]) -> CborValue<'static> {
-    CborValue::Array(
-        ids.iter()
-            .map(|id| CborValue::Unsigned(u64::from(*id)))
-            .collect(),
-    )
+    CborValue::Array(ids.iter().map(|id| CborValue::Unsigned(u64::from(*id))).collect())
 }
 
 fn requested_limits_value(limits: &RequestedLimits) -> CborValue<'static> {
@@ -188,10 +182,7 @@ fn effective_limits_value(limits: &EffectiveLimits) -> CborValue<'static> {
         (1, CborValue::Unsigned(u64::from(limits.max_channels))),
         (2, CborValue::Unsigned(limits.max_session_bytes)),
         (3, CborValue::Unsigned(u64::from(limits.max_message_bytes))),
-        (
-            4,
-            CborValue::Unsigned(u64::from(limits.max_control_payload_bytes)),
-        ),
+        (4, CborValue::Unsigned(u64::from(limits.max_control_payload_bytes))),
     ])
 }
 
@@ -216,11 +207,7 @@ pub fn encode_client_hello(hello: &ClientHello) -> Result<Vec<u8>, EncodeError> 
         (
             1,
             CborValue::Array(
-                hello
-                    .wire_versions
-                    .iter()
-                    .map(|v| CborValue::Unsigned(u64::from(*v)))
-                    .collect(),
+                hello.wire_versions.iter().map(|v| CborValue::Unsigned(u64::from(*v))).collect(),
             ),
         ),
         (2, transport_value(&hello.transport_capabilities)),
@@ -234,10 +221,7 @@ pub fn encode_client_hello(hello: &ClientHello) -> Result<Vec<u8>, EncodeError> 
 /// Encode a complete ServerHello bootstrap record (prefix + payload).
 pub fn encode_server_hello(hello: &ServerHello) -> Result<Vec<u8>, EncodeError> {
     let payload = owned_map(vec![
-        (
-            1,
-            CborValue::Unsigned(u64::from(hello.selected_wire_version)),
-        ),
+        (1, CborValue::Unsigned(u64::from(hello.selected_wire_version))),
         (2, transport_value(&hello.transport_capabilities)),
         (3, buffer_value(&hello.buffer_capabilities)),
         (4, effective_limits_value(&hello.effective_limits)),
@@ -350,12 +334,7 @@ pub fn encode_frame(
         return Err(EncodeError::new("payload_too_large"));
     }
     let mut out = vec![0u8; FRAME_HEADER_LENGTH + extension_area.len() + payload.len()];
-    write_frame_header(
-        header,
-        payload.len() as u32,
-        extension_area.len() as u16,
-        &mut out,
-    )?;
+    write_frame_header(header, payload.len() as u32, extension_area.len() as u16, &mut out)?;
     out[FRAME_HEADER_LENGTH..FRAME_HEADER_LENGTH + extension_area.len()]
         .copy_from_slice(extension_area);
     out[FRAME_HEADER_LENGTH + extension_area.len()..].copy_from_slice(payload);

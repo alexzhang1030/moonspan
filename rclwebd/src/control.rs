@@ -103,10 +103,7 @@ fn text_value(text: &str) -> CborValue<'static> {
 
 fn negotiated_capabilities_value(hello: &ServerHello) -> CborValue<'static> {
     let mut transport = vec![
-        (
-            1,
-            CborValue::Bool(hello.transport_capabilities.webtransport_http3),
-        ),
+        (1, CborValue::Bool(hello.transport_capabilities.webtransport_http3)),
         (2, CborValue::Bool(hello.transport_capabilities.binary_wss)),
     ];
     if let Some(size) = hello.transport_capabilities.max_datagram_size {
@@ -117,14 +114,8 @@ fn negotiated_capabilities_value(hello: &ServerHello) -> CborValue<'static> {
         (
             2,
             CborValue::Map(vec![
-                (
-                    1,
-                    CborValue::Bool(hello.buffer_capabilities.transferable_arraybuffer),
-                ),
-                (
-                    2,
-                    CborValue::Bool(hello.buffer_capabilities.shared_arraybuffer),
-                ),
+                (1, CborValue::Bool(hello.buffer_capabilities.transferable_arraybuffer)),
+                (2, CborValue::Bool(hello.buffer_capabilities.shared_arraybuffer)),
             ]),
         ),
         (
@@ -158,10 +149,7 @@ pub fn session_ready(
         (2, bytes_value(correlation)),
         (7, text_value(&config.gateway_instance_id)),
         (8, text_value(row.id)),
-        (
-            10,
-            CborValue::Array(vec![CborValue::Unsigned(u64::from(config.domain_id))]),
-        ),
+        (10, CborValue::Array(vec![CborValue::Unsigned(u64::from(config.domain_id))])),
         (
             12,
             effective_budgets_map(
@@ -360,10 +348,7 @@ fn pad_id16(id: &[u8]) -> Vec<u8> {
 }
 
 fn graph_node_value(node: &GraphNodeInfo) -> CborValue<'static> {
-    let mut entries = vec![
-        (55, bytes_value(&pad_id16(&node.id))),
-        (1, text_value(&node.name)),
-    ];
+    let mut entries = vec![(55, bytes_value(&pad_id16(&node.id))), (1, text_value(&node.name))];
     if let Some(ns) = &node.namespace {
         entries.push((2, text_value(ns)));
     }
@@ -401,10 +386,7 @@ fn sorted_graph_nodes(view: &GraphView) -> Vec<CborValue<'static>> {
 fn sorted_graph_endpoints(view: &GraphView, row: SupportRow) -> Vec<CborValue<'static>> {
     let mut endpoints = view.endpoints.clone();
     endpoints.sort_by_key(|a| pad_id16(&a.id));
-    endpoints
-        .iter()
-        .map(|e| graph_endpoint_value(e, row))
-        .collect()
+    endpoints.iter().map(|e| graph_endpoint_value(e, row)).collect()
 }
 
 /// GraphSnapshot (kind 3) for the current backend view.
@@ -453,19 +435,13 @@ pub fn graph_delta_add_endpoint(
     endpoint: &GraphEndpointInfo,
     row: SupportRow,
 ) -> CborValue<'static> {
-    CborValue::Map(vec![
-        (1, CborValue::Unsigned(2)),
-        (3, graph_endpoint_value(endpoint, row)),
-    ])
+    CborValue::Map(vec![(1, CborValue::Unsigned(2)), (3, graph_endpoint_value(endpoint, row))])
 }
 
 /// `add_or_update_node` delta op (graph_delta_ops = 0).
 #[must_use]
 pub fn graph_delta_add_node(node: &GraphNodeInfo) -> CborValue<'static> {
-    CborValue::Map(vec![
-        (1, CborValue::Unsigned(0)),
-        (2, graph_node_value(node)),
-    ])
+    CborValue::Map(vec![(1, CborValue::Unsigned(0)), (2, graph_node_value(node))])
 }
 
 /// Server Heartbeat (unsolicited; zero correlation).
@@ -539,38 +515,26 @@ mod hello_tests {
     #[test]
     fn websocket_default_does_not_offer_webtransport() {
         let config = GatewayConfig::default();
-        let sh = negotiate_server_hello(
-            &hello(true, true),
-            &config,
-            ActiveTransport::BinaryWebSocket,
-        )
-        .expect("negotiate");
+        let sh =
+            negotiate_server_hello(&hello(true, true), &config, ActiveTransport::BinaryWebSocket)
+                .expect("negotiate");
         assert!(sh.transport_capabilities.binary_wss);
         assert!(!sh.transport_capabilities.webtransport_http3);
     }
 
     #[test]
     fn offer_webtransport_and_negotiates_on_ws_path() {
-        let config = GatewayConfig {
-            offer_webtransport: true,
-            ..GatewayConfig::default()
-        };
-        let sh = negotiate_server_hello(
-            &hello(true, true),
-            &config,
-            ActiveTransport::BinaryWebSocket,
-        )
-        .expect("negotiate");
+        let config = GatewayConfig { offer_webtransport: true, ..GatewayConfig::default() };
+        let sh =
+            negotiate_server_hello(&hello(true, true), &config, ActiveTransport::BinaryWebSocket)
+                .expect("negotiate");
         assert!(sh.transport_capabilities.binary_wss);
         assert!(sh.transport_capabilities.webtransport_http3);
     }
 
     #[test]
     fn wt_active_requires_negotiated_webtransport() {
-        let config = GatewayConfig {
-            offer_webtransport: true,
-            ..GatewayConfig::default()
-        };
+        let config = GatewayConfig { offer_webtransport: true, ..GatewayConfig::default() };
         let err = negotiate_server_hello(
             &hello(false, true),
             &config,

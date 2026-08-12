@@ -167,11 +167,7 @@ impl SampleWriteQueue {
 
     fn push(&mut self, channel_id: u32, reliable: bool, frame: Bytes) {
         self.bytes = self.bytes.saturating_add(frame.len());
-        self.items.push_back(QueuedFrame {
-            channel_id,
-            reliable,
-            bytes: frame,
-        });
+        self.items.push_back(QueuedFrame { channel_id, reliable, bytes: frame });
     }
 
     fn pop_front_raw(&mut self) -> Option<QueuedFrame> {

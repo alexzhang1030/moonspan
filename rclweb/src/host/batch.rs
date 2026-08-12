@@ -199,10 +199,7 @@ pub fn decode_host_batch(
                 } else {
                     resolve_ws(buffer_id, ptr, len)?
                 };
-                events.push(HostEvent::WsBytes {
-                    buffer_id,
-                    bytes: payload,
-                });
+                events.push(HostEvent::WsBytes { buffer_id, bytes: payload });
             }
             EVENT_TIMER => {
                 if offset + 8 > bytes.len() {
@@ -244,10 +241,7 @@ fn decode_command(bytes: &[u8], offset: &mut usize, cmd: u8) -> Result<AppComman
             let transferable = bytes[*offset] != 0;
             let webtransport = bytes[*offset + 1] != 0;
             *offset += 4;
-            Ok(AppCommand::Start {
-                transferable_arraybuffer: transferable,
-                webtransport,
-            })
+            Ok(AppCommand::Start { transferable_arraybuffer: transferable, webtransport })
         }
         CMD_AUTHENTICATE => {
             if *offset + 16 + 2 > bytes.len() {
@@ -272,11 +266,7 @@ fn decode_command(bytes: &[u8], offset: &mut usize, cmd: u8) -> Result<AppComman
             }
             let token = bytes[*offset..*offset + token_len].to_vec();
             *offset += token_len;
-            Ok(AppCommand::Authenticate {
-                correlation,
-                scheme,
-                token,
-            })
+            Ok(AppCommand::Authenticate { correlation, scheme, token })
         }
         CMD_SUBSCRIBE => {
             if *offset + 16 + 4 + 4 + 2 > bytes.len() {
@@ -375,10 +365,7 @@ fn decode_command(bytes: &[u8], offset: &mut usize, cmd: u8) -> Result<AppComman
                 .map_err(|_| BatchError::BadKind)?
                 .to_owned();
             *offset += string_len;
-            Ok(AppCommand::SendSample {
-                channel_id,
-                string_data,
-            })
+            Ok(AppCommand::SendSample { channel_id, string_data })
         }
         CMD_OPEN_SERVICE | CMD_OPEN_ACTION => {
             if *offset + 16 + 4 + 4 + 2 > bytes.len() {
@@ -432,27 +419,15 @@ fn decode_command(bytes: &[u8], offset: &mut usize, cmd: u8) -> Result<AppComman
         }
         CMD_CALL_SERVICE => {
             let (channel_id, operation_id, payload) = decode_opid_payload(bytes, offset)?;
-            Ok(AppCommand::CallService {
-                channel_id,
-                operation_id,
-                request: payload,
-            })
+            Ok(AppCommand::CallService { channel_id, operation_id, request: payload })
         }
         CMD_SEND_SERVICE_RESPONSE => {
             let (channel_id, operation_id, payload) = decode_opid_payload(bytes, offset)?;
-            Ok(AppCommand::SendServiceResponse {
-                channel_id,
-                operation_id,
-                response: payload,
-            })
+            Ok(AppCommand::SendServiceResponse { channel_id, operation_id, response: payload })
         }
         CMD_SEND_ACTION_GOAL => {
             let (channel_id, operation_id, payload) = decode_opid_payload(bytes, offset)?;
-            Ok(AppCommand::SendActionGoal {
-                channel_id,
-                operation_id,
-                goal: payload,
-            })
+            Ok(AppCommand::SendActionGoal { channel_id, operation_id, goal: payload })
         }
         CMD_CANCEL_ACTION => {
             if *offset + 4 + 16 > bytes.len() {
@@ -463,34 +438,19 @@ fn decode_command(bytes: &[u8], offset: &mut usize, cmd: u8) -> Result<AppComman
             let mut operation_id = [0u8; 16];
             operation_id.copy_from_slice(&bytes[*offset..*offset + 16]);
             *offset += 16;
-            Ok(AppCommand::CancelAction {
-                channel_id,
-                operation_id,
-            })
+            Ok(AppCommand::CancelAction { channel_id, operation_id })
         }
         CMD_SEND_ACTION_FEEDBACK => {
             let (channel_id, operation_id, payload) = decode_opid_payload(bytes, offset)?;
-            Ok(AppCommand::SendActionFeedback {
-                channel_id,
-                operation_id,
-                feedback: payload,
-            })
+            Ok(AppCommand::SendActionFeedback { channel_id, operation_id, feedback: payload })
         }
         CMD_SEND_ACTION_RESULT => {
             let (channel_id, operation_id, payload) = decode_opid_payload(bytes, offset)?;
-            Ok(AppCommand::SendActionResult {
-                channel_id,
-                operation_id,
-                result: payload,
-            })
+            Ok(AppCommand::SendActionResult { channel_id, operation_id, result: payload })
         }
         CMD_SEND_ACTION_STATUS => {
             let (channel_id, operation_id, payload) = decode_opid_payload(bytes, offset)?;
-            Ok(AppCommand::SendActionStatus {
-                channel_id,
-                operation_id,
-                status: payload,
-            })
+            Ok(AppCommand::SendActionStatus { channel_id, operation_id, status: payload })
         }
         CMD_UNSUBSCRIBE => {
             if *offset + 16 + 4 > bytes.len() {
@@ -501,10 +461,7 @@ fn decode_command(bytes: &[u8], offset: &mut usize, cmd: u8) -> Result<AppComman
             *offset += 16;
             let channel_id = read_u32(bytes, *offset);
             *offset += 4;
-            Ok(AppCommand::Unsubscribe {
-                correlation,
-                channel_id,
-            })
+            Ok(AppCommand::Unsubscribe { correlation, channel_id })
         }
         CMD_CLOSE => Ok(AppCommand::Close),
         _ => Err(BatchError::BadKind),
@@ -581,17 +538,11 @@ fn encode_app_event(
     payload_view: &mut impl FnMut(u32) -> (u32, u32),
 ) {
     match event {
-        AppEvent::BootstrapComplete {
-            selected_wire_version,
-        } => {
+        AppEvent::BootstrapComplete { selected_wire_version } => {
             out.extend_from_slice(&[APP_BOOTSTRAP_COMPLETE, 0, 0, 0]);
             out.extend_from_slice(&[*selected_wire_version, 0, 0, 0]);
         }
-        AppEvent::SessionReady {
-            support_row,
-            domain_id,
-            gateway_instance_id,
-        } => {
+        AppEvent::SessionReady { support_row, domain_id, gateway_instance_id } => {
             out.extend_from_slice(&[APP_SESSION_READY, 0, 0, 0]);
             out.extend_from_slice(&[*domain_id, 0, 0, 0]);
             write_u16(out, support_row.len() as u16);
@@ -599,11 +550,7 @@ fn encode_app_event(
             write_u16(out, gateway_instance_id.len() as u16);
             out.extend_from_slice(gateway_instance_id.as_bytes());
         }
-        AppEvent::Subscribed {
-            channel_id,
-            topic,
-            type_name,
-        } => {
+        AppEvent::Subscribed { channel_id, topic, type_name } => {
             out.extend_from_slice(&[APP_SUBSCRIBED, 0, 0, 0]);
             write_u32(out, *channel_id);
             write_u16(out, topic.len() as u16);
@@ -611,23 +558,14 @@ fn encode_app_event(
             write_u16(out, type_name.len() as u16);
             out.extend_from_slice(type_name.as_bytes());
         }
-        AppEvent::SubscribeFailed {
-            channel_id,
-            code,
-            message,
-        } => {
+        AppEvent::SubscribeFailed { channel_id, code, message } => {
             out.extend_from_slice(&[APP_SUBSCRIBE_FAILED, 0, 0, 0]);
             write_u32(out, *channel_id);
             out.extend_from_slice(&[*code, 0, 0, 0]);
             write_u16(out, message.len() as u16);
             out.extend_from_slice(message.as_bytes());
         }
-        AppEvent::Published {
-            channel_id,
-            topic,
-            type_name,
-            qos_reliability,
-        } => {
+        AppEvent::Published { channel_id, topic, type_name, qos_reliability } => {
             out.extend_from_slice(&[APP_PUBLISHED, 0, 0, 0]);
             write_u32(out, *channel_id);
             out.extend_from_slice(&[*qos_reliability, 0, 0, 0]);
@@ -636,24 +574,14 @@ fn encode_app_event(
             write_u16(out, type_name.len() as u16);
             out.extend_from_slice(type_name.as_bytes());
         }
-        AppEvent::PublishFailed {
-            channel_id,
-            code,
-            message,
-        } => {
+        AppEvent::PublishFailed { channel_id, code, message } => {
             out.extend_from_slice(&[APP_PUBLISH_FAILED, 0, 0, 0]);
             write_u32(out, *channel_id);
             out.extend_from_slice(&[*code, 0, 0, 0]);
             write_u16(out, message.len() as u16);
             out.extend_from_slice(message.as_bytes());
         }
-        AppEvent::Sample {
-            channel_id,
-            lease_id,
-            sequence,
-            source_time_ns,
-            string_data,
-        } => {
+        AppEvent::Sample { channel_id, lease_id, sequence, source_time_ns, string_data } => {
             out.extend_from_slice(&[APP_SAMPLE, 0, 0, 0]);
             write_u32(out, *channel_id);
             write_u32(out, *lease_id);
@@ -684,12 +612,7 @@ fn encode_app_event(
             out.extend_from_slice(&[APP_CLOSED, 0, 0, 0]);
             out.extend_from_slice(&[phase_to_u8(*phase), 0, 0, 0]);
         }
-        AppEvent::ServiceReady {
-            channel_id,
-            name,
-            type_name,
-            client,
-        } => {
+        AppEvent::ServiceReady { channel_id, name, type_name, client } => {
             out.extend_from_slice(&[APP_SERVICE_READY, 0, 0, 0]);
             write_u32(out, *channel_id);
             out.extend_from_slice(&[u8::from(*client), 0, 0, 0]);
@@ -698,23 +621,14 @@ fn encode_app_event(
             write_u16(out, type_name.len() as u16);
             out.extend_from_slice(type_name.as_bytes());
         }
-        AppEvent::ServiceFailed {
-            channel_id,
-            code,
-            message,
-        } => {
+        AppEvent::ServiceFailed { channel_id, code, message } => {
             out.extend_from_slice(&[APP_SERVICE_FAILED, 0, 0, 0]);
             write_u32(out, *channel_id);
             out.extend_from_slice(&[*code, 0, 0, 0]);
             write_u16(out, message.len() as u16);
             out.extend_from_slice(message.as_bytes());
         }
-        AppEvent::ServiceRequest {
-            channel_id,
-            operation_id,
-            lease_id,
-            sequence,
-        } => {
+        AppEvent::ServiceRequest { channel_id, operation_id, lease_id, sequence } => {
             encode_leased_opid_event(
                 out,
                 APP_SERVICE_REQUEST,
@@ -725,12 +639,7 @@ fn encode_app_event(
                 payload_view,
             );
         }
-        AppEvent::ServiceResponse {
-            channel_id,
-            operation_id,
-            lease_id,
-            sequence,
-        } => {
+        AppEvent::ServiceResponse { channel_id, operation_id, lease_id, sequence } => {
             encode_leased_opid_event(
                 out,
                 APP_SERVICE_RESPONSE,
@@ -741,12 +650,7 @@ fn encode_app_event(
                 payload_view,
             );
         }
-        AppEvent::ActionReady {
-            channel_id,
-            name,
-            type_name,
-            client,
-        } => {
+        AppEvent::ActionReady { channel_id, name, type_name, client } => {
             out.extend_from_slice(&[APP_ACTION_READY, 0, 0, 0]);
             write_u32(out, *channel_id);
             out.extend_from_slice(&[u8::from(*client), 0, 0, 0]);
@@ -755,23 +659,14 @@ fn encode_app_event(
             write_u16(out, type_name.len() as u16);
             out.extend_from_slice(type_name.as_bytes());
         }
-        AppEvent::ActionFailed {
-            channel_id,
-            code,
-            message,
-        } => {
+        AppEvent::ActionFailed { channel_id, code, message } => {
             out.extend_from_slice(&[APP_ACTION_FAILED, 0, 0, 0]);
             write_u32(out, *channel_id);
             out.extend_from_slice(&[*code, 0, 0, 0]);
             write_u16(out, message.len() as u16);
             out.extend_from_slice(message.as_bytes());
         }
-        AppEvent::ActionGoal {
-            channel_id,
-            operation_id,
-            lease_id,
-            sequence,
-        } => {
+        AppEvent::ActionGoal { channel_id, operation_id, lease_id, sequence } => {
             encode_leased_opid_event(
                 out,
                 APP_ACTION_GOAL,
@@ -782,12 +677,7 @@ fn encode_app_event(
                 payload_view,
             );
         }
-        AppEvent::ActionFeedback {
-            channel_id,
-            operation_id,
-            lease_id,
-            sequence,
-        } => {
+        AppEvent::ActionFeedback { channel_id, operation_id, lease_id, sequence } => {
             encode_leased_opid_event(
                 out,
                 APP_ACTION_FEEDBACK,
@@ -798,12 +688,7 @@ fn encode_app_event(
                 payload_view,
             );
         }
-        AppEvent::ActionResult {
-            channel_id,
-            operation_id,
-            lease_id,
-            sequence,
-        } => {
+        AppEvent::ActionResult { channel_id, operation_id, lease_id, sequence } => {
             encode_leased_opid_event(
                 out,
                 APP_ACTION_RESULT,
@@ -814,12 +699,7 @@ fn encode_app_event(
                 payload_view,
             );
         }
-        AppEvent::ActionStatus {
-            channel_id,
-            operation_id,
-            lease_id,
-            sequence,
-        } => {
+        AppEvent::ActionStatus { channel_id, operation_id, lease_id, sequence } => {
             encode_leased_opid_event(
                 out,
                 APP_ACTION_STATUS,
@@ -830,11 +710,7 @@ fn encode_app_event(
                 payload_view,
             );
         }
-        AppEvent::GraphSnapshot {
-            generation,
-            nodes_json,
-            endpoints_json,
-        } => {
+        AppEvent::GraphSnapshot { generation, nodes_json, endpoints_json } => {
             out.extend_from_slice(&[APP_GRAPH_SNAPSHOT, 0, 0, 0]);
             write_u64(out, *generation);
             write_u32(out, nodes_json.len() as u32);
@@ -846,11 +722,7 @@ fn encode_app_event(
             out.extend_from_slice(&[APP_GRAPH_DELTA, 0, 0, 0]);
             write_u64(out, *generation);
         }
-        AppEvent::OperationCancelled {
-            channel_id,
-            code,
-            message,
-        } => {
+        AppEvent::OperationCancelled { channel_id, code, message } => {
             out.extend_from_slice(&[APP_OPERATION_CANCELLED, 0, 0, 0]);
             write_u32(out, *channel_id);
             out.extend_from_slice(&[*code, 0, 0, 0]);
@@ -926,10 +798,7 @@ pub fn encode_host_batch_inline(events: &[HostEvent]) -> Vec<u8> {
 
 fn encode_command(out: &mut Vec<u8>, cmd: &AppCommand) {
     match cmd {
-        AppCommand::Start {
-            transferable_arraybuffer,
-            webtransport,
-        } => {
+        AppCommand::Start { transferable_arraybuffer, webtransport } => {
             out.extend_from_slice(&[CMD_START, 0, 0, 0]);
             out.extend_from_slice(&[
                 u8::from(*transferable_arraybuffer),
@@ -938,11 +807,7 @@ fn encode_command(out: &mut Vec<u8>, cmd: &AppCommand) {
                 0,
             ]);
         }
-        AppCommand::Authenticate {
-            correlation,
-            scheme,
-            token,
-        } => {
+        AppCommand::Authenticate { correlation, scheme, token } => {
             out.extend_from_slice(&[CMD_AUTHENTICATE, 0, 0, 0]);
             out.extend_from_slice(correlation);
             write_u16(out, scheme.len() as u16);
@@ -990,23 +855,13 @@ fn encode_command(out: &mut Vec<u8>, cmd: &AppCommand) {
             write_u16(out, type_name.len() as u16);
             out.extend_from_slice(type_name.as_bytes());
         }
-        AppCommand::SendSample {
-            channel_id,
-            string_data,
-        } => {
+        AppCommand::SendSample { channel_id, string_data } => {
             out.extend_from_slice(&[CMD_SEND_SAMPLE, 0, 0, 0]);
             write_u32(out, *channel_id);
             write_u32(out, string_data.len() as u32);
             out.extend_from_slice(string_data.as_bytes());
         }
-        AppCommand::OpenService {
-            correlation,
-            channel_id,
-            name,
-            type_name,
-            domain_id,
-            client,
-        } => {
+        AppCommand::OpenService { correlation, channel_id, name, type_name, domain_id, client } => {
             encode_open_service_or_action(
                 out,
                 CMD_OPEN_SERVICE,
@@ -1018,14 +873,7 @@ fn encode_command(out: &mut Vec<u8>, cmd: &AppCommand) {
                 type_name,
             );
         }
-        AppCommand::OpenAction {
-            correlation,
-            channel_id,
-            name,
-            type_name,
-            domain_id,
-            client,
-        } => {
+        AppCommand::OpenAction { correlation, channel_id, name, type_name, domain_id, client } => {
             encode_open_service_or_action(
                 out,
                 CMD_OPEN_ACTION,
@@ -1037,18 +885,10 @@ fn encode_command(out: &mut Vec<u8>, cmd: &AppCommand) {
                 type_name,
             );
         }
-        AppCommand::CallService {
-            channel_id,
-            operation_id,
-            request,
-        } => {
+        AppCommand::CallService { channel_id, operation_id, request } => {
             encode_opid_payload(out, CMD_CALL_SERVICE, *channel_id, operation_id, request);
         }
-        AppCommand::SendServiceResponse {
-            channel_id,
-            operation_id,
-            response,
-        } => {
+        AppCommand::SendServiceResponse { channel_id, operation_id, response } => {
             encode_opid_payload(
                 out,
                 CMD_SEND_SERVICE_RESPONSE,
@@ -1057,64 +897,24 @@ fn encode_command(out: &mut Vec<u8>, cmd: &AppCommand) {
                 response,
             );
         }
-        AppCommand::SendActionGoal {
-            channel_id,
-            operation_id,
-            goal,
-        } => {
+        AppCommand::SendActionGoal { channel_id, operation_id, goal } => {
             encode_opid_payload(out, CMD_SEND_ACTION_GOAL, *channel_id, operation_id, goal);
         }
-        AppCommand::CancelAction {
-            channel_id,
-            operation_id,
-        } => {
+        AppCommand::CancelAction { channel_id, operation_id } => {
             out.extend_from_slice(&[CMD_CANCEL_ACTION, 0, 0, 0]);
             write_u32(out, *channel_id);
             out.extend_from_slice(operation_id);
         }
-        AppCommand::SendActionFeedback {
-            channel_id,
-            operation_id,
-            feedback,
-        } => {
-            encode_opid_payload(
-                out,
-                CMD_SEND_ACTION_FEEDBACK,
-                *channel_id,
-                operation_id,
-                feedback,
-            );
+        AppCommand::SendActionFeedback { channel_id, operation_id, feedback } => {
+            encode_opid_payload(out, CMD_SEND_ACTION_FEEDBACK, *channel_id, operation_id, feedback);
         }
-        AppCommand::SendActionResult {
-            channel_id,
-            operation_id,
-            result,
-        } => {
-            encode_opid_payload(
-                out,
-                CMD_SEND_ACTION_RESULT,
-                *channel_id,
-                operation_id,
-                result,
-            );
+        AppCommand::SendActionResult { channel_id, operation_id, result } => {
+            encode_opid_payload(out, CMD_SEND_ACTION_RESULT, *channel_id, operation_id, result);
         }
-        AppCommand::SendActionStatus {
-            channel_id,
-            operation_id,
-            status,
-        } => {
-            encode_opid_payload(
-                out,
-                CMD_SEND_ACTION_STATUS,
-                *channel_id,
-                operation_id,
-                status,
-            );
+        AppCommand::SendActionStatus { channel_id, operation_id, status } => {
+            encode_opid_payload(out, CMD_SEND_ACTION_STATUS, *channel_id, operation_id, status);
         }
-        AppCommand::Unsubscribe {
-            correlation,
-            channel_id,
-        } => {
+        AppCommand::Unsubscribe { correlation, channel_id } => {
             out.extend_from_slice(&[CMD_UNSUBSCRIBE, 0, 0, 0]);
             out.extend_from_slice(correlation);
             write_u32(out, *channel_id);
@@ -1165,12 +965,7 @@ pub fn read_u16(bytes: &[u8], offset: usize) -> u16 {
 }
 
 pub fn read_u32(bytes: &[u8], offset: usize) -> u32 {
-    u32::from_le_bytes([
-        bytes[offset],
-        bytes[offset + 1],
-        bytes[offset + 2],
-        bytes[offset + 3],
-    ])
+    u32::from_le_bytes([bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]])
 }
 
 pub fn read_u64(bytes: &[u8], offset: usize) -> u64 {
@@ -1218,10 +1013,7 @@ mod tests {
                 transferable_arraybuffer: true,
                 webtransport: false,
             }),
-            HostEvent::WsBytes {
-                buffer_id: 9,
-                bytes: b"hello".to_vec(),
-            },
+            HostEvent::WsBytes { buffer_id: 9, bytes: b"hello".to_vec() },
             HostEvent::Timer { now_ms: 42 },
             HostEvent::ReleaseLease { lease_id: 3 },
         ];
@@ -1263,21 +1055,13 @@ mod tests {
                 domain_id: 0,
                 client: false,
             }),
-            HostEvent::Command(AppCommand::CancelAction {
-                channel_id: 4,
-                operation_id: opid,
-            }),
+            HostEvent::Command(AppCommand::CancelAction { channel_id: 4, operation_id: opid }),
         ];
         let encoded = encode_host_batch_inline(&events);
         let decoded = decode_host_batch(&encoded, |_, _, _| Err(BatchError::BadKind)).unwrap();
         assert_eq!(decoded.len(), 4);
         match &decoded[0] {
-            HostEvent::Command(AppCommand::OpenService {
-                channel_id,
-                client,
-                name,
-                ..
-            }) => {
+            HostEvent::Command(AppCommand::OpenService { channel_id, client, name, .. }) => {
                 assert_eq!(*channel_id, 3);
                 assert!(*client);
                 assert_eq!(name, "/add");
@@ -1285,11 +1069,7 @@ mod tests {
             _ => panic!("expected OpenService"),
         }
         match &decoded[1] {
-            HostEvent::Command(AppCommand::CallService {
-                channel_id,
-                operation_id,
-                request,
-            }) => {
+            HostEvent::Command(AppCommand::CallService { channel_id, operation_id, request }) => {
                 assert_eq!(*channel_id, 3);
                 assert_eq!(*operation_id, opid);
                 assert_eq!(request, b"req");

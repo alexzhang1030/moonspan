@@ -40,11 +40,7 @@ fn text_val(text: &str) -> CborValue<'static> {
 /// OpenChannel schema scheme for a support row (`H-*` → moonspan, else RIHS).
 #[must_use]
 pub fn schema_scheme_for_support_row(support_row_id: &str) -> &'static str {
-    if support_row_id.starts_with('H') {
-        SCHEME_MOONSPAN_SCHEMA_V1
-    } else {
-        SCHEME_REP2011_RIHS
-    }
+    if support_row_id.starts_with('H') { SCHEME_MOONSPAN_SCHEMA_V1 } else { SCHEME_REP2011_RIHS }
 }
 
 /// Scheme + value for OpenChannel on the given support row.
@@ -56,10 +52,9 @@ pub fn resolve_open_schema_identity(type_name: &str, support_row_id: &str) -> (S
     let scheme = schema_scheme_for_support_row(support_row_id);
     match schema_identity_for_type(type_name, scheme) {
         Ok(Some((scheme, value))) => (scheme, value),
-        _ if support_row_id.starts_with('H') => (
-            SCHEME_MOONSPAN_SCHEMA_V1.to_owned(),
-            DEMO_MOONSPAN_HASH.to_owned(),
-        ),
+        _ if support_row_id.starts_with('H') => {
+            (SCHEME_MOONSPAN_SCHEMA_V1.to_owned(), DEMO_MOONSPAN_HASH.to_owned())
+        }
         _ => (SCHEME_REP2011_RIHS.to_owned(), DEMO_SCHEMA_HASH.to_owned()),
     }
 }
@@ -106,10 +101,7 @@ pub fn open_topic(
         (30, CborValue::Unsigned(operation_kind)),
         (31, text_val(topic)),
         (4, text_val(type_name)),
-        (
-            3,
-            CborValue::Map(vec![(1, text_val(&scheme)), (2, text_val(&value))]),
-        ),
+        (3, CborValue::Map(vec![(1, text_val(&scheme)), (2, text_val(&value))])),
         (5, CborValue::Unsigned(1)),
         (6, CborValue::Unsigned(0)),
         (
@@ -191,10 +183,7 @@ pub fn open_action(
         (30, CborValue::Unsigned(operation_kind)),
         (31, text_val(name)),
         (4, text_val(type_name)),
-        (
-            3,
-            CborValue::Map(vec![(1, text_val(&scheme)), (2, text_val(&value))]),
-        ),
+        (3, CborValue::Map(vec![(1, text_val(&scheme)), (2, text_val(&value))])),
         (5, CborValue::Unsigned(1)),
         (6, CborValue::Unsigned(0)),
         (

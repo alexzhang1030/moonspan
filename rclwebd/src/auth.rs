@@ -57,9 +57,7 @@ impl OidcSettings {
             .map_err(|_| "RCLWEBD_AUTH_MODE=oidc requires RCLWEBD_OIDC_ISSUER".to_owned())?;
         let audience = std::env::var("RCLWEBD_OIDC_AUDIENCE")
             .map_err(|_| "RCLWEBD_AUTH_MODE=oidc requires RCLWEBD_OIDC_AUDIENCE".to_owned())?;
-        let hs_secret = std::env::var("RCLWEBD_OIDC_HS_SECRET")
-            .ok()
-            .map(|s| s.into_bytes());
+        let hs_secret = std::env::var("RCLWEBD_OIDC_HS_SECRET").ok().map(|s| s.into_bytes());
         let jwks = match std::env::var("RCLWEBD_OIDC_JWKS") {
             Ok(json) => Some(
                 serde_json::from_str(&json)
@@ -83,12 +81,7 @@ impl OidcSettings {
                     .to_owned(),
             );
         }
-        Ok(Self {
-            issuer,
-            audience,
-            hs_secret,
-            jwks,
-        })
+        Ok(Self { issuer, audience, hs_secret, jwks })
     }
 }
 
@@ -150,36 +143,25 @@ fn verify_jwt(settings: &OidcSettings, token: &[u8]) -> AuthResult {
         }
     };
     let Some(key) = decoding_key(settings, &header) else {
-        return AuthResult {
-            allow: false,
-            subject: String::new(),
-            reason: "jwt_key".to_owned(),
-        };
+        return AuthResult { allow: false, subject: String::new(), reason: "jwt_key".to_owned() };
     };
     let mut validation = Validation::new(header.alg);
     validation.leeway = 0;
     validation.set_issuer(&[&settings.issuer]);
     validation.set_audience(&[&settings.audience]);
     match decode::<IdClaims>(token, &key, &validation) {
-        Ok(data) => AuthResult {
-            allow: true,
-            subject: data.claims.sub,
-            reason: "oidc_ok".to_owned(),
-        },
-        Err(_) => AuthResult {
-            allow: false,
-            subject: String::new(),
-            reason: "jwt_invalid".to_owned(),
-        },
+        Ok(data) => {
+            AuthResult { allow: true, subject: data.claims.sub, reason: "oidc_ok".to_owned() }
+        }
+        Err(_) => {
+            AuthResult { allow: false, subject: String::new(), reason: "jwt_invalid".to_owned() }
+        }
     }
 }
 
 fn decoding_key(settings: &OidcSettings, header: &jsonwebtoken::Header) -> Option<DecodingKey> {
     if header.alg == Algorithm::HS256 {
-        return settings
-            .hs_secret
-            .as_ref()
-            .map(|secret| DecodingKey::from_secret(secret));
+        return settings.hs_secret.as_ref().map(|secret| DecodingKey::from_secret(secret));
     }
     let jwks = settings.jwks.as_ref()?;
     let kid = header.kid.as_deref()?;
@@ -188,9 +170,7 @@ fn decoding_key(settings: &OidcSettings, header: &jsonwebtoken::Header) -> Optio
 }
 
 fn emit_audit(config: &GatewayConfig, scheme: &str, result: &AuthResult) {
-    let ros_security = std::env::var("ROS_SECURITY_ENABLE")
-        .ok()
-        .filter(|v| !v.is_empty());
+    let ros_security = std::env::var("ROS_SECURITY_ENABLE").ok().filter(|v| !v.is_empty());
     let event = serde_json::json!({
         "event": "authenticate",
         "decision": if result.allow { "allow" } else { "deny" },
@@ -216,10 +196,7 @@ pub fn mint_hs256_token(secret: &[u8], issuer: &str, audience: &str, subject: &s
 }
 
 fn now_secs() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0)
+    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
 }
 
 #[derive(Serialize)]
@@ -237,12 +214,7 @@ fn mint_hs256_token_exp(
     subject: &str,
     exp: u64,
 ) -> String {
-    let claims = MintClaims {
-        sub: subject,
-        iss: issuer,
-        aud: audience,
-        exp,
-    };
+    let claims = MintClaims { sub: subject, iss: issuer, aud: audience, exp };
     jsonwebtoken::encode(
         &jsonwebtoken::Header::new(Algorithm::HS256),
         &claims,

@@ -95,28 +95,13 @@ enum ArrayRule {
 #[derive(Clone)]
 enum Schema {
     Bool,
-    Uint {
-        min: u64,
-        max: u64,
-    },
+    Uint { min: u64, max: u64 },
     Int64,
-    Text {
-        min_bytes: usize,
-        max_bytes: usize,
-        one_of: Option<&'static [&'static str]>,
-    },
-    Bytes {
-        min: usize,
-        max: usize,
-    },
+    Text { min_bytes: usize, max_bytes: usize, one_of: Option<&'static [&'static str]> },
+    Bytes { min: usize, max: usize },
     ConstU64(u64),
     ConstBool(bool),
-    Array {
-        min: usize,
-        max: usize,
-        items: Box<Schema>,
-        rule: Option<ArrayRule>,
-    },
+    Array { min: usize, max: usize, items: Box<Schema>, rule: Option<ArrayRule> },
     MapDyn(Vec<(u64, bool, Schema)>),
     Union(Vec<Schema>),
     Identity,
@@ -205,17 +190,9 @@ fn validate_schema<'a>(
         }
         Schema::Int64 => {
             let n = as_int64(value)?;
-            if n >= 0 {
-                Ok(CborValue::Unsigned(n as u64))
-            } else {
-                Ok(CborValue::Negative(n))
-            }
+            if n >= 0 { Ok(CborValue::Unsigned(n as u64)) } else { Ok(CborValue::Negative(n)) }
         }
-        Schema::Text {
-            min_bytes,
-            max_bytes,
-            one_of,
-        } => match value {
+        Schema::Text { min_bytes, max_bytes, one_of } => match value {
             CborValue::Text(t) => {
                 let len = text_len(t);
                 if len < *min_bytes || len > *max_bytes {
@@ -239,12 +216,7 @@ fn validate_schema<'a>(
             }
             _ => Err(fail("wrong_type")),
         },
-        Schema::Array {
-            min,
-            max,
-            items,
-            rule,
-        } => match value {
+        Schema::Array { min, max, items, rule } => match value {
             CborValue::Array(arr) => {
                 if arr.len() < *min || arr.len() > *max {
                     return Err(fail("array_bound"));
@@ -386,9 +358,7 @@ fn validate_schema_identity<'a>(value: &CborValue<'a>) -> Result<CborValue<'a>, 
     } else if scheme_s == "moonspan-schema-v1" {
         if text_len(val_s) != 64
             || val_s.len() != 64
-            || !val_s
-                .bytes()
-                .all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
+            || !val_s.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
         {
             return Err(fail("schema_identity"));
         }
@@ -484,29 +454,16 @@ fn u(min: u64, max: u64) -> Schema {
     Schema::Uint { min, max }
 }
 fn text(min_b: usize, max_b: usize) -> Schema {
-    Schema::Text {
-        min_bytes: min_b,
-        max_bytes: max_b,
-        one_of: None,
-    }
+    Schema::Text { min_bytes: min_b, max_bytes: max_b, one_of: None }
 }
 fn text_one_of(opts: &'static [&'static str]) -> Schema {
-    Schema::Text {
-        min_bytes: 1,
-        max_bytes: UTF8_TEXT_MAX,
-        one_of: Some(opts),
-    }
+    Schema::Text { min_bytes: 1, max_bytes: UTF8_TEXT_MAX, one_of: Some(opts) }
 }
 fn bytes(min: usize, max: usize) -> Schema {
     Schema::Bytes { min, max }
 }
 fn arr(min: usize, max: usize, items: Schema, rule: Option<ArrayRule>) -> Schema {
-    Schema::Array {
-        min,
-        max,
-        items: Box::new(items),
-        rule,
-    }
+    Schema::Array { min, max, items: Box::new(items), rule }
 }
 fn map(fields: Vec<(u64, bool, Schema)>) -> Schema {
     Schema::MapDyn(fields)
@@ -616,13 +573,7 @@ fn qos_no_depth() -> Schema {
     fmap(vec![
         (1, req(reliability())),
         (2, req(durability())),
-        (
-            3,
-            req(Schema::Union(vec![
-                Schema::ConstU64(0),
-                Schema::ConstU64(2),
-            ])),
-        ),
+        (3, req(Schema::Union(vec![Schema::ConstU64(0), Schema::ConstU64(2)]))),
         (5, opt(uint64())),
         (6, opt(uint64())),
         (7, opt(liveliness())),
@@ -631,60 +582,24 @@ fn qos_no_depth() -> Schema {
 }
 fn effective_qos_keep_last() -> Schema {
     fmap(vec![
-        (
-            1,
-            req(Schema::Union(vec![
-                Schema::ConstU64(1),
-                Schema::ConstU64(2),
-            ])),
-        ),
-        (
-            2,
-            req(Schema::Union(vec![
-                Schema::ConstU64(1),
-                Schema::ConstU64(2),
-            ])),
-        ),
+        (1, req(Schema::Union(vec![Schema::ConstU64(1), Schema::ConstU64(2)]))),
+        (2, req(Schema::Union(vec![Schema::ConstU64(1), Schema::ConstU64(2)]))),
         (3, req(Schema::ConstU64(1))),
         (4, req(positive_depth())),
         (5, opt(uint64())),
         (6, opt(uint64())),
-        (
-            7,
-            req(Schema::Union(vec![
-                Schema::ConstU64(1),
-                Schema::ConstU64(2),
-            ])),
-        ),
+        (7, req(Schema::Union(vec![Schema::ConstU64(1), Schema::ConstU64(2)]))),
         (8, opt(uint64())),
     ])
 }
 fn effective_qos_keep_all() -> Schema {
     fmap(vec![
-        (
-            1,
-            req(Schema::Union(vec![
-                Schema::ConstU64(1),
-                Schema::ConstU64(2),
-            ])),
-        ),
-        (
-            2,
-            req(Schema::Union(vec![
-                Schema::ConstU64(1),
-                Schema::ConstU64(2),
-            ])),
-        ),
+        (1, req(Schema::Union(vec![Schema::ConstU64(1), Schema::ConstU64(2)]))),
+        (2, req(Schema::Union(vec![Schema::ConstU64(1), Schema::ConstU64(2)]))),
         (3, req(Schema::ConstU64(2))),
         (5, opt(uint64())),
         (6, opt(uint64())),
-        (
-            7,
-            req(Schema::Union(vec![
-                Schema::ConstU64(1),
-                Schema::ConstU64(2),
-            ])),
-        ),
+        (7, req(Schema::Union(vec![Schema::ConstU64(1), Schema::ConstU64(2)]))),
         (8, opt(uint64())),
     ])
 }
@@ -696,13 +611,7 @@ fn effective_service_qos_keep_last() -> Schema {
         (4, req(positive_depth())),
         (5, opt(uint64())),
         (6, opt(uint64())),
-        (
-            7,
-            req(Schema::Union(vec![
-                Schema::ConstU64(1),
-                Schema::ConstU64(2),
-            ])),
-        ),
+        (7, req(Schema::Union(vec![Schema::ConstU64(1), Schema::ConstU64(2)]))),
         (8, opt(uint64())),
     ])
 }
@@ -713,13 +622,7 @@ fn effective_service_qos_keep_all() -> Schema {
         (3, req(Schema::ConstU64(2))),
         (5, opt(uint64())),
         (6, opt(uint64())),
-        (
-            7,
-            req(Schema::Union(vec![
-                Schema::ConstU64(1),
-                Schema::ConstU64(2),
-            ])),
-        ),
+        (7, req(Schema::Union(vec![Schema::ConstU64(1), Schema::ConstU64(2)]))),
         (8, opt(uint64())),
     ])
 }
@@ -753,29 +656,16 @@ fn error_body_channel() -> Schema {
     ])
 }
 fn transport_caps() -> Schema {
-    fmap(vec![
-        (1, req(Schema::Bool)),
-        (2, req(Schema::Bool)),
-        (3, opt(uint32())),
-    ])
+    fmap(vec![(1, req(Schema::Bool)), (2, req(Schema::Bool)), (3, opt(uint32()))])
 }
 fn buffer_caps() -> Schema {
     fmap(vec![(1, req(Schema::Bool)), (2, req(Schema::Bool))])
 }
 fn capability_id_list() -> Schema {
-    arr(
-        0,
-        CAP_IDS_MAX,
-        capability_id(),
-        Some(ArrayRule::UniqueAscendingUint),
-    )
+    arr(0, CAP_IDS_MAX, capability_id(), Some(ArrayRule::UniqueAscendingUint))
 }
 fn negotiated_caps() -> Schema {
-    fmap(vec![
-        (1, req(transport_caps())),
-        (2, req(buffer_caps())),
-        (3, req(capability_id_list())),
-    ])
+    fmap(vec![(1, req(transport_caps())), (2, req(buffer_caps())), (3, req(capability_id_list()))])
 }
 fn source_bundle_entry() -> Schema {
     fmap(vec![
@@ -811,13 +701,7 @@ fn graph_endpoint() -> Schema {
             (56, req(bytes16())),
             (55, req(bytes16())),
             (1, req(text_nonempty())),
-            (
-                2,
-                req(Schema::Union(vec![
-                    Schema::ConstU64(4),
-                    Schema::ConstU64(5),
-                ])),
-            ),
+            (2, req(Schema::Union(vec![Schema::ConstU64(4), Schema::ConstU64(5)]))),
             (3, req(text_nonempty())),
             (4, req(Schema::Identity)),
             (5, req(payload_encoding_cdr())),
@@ -832,10 +716,7 @@ fn graph_delta_op() -> Schema {
     Schema::Union(vec![
         fmap(vec![(1, req(Schema::ConstU64(0))), (2, req(graph_node()))]),
         fmap(vec![(1, req(Schema::ConstU64(1))), (55, req(bytes16()))]),
-        fmap(vec![
-            (1, req(Schema::ConstU64(2))),
-            (3, req(graph_endpoint())),
-        ]),
+        fmap(vec![(1, req(Schema::ConstU64(2))), (3, req(graph_endpoint()))]),
         fmap(vec![(1, req(Schema::ConstU64(3))), (56, req(bytes16()))]),
     ])
 }
@@ -844,24 +725,14 @@ fn channel_ack() -> Schema {
 }
 fn channel_resume_result() -> Schema {
     Schema::Union(vec![
-        fmap(vec![
-            (1, req(app_channel_id())),
-            (2, req(Schema::ConstU64(0))),
-            (3, req(uint64())),
-        ]),
+        fmap(vec![(1, req(app_channel_id())), (2, req(Schema::ConstU64(0))), (3, req(uint64()))]),
         fmap(vec![
             (1, req(app_channel_id())),
             (2, req(Schema::ConstU64(1))),
             (3, req(Schema::ConstU64(0))),
         ]),
-        fmap(vec![
-            (1, req(app_channel_id())),
-            (2, req(Schema::ConstU64(1))),
-        ]),
-        fmap(vec![
-            (1, req(app_channel_id())),
-            (2, req(Schema::ConstU64(2))),
-        ]),
+        fmap(vec![(1, req(app_channel_id())), (2, req(Schema::ConstU64(1)))]),
+        fmap(vec![(1, req(app_channel_id())), (2, req(Schema::ConstU64(2)))]),
         fmap(vec![
             (1, req(app_channel_id())),
             (2, req(Schema::ConstU64(3))),
@@ -883,15 +754,7 @@ fn kind_schema(kind: u8) -> Option<Schema> {
             (2, req(bytes16())),
             (7, req(text_nonempty())),
             (8, req(support_row_id())),
-            (
-                10,
-                req(arr(
-                    1,
-                    DOMAIN_IDS_MAX,
-                    domain_id(),
-                    Some(ArrayRule::UniqueAscendingUint),
-                )),
-            ),
+            (10, req(arr(1, DOMAIN_IDS_MAX, domain_id(), Some(ArrayRule::UniqueAscendingUint)))),
             (13, req(text_nonempty())),
             (12, req(budgets())),
             (18, req(ros_distro())),
@@ -907,15 +770,7 @@ fn kind_schema(kind: u8) -> Option<Schema> {
             (14, req(uint64())),
             (7, req(text_nonempty())),
             (8, req(support_row_id())),
-            (
-                22,
-                req(arr(
-                    0,
-                    GRAPH_NODES_MAX,
-                    graph_node(),
-                    Some(ArrayRule::GraphNodesSorted),
-                )),
-            ),
+            (22, req(arr(0, GRAPH_NODES_MAX, graph_node(), Some(ArrayRule::GraphNodesSorted)))),
             (
                 23,
                 req(arr(
@@ -949,10 +804,7 @@ fn kind_schema(kind: u8) -> Option<Schema> {
             (5, req(payload_encoding_cdr())),
             (6, req(uint64())),
             (26, req(bytes_desc())),
-            (
-                27,
-                opt(arr(0, SOURCE_BUNDLE_MAX, source_bundle_entry(), None)),
-            ),
+            (27, opt(arr(0, SOURCE_BUNDLE_MAX, source_bundle_entry(), None))),
             (28, opt(uint64())),
             (8, opt(support_row_id())),
         ]),
@@ -965,10 +817,7 @@ fn kind_schema(kind: u8) -> Option<Schema> {
                 (5, req(payload_encoding_cdr())),
                 (6, req(uint64())),
                 (26, req(bytes_desc())),
-                (
-                    27,
-                    opt(arr(0, SOURCE_BUNDLE_MAX, source_bundle_entry(), None)),
-                ),
+                (27, opt(arr(0, SOURCE_BUNDLE_MAX, source_bundle_entry(), None))),
                 (28, opt(uint64())),
                 (8, opt(support_row_id())),
             ]),
@@ -986,13 +835,7 @@ fn kind_schema(kind: u8) -> Option<Schema> {
                 (1, req(Schema::ConstU64(8))),
                 (2, req(bytes16())),
                 (29, req(app_channel_id())),
-                (
-                    30,
-                    req(Schema::Union(vec![
-                        Schema::ConstU64(0),
-                        Schema::ConstU64(1),
-                    ])),
-                ),
+                (30, req(Schema::Union(vec![Schema::ConstU64(0), Schema::ConstU64(1)]))),
                 (31, req(text_nonempty())),
                 (4, req(text_nonempty())),
                 (3, req(Schema::Identity)),
@@ -1009,13 +852,7 @@ fn kind_schema(kind: u8) -> Option<Schema> {
                 (1, req(Schema::ConstU64(8))),
                 (2, req(bytes16())),
                 (29, req(app_channel_id())),
-                (
-                    30,
-                    req(Schema::Union(vec![
-                        Schema::ConstU64(2),
-                        Schema::ConstU64(3),
-                    ])),
-                ),
+                (30, req(Schema::Union(vec![Schema::ConstU64(2), Schema::ConstU64(3)]))),
                 (31, req(text_nonempty())),
                 (4, req(text_nonempty())),
                 (3, req(Schema::Identity)),
@@ -1032,13 +869,7 @@ fn kind_schema(kind: u8) -> Option<Schema> {
                 (1, req(Schema::ConstU64(8))),
                 (2, req(bytes16())),
                 (29, req(app_channel_id())),
-                (
-                    30,
-                    req(Schema::Union(vec![
-                        Schema::ConstU64(4),
-                        Schema::ConstU64(5),
-                    ])),
-                ),
+                (30, req(Schema::Union(vec![Schema::ConstU64(4), Schema::ConstU64(5)]))),
                 (31, req(text_nonempty())),
                 (4, req(text_nonempty())),
                 (3, req(Schema::Identity)),
@@ -1057,13 +888,7 @@ fn kind_schema(kind: u8) -> Option<Schema> {
                 (29, req(app_channel_id())),
                 (30, req(Schema::ConstU64(6))),
                 (31, req(text_nonempty())),
-                (
-                    5,
-                    req(Schema::Union(vec![
-                        Schema::ConstU64(3),
-                        Schema::ConstU64(4),
-                    ])),
-                ),
+                (5, req(Schema::Union(vec![Schema::ConstU64(3), Schema::ConstU64(4)]))),
                 (32, req(priority_id())),
                 (12, req(budgets())),
                 (9, opt(domain_id())),
@@ -1076,13 +901,7 @@ fn kind_schema(kind: u8) -> Option<Schema> {
                 (29, req(app_channel_id())),
                 (30, req(Schema::ConstU64(7))),
                 (31, req(text_nonempty())),
-                (
-                    5,
-                    req(Schema::Union(vec![
-                        Schema::ConstU64(5),
-                        Schema::ConstU64(6),
-                    ])),
-                ),
+                (5, req(Schema::Union(vec![Schema::ConstU64(5), Schema::ConstU64(6)]))),
                 (32, req(priority_id())),
                 (12, req(budgets())),
             ]),
@@ -1103,13 +922,7 @@ fn kind_schema(kind: u8) -> Option<Schema> {
                 (1, req(Schema::ConstU64(9))),
                 (2, req(bytes16())),
                 (29, req(app_channel_id())),
-                (
-                    33,
-                    req(Schema::Union(vec![
-                        Schema::ConstU64(0),
-                        Schema::ConstU64(2),
-                    ])),
-                ),
+                (33, req(Schema::Union(vec![Schema::ConstU64(0), Schema::ConstU64(2)]))),
                 (12, req(budgets())),
                 (59, req(priority_id())),
                 (57, req(Schema::EffectiveQos)),
@@ -1122,13 +935,7 @@ fn kind_schema(kind: u8) -> Option<Schema> {
                 (1, req(Schema::ConstU64(9))),
                 (2, req(bytes16())),
                 (29, req(app_channel_id())),
-                (
-                    33,
-                    req(Schema::Union(vec![
-                        Schema::ConstU64(0),
-                        Schema::ConstU64(2),
-                    ])),
-                ),
+                (33, req(Schema::Union(vec![Schema::ConstU64(0), Schema::ConstU64(2)]))),
                 (12, req(budgets())),
                 (59, req(priority_id())),
                 (60, req(Schema::EffectiveServiceQos)),
@@ -1141,13 +948,7 @@ fn kind_schema(kind: u8) -> Option<Schema> {
                 (1, req(Schema::ConstU64(9))),
                 (2, req(bytes16())),
                 (29, req(app_channel_id())),
-                (
-                    33,
-                    req(Schema::Union(vec![
-                        Schema::ConstU64(0),
-                        Schema::ConstU64(2),
-                    ])),
-                ),
+                (33, req(Schema::Union(vec![Schema::ConstU64(0), Schema::ConstU64(2)]))),
                 (12, req(budgets())),
                 (59, req(priority_id())),
                 (58, req(Schema::EffectiveActionQos)),
@@ -1160,13 +961,7 @@ fn kind_schema(kind: u8) -> Option<Schema> {
                 (1, req(Schema::ConstU64(9))),
                 (2, req(bytes16())),
                 (29, req(app_channel_id())),
-                (
-                    33,
-                    req(Schema::Union(vec![
-                        Schema::ConstU64(0),
-                        Schema::ConstU64(2),
-                    ])),
-                ),
+                (33, req(Schema::Union(vec![Schema::ConstU64(0), Schema::ConstU64(2)]))),
                 (12, req(budgets())),
                 (59, req(priority_id())),
                 (6, opt(uint64())),
@@ -1178,13 +973,7 @@ fn kind_schema(kind: u8) -> Option<Schema> {
                 (1, req(Schema::ConstU64(9))),
                 (2, req(bytes16())),
                 (29, req(app_channel_id())),
-                (
-                    33,
-                    req(Schema::Union(vec![
-                        Schema::ConstU64(1),
-                        Schema::ConstU64(3),
-                    ])),
-                ),
+                (33, req(Schema::Union(vec![Schema::ConstU64(1), Schema::ConstU64(3)]))),
                 (15, req(error_body_channel())),
             ]),
         ]),
@@ -1412,11 +1201,7 @@ pub(crate) fn map_control_error(err: ControlError, payload_base: usize) -> Proto
     if err.reason == "payload_too_large" {
         return ProtocolError::message_too_large_frame("control_payload_too_large", 24, 3);
     }
-    ProtocolError::invalid_control(
-        "invalid_control",
-        payload_base.saturating_add(err.offset),
-        16,
-    )
+    ProtocolError::invalid_control("invalid_control", payload_base.saturating_add(err.offset), 16)
 }
 
 #[cfg(test)]
@@ -1424,10 +1209,7 @@ mod unit_tests {
     use super::*;
 
     fn hex(s: &str) -> Vec<u8> {
-        (0..s.len())
-            .step_by(2)
-            .map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap())
-            .collect()
+        (0..s.len()).step_by(2).map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap()).collect()
     }
 
     /// Minimal valid CONTROL_CBOR payloads for kinds 1–15 (TypeScript encodeControlMessage).
@@ -1482,12 +1264,7 @@ mod unit_tests {
                     e
                 );
             });
-            assert_eq!(
-                msg.kind,
-                k,
-                "kind field for {}",
-                CONTROL_KIND_NAMES[(k - 1) as usize]
-            );
+            assert_eq!(msg.kind, k, "kind field for {}", CONTROL_KIND_NAMES[(k - 1) as usize]);
             assert_eq!(
                 msg.fields.get(&1),
                 Some(&CborValue::Unsigned(u64::from(k))),

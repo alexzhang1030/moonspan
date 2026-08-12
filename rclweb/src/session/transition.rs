@@ -138,9 +138,7 @@ fn field_bytes<'a>(msg: &'a ControlMessage<'_>, key: u64) -> Option<&'a [u8]> {
 }
 
 fn correlation_vec(msg: &ControlMessage<'_>) -> Vec<u8> {
-    field_bytes(msg, FIELD_CORRELATION_ID)
-        .unwrap_or_default()
-        .to_vec()
+    field_bytes(msg, FIELD_CORRELATION_ID).unwrap_or_default().to_vec()
 }
 
 fn correlations_match(pending: Option<&[u8]>, response: &[u8]) -> bool {
@@ -193,11 +191,7 @@ fn reject_if_wrong_sender(kind: u8, sender: Role) -> Result<(), ProtocolError> {
     if let Some(expected) = control_sender(kind)
         && sender != expected
     {
-        return Err(ProtocolError::protocol_violation(
-            "wrong_control_direction",
-            0,
-            25,
-        ));
+        return Err(ProtocolError::protocol_violation("wrong_control_direction", 0, 25));
     }
     Ok(())
 }
@@ -209,18 +203,10 @@ pub fn apply_bootstrap(
     sender: Role,
 ) -> Result<SessionEffects, ProtocolError> {
     if state.phase.is_terminal() {
-        return Err(ProtocolError::protocol_violation_bootstrap(
-            "session_terminal",
-            0,
-            9,
-        ));
+        return Err(ProtocolError::protocol_violation_bootstrap("session_terminal", 0, 9));
     }
     if state.phase.in_selected_plane() {
-        return Err(ProtocolError::protocol_violation_bootstrap(
-            "bootstrap_after_selected",
-            0,
-            9,
-        ));
+        return Err(ProtocolError::protocol_violation_bootstrap("bootstrap_after_selected", 0, 9));
     }
 
     let mut effects = SessionEffects::default();
@@ -295,21 +281,15 @@ pub fn apply_frame(
         return Err(ProtocolError::protocol_violation("session_terminal", 0, 25));
     }
     if !state.phase.in_selected_plane() {
-        return Err(ProtocolError::protocol_violation(
-            "selected_frame_before_plane",
-            0,
-            25,
-        ));
+        return Err(ProtocolError::protocol_violation("selected_frame_before_plane", 0, 25));
     }
 
     match frame.opcode {
         OPCODE_CONTROL_CBOR => match &frame.payload {
             FramePayload::Control(msg) => apply_control(state, msg, sender),
-            FramePayload::Application(_) => Err(ProtocolError::invalid_control(
-                "control_opcode_without_control_payload",
-                0,
-                16,
-            )),
+            FramePayload::Application(_) => {
+                Err(ProtocolError::invalid_control("control_opcode_without_control_payload", 0, 16))
+            }
         },
         OPCODE_ROS_SAMPLE => apply_ros_sample(state, frame, sender),
         opcode if is_service_or_action_opcode(opcode) => {
@@ -321,11 +301,7 @@ pub fn apply_frame(
                 return Err(ProtocolError::session_not_ready("data_before_ready", 0));
             }
             apply_data_channel_gates(state, frame.channel_id)?;
-            Err(ProtocolError::protocol_violation(
-                "unsupported_operation_opcode",
-                0,
-                22,
-            ))
+            Err(ProtocolError::protocol_violation("unsupported_operation_opcode", 0, 22))
         }
     }
 }
@@ -338,15 +314,8 @@ fn apply_control(
     reject_if_wrong_sender(msg.kind, sender)?;
 
     // Resume kinds: parked without capability 1 → protocol_violation as entry or otherwise.
-    if matches!(
-        msg.kind,
-        CONTROL_KIND_SESSION_RESUME | CONTROL_KIND_SESSION_RESUME_RESULT
-    ) {
-        return Err(ProtocolError::protocol_violation(
-            "session_resume_not_enabled",
-            0,
-            25,
-        ));
+    if matches!(msg.kind, CONTROL_KIND_SESSION_RESUME | CONTROL_KIND_SESSION_RESUME_RESULT) {
+        return Err(ProtocolError::protocol_violation("session_resume_not_enabled", 0, 25));
     }
 
     // Ready-required kinds before ready → session_not_ready (step 17).
@@ -374,11 +343,7 @@ fn apply_control(
             // Schema exchange is R3-02; ClockSync stays parked (later breadth).
         }
         _ => {
-            return Err(ProtocolError::protocol_violation(
-                "unknown_control_kind",
-                0,
-                25,
-            ));
+            return Err(ProtocolError::protocol_violation("unknown_control_kind", 0, 25));
         }
     }
     Ok(effects)
@@ -409,25 +374,13 @@ fn apply_graph_delta(
         ProtocolError::protocol_violation("graph_delta_missing_generation", 0, 25)
     })?;
     let Some(current) = state.graph_generation else {
-        return Err(ProtocolError::protocol_violation(
-            "graph_delta_without_snapshot",
-            0,
-            25,
-        ));
+        return Err(ProtocolError::protocol_violation("graph_delta_without_snapshot", 0, 25));
     };
     if base != current {
-        return Err(ProtocolError::protocol_violation(
-            "graph_delta_base_mismatch",
-            0,
-            25,
-        ));
+        return Err(ProtocolError::protocol_violation("graph_delta_base_mismatch", 0, 25));
     }
     if generation != base.saturating_add(1) {
-        return Err(ProtocolError::protocol_violation(
-            "graph_delta_generation_step",
-            0,
-            25,
-        ));
+        return Err(ProtocolError::protocol_violation("graph_delta_generation_step", 0, 25));
     }
     state.graph_generation = Some(generation);
     effects.graph_delta = Some(generation);
@@ -446,14 +399,10 @@ fn apply_authenticate(
             state.phase = SessionPhase::SelectedAwaitSessionReady;
             Ok(())
         }
-        SessionPhase::SelectedAwaitSessionReady | SessionPhase::Ready => Err(
-            ProtocolError::protocol_violation("authenticate_out_of_order", 0, 25),
-        ),
-        _ => Err(ProtocolError::protocol_violation(
-            "authenticate_bad_phase",
-            0,
-            25,
-        )),
+        SessionPhase::SelectedAwaitSessionReady | SessionPhase::Ready => {
+            Err(ProtocolError::protocol_violation("authenticate_out_of_order", 0, 25))
+        }
+        _ => Err(ProtocolError::protocol_violation("authenticate_bad_phase", 0, 25)),
     }
 }
 
@@ -463,11 +412,7 @@ fn apply_session_ready(
     effects: &mut SessionEffects,
 ) -> Result<(), ProtocolError> {
     if state.phase != SessionPhase::SelectedAwaitSessionReady {
-        return Err(ProtocolError::protocol_violation(
-            "session_ready_out_of_order",
-            0,
-            25,
-        ));
+        return Err(ProtocolError::protocol_violation("session_ready_out_of_order", 0, 25));
     }
     let response_corr = correlation_vec(msg);
     if correlations_match(state.pending_auth_correlation.as_deref(), &response_corr) {
@@ -555,11 +500,7 @@ fn apply_open_channel(
         ProtocolError::protocol_violation("open_channel_missing_channel_id", 0, 25)
     })? as u32;
     if channel_id == 0 {
-        return Err(ProtocolError::protocol_violation(
-            "open_channel_id_zero",
-            0,
-            25,
-        ));
+        return Err(ProtocolError::protocol_violation("open_channel_id_zero", 0, 25));
     }
     if state.channels.contains(channel_id) {
         return Err(ProtocolError::protocol_violation("channel_id_reuse", 0, 25));
@@ -568,17 +509,11 @@ fn apply_open_channel(
         ProtocolError::protocol_violation("open_channel_missing_operation_kind", 0, 25)
     })?;
     if op_raw > u64::from(u8::MAX) {
-        return Err(ProtocolError::protocol_violation(
-            "open_channel_bad_operation_kind",
-            0,
-            25,
-        ));
+        return Err(ProtocolError::protocol_violation("open_channel_bad_operation_kind", 0, 25));
     }
     let operation_kind = OperationKind::from_u8(op_raw as u8)
         .ok_or_else(|| ProtocolError::protocol_violation("unsupported_operation_kind", 0, 25))?;
-    state
-        .channels
-        .insert_pending(channel_id, operation_kind, correlation_vec(msg));
+    state.channels.insert_pending(channel_id, operation_kind, correlation_vec(msg));
     effects.channel_opened = Some(channel_id);
     Ok(())
 }
@@ -595,28 +530,16 @@ fn apply_channel_ready(
     match state.channels.state(channel_id) {
         ChannelState::Pending => {}
         ChannelState::Unused => {
-            return Err(ProtocolError::protocol_violation(
-                "channel_ready_without_open",
-                0,
-                25,
-            ));
+            return Err(ProtocolError::protocol_violation("channel_ready_without_open", 0, 25));
         }
         _ => {
-            return Err(ProtocolError::protocol_violation(
-                "channel_ready_bad_state",
-                0,
-                25,
-            ));
+            return Err(ProtocolError::protocol_violation("channel_ready_bad_state", 0, 25));
         }
     }
     let result_raw = field_uint(msg, FIELD_CHANNEL_RESULT)
         .ok_or_else(|| ProtocolError::protocol_violation("channel_ready_missing_result", 0, 25))?;
     if result_raw > u64::from(u8::MAX) {
-        return Err(ProtocolError::protocol_violation(
-            "channel_ready_bad_result",
-            0,
-            25,
-        ));
+        return Err(ProtocolError::protocol_violation("channel_ready_bad_result", 0, 25));
     }
     let result = ChannelResult::from_u8(result_raw as u8)
         .ok_or_else(|| ProtocolError::protocol_violation("channel_ready_bad_result", 0, 25))?;
@@ -650,34 +573,26 @@ fn apply_close_channel(
             effects.channel_closed = Some(channel_id);
             Ok(())
         }
-        ChannelState::Pending => Err(ProtocolError::protocol_violation(
-            "close_channel_while_pending",
-            0,
-            25,
-        )),
-        ChannelState::Failed | ChannelState::Closed => Err(ProtocolError::protocol_violation(
-            "close_channel_terminal",
-            0,
-            25,
-        )),
-        ChannelState::Unused => Err(ProtocolError::protocol_violation(
-            "close_channel_unknown",
-            0,
-            25,
-        )),
+        ChannelState::Pending => {
+            Err(ProtocolError::protocol_violation("close_channel_while_pending", 0, 25))
+        }
+        ChannelState::Failed | ChannelState::Closed => {
+            Err(ProtocolError::protocol_violation("close_channel_terminal", 0, 25))
+        }
+        ChannelState::Unused => {
+            Err(ProtocolError::protocol_violation("close_channel_unknown", 0, 25))
+        }
     }
 }
 
 fn apply_data_channel_gates(state: &SessionState, channel_id: u32) -> Result<(), ProtocolError> {
     match state.channels.state(channel_id) {
-        ChannelState::Pending => Err(ProtocolError::protocol_violation(
-            "data_on_pending_channel",
-            0,
-            19,
-        )),
-        ChannelState::Failed | ChannelState::Closed | ChannelState::Unused => Err(
-            ProtocolError::unknown_channel("data_on_inactive_channel", 0),
-        ),
+        ChannelState::Pending => {
+            Err(ProtocolError::protocol_violation("data_on_pending_channel", 0, 19))
+        }
+        ChannelState::Failed | ChannelState::Closed | ChannelState::Unused => {
+            Err(ProtocolError::unknown_channel("data_on_inactive_channel", 0))
+        }
         ChannelState::Active => Ok(()),
     }
 }
@@ -691,18 +606,11 @@ fn apply_ros_sample(
         return Err(ProtocolError::session_not_ready("data_before_ready", 0));
     }
     apply_data_channel_gates(state, frame.channel_id)?;
-    let entry = state
-        .channels
-        .get(frame.channel_id)
-        .expect("active channel must exist");
+    let entry = state.channels.get(frame.channel_id).expect("active channel must exist");
     if !entry.operation_kind.allows_opcode(OPCODE_ROS_SAMPLE)
         || !entry.operation_kind.allows_ros_sample_from(sender)
     {
-        return Err(ProtocolError::protocol_violation(
-            "ros_sample_wrong_direction",
-            0,
-            22,
-        ));
+        return Err(ProtocolError::protocol_violation("ros_sample_wrong_direction", 0, 22));
     }
     Ok(SessionEffects::default())
 }
@@ -716,39 +624,20 @@ fn apply_service_action_frame(
         return Err(ProtocolError::session_not_ready("data_before_ready", 0));
     }
     apply_data_channel_gates(state, frame.channel_id)?;
-    let entry = state
-        .channels
-        .get(frame.channel_id)
-        .expect("active channel must exist");
+    let entry = state.channels.get(frame.channel_id).expect("active channel must exist");
     if !entry.operation_kind.allows_opcode(frame.opcode) {
-        return Err(ProtocolError::protocol_violation(
-            "opcode_operation_kind_mismatch",
-            0,
-            22,
-        ));
+        return Err(ProtocolError::protocol_violation("opcode_operation_kind_mismatch", 0, 22));
     }
     let expected = entry.operation_kind.opcode_sender(frame.opcode);
     if expected != Some(sender) {
-        return Err(ProtocolError::protocol_violation(
-            "service_action_wrong_direction",
-            0,
-            22,
-        ));
+        return Err(ProtocolError::protocol_violation("service_action_wrong_direction", 0, 22));
     }
     if operation_id_required(frame.opcode) {
         let Some(opid) = frame_operation_id(frame) else {
-            return Err(ProtocolError::protocol_violation(
-                "missing_operation_id",
-                0,
-                25,
-            ));
+            return Err(ProtocolError::protocol_violation("missing_operation_id", 0, 25));
         };
         if opid == [0u8; 16] && !operation_id_may_be_zero(frame.opcode) {
-            return Err(ProtocolError::protocol_violation(
-                "zero_operation_id",
-                0,
-                25,
-            ));
+            return Err(ProtocolError::protocol_violation("zero_operation_id", 0, 25));
         }
     }
     // Reliable service/action streams (request/response/goal/cancel/result) must
@@ -762,11 +651,7 @@ fn apply_service_action_frame(
             | OPCODE_ACTION_RESULT
     );
     if reliable_required && (frame.flags & crate::protocol::frame::FLAG_ROS_RELIABLE) == 0 {
-        return Err(ProtocolError::protocol_violation(
-            "service_action_requires_reliable",
-            0,
-            25,
-        ));
+        return Err(ProtocolError::protocol_violation("service_action_requires_reliable", 0, 25));
     }
     Ok(SessionEffects::default())
 }

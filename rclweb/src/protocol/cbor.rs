@@ -119,12 +119,7 @@ fn read_head(r: &mut Reader<'_>) -> Result<Head, CborError> {
     let integer_argument = !(major == MT_SIMPLE && (25..=27).contains(&additional));
 
     if additional <= 23 {
-        return Ok(Head {
-            major,
-            additional,
-            argument: u64::from(additional),
-            head_offset,
-        });
+        return Ok(Head { major, additional, argument: u64::from(additional), head_offset });
     }
     if additional == 24 {
         if r.remaining() < 1 {
@@ -134,12 +129,7 @@ fn read_head(r: &mut Reader<'_>) -> Result<Head, CborError> {
         if arg < 24 {
             return Err(r.fail("non_shortest_form", Some(head_offset)));
         }
-        return Ok(Head {
-            major,
-            additional,
-            argument: arg,
-            head_offset,
-        });
+        return Ok(Head { major, additional, argument: arg, head_offset });
     }
     if additional == 25 {
         if r.remaining() < 2 {
@@ -149,12 +139,7 @@ fn read_head(r: &mut Reader<'_>) -> Result<Head, CborError> {
         if integer_argument && arg < 0x100 {
             return Err(r.fail("non_shortest_form", Some(head_offset)));
         }
-        return Ok(Head {
-            major,
-            additional,
-            argument: arg,
-            head_offset,
-        });
+        return Ok(Head { major, additional, argument: arg, head_offset });
     }
     if additional == 26 {
         if r.remaining() < 4 {
@@ -167,12 +152,7 @@ fn read_head(r: &mut Reader<'_>) -> Result<Head, CborError> {
         if integer_argument && arg < 0x1_0000 {
             return Err(r.fail("non_shortest_form", Some(head_offset)));
         }
-        return Ok(Head {
-            major,
-            additional,
-            argument: arg,
-            head_offset,
-        });
+        return Ok(Head { major, additional, argument: arg, head_offset });
     }
     if additional == 27 {
         if r.remaining() < 8 {
@@ -185,12 +165,7 @@ fn read_head(r: &mut Reader<'_>) -> Result<Head, CborError> {
         if integer_argument && arg < 0x1_0000_0000 {
             return Err(r.fail("non_shortest_form", Some(head_offset)));
         }
-        return Ok(Head {
-            major,
-            additional,
-            argument: arg,
-            head_offset,
-        });
+        return Ok(Head { major, additional, argument: arg, head_offset });
     }
     if additional == 31 {
         return Err(r.fail("indefinite_length", Some(head_offset)));
@@ -209,12 +184,7 @@ fn length_to_usize(arg: u64, head_offset: usize) -> Result<usize, CborError> {
 
 fn decode_value<'a>(r: &mut Reader<'a>, depth: usize) -> Result<CborValue<'a>, CborError> {
     let head = read_head(r)?;
-    let Head {
-        major,
-        additional,
-        argument,
-        head_offset,
-    } = head;
+    let Head { major, additional, argument, head_offset } = head;
 
     match major {
         MT_UINT => Ok(CborValue::Unsigned(argument)),
@@ -340,14 +310,8 @@ mod unit_tests {
 
     #[test]
     fn bools_and_null() {
-        assert_eq!(
-            decode_deterministic_cbor(&[0xf4]).unwrap(),
-            CborValue::Bool(false)
-        );
-        assert_eq!(
-            decode_deterministic_cbor(&[0xf5]).unwrap(),
-            CborValue::Bool(true)
-        );
+        assert_eq!(decode_deterministic_cbor(&[0xf4]).unwrap(), CborValue::Bool(false));
+        assert_eq!(decode_deterministic_cbor(&[0xf5]).unwrap(), CborValue::Bool(true));
         assert_eq!(decode_deterministic_cbor(&[0xf6]).unwrap(), CborValue::Null);
     }
 

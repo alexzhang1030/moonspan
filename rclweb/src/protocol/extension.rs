@@ -40,30 +40,15 @@ pub struct ExtensionError {
 
 impl ExtensionError {
     fn malformed(reason: &'static str, offset: usize) -> Self {
-        Self {
-            code: 3,
-            name: "malformed_frame",
-            reason,
-            offset,
-        }
+        Self { code: 3, name: "malformed_frame", reason, offset }
     }
 
     fn message_too_large(reason: &'static str, offset: usize) -> Self {
-        Self {
-            code: 24,
-            name: "message_too_large",
-            reason,
-            offset,
-        }
+        Self { code: 24, name: "message_too_large", reason, offset }
     }
 
     fn unsupported(reason: &'static str, offset: usize) -> Self {
-        Self {
-            code: 22,
-            name: "unsupported_extension",
-            reason,
-            offset,
-        }
+        Self { code: 22, name: "unsupported_extension", reason, offset }
     }
 }
 
@@ -144,10 +129,7 @@ pub fn decode_extension_area(bytes: &[u8]) -> Result<Vec<R2wpExtension<'_>>, Ext
         if let Some(expected) = fixed_value_len(type_id)
             && value_len != expected
         {
-            return Err(ExtensionError::malformed(
-                "fixed_length_mismatch",
-                offset + 2,
-            ));
+            return Err(ExtensionError::malformed("fixed_length_mismatch", offset + 2));
         }
 
         // Compare against `remaining` so oversized declared lengths stay total
@@ -195,12 +177,7 @@ pub fn decode_extension_area(bytes: &[u8]) -> Result<Vec<R2wpExtension<'_>>, Ext
             first_unknown_critical = Some(offset);
         }
 
-        parsed.push(ParsedTlv {
-            type_id,
-            critical,
-            value,
-            assigned,
-        });
+        parsed.push(ParsedTlv { type_id, critical, value, assigned });
         offset += padded;
     }
 
@@ -211,11 +188,7 @@ pub fn decode_extension_area(bytes: &[u8]) -> Result<Vec<R2wpExtension<'_>>, Ext
     Ok(parsed
         .into_iter()
         .filter(|t| t.assigned)
-        .map(|t| R2wpExtension {
-            type_id: t.type_id,
-            critical: t.critical,
-            value: t.value,
-        })
+        .map(|t| R2wpExtension { type_id: t.type_id, critical: t.critical, value: t.value })
         .collect())
 }
 
@@ -285,11 +258,7 @@ mod unit_tests {
         assert_eq!(out.len(), 1);
         assert_eq!(out[0].type_id, 2);
         assert_eq!(out[0].value, &payload);
-        assert_eq!(
-            out[0].value.as_ptr(),
-            area[4..20].as_ptr(),
-            "value must borrow the area input"
-        );
+        assert_eq!(out[0].value.as_ptr(), area[4..20].as_ptr(), "value must borrow the area input");
     }
 
     #[test]

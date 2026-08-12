@@ -73,20 +73,8 @@ fn session_ready_bytes_for_row(
         (
             54,
             CborValue::Map(vec![
-                (
-                    1,
-                    CborValue::Map(vec![
-                        (1, CborValue::Bool(false)),
-                        (2, CborValue::Bool(true)),
-                    ]),
-                ),
-                (
-                    2,
-                    CborValue::Map(vec![
-                        (1, CborValue::Bool(true)),
-                        (2, CborValue::Bool(false)),
-                    ]),
-                ),
+                (1, CborValue::Map(vec![(1, CborValue::Bool(false)), (2, CborValue::Bool(true))])),
+                (2, CborValue::Map(vec![(1, CborValue::Bool(true)), (2, CborValue::Bool(false))])),
                 (3, CborValue::Array(Vec::new())),
             ]),
         ),
@@ -141,10 +129,7 @@ fn sample_frame(channel_id: u32, sequence: u64, payload: &[u8]) -> Vec<u8> {
 }
 
 fn feed(engine: &mut ClientEngine, bytes: Vec<u8>) -> super::PollOutcome {
-    engine.poll(vec![HostEvent::WsBytes {
-        buffer_id: 0,
-        bytes,
-    }])
+    engine.poll(vec![HostEvent::WsBytes { buffer_id: 0, bytes }])
 }
 
 #[test]
@@ -165,11 +150,7 @@ fn scripted_peer_reaches_subscribed_and_sample() {
     assert_eq!(engine.phase(), SessionPhase::AwaitServerHello);
 
     let boot = feed(&mut engine, server_hello_bytes());
-    assert!(
-        boot.events
-            .iter()
-            .any(|e| matches!(e, AppEvent::BootstrapComplete { .. }))
-    );
+    assert!(boot.events.iter().any(|e| matches!(e, AppEvent::BootstrapComplete { .. })));
 
     let auth_corr = corr(0xA1);
     let auth = engine.poll(vec![HostEvent::Command(AppCommand::Authenticate {
@@ -211,12 +192,7 @@ fn scripted_peer_reaches_subscribed_and_sample() {
 
     let payload = ClientEngine::encode_std_msgs_string("ping").unwrap();
     let sample = feed(&mut engine, sample_frame(7, 0, &payload));
-    let AppEvent::Sample {
-        channel_id,
-        lease_id,
-        string_data,
-        ..
-    } = sample
+    let AppEvent::Sample { channel_id, lease_id, string_data, .. } = sample
         .events
         .iter()
         .find(|e| matches!(e, AppEvent::Sample { .. }))
@@ -228,17 +204,11 @@ fn scripted_peer_reaches_subscribed_and_sample() {
     assert_eq!(channel_id, 7);
     assert_eq!(string_data.as_deref(), Some("ping"));
     // The CDR payload stays reachable as a borrowed view under the lease.
-    assert_eq!(
-        engine.lease_payload_view(lease_id),
-        Some(payload.as_slice())
-    );
+    assert_eq!(engine.lease_payload_view(lease_id), Some(payload.as_slice()));
 
     let released = engine.poll(vec![HostEvent::ReleaseLease { lease_id }]);
     assert!(
-        released
-            .released_buffers
-            .iter()
-            .any(|b| b.buffer_id != 0 || b.len > 0)
+        released.released_buffers.iter().any(|b| b.buffer_id != 0 || b.len > 0)
             || !engine.buffer_bytes(lease_id).is_some()
     );
     // Lease backing store should be gone after release + sweep.
@@ -297,10 +267,7 @@ fn scripted_peer_publish_sends_ros_sample() {
     let FramePayload::Application(payload) = &frame.payload else {
         panic!("expected application payload");
     };
-    assert_eq!(
-        ClientEngine::decode_std_msgs_string(payload).unwrap(),
-        "hello from client"
-    );
+    assert_eq!(ClientEngine::decode_std_msgs_string(payload).unwrap(), "hello from client");
 }
 
 #[test]
@@ -311,11 +278,7 @@ fn close_command_terminates() {
         webtransport: false,
     })]);
     let out = engine.poll(vec![HostEvent::Command(AppCommand::Close)]);
-    assert!(
-        out.events
-            .iter()
-            .any(|e| matches!(e, AppEvent::Closed { .. }))
-    );
+    assert!(out.events.iter().any(|e| matches!(e, AppEvent::Closed { .. })));
 }
 
 #[test]
@@ -360,31 +323,17 @@ fn large_point_cloud2_sample_borrowed_view_and_single_retain_copy() {
     let after = engine.telemetry();
 
     assert_eq!(after.copies_into_engine - before.copies_into_engine, 1);
-    assert_eq!(
-        after.bytes_copied_into_engine - before.bytes_copied_into_engine,
-        frame_len as u64
-    );
+    assert_eq!(after.bytes_copied_into_engine - before.bytes_copied_into_engine, frame_len as u64);
 
-    let AppEvent::Sample {
-        channel_id,
-        lease_id,
-        string_data,
-        ..
-    } = sample
-        .events
-        .iter()
-        .find(|e| matches!(e, AppEvent::Sample { .. }))
-        .expect("sample event")
+    let AppEvent::Sample { channel_id, lease_id, string_data, .. } =
+        sample.events.iter().find(|e| matches!(e, AppEvent::Sample { .. })).expect("sample event")
     else {
         unreachable!()
     };
     assert_eq!(*channel_id, 9);
     assert!(string_data.is_none());
 
-    let view = engine
-        .lease_point_cloud2_view(*lease_id)
-        .expect("lease")
-        .expect("pc2 decode");
+    let view = engine.lease_point_cloud2_view(*lease_id).expect("lease").expect("pc2 decode");
     assert_eq!(view.width, POINTS);
     assert_eq!(view.data.len(), POINTS as usize * 12);
 
@@ -397,9 +346,7 @@ fn large_point_cloud2_sample_borrowed_view_and_single_retain_copy() {
         "PointCloud2 data must borrow from the leased CDR payload"
     );
 
-    let _ = engine.poll(vec![HostEvent::ReleaseLease {
-        lease_id: *lease_id,
-    }]);
+    let _ = engine.poll(vec![HostEvent::ReleaseLease { lease_id: *lease_id }]);
 }
 
 #[test]
@@ -446,19 +393,14 @@ fn service_client_call_emits_request_and_response_event() {
     })]);
     assert_eq!(opened.outbound.len(), 1);
 
-    let ready = feed(
-        &mut engine,
-        channel_ready_allow_bytes(ctrl_seq, &open_corr, 5),
-    );
+    let ready = feed(&mut engine, channel_ready_allow_bytes(ctrl_seq, &open_corr, 5));
     ctrl_seq += 1;
-    assert!(ready.events.iter().any(|e| matches!(
-        e,
-        AppEvent::ServiceReady {
-            channel_id: 5,
-            client: true,
-            ..
-        }
-    )));
+    assert!(
+        ready
+            .events
+            .iter()
+            .any(|e| matches!(e, AppEvent::ServiceReady { channel_id: 5, client: true, .. }))
+    );
 
     let opid = [0x11u8; 16];
     let request = b"req-bytes".to_vec();
@@ -506,12 +448,7 @@ fn service_client_call_emits_request_and_response_event() {
     )
     .unwrap();
     let inbound = feed(&mut engine, resp_bytes);
-    let AppEvent::ServiceResponse {
-        channel_id,
-        operation_id,
-        lease_id,
-        ..
-    } = inbound
+    let AppEvent::ServiceResponse { channel_id, operation_id, lease_id, .. } = inbound
         .events
         .iter()
         .find(|e| matches!(e, AppEvent::ServiceResponse { .. }))
@@ -522,10 +459,7 @@ fn service_client_call_emits_request_and_response_event() {
     };
     assert_eq!(channel_id, 5);
     assert_eq!(operation_id, opid);
-    assert_eq!(
-        engine.lease_payload_view(lease_id),
-        Some(response_payload.as_slice())
-    );
+    assert_eq!(engine.lease_payload_view(lease_id), Some(response_payload.as_slice()));
     let _ = ctrl_seq;
 }
 
@@ -537,10 +471,7 @@ fn graph_snapshot_control_emits_app_event() {
     let ctrl_seq = through_ready(&mut engine);
 
     let msg = CborValue::Map(vec![
-        (
-            1,
-            CborValue::Unsigned(u64::from(CONTROL_KIND_GRAPH_SNAPSHOT)),
-        ),
+        (1, CborValue::Unsigned(u64::from(CONTROL_KIND_GRAPH_SNAPSHOT))),
         (2, bytes_val(&ZERO_CORRELATION)),
         (7, text_val("gw-test")),
         (8, text_val("J-FT")),
@@ -557,11 +488,7 @@ fn graph_snapshot_control_emits_app_event() {
     ]);
     let bytes = encode_control_frame(0, ctrl_seq, &msg).expect("graph snapshot");
     let out = feed(&mut engine, bytes);
-    let AppEvent::GraphSnapshot {
-        generation,
-        nodes_json,
-        endpoints_json,
-    } = out
+    let AppEvent::GraphSnapshot { generation, nodes_json, endpoints_json } = out
         .events
         .iter()
         .find(|e| matches!(e, AppEvent::GraphSnapshot { .. }))
@@ -593,10 +520,7 @@ fn h_ft_session_ready_subscribe_emits_moonspan_open_channel() {
         scheme: "token".into(),
         token: b"anonymous".to_vec(),
     })]);
-    let ready = feed(
-        &mut engine,
-        session_ready_bytes_for_row(0, &auth_corr, "H-FT", "humble"),
-    );
+    let ready = feed(&mut engine, session_ready_bytes_for_row(0, &auth_corr, "H-FT", "humble"));
     assert!(
         ready.events.iter().any(
             |e| matches!(e, AppEvent::SessionReady { support_row, .. } if support_row == "H-FT")

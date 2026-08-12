@@ -123,11 +123,7 @@ impl CdrLimits {
         max_nesting_depth: usize,
         max_temporary_allocation: usize,
     ) -> Result<Self, CdrError> {
-        let limits = Self {
-            max_stream_bytes,
-            max_nesting_depth,
-            max_temporary_allocation,
-        };
+        let limits = Self { max_stream_bytes, max_nesting_depth, max_temporary_allocation };
         limits.validate()?;
         Ok(limits)
     }

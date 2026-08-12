@@ -182,10 +182,7 @@ impl ChannelTable {
     /// Lifecycle view; unknown ids report [`ChannelState::Unused`].
     #[must_use]
     pub fn state(&self, id: u32) -> ChannelState {
-        self.entries
-            .get(&id)
-            .map(|e| e.state)
-            .unwrap_or(ChannelState::Unused)
+        self.entries.get(&id).map(|e| e.state).unwrap_or(ChannelState::Unused)
     }
 
     #[must_use]
@@ -206,11 +203,7 @@ impl ChannelTable {
     ) {
         self.entries.insert(
             id,
-            ChannelEntry {
-                state: ChannelState::Pending,
-                operation_kind,
-                open_correlation,
-            },
+            ChannelEntry { state: ChannelState::Pending, operation_kind, open_correlation },
         );
     }
 

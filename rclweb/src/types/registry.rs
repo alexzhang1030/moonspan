@@ -114,14 +114,10 @@ impl SchemaRegistryBuilder {
         let type_name = type_name.into();
         validate_type_name_len(&type_name)?;
         if descriptor_id.is_empty() {
-            return Err(SchemaError::schema_input_invalid(
-                "descriptor_id must be non-empty",
-            ));
+            return Err(SchemaError::schema_input_invalid("descriptor_id must be non-empty"));
         }
-        let row = DescriptorRow {
-            descriptor_id: descriptor_id.clone(),
-            type_name: type_name.clone(),
-        };
+        let row =
+            DescriptorRow { descriptor_id: descriptor_id.clone(), type_name: type_name.clone() };
         if let Some(existing) = self.descriptors.get(&descriptor_id) {
             if existing.type_name != type_name {
                 return Err(SchemaError::schema_conflict(format!(
@@ -158,10 +154,7 @@ impl SchemaRegistryBuilder {
             )));
         }
         let map_key = (key.scheme.clone(), key.value.clone());
-        let row = IdentityRow {
-            key: key.clone(),
-            descriptor_id: descriptor_id.clone(),
-        };
+        let row = IdentityRow { key: key.clone(), descriptor_id: descriptor_id.clone() };
         if let Some(existing) = self.identities.get(&map_key) {
             if existing.descriptor_id != descriptor_id || existing.key != key {
                 return Err(SchemaError::schema_conflict(format!(
@@ -199,11 +192,7 @@ impl SchemaRegistryBuilder {
             // Phase 1 evidence uses only these; still accept other usize if identical re-reg.
             // Conflicting non-matching values still conflict below.
         }
-        let map_key = (
-            type_name.clone(),
-            support_row_id.clone(),
-            cdr_representation.as_u16(),
-        );
+        let map_key = (type_name.clone(), support_row_id.clone(), cdr_representation.as_u16());
         let row = WireProfileRow {
             type_name: type_name.clone(),
             support_row_id,
@@ -256,9 +245,7 @@ impl SchemaRegistryBuilder {
     /// Freeze into an immutable registry.
     pub fn freeze(self) -> Result<SchemaRegistry, SchemaError> {
         if self.descriptors.is_empty() {
-            return Err(SchemaError::schema_input_invalid(
-                "cannot freeze an empty descriptor set",
-            ));
+            return Err(SchemaError::schema_input_invalid("cannot freeze an empty descriptor set"));
         }
         Ok(SchemaRegistry {
             descriptors: self.descriptors,
@@ -320,10 +307,8 @@ impl SchemaRegistry {
         key.validate()?;
         validate_support_row_id(support_row_id)?;
 
-        let identity = self
-            .identities
-            .get(&(key.scheme.clone(), key.value.clone()))
-            .ok_or_else(|| {
+        let identity =
+            self.identities.get(&(key.scheme.clone(), key.value.clone())).ok_or_else(|| {
                 SchemaError::schema_unavailable(format!(
                     "no identity for {}:{}",
                     key.scheme, key.value
@@ -337,15 +322,12 @@ impl SchemaRegistry {
                 "SchemaKey fields do not match registered identity material",
             ));
         }
-        let descriptor = self
-            .descriptors
-            .get(&identity.descriptor_id)
-            .ok_or_else(|| {
-                SchemaError::schema_unavailable(format!(
-                    "descriptor `{}` missing",
-                    identity.descriptor_id
-                ))
-            })?;
+        let descriptor = self.descriptors.get(&identity.descriptor_id).ok_or_else(|| {
+            SchemaError::schema_unavailable(format!(
+                "descriptor `{}` missing",
+                identity.descriptor_id
+            ))
+        })?;
         if descriptor.type_name != key.type_name {
             return Err(SchemaError::schema_unavailable(
                 "descriptor type_name does not match SchemaKey",
@@ -353,11 +335,7 @@ impl SchemaRegistry {
         }
         let profile = self
             .wire_profiles
-            .get(&(
-                key.type_name.clone(),
-                support_row_id.to_owned(),
-                cdr_representation.as_u16(),
-            ))
+            .get(&(key.type_name.clone(), support_row_id.to_owned(), cdr_representation.as_u16()))
             .ok_or_else(|| {
                 SchemaError::schema_unavailable(format!(
                     "no wire profile for {} / {} / 0x{:04x}",
@@ -386,9 +364,7 @@ impl SchemaRegistry {
                 return Ok(row.key.value.as_str());
             }
         }
-        Err(SchemaError::schema_unavailable(format!(
-            "no {scheme} identity for `{type_name}`"
-        )))
+        Err(SchemaError::schema_unavailable(format!("no {scheme} identity for `{type_name}`")))
     }
 
     /// Whether `type_name` is one of the nine Phase 1 registry roots.
@@ -400,9 +376,7 @@ impl SchemaRegistry {
     /// Provenance row for a RIHS value, if present.
     #[must_use]
     pub fn provenance_for_rihs(&self, rihs: &str) -> Option<(&str, &str)> {
-        self.provenance
-            .get(rihs)
-            .map(|p| (p.bundle_sha256.as_str(), p.type_name.as_str()))
+        self.provenance.get(rihs).map(|p| (p.bundle_sha256.as_str(), p.type_name.as_str()))
     }
 }
 
@@ -594,16 +568,8 @@ pub fn lookup_phase1_root_for_open(
     } else {
         SCHEME_MOONSPAN_SCHEMA_V1
     };
-    let value = registry
-        .identity_value_for_type(type_name, scheme)?
-        .to_owned();
-    let key = SchemaKey::new(
-        scheme,
-        value,
-        type_name,
-        ENCODING_CDR1,
-        PHASE1_SCHEMA_GENERATION,
-    )?;
+    let value = registry.identity_value_for_type(type_name, scheme)?.to_owned();
+    let key = SchemaKey::new(scheme, value, type_name, ENCODING_CDR1, PHASE1_SCHEMA_GENERATION)?;
     let result = registry.lookup(&key, support_row_id, cdr_representation)?;
     Ok(Some((result, key)))
 }

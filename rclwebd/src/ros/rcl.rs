@@ -47,12 +47,7 @@ fn drain_error_string() -> String {
     // SAFETY: plain value returns; reset clears thread-local error state.
     let raw = unsafe { b::rcutils_get_error_string() };
     unsafe { b::rcutils_reset_error() };
-    let bytes: Vec<u8> = raw
-        .str_
-        .iter()
-        .take_while(|c| **c != 0)
-        .map(|c| *c as u8)
-        .collect();
+    let bytes: Vec<u8> = raw.str_.iter().take_while(|c| **c != 0).map(|c| *c as u8).collect();
     String::from_utf8_lossy(&bytes).into_owned()
 }
 
@@ -60,10 +55,7 @@ fn check(ret: b::rcl_ret_t, operation: &str) -> Result<(), RclError> {
     if ret == RCL_OK {
         Ok(())
     } else {
-        Err(RclError {
-            ret,
-            message: format!("{operation}: {}", drain_error_string()),
-        })
+        Err(RclError { ret, message: format!("{operation}: {}", drain_error_string()) })
     }
 }
 
@@ -71,10 +63,7 @@ fn check_rmw(ret: b::rmw_ret_t, operation: &str) -> Result<(), RclError> {
     if ret == RMW_OK {
         Ok(())
     } else {
-        Err(RclError {
-            ret,
-            message: format!("{operation}: {}", drain_error_string()),
-        })
+        Err(RclError { ret, message: format!("{operation}: {}", drain_error_string()) })
     }
 }
 
@@ -119,10 +108,7 @@ pub fn allocate_message(ts: MessageTypeSupport) -> Result<*mut c_void, RclError>
     // SAFETY: create is the rosidl generator hook for this message type.
     let ptr = unsafe { (ts.create)() };
     if ptr.is_null() {
-        return Err(RclError {
-            ret: -1,
-            message: "message create returned null".to_owned(),
-        });
+        return Err(RclError { ret: -1, message: "message create returned null".to_owned() });
     }
     Ok(ptr)
 }
@@ -149,10 +135,7 @@ pub fn deserialize_into(
             buffer_capacity: cdr.len(),
             allocator: allocator(),
         };
-        check_rmw(
-            b::rmw_deserialize(&serialized, ts.handle, msg),
-            "rmw_deserialize",
-        )
+        check_rmw(b::rmw_deserialize(&serialized, ts.handle, msg), "rmw_deserialize")
     }
 }
 
@@ -161,10 +144,7 @@ pub fn serialize_message(ts: MessageTypeSupport, msg: *const c_void) -> Result<V
     let mut scratch = TakeBuffer::new()?;
     // SAFETY: scratch owns a valid uint8 array; msg is a live ROS message.
     unsafe {
-        check_rmw(
-            b::rmw_serialize(msg, ts.handle, &mut scratch.array),
-            "rmw_serialize",
-        )?;
+        check_rmw(b::rmw_serialize(msg, ts.handle, &mut scratch.array), "rmw_serialize")?;
     }
     Ok(scratch.as_slice().to_vec())
 }
@@ -285,10 +265,7 @@ fn names_and_types(
     unsafe {
         let mut names_and_types = b::rmw_get_zero_initialized_names_and_types();
         let mut alloc = allocator();
-        check(
-            query(node, &mut alloc, no_demangle, &mut names_and_types),
-            operation,
-        )?;
+        check(query(node, &mut alloc, no_demangle, &mut names_and_types), operation)?;
         let mut out = Vec::with_capacity(names_and_types.names.size);
         for i in 0..names_and_types.names.size {
             let name_ptr = *names_and_types.names.data.add(i);
@@ -318,10 +295,8 @@ impl SerializedPublisher {
         type_support: *const b::rosidl_message_type_support_t,
         qos: &EffectiveQos,
     ) -> Result<Self, RclError> {
-        let topic_c = CString::new(topic).map_err(|_| RclError {
-            ret: -1,
-            message: "topic name contains NUL".to_owned(),
-        })?;
+        let topic_c = CString::new(topic)
+            .map_err(|_| RclError { ret: -1, message: "topic name contains NUL".to_owned() })?;
         // SAFETY: documented publisher init sequence; options embed the QoS
         // profile by value.
         unsafe {
@@ -384,10 +359,8 @@ impl SerializedSubscription {
         type_support: *const b::rosidl_message_type_support_t,
         qos: &EffectiveQos,
     ) -> Result<Self, RclError> {
-        let topic_c = CString::new(topic).map_err(|_| RclError {
-            ret: -1,
-            message: "topic name contains NUL".to_owned(),
-        })?;
+        let topic_c = CString::new(topic)
+            .map_err(|_| RclError { ret: -1, message: "topic name contains NUL".to_owned() })?;
         // SAFETY: documented subscription init sequence.
         unsafe {
             let mut subscription = Box::new(b::rcl_get_zero_initialized_subscription());
@@ -453,10 +426,8 @@ impl SerializedClient {
         type_support: ServiceTypeSupport,
         qos: &EffectiveQos,
     ) -> Result<Self, RclError> {
-        let name_c = CString::new(service_name).map_err(|_| RclError {
-            ret: -1,
-            message: "service name contains NUL".to_owned(),
-        })?;
+        let name_c = CString::new(service_name)
+            .map_err(|_| RclError { ret: -1, message: "service name contains NUL".to_owned() })?;
         // SAFETY: documented client init sequence.
         unsafe {
             let mut client = Box::new(b::rcl_get_zero_initialized_client());
@@ -526,10 +497,7 @@ impl SerializedClient {
                     guard,
                     remaining.as_nanos() as i64,
                 )?;
-                let mut header = b::rmw_request_id_t {
-                    writer_guid: [0; 16],
-                    sequence_number: 0,
-                };
+                let mut header = b::rmw_request_id_t { writer_guid: [0; 16], sequence_number: 0 };
                 let ret =
                     unsafe { b::rcl_take_response(self.client.as_ref(), &mut header, response) };
                 if ret == RCL_CLIENT_TAKE_FAILED {
@@ -589,10 +557,8 @@ impl SerializedService {
         type_support: ServiceTypeSupport,
         qos: &EffectiveQos,
     ) -> Result<Self, RclError> {
-        let name_c = CString::new(service_name).map_err(|_| RclError {
-            ret: -1,
-            message: "service name contains NUL".to_owned(),
-        })?;
+        let name_c = CString::new(service_name)
+            .map_err(|_| RclError { ret: -1, message: "service name contains NUL".to_owned() })?;
         // SAFETY: documented service init sequence.
         unsafe {
             let mut service = Box::new(b::rcl_get_zero_initialized_service());
@@ -622,10 +588,7 @@ impl SerializedService {
         request_ts: MessageTypeSupport,
     ) -> Result<Option<(b::rmw_request_id_t, Vec<u8>)>, RclError> {
         let request = allocate_message(request_ts)?;
-        let mut header = b::rmw_request_id_t {
-            writer_guid: [0; 16],
-            sequence_number: 0,
-        };
+        let mut header = b::rmw_request_id_t { writer_guid: [0; 16], sequence_number: 0 };
         let ret = unsafe { b::rcl_take_request(self.service.as_ref(), &mut header, request) };
         if ret == RCL_SERVICE_TAKE_FAILED {
             unsafe { b::rcutils_reset_error() };
@@ -684,10 +647,8 @@ impl ActionClient {
         type_support: ActionTypeSupport,
         qos: &EffectiveQos,
     ) -> Result<Self, RclError> {
-        let name_c = CString::new(action_name).map_err(|_| RclError {
-            ret: -1,
-            message: "action name contains NUL".to_owned(),
-        })?;
+        let name_c = CString::new(action_name)
+            .map_err(|_| RclError { ret: -1, message: "action name contains NUL".to_owned() })?;
         // SAFETY: documented action client init sequence.
         unsafe {
             let mut client = Box::new(b::rcl_action_get_zero_initialized_client());
@@ -881,10 +842,7 @@ impl ActionClient {
             }
             let slice = remaining.min(Duration::from_millis(50));
             let _ = self.wait_action_ready(context, guard, slice)?;
-            let mut header = b::rmw_request_id_t {
-                writer_guid: [0; 16],
-                sequence_number: 0,
-            };
+            let mut header = b::rmw_request_id_t { writer_guid: [0; 16], sequence_number: 0 };
             let ret = unsafe {
                 b::rcl_action_take_goal_response(self.client.as_ref(), &mut header, response)
             };
@@ -919,10 +877,7 @@ impl ActionClient {
             }
             let slice = remaining.min(Duration::from_millis(50));
             let _ = self.wait_action_ready(context, guard, slice)?;
-            let mut header = b::rmw_request_id_t {
-                writer_guid: [0; 16],
-                sequence_number: 0,
-            };
+            let mut header = b::rmw_request_id_t { writer_guid: [0; 16], sequence_number: 0 };
             let ret = unsafe {
                 b::rcl_action_take_result_response(self.client.as_ref(), &mut header, response)
             };
@@ -953,10 +908,7 @@ impl ActionClient {
             }
             let slice = remaining.min(Duration::from_millis(50));
             let _ = self.wait_action_ready(context, guard, slice)?;
-            let mut header = b::rmw_request_id_t {
-                writer_guid: [0; 16],
-                sequence_number: 0,
-            };
+            let mut header = b::rmw_request_id_t { writer_guid: [0; 16], sequence_number: 0 };
             let ret = unsafe {
                 b::rcl_action_take_cancel_response(self.client.as_ref(), &mut header, response)
             };
@@ -1020,10 +972,8 @@ impl ActionServer {
         type_support: ActionTypeSupport,
         qos: &EffectiveQos,
     ) -> Result<Self, RclError> {
-        let name_c = CString::new(action_name).map_err(|_| RclError {
-            ret: -1,
-            message: "action name contains NUL".to_owned(),
-        })?;
+        let name_c = CString::new(action_name)
+            .map_err(|_| RclError { ret: -1, message: "action name contains NUL".to_owned() })?;
         // SAFETY: clock then server init; clock outlives the server in this struct.
         unsafe {
             let mut clock = Box::new(std::mem::zeroed::<b::rcl_clock_t>());
@@ -1068,10 +1018,7 @@ impl ActionServer {
         action_ts: &ActionTypeSupport,
     ) -> Result<Option<(b::rmw_request_id_t, [u8; 16], Vec<u8>)>, RclError> {
         let request = allocate_message(action_ts.send_goal_request)?;
-        let mut header = b::rmw_request_id_t {
-            writer_guid: [0; 16],
-            sequence_number: 0,
-        };
+        let mut header = b::rmw_request_id_t { writer_guid: [0; 16], sequence_number: 0 };
         let ret =
             unsafe { b::rcl_action_take_goal_request(self.server.as_ref(), &mut header, request) };
         if ret == RCL_ACTION_SERVER_TAKE_FAILED {
@@ -1125,10 +1072,7 @@ impl ActionServer {
         action_ts: &ActionTypeSupport,
     ) -> Result<Option<(b::rmw_request_id_t, [u8; 16])>, RclError> {
         let request = allocate_message(action_ts.get_result_request)?;
-        let mut header = b::rmw_request_id_t {
-            writer_guid: [0; 16],
-            sequence_number: 0,
-        };
+        let mut header = b::rmw_request_id_t { writer_guid: [0; 16], sequence_number: 0 };
         let ret = unsafe {
             b::rcl_action_take_result_request(self.server.as_ref(), &mut header, request)
         };
@@ -1237,10 +1181,7 @@ impl ActionServer {
         action_ts: &ActionTypeSupport,
     ) -> Result<Option<(b::rmw_request_id_t, [u8; 16], Vec<u8>)>, RclError> {
         let request = allocate_message(action_ts.cancel_request)?;
-        let mut header = b::rmw_request_id_t {
-            writer_guid: [0; 16],
-            sequence_number: 0,
-        };
+        let mut header = b::rmw_request_id_t { writer_guid: [0; 16], sequence_number: 0 };
         let ret = unsafe {
             b::rcl_action_take_cancel_request(self.server.as_ref(), &mut header, request)
         };
@@ -1380,19 +1321,13 @@ impl GuardCondition {
                 "rcl_guard_condition_init",
             )?;
             let ptr = Box::into_raw(guard);
-            Ok(Self {
-                guard: Arc::new(GuardCell {
-                    ptr: Mutex::new(Some(GuardPtr(ptr))),
-                }),
-            })
+            Ok(Self { guard: Arc::new(GuardCell { ptr: Mutex::new(Some(GuardPtr(ptr))) }) })
         }
     }
 
     #[must_use]
     pub fn trigger_handle(&self) -> GuardTrigger {
-        GuardTrigger {
-            guard: Arc::clone(&self.guard),
-        }
+        GuardTrigger { guard: Arc::clone(&self.guard) }
     }
 
     pub fn raw(&self) -> *const b::rcl_guard_condition_t {
@@ -1491,16 +1426,10 @@ impl WaitSet {
             subscriptions.len() <= self.subscription_capacity,
             "subscription wait set overflow"
         );
-        assert!(
-            services.len() <= self.service_capacity,
-            "service wait set overflow"
-        );
+        assert!(services.len() <= self.service_capacity, "service wait set overflow");
         // SAFETY: standard clear/add/wait cycle.
         unsafe {
-            check(
-                b::rcl_wait_set_clear(self.wait_set.as_mut()),
-                "rcl_wait_set_clear",
-            )?;
+            check(b::rcl_wait_set_clear(self.wait_set.as_mut()), "rcl_wait_set_clear")?;
             for subscription in subscriptions {
                 check(
                     b::rcl_wait_set_add_subscription(
@@ -1551,10 +1480,7 @@ impl WaitSet {
         timeout_ns: i64,
     ) -> Result<(), RclError> {
         unsafe {
-            check(
-                b::rcl_wait_set_clear(self.wait_set.as_mut()),
-                "rcl_wait_set_clear",
-            )?;
+            check(b::rcl_wait_set_clear(self.wait_set.as_mut()), "rcl_wait_set_clear")?;
             check(
                 b::rcl_wait_set_add_client(self.wait_set.as_mut(), client, std::ptr::null_mut()),
                 "rcl_wait_set_add_client",
@@ -1587,15 +1513,9 @@ impl WaitSet {
         guard: &GuardCondition,
         timeout_ns: i64,
     ) -> Result<Vec<usize>, RclError> {
-        assert!(
-            clients.len() <= self.client_capacity,
-            "client wait set overflow"
-        );
+        assert!(clients.len() <= self.client_capacity, "client wait set overflow");
         unsafe {
-            check(
-                b::rcl_wait_set_clear(self.wait_set.as_mut()),
-                "rcl_wait_set_clear",
-            )?;
+            check(b::rcl_wait_set_clear(self.wait_set.as_mut()), "rcl_wait_set_clear")?;
             for client in clients {
                 check(
                     b::rcl_wait_set_add_client(
@@ -1631,10 +1551,7 @@ impl WaitSet {
         timeout_ns: i64,
     ) -> Result<bool, RclError> {
         unsafe {
-            check(
-                b::rcl_wait_set_clear(self.wait_set.as_mut()),
-                "rcl_wait_set_clear",
-            )?;
+            check(b::rcl_wait_set_clear(self.wait_set.as_mut()), "rcl_wait_set_clear")?;
             let mut client_index = 0;
             let mut subscription_index = 0;
             check(

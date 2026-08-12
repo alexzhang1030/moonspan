@@ -26,13 +26,7 @@ pub fn decode_collections(r: &mut CdrReader<'_>, _n: CdrNesting) -> Result<Colle
     let bytes_value = r.read_byte_sequence(None)?.to_vec();
     let bounded_string = r.read_string(Some(16))?;
     let bounded_wstring = r.read_wstring(Some(16))?;
-    Ok(Collections {
-        fixed_i32,
-        bounded_f64,
-        bytes_value,
-        bounded_string,
-        bounded_wstring,
-    })
+    Ok(Collections { fixed_i32, bounded_f64, bytes_value, bounded_string, bounded_wstring })
 }
 
 pub fn encode_collections(

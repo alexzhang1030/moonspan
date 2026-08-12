@@ -49,9 +49,7 @@ impl Session {
     /// a ServerHello.
     #[must_use]
     pub fn new(role: Role) -> Self {
-        Self {
-            inner: SessionState::new(role),
-        }
+        Self { inner: SessionState::new(role) }
     }
 
     #[must_use]

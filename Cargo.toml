@@ -7,6 +7,40 @@ version = "0.0.0"
 edition = "2024"
 rust-version = "1.97.1"
 
+[workspace.dependencies]
+axum = { version = "0.8.9", features = ["ws"] }
+base64 = "0.22"
+bytes = "1.12.1"
+futures-util = { version = "0.3.34", default-features = false }
+jsonwebtoken = "9"
+libloading = "0.8"
+rcgen = "0.14"
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+sha2 = "0.10"
+time = { version = "0.3", features = ["formatting"] }
+tokio = { version = "1.53.1" }
+tokio-tungstenite = "0.30.0"
+wtransport = { version = "0.7", default-features = true }
+
+[workspace.lints.rust]
+# deny, not forbid: host poll ABI and rcl FFI modules must `allow(unsafe_code)`.
+unsafe_code = "deny"
+warnings = "deny"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+cargo = { level = "deny", priority = -1 }
+# Direct sha2 0.10 plus a 0.11 transitive (jsonwebtoken/rcgen family). Unifying
+# them is a dependency bump, not a lint-policy change.
+multiple_crate_versions = "allow"
+
+# Native binaries. `release-wasm` inherits this then overrides LTO to fat (R-D1).
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+
 # Fat LTO ship profile for the wasm artifact (R-D1 reopen inputs).
 [profile.release-wasm]
 inherits = "release"

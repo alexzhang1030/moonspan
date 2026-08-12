@@ -28,7 +28,7 @@ pub fn maybe_spawn<B: RosBackend>(
     }
     let Some(tls) = tls else {
         return Err(
-            "offer_webtransport requires local_dev_tls_enabled (or future PKI material)".to_owned(),
+            "offer_webtransport requires local_dev_tls_enabled (or future PKI material)".to_owned()
         );
     };
     spawn_inner(config, backend, tls)
@@ -82,13 +82,10 @@ async fn serve_webtransport<B: RosBackend>(
         PrivateKey::from_der_pkcs8(key_der),
     );
 
-    let addr: SocketAddr = bind
-        .parse()
-        .map_err(|e| format!("invalid webtransport_bind {bind:?}: {e}"))?;
-    let server_config = ServerConfig::builder()
-        .with_bind_address(addr)
-        .with_identity(identity)
-        .build();
+    let addr: SocketAddr =
+        bind.parse().map_err(|e| format!("invalid webtransport_bind {bind:?}: {e}"))?;
+    let server_config =
+        ServerConfig::builder().with_bind_address(addr).with_identity(identity).build();
     let endpoint = Endpoint::server(server_config).map_err(|e| e.to_string())?;
     eprintln!(
         "rclwebd webtransport listening on https://{}/ (UDP, local-dev TLS)",
@@ -157,37 +154,25 @@ impl crate::connection::Transport for LengthPrefixedBiTransport {
         // Cap at protocol message ceiling + framing headroom.
         const MAX: usize = 67_108_864 + 4096;
         if len > MAX {
-            return Some(Err(TransportError {
-                reason: "wt_frame_too_large".to_owned(),
-            }));
+            return Some(Err(TransportError { reason: "wt_frame_too_large".to_owned() }));
         }
         let mut buf = vec![0u8; len];
         match self.recv.read_exact(&mut buf).await {
             Ok(()) => Some(Ok(Bytes::from(buf))),
-            Err(err) => Some(Err(TransportError {
-                reason: err.to_string(),
-            })),
+            Err(err) => Some(Err(TransportError { reason: err.to_string() })),
         }
     }
 
     async fn send(&mut self, bytes: bytes::Bytes) -> Result<(), crate::connection::TransportError> {
         use crate::connection::TransportError;
 
-        let len = u32::try_from(bytes.len()).map_err(|_| TransportError {
-            reason: "wt_frame_len_overflow".to_owned(),
-        })?;
+        let len = u32::try_from(bytes.len())
+            .map_err(|_| TransportError { reason: "wt_frame_len_overflow".to_owned() })?;
         self.send
             .write_all(&len.to_be_bytes())
             .await
-            .map_err(|e| TransportError {
-                reason: e.to_string(),
-            })?;
-        self.send
-            .write_all(&bytes)
-            .await
-            .map_err(|e| TransportError {
-                reason: e.to_string(),
-            })
+            .map_err(|e| TransportError { reason: e.to_string() })?;
+        self.send.write_all(&bytes).await.map_err(|e| TransportError { reason: e.to_string() })
     }
 
     async fn close(&mut self) {

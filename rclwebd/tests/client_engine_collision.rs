@@ -31,9 +31,7 @@ where
         // Flush outbound first.
         let outcome = engine.poll(vec![]);
         for msg in outcome.outbound {
-            ws.send(Message::Binary(bytes::Bytes::from(msg.bytes)))
-                .await
-                .expect("ws send");
+            ws.send(Message::Binary(bytes::Bytes::from(msg.bytes))).await.expect("ws send");
         }
         for event in &outcome.events {
             if pred(event) {
@@ -53,14 +51,9 @@ where
         let Message::Binary(bin) = msg else {
             continue;
         };
-        let outcome = engine.poll(vec![HostEvent::WsBytes {
-            buffer_id: 0,
-            bytes: bin.to_vec(),
-        }]);
+        let outcome = engine.poll(vec![HostEvent::WsBytes { buffer_id: 0, bytes: bin.to_vec() }]);
         for msg in outcome.outbound {
-            ws.send(Message::Binary(bytes::Bytes::from(msg.bytes)))
-                .await
-                .expect("ws send");
+            ws.send(Message::Binary(bytes::Bytes::from(msg.bytes))).await.expect("ws send");
         }
         for event in &outcome.events {
             if pred(event) {
@@ -79,9 +72,8 @@ async fn client_engine_collides_with_gateway_subscribe_path() {
     use tokio_tungstenite::tungstenite::Message;
 
     let (addr, backend) = start_gateway().await;
-    let (mut ws, _) = tokio_tungstenite::connect_async(format!("ws://{addr}/ws"))
-        .await
-        .expect("connect");
+    let (mut ws, _) =
+        tokio_tungstenite::connect_async(format!("ws://{addr}/ws")).await.expect("connect");
 
     let mut engine = ClientEngine::new();
     let start = engine.poll(vec![HostEvent::Command(AppCommand::Start {
@@ -89,21 +81,12 @@ async fn client_engine_collides_with_gateway_subscribe_path() {
         webtransport: false,
     })]);
     for msg in start.outbound {
-        ws.send(Message::Binary(bytes::Bytes::from(msg.bytes)))
-            .await
-            .expect("send hello");
+        ws.send(Message::Binary(bytes::Bytes::from(msg.bytes))).await.expect("send hello");
     }
 
-    let boot = pump_until(&mut engine, &mut ws, |e| {
-        matches!(e, AppEvent::BootstrapComplete { .. })
-    })
-    .await;
-    assert!(matches!(
-        boot,
-        AppEvent::BootstrapComplete {
-            selected_wire_version: 0
-        }
-    ));
+    let boot =
+        pump_until(&mut engine, &mut ws, |e| matches!(e, AppEvent::BootstrapComplete { .. })).await;
+    assert!(matches!(boot, AppEvent::BootstrapComplete { selected_wire_version: 0 }));
 
     let auth_corr = corr(0xA1);
     let auth = engine.poll(vec![HostEvent::Command(AppCommand::Authenticate {
@@ -112,21 +95,12 @@ async fn client_engine_collides_with_gateway_subscribe_path() {
         token: b"anonymous".to_vec(),
     })]);
     for msg in auth.outbound {
-        ws.send(Message::Binary(bytes::Bytes::from(msg.bytes)))
-            .await
-            .expect("send auth");
+        ws.send(Message::Binary(bytes::Bytes::from(msg.bytes))).await.expect("send auth");
     }
 
-    let ready = pump_until(&mut engine, &mut ws, |e| {
-        matches!(e, AppEvent::SessionReady { .. })
-    })
-    .await;
-    let AppEvent::SessionReady {
-        support_row,
-        gateway_instance_id,
-        ..
-    } = ready
-    else {
+    let ready =
+        pump_until(&mut engine, &mut ws, |e| matches!(e, AppEvent::SessionReady { .. })).await;
+    let AppEvent::SessionReady { support_row, gateway_instance_id, .. } = ready else {
         panic!("expected SessionReady");
     };
     assert_eq!(support_row, "J-FT");
@@ -143,9 +117,7 @@ async fn client_engine_collides_with_gateway_subscribe_path() {
         domain_id: 0,
     })]);
     for msg in sub.outbound {
-        ws.send(Message::Binary(bytes::Bytes::from(msg.bytes)))
-            .await
-            .expect("send open");
+        ws.send(Message::Binary(bytes::Bytes::from(msg.bytes))).await.expect("send open");
     }
 
     let subscribed = pump_until(&mut engine, &mut ws, |e| {
@@ -164,16 +136,10 @@ async fn client_engine_collides_with_gateway_subscribe_path() {
     let payload = ClientEngine::encode_std_msgs_string("collision-ok").unwrap();
     assert!(backend.emit(1, &payload));
 
-    let sample = pump_until(&mut engine, &mut ws, |e| {
-        matches!(e, AppEvent::Sample { channel_id: 7, .. })
-    })
-    .await;
-    let AppEvent::Sample {
-        string_data,
-        lease_id,
-        ..
-    } = sample
-    else {
+    let sample =
+        pump_until(&mut engine, &mut ws, |e| matches!(e, AppEvent::Sample { channel_id: 7, .. }))
+            .await;
+    let AppEvent::Sample { string_data, lease_id, .. } = sample else {
         panic!("expected sample");
     };
     assert_eq!(string_data.as_deref(), Some("collision-ok"));
@@ -198,9 +164,8 @@ async fn client_engine_collides_with_gateway_publish_path() {
     use tokio_tungstenite::tungstenite::Message;
 
     let (addr, backend) = start_gateway().await;
-    let (mut ws, _) = tokio_tungstenite::connect_async(format!("ws://{addr}/ws"))
-        .await
-        .expect("connect");
+    let (mut ws, _) =
+        tokio_tungstenite::connect_async(format!("ws://{addr}/ws")).await.expect("connect");
 
     let mut engine = ClientEngine::new();
     let start = engine.poll(vec![HostEvent::Command(AppCommand::Start {
@@ -208,15 +173,11 @@ async fn client_engine_collides_with_gateway_publish_path() {
         webtransport: false,
     })]);
     for msg in start.outbound {
-        ws.send(Message::Binary(bytes::Bytes::from(msg.bytes)))
-            .await
-            .expect("send hello");
+        ws.send(Message::Binary(bytes::Bytes::from(msg.bytes))).await.expect("send hello");
     }
 
-    let _ = pump_until(&mut engine, &mut ws, |e| {
-        matches!(e, AppEvent::BootstrapComplete { .. })
-    })
-    .await;
+    let _ =
+        pump_until(&mut engine, &mut ws, |e| matches!(e, AppEvent::BootstrapComplete { .. })).await;
 
     let auth_corr = corr(0xA1);
     let auth = engine.poll(vec![HostEvent::Command(AppCommand::Authenticate {
@@ -225,14 +186,9 @@ async fn client_engine_collides_with_gateway_publish_path() {
         token: b"anonymous".to_vec(),
     })]);
     for msg in auth.outbound {
-        ws.send(Message::Binary(bytes::Bytes::from(msg.bytes)))
-            .await
-            .expect("send auth");
+        ws.send(Message::Binary(bytes::Bytes::from(msg.bytes))).await.expect("send auth");
     }
-    let _ = pump_until(&mut engine, &mut ws, |e| {
-        matches!(e, AppEvent::SessionReady { .. })
-    })
-    .await;
+    let _ = pump_until(&mut engine, &mut ws, |e| matches!(e, AppEvent::SessionReady { .. })).await;
 
     let pub_corr = corr(0xD4);
     let opened = engine.poll(vec![HostEvent::Command(AppCommand::Publish {
@@ -245,9 +201,7 @@ async fn client_engine_collides_with_gateway_publish_path() {
         domain_id: 0,
     })]);
     for msg in opened.outbound {
-        ws.send(Message::Binary(bytes::Bytes::from(msg.bytes)))
-            .await
-            .expect("send open publish");
+        ws.send(Message::Binary(bytes::Bytes::from(msg.bytes))).await.expect("send open publish");
     }
     let published = pump_until(&mut engine, &mut ws, |e| {
         matches!(e, AppEvent::Published { channel_id: 9, .. })
@@ -268,9 +222,7 @@ async fn client_engine_collides_with_gateway_publish_path() {
     })]);
     assert_eq!(sent.outbound.len(), 1);
     for msg in sent.outbound {
-        ws.send(Message::Binary(bytes::Bytes::from(msg.bytes)))
-            .await
-            .expect("send sample");
+        ws.send(Message::Binary(bytes::Bytes::from(msg.bytes))).await.expect("send sample");
     }
 
     let expected = ClientEngine::encode_std_msgs_string("from-engine").unwrap();
@@ -278,10 +230,7 @@ async fn client_engine_collides_with_gateway_publish_path() {
         loop {
             {
                 let published_payloads = backend.published.lock().unwrap();
-                if published_payloads
-                    .iter()
-                    .any(|(_, payload)| payload == &expected)
-                {
+                if published_payloads.iter().any(|(_, payload)| payload == &expected) {
                     return;
                 }
             }

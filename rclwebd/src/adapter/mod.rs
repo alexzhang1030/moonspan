@@ -64,28 +64,18 @@ pub struct AdapterBuffer {
 impl AdapterBuffer {
     #[must_use]
     pub fn from_rust(bytes: Vec<u8>) -> Self {
-        Self {
-            data: bytes,
-            owner: BufferOwner::Rust,
-        }
+        Self { data: bytes, owner: BufferOwner::Rust }
     }
 
     #[must_use]
     pub fn from_adapter(bytes: Vec<u8>) -> Self {
-        Self {
-            data: bytes,
-            owner: BufferOwner::Adapter,
-        }
+        Self { data: bytes, owner: BufferOwner::Adapter }
     }
 
     /// Release returns the bytes only when `owner` matches; otherwise drops.
     #[must_use]
     pub fn release(self, expected: BufferOwner) -> Option<Vec<u8>> {
-        if self.owner == expected {
-            Some(self.data)
-        } else {
-            None
-        }
+        if self.owner == expected { Some(self.data) } else { None }
     }
 }
 
@@ -167,10 +157,7 @@ mod tests {
         let probe = AdapterProbe::for_row("J-FT", "jazzy", "rmw_fastrtps_cpp");
         assert_eq!(probe.abi_version, ABI_VERSION_STRING);
         assert!(probe.check_compatible("J-FT", "jazzy").is_ok());
-        assert_eq!(
-            probe.check_compatible("H-FT", "jazzy"),
-            Err(AdapterStatus::ProfileMismatch)
-        );
+        assert_eq!(probe.check_compatible("H-FT", "jazzy"), Err(AdapterStatus::ProfileMismatch));
     }
 
     #[test]

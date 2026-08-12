@@ -29,14 +29,7 @@ impl ProtocolError {
         plane: &'static str,
         step: u8,
     ) -> Self {
-        Self {
-            code,
-            name,
-            reason,
-            offset,
-            plane,
-            step,
-        }
+        Self { code, name, reason, offset, plane, step }
     }
 
     #[must_use]

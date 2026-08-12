@@ -135,11 +135,7 @@ fn decode_header(reader: &mut CdrReader<'_>, parent: CdrNesting) -> Result<Heade
     let stamp_sec = reader.read_i32()?;
     let stamp_nanosec = reader.read_u32()?;
     let frame_id = reader.read_string(None)?;
-    Ok(Header {
-        stamp_sec,
-        stamp_nanosec,
-        frame_id,
-    })
+    Ok(Header { stamp_sec, stamp_nanosec, frame_id })
 }
 
 fn encode_header(
@@ -190,11 +186,7 @@ pub fn build_synthetic_xyz_cdr(point_count: u32) -> Result<Vec<u8>, CdrError> {
         data[base + 8..base + 12].copy_from_slice(&z.to_le_bytes());
     }
     let view = PointCloud2View {
-        header: Header {
-            stamp_sec: 1,
-            stamp_nanosec: 2,
-            frame_id: "map".into(),
-        },
+        header: Header { stamp_sec: 1, stamp_nanosec: 2, frame_id: "map".into() },
         height: 1,
         width: point_count,
         fields: vec![
@@ -204,18 +196,8 @@ pub fn build_synthetic_xyz_cdr(point_count: u32) -> Result<Vec<u8>, CdrError> {
                 datatype: 7, // FLOAT32
                 count: 1,
             },
-            PointField {
-                name: "y".into(),
-                offset: 4,
-                datatype: 7,
-                count: 1,
-            },
-            PointField {
-                name: "z".into(),
-                offset: 8,
-                datatype: 7,
-                count: 1,
-            },
+            PointField { name: "y".into(), offset: 4, datatype: 7, count: 1 },
+            PointField { name: "z".into(), offset: 8, datatype: 7, count: 1 },
         ],
         is_bigendian: false,
         point_step,

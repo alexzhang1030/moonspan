@@ -69,13 +69,7 @@ pub struct SchemaError {
 impl SchemaError {
     #[must_use]
     pub fn new(code: SchemaErrorCode, message: impl Into<String>) -> Self {
-        Self {
-            code,
-            field: None,
-            message: message.into(),
-            needed: None,
-            remaining: None,
-        }
+        Self { code, field: None, message: message.into(), needed: None, remaining: None }
     }
 
     #[must_use]

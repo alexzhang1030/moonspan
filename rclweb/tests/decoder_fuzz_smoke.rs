@@ -13,10 +13,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 fn repo_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("workspace root")
-        .to_path_buf()
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().expect("workspace root").to_path_buf()
 }
 
 fn load_seeds(dir: &Path, limit: usize) -> Vec<Vec<u8>> {
@@ -138,11 +135,7 @@ fn fuzz_smoke_bootstrap_frame_cbor_cdr_no_panic() {
     seeds.push(b"R2WP".to_vec());
     seeds.push(vec![0; 32]);
 
-    assert!(
-        seeds.len() >= 20,
-        "expected a non-trivial seed corpus, got {}",
-        seeds.len()
-    );
+    assert!(seeds.len() >= 20, "expected a non-trivial seed corpus, got {}", seeds.len());
 
     const STRATEGIES: u32 = 8;
     const SALTS_PER_SEED: u32 = 16;

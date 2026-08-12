@@ -36,19 +36,11 @@ fn repo_root() -> PathBuf {
 fn sha256_hex(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
-    hasher
-        .finalize()
-        .iter()
-        .map(|b| format!("{b:02x}"))
-        .collect()
+    hasher.finalize().iter().map(|b| format!("{b:02x}")).collect()
 }
 
 fn parse_hex(hex: &str) -> Vec<u8> {
-    assert!(
-        hex.len().is_multiple_of(2),
-        "hex length must be even: {}",
-        hex.len()
-    );
+    assert!(hex.len().is_multiple_of(2), "hex length must be even: {}", hex.len());
     (0..hex.len())
         .step_by(2)
         .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).expect("hex byte"))
@@ -110,11 +102,7 @@ fn bigint_u64(v: &Value) -> u64 {
         return n;
     }
     if v.get("$type").and_then(|t| t.as_str()) == Some("bigint") {
-        return v["value"]
-            .as_str()
-            .expect("bigint.value")
-            .parse::<u64>()
-            .expect("bigint parse");
+        return v["value"].as_str().expect("bigint.value").parse::<u64>().expect("bigint parse");
     }
     panic!("expected u64 or bigint, got {v}");
 }
@@ -152,10 +140,7 @@ fn encode_bootstrap_from_source(source: &Value) -> Vec<u8> {
                     shared_arraybuffer: bc["sharedArraybuffer"].as_bool().unwrap(),
                 },
                 requested_limits: RequestedLimits {
-                    max_channels: rl
-                        .get("maxChannels")
-                        .and_then(|v| v.as_u64())
-                        .map(|n| n as u32),
+                    max_channels: rl.get("maxChannels").and_then(|v| v.as_u64()).map(|n| n as u32),
                     max_session_bytes: rl.get("maxSessionBytes").map(bigint_u64),
                     max_message_bytes: rl
                         .get("maxMessageBytes")
@@ -211,24 +196,14 @@ fn encode_bootstrap_from_source(source: &Value) -> Vec<u8> {
             // Manifest may use recipe-style max text; fall back to repeated chars.
             let message = message.or_else(|| {
                 source.get("messageRecipe").map(|r| {
-                    let ch = r["char"]
-                        .as_str()
-                        .unwrap_or("a")
-                        .chars()
-                        .next()
-                        .unwrap_or('a');
+                    let ch = r["char"].as_str().unwrap_or("a").chars().next().unwrap_or('a');
                     let len = r["length"].as_u64().unwrap_or(4096) as usize;
                     std::iter::repeat_n(ch, len).collect()
                 })
             });
             let detail = detail.or_else(|| {
                 source.get("detailRecipe").map(|r| {
-                    let ch = r["char"]
-                        .as_str()
-                        .unwrap_or("b")
-                        .chars()
-                        .next()
-                        .unwrap_or('b');
+                    let ch = r["char"].as_str().unwrap_or("b").chars().next().unwrap_or('b');
                     let len = r["length"].as_u64().unwrap_or(4096) as usize;
                     std::iter::repeat_n(ch, len).collect()
                 })
@@ -298,10 +273,9 @@ fn is_v0_1_coverage(coverage: &[Value]) -> bool {
         "truncated",
         "bad_magic",
     ];
-    coverage.iter().any(|c| {
-        c.as_str()
-            .is_some_and(|s| TAGS.iter().any(|t| s == *t || s.starts_with(t)))
-    })
+    coverage
+        .iter()
+        .any(|c| c.as_str().is_some_and(|s| TAGS.iter().any(|t| s == *t || s.starts_with(t))))
 }
 
 struct Stats {
@@ -325,20 +299,13 @@ fn process_manifest(
         .as_array_mut()
         .ok_or_else(|| format!("{manifest_rel}: fixtures array"))?;
 
-    let mut stats = Stats {
-        regenerated: 0,
-        checked_frozen: 0,
-        v0_1: 0,
-    };
+    let mut stats = Stats { regenerated: 0, checked_frozen: 0, v0_1: 0 };
     let mut bins_changed = false;
 
     for entry in fixtures.iter_mut() {
         let id = entry["id"].as_str().unwrap_or("?").to_owned();
-        let coverage: Vec<Value> = entry
-            .get("coverage")
-            .and_then(|c| c.as_array())
-            .cloned()
-            .unwrap_or_default();
+        let coverage: Vec<Value> =
+            entry.get("coverage").and_then(|c| c.as_array()).cloned().unwrap_or_default();
         if is_v0_1_coverage(&coverage) {
             stats.v0_1 += 1;
         }
@@ -350,12 +317,8 @@ fn process_manifest(
             continue;
         }
 
-        let source = entry
-            .get("source")
-            .ok_or_else(|| format!("{id}: missing source"))?;
-        let path = entry["path"]
-            .as_str()
-            .ok_or_else(|| format!("{id}: missing path"))?;
+        let source = entry.get("source").ok_or_else(|| format!("{id}: missing source"))?;
+        let path = entry["path"].as_str().ok_or_else(|| format!("{id}: missing path"))?;
         let abs = root.join("protocol/testdata").join(path);
 
         if let Some(bytes) = materialize_source(source) {
@@ -477,18 +440,14 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    let valid = match process_manifest(
-        &root,
-        "protocol/testdata/manifest.json",
-        write,
-        generated_by,
-    ) {
-        Ok(s) => s,
-        Err(e) => {
-            eprintln!("valid: {e}");
-            return ExitCode::FAILURE;
-        }
-    };
+    let valid =
+        match process_manifest(&root, "protocol/testdata/manifest.json", write, generated_by) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("valid: {e}");
+                return ExitCode::FAILURE;
+            }
+        };
 
     println!(
         "protocol-fixtures: mode={} malformed_regen={} valid_regen={} frozen_checked={} v0_1_tagged={}",

@@ -19,18 +19,11 @@ use std::borrow::Cow;
 use std::collections::BTreeMap;
 
 fn transport() -> TransportCapabilities {
-    TransportCapabilities {
-        webtransport_http3: false,
-        binary_wss: true,
-        max_datagram_size: None,
-    }
+    TransportCapabilities { webtransport_http3: false, binary_wss: true, max_datagram_size: None }
 }
 
 fn buffer() -> BufferCapabilities {
-    BufferCapabilities {
-        transferable_arraybuffer: true,
-        shared_arraybuffer: false,
-    }
+    BufferCapabilities { transferable_arraybuffer: true, shared_arraybuffer: false }
 }
 
 fn client_hello() -> BootstrapRecord {
@@ -111,10 +104,7 @@ fn open_channel(id: u32, kind: OperationKind, corr_byte: u8) -> DecodedFrame<'st
     let mut fields = BTreeMap::new();
     fields.insert(FIELD_CORRELATION_ID, corr(corr_byte));
     fields.insert(FIELD_CHANNEL_ID, CborValue::Unsigned(u64::from(id)));
-    fields.insert(
-        FIELD_OPERATION_KIND,
-        CborValue::Unsigned(u64::from(kind as u8)),
-    );
+    fields.insert(FIELD_OPERATION_KIND, CborValue::Unsigned(u64::from(kind as u8)));
     control_frame(CONTROL_KIND_OPEN_CHANNEL, fields)
 }
 
@@ -122,10 +112,7 @@ fn channel_ready(id: u32, result: ChannelResult, corr_byte: u8) -> DecodedFrame<
     let mut fields = BTreeMap::new();
     fields.insert(FIELD_CORRELATION_ID, corr(corr_byte));
     fields.insert(FIELD_CHANNEL_ID, CborValue::Unsigned(u64::from(id)));
-    fields.insert(
-        FIELD_CHANNEL_RESULT,
-        CborValue::Unsigned(u64::from(result as u8)),
-    );
+    fields.insert(FIELD_CHANNEL_RESULT, CborValue::Unsigned(u64::from(result as u8)));
     control_frame(CONTROL_KIND_CHANNEL_READY, fields)
 }
 
@@ -227,13 +214,10 @@ fn happy_path_client_topic_subscribe() {
     let mut c = Session::new(Role::Client);
     client_through_ready(&mut c);
 
-    c.record_send_frame(&open_channel(1, OperationKind::TopicSubscribe, 2))
-        .unwrap();
+    c.record_send_frame(&open_channel(1, OperationKind::TopicSubscribe, 2)).unwrap();
     assert_eq!(c.channel_state(1), ChannelState::Pending);
 
-    let fx = c
-        .ingest_frame(&channel_ready(1, ChannelResult::Allow, 2))
-        .unwrap();
+    let fx = c.ingest_frame(&channel_ready(1, ChannelResult::Allow, 2)).unwrap();
     assert!(fx.channel_correlation_matched);
     assert_eq!(c.channel_state(1), ChannelState::Active);
 
@@ -259,9 +243,7 @@ fn data_before_ready_session_not_ready() {
 fn open_channel_before_ready_session_not_ready() {
     let mut s = Session::new(Role::Server);
     server_through_hello(&mut s);
-    let err = s
-        .ingest_frame(&open_channel(1, OperationKind::TopicSubscribe, 1))
-        .unwrap_err();
+    let err = s.ingest_frame(&open_channel(1, OperationKind::TopicSubscribe, 1)).unwrap_err();
     assert_eq!(err.code, 27);
     assert_eq!(err.name, "session_not_ready");
 }
@@ -290,8 +272,7 @@ fn ros_sample_pending_protocol_violation_inactive_unknown_channel() {
     assert_eq!(err.name, "unknown_channel");
     assert_eq!(err.step, 20);
 
-    s.ingest_frame(&open_channel(1, OperationKind::TopicSubscribe, 2))
-        .unwrap();
+    s.ingest_frame(&open_channel(1, OperationKind::TopicSubscribe, 2)).unwrap();
     // Pending → protocol_violation step 19.
     let err = s.record_send_frame(&ros_sample(1)).unwrap_err();
     assert_eq!(err.code, 25);
@@ -299,17 +280,14 @@ fn ros_sample_pending_protocol_violation_inactive_unknown_channel() {
     assert_eq!(err.reason, "data_on_pending_channel");
 
     // Fail the channel.
-    s.record_send_frame(&channel_ready(1, ChannelResult::Deny, 2))
-        .unwrap();
+    s.record_send_frame(&channel_ready(1, ChannelResult::Deny, 2)).unwrap();
     assert_eq!(s.channel_state(1), ChannelState::Failed);
     let err = s.record_send_frame(&ros_sample(1)).unwrap_err();
     assert_eq!(err.code, 7);
 
     // Open another, activate, close, then data → unknown_channel.
-    s.ingest_frame(&open_channel(2, OperationKind::TopicSubscribe, 3))
-        .unwrap();
-    s.record_send_frame(&channel_ready(2, ChannelResult::Allow, 3))
-        .unwrap();
+    s.ingest_frame(&open_channel(2, OperationKind::TopicSubscribe, 3)).unwrap();
+    s.record_send_frame(&channel_ready(2, ChannelResult::Allow, 3)).unwrap();
     s.ingest_frame(&close_channel(2)).unwrap();
     let err = s.record_send_frame(&ros_sample(2)).unwrap_err();
     assert_eq!(err.code, 7);
@@ -319,10 +297,8 @@ fn ros_sample_pending_protocol_violation_inactive_unknown_channel() {
 fn ros_sample_wrong_direction_on_topic_subscribe() {
     let mut s = Session::new(Role::Server);
     server_through_ready(&mut s);
-    s.ingest_frame(&open_channel(1, OperationKind::TopicSubscribe, 2))
-        .unwrap();
-    s.record_send_frame(&channel_ready(1, ChannelResult::Allow, 2))
-        .unwrap();
+    s.ingest_frame(&open_channel(1, OperationKind::TopicSubscribe, 2)).unwrap();
+    s.record_send_frame(&channel_ready(1, ChannelResult::Allow, 2)).unwrap();
     // Ingest from client (peer) on TOPIC_SUBSCRIBE → wrong direction.
     let err = s.ingest_frame(&ros_sample(1)).unwrap_err();
     assert_eq!(err.code, 25);
@@ -365,11 +341,8 @@ fn double_client_hello_and_wrong_bootstrap_order() {
 fn channel_id_reuse_after_open_channel() {
     let mut s = Session::new(Role::Server);
     server_through_ready(&mut s);
-    s.ingest_frame(&open_channel(1, OperationKind::TopicSubscribe, 2))
-        .unwrap();
-    let err = s
-        .ingest_frame(&open_channel(1, OperationKind::TopicPublish, 3))
-        .unwrap_err();
+    s.ingest_frame(&open_channel(1, OperationKind::TopicSubscribe, 2)).unwrap();
+    let err = s.ingest_frame(&open_channel(1, OperationKind::TopicPublish, 3)).unwrap_err();
     assert_eq!(err.reason, "channel_id_reuse");
     assert_eq!(err.code, 25);
 }
@@ -391,10 +364,8 @@ fn authenticate_after_ready_and_session_ready_before_auth() {
 fn topic_publish_accepts_client_to_server_sample() {
     let mut s = Session::new(Role::Server);
     server_through_ready(&mut s);
-    s.ingest_frame(&open_channel(1, OperationKind::TopicPublish, 2))
-        .unwrap();
-    s.record_send_frame(&channel_ready(1, ChannelResult::Limited, 2))
-        .unwrap();
+    s.ingest_frame(&open_channel(1, OperationKind::TopicPublish, 2)).unwrap();
+    s.record_send_frame(&channel_ready(1, ChannelResult::Limited, 2)).unwrap();
     s.ingest_frame(&ros_sample(1)).unwrap();
     let err = s.record_send_frame(&ros_sample(1)).unwrap_err();
     assert_eq!(err.reason, "ros_sample_wrong_direction");
@@ -462,10 +433,8 @@ fn service_client_request_response_direction() {
 
     let mut s = Session::new(Role::Server);
     server_through_ready(&mut s);
-    s.ingest_frame(&open_channel(1, OperationKind::ServiceClient, 2))
-        .unwrap();
-    s.record_send_frame(&channel_ready(1, ChannelResult::Allow, 2))
-        .unwrap();
+    s.ingest_frame(&open_channel(1, OperationKind::ServiceClient, 2)).unwrap();
+    s.record_send_frame(&channel_ready(1, ChannelResult::Allow, 2)).unwrap();
 
     let opid = [7u8; 16];
     s.ingest_frame(&service_request(1, opid)).unwrap();
@@ -492,9 +461,7 @@ fn service_client_request_response_direction() {
     s.record_send_frame(&response).unwrap();
 
     // Wrong direction: server must not send SERVICE_REQUEST on SERVICE_CLIENT.
-    let err = s
-        .record_send_frame(&service_request(1, [8u8; 16]))
-        .unwrap_err();
+    let err = s.record_send_frame(&service_request(1, [8u8; 16])).unwrap_err();
     assert_eq!(err.reason, "service_action_wrong_direction");
 }
 
@@ -504,10 +471,8 @@ fn service_request_requires_operation_id() {
 
     let mut s = Session::new(Role::Server);
     server_through_ready(&mut s);
-    s.ingest_frame(&open_channel(1, OperationKind::ServiceClient, 2))
-        .unwrap();
-    s.record_send_frame(&channel_ready(1, ChannelResult::Allow, 2))
-        .unwrap();
+    s.ingest_frame(&open_channel(1, OperationKind::ServiceClient, 2)).unwrap();
+    s.record_send_frame(&channel_ready(1, ChannelResult::Allow, 2)).unwrap();
     let bare = DecodedFrame {
         version: 0,
         opcode: OPCODE_SERVICE_REQUEST,
@@ -548,10 +513,8 @@ fn operation_scoped_error_cancels_without_failing_session() {
 
     let mut s = Session::new(Role::Server);
     server_through_ready(&mut s);
-    s.ingest_frame(&open_channel(1, OperationKind::ServiceClient, 2))
-        .unwrap();
-    s.record_send_frame(&channel_ready(1, ChannelResult::Allow, 2))
-        .unwrap();
+    s.ingest_frame(&open_channel(1, OperationKind::ServiceClient, 2)).unwrap();
+    s.record_send_frame(&channel_ready(1, ChannelResult::Allow, 2)).unwrap();
 
     let mut fields = BTreeMap::new();
     fields.insert(FIELD_CORRELATION_ID, corr(0));

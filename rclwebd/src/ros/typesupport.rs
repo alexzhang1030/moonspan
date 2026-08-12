@@ -144,9 +144,8 @@ fn find_library(dirs: &[PathBuf], file_name: &str) -> Option<PathBuf> {
 fn load_symbol<T: Copy>(lib: &Library, symbol: &str) -> Result<T, String> {
     let sym = c_symbol(symbol);
     unsafe {
-        let f: libloading::Symbol<T> = lib
-            .get(sym.as_bytes_with_nul())
-            .map_err(|err| format!("dlsym {symbol}: {err}"))?;
+        let f: libloading::Symbol<T> =
+            lib.get(sym.as_bytes_with_nul()).map_err(|err| format!("dlsym {symbol}: {err}"))?;
         Ok(*f)
     }
 }
@@ -181,11 +180,7 @@ fn load_message_ts(
     if handle.is_null() {
         return Err(format!("null message typesupport for {key}"));
     }
-    let ts = MessageTypeSupport {
-        handle,
-        create,
-        destroy,
-    };
+    let ts = MessageTypeSupport { handle, create, destroy };
     cache.messages.insert(key, ts);
     Ok(ts)
 }
@@ -226,11 +221,7 @@ pub fn service_type_support(type_name: &str) -> Option<ServiceTypeSupport> {
         load_message_ts(&mut cache, &dirs, pkg, "srv", &format!("{name}_Request")).ok()?;
     let response =
         load_message_ts(&mut cache, &dirs, pkg, "srv", &format!("{name}_Response")).ok()?;
-    let ts = ServiceTypeSupport {
-        handle,
-        request,
-        response,
-    };
+    let ts = ServiceTypeSupport { handle, request, response };
     cache.services.insert(type_name.to_owned(), ts);
     Some(ts)
 }
@@ -258,35 +249,17 @@ pub fn action_type_support(type_name: &str) -> Option<ActionTypeSupport> {
         return None;
     }
     // CancelGoal lives in action_msgs.
-    let cancel_request = load_message_ts(
-        &mut cache,
-        &dirs,
-        "action_msgs",
-        "srv",
-        "CancelGoal_Request",
-    )
-    .ok()?;
-    let cancel_response = load_message_ts(
-        &mut cache,
-        &dirs,
-        "action_msgs",
-        "srv",
-        "CancelGoal_Response",
-    )
-    .ok()?;
+    let cancel_request =
+        load_message_ts(&mut cache, &dirs, "action_msgs", "srv", "CancelGoal_Request").ok()?;
+    let cancel_response =
+        load_message_ts(&mut cache, &dirs, "action_msgs", "srv", "CancelGoal_Response").ok()?;
     let ts = ActionTypeSupport {
         handle,
         goal: load_message_ts(&mut cache, &dirs, pkg, "action", &format!("{name}_Goal")).ok()?,
         result: load_message_ts(&mut cache, &dirs, pkg, "action", &format!("{name}_Result"))
             .ok()?,
-        feedback: load_message_ts(
-            &mut cache,
-            &dirs,
-            pkg,
-            "action",
-            &format!("{name}_Feedback"),
-        )
-        .ok()?,
+        feedback: load_message_ts(&mut cache, &dirs, pkg, "action", &format!("{name}_Feedback"))
+            .ok()?,
         feedback_message: load_message_ts(
             &mut cache,
             &dirs,

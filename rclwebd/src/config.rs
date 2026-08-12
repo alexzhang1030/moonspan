@@ -26,27 +26,17 @@ impl SupportRow {
     /// Schema identity scheme for OpenChannel / graph placeholders on this row.
     #[must_use]
     pub fn schema_scheme(self) -> &'static str {
-        if self.id.starts_with('H') {
-            "moonspan-schema-v1"
-        } else {
-            "rep2011-rihs"
-        }
+        if self.id.starts_with('H') { "moonspan-schema-v1" } else { "rep2011-rihs" }
     }
 }
 
 /// Jazzy + Fast DDS (Phase 1 default gated row).
-pub const SUPPORT_ROW_J_FT: SupportRow = SupportRow {
-    id: "J-FT",
-    ros_distro: "jazzy",
-    rmw_identifier: "rmw_fastrtps_cpp",
-};
+pub const SUPPORT_ROW_J_FT: SupportRow =
+    SupportRow { id: "J-FT", ros_distro: "jazzy", rmw_identifier: "rmw_fastrtps_cpp" };
 
 /// Humble + Fast DDS (R3-03 delivery-gated row).
-pub const SUPPORT_ROW_H_FT: SupportRow = SupportRow {
-    id: "H-FT",
-    ros_distro: "humble",
-    rmw_identifier: "rmw_fastrtps_cpp",
-};
+pub const SUPPORT_ROW_H_FT: SupportRow =
+    SupportRow { id: "H-FT", ros_distro: "humble", rmw_identifier: "rmw_fastrtps_cpp" };
 
 /// Deprecated alias for [`SUPPORT_ROW_J_FT`].id — prefer `config.support_row.id`.
 #[deprecated(note = "use GatewayConfig::support_row.id or SUPPORT_ROW_J_FT.id")]
@@ -140,10 +130,8 @@ impl Default for GatewayConfig {
 static SESSION_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 fn entropy64() -> u64 {
-    let nanos = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_nanos() as u64)
-        .unwrap_or(0);
+    let nanos =
+        SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos() as u64).unwrap_or(0);
     let count = SESSION_COUNTER.fetch_add(1, Ordering::Relaxed);
     // SplitMix64 finalizer over time + counter: unique, not security material
     // (session identity/resume trust is R4 scope).

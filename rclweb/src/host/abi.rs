@@ -120,12 +120,11 @@ pub unsafe extern "C" fn rclweb_poll(handle: u32, batch_ptr: *const u8, batch_le
         let mut map = engines.borrow_mut();
         let engine = map.get_mut(&handle)?;
         let outcome = engine.poll(events);
-        let result = encode_poll_result(&outcome, |lease_id| {
-            match engine.lease_payload_view(lease_id) {
+        let result =
+            encode_poll_result(&outcome, |lease_id| match engine.lease_payload_view(lease_id) {
                 Some(view) => (view.as_ptr() as u32, view.len() as u32),
                 None => (0, 0),
-            }
-        });
+            });
         Some(result)
     });
     let Some(outcome) = encoded else {
@@ -145,12 +144,7 @@ pub unsafe extern "C" fn rclweb_poll(handle: u32, batch_ptr: *const u8, batch_le
 /// Pointer to the last poll result for `handle`, or null.
 #[unsafe(no_mangle)]
 pub extern "C" fn rclweb_last_result_ptr(handle: u32) -> *const u8 {
-    SCRATCH.with(|scratch| {
-        scratch
-            .borrow()
-            .get(&handle)
-            .map_or(std::ptr::null(), |v| v.as_ptr())
-    })
+    SCRATCH.with(|scratch| scratch.borrow().get(&handle).map_or(std::ptr::null(), |v| v.as_ptr()))
 }
 
 /// Length of the last poll result for `handle`.
@@ -171,12 +165,9 @@ pub unsafe extern "C" fn rclweb_telemetry(handle: u32, out_ptr: *mut u8) -> i32 
     if out_ptr.is_null() {
         return -1;
     }
-    let Some(snapshot) = ENGINES.with(|engines| {
-        engines
-            .borrow()
-            .get(&handle)
-            .map(|engine| engine.telemetry())
-    }) else {
+    let Some(snapshot) =
+        ENGINES.with(|engines| engines.borrow().get(&handle).map(|engine| engine.telemetry()))
+    else {
         return -6;
     };
     let fields = [

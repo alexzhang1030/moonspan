@@ -19,10 +19,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 fn repo_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("workspace root")
-        .to_path_buf()
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().expect("workspace root").to_path_buf()
 }
 
 fn read_manifest(root: &Path) -> Value {
@@ -41,17 +38,12 @@ fn frame_options_from_context(ctx: &Value) -> FrameOptions {
     if let Some(v) = ctx.get("selectedVersion").and_then(Value::as_u64) {
         opts.selected_version = v as u8;
     }
-    if let Some(v) = ctx
-        .get("experimentalOpcodesEnabled")
-        .and_then(Value::as_bool)
-    {
+    if let Some(v) = ctx.get("experimentalOpcodesEnabled").and_then(Value::as_bool) {
         opts.experimental_opcodes_enabled = v;
     }
     if let Some(arr) = ctx.get("availableClockIds").and_then(Value::as_array) {
-        opts.available_clock_ids = arr
-            .iter()
-            .filter_map(|x| x.as_u64().map(|n| n as u8))
-            .collect::<BTreeSet<_>>();
+        opts.available_clock_ids =
+            arr.iter().filter_map(|x| x.as_u64().map(|n| n as u8)).collect::<BTreeSet<_>>();
     }
     opts
 }
@@ -113,10 +105,7 @@ fn valid_frame_fixtures_reencode_byte_identical() {
             FramePayload::Application(p) => p.to_vec(),
             FramePayload::Control(msg) => {
                 let map = CborValue::Map(
-                    msg.fields
-                        .iter()
-                        .map(|(k, v)| (*k, v.clone()))
-                        .collect::<Vec<_>>(),
+                    msg.fields.iter().map(|(k, v)| (*k, v.clone())).collect::<Vec<_>>(),
                 );
                 encode_deterministic_cbor(&map)
                     .unwrap_or_else(|e| panic!("{id}: control encode {e:?}"))
@@ -233,10 +222,7 @@ fn deterministic_cbor_boundary_heads_round_trip() {
 
 #[test]
 fn map_keys_are_sorted_and_duplicates_rejected() {
-    let unsorted = CborValue::Map(vec![
-        (29, CborValue::Unsigned(1)),
-        (1, CborValue::Unsigned(8)),
-    ]);
+    let unsorted = CborValue::Map(vec![(29, CborValue::Unsigned(1)), (1, CborValue::Unsigned(8))]);
     let bytes = encode_deterministic_cbor(&unsorted).unwrap();
     // Deterministic profile requires ascending keys; the parser is the oracle.
     let decoded = super::cbor::decode_deterministic_cbor(&bytes).unwrap();
@@ -248,10 +234,7 @@ fn map_keys_are_sorted_and_duplicates_rejected() {
         _ => panic!("expected map"),
     }
 
-    let duplicate = CborValue::Map(vec![
-        (1, CborValue::Unsigned(1)),
-        (1, CborValue::Unsigned(2)),
-    ]);
+    let duplicate = CborValue::Map(vec![(1, CborValue::Unsigned(1)), (1, CborValue::Unsigned(2))]);
     let err = encode_deterministic_cbor(&duplicate).unwrap_err();
     assert_eq!(err.reason, "duplicate_map_key");
 }

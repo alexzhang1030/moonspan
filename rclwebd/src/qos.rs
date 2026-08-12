@@ -67,11 +67,7 @@ pub fn resolve_effective(requested: &RequestedQos) -> EffectiveQos {
         reliable: requested.reliability != 2,
         transient_local: requested.durability == 1,
         keep_all,
-        depth: if keep_all {
-            0
-        } else {
-            requested.history_depth.unwrap_or(10).max(1)
-        },
+        depth: if keep_all { 0 } else { requested.history_depth.unwrap_or(10).max(1) },
         manual_by_topic: requested.liveliness == 2,
     }
 }
@@ -80,22 +76,16 @@ impl EffectiveQos {
     /// ChannelReady key 57 wire map (concrete members only, liveliness
     /// required).
     #[must_use]
-    pub fn to_wire(&self) -> CborValue<'static> {
+    pub fn to_wire(self) -> CborValue<'static> {
         let mut entries = vec![
             (1, CborValue::Unsigned(if self.reliable { 1 } else { 2 })),
-            (
-                2,
-                CborValue::Unsigned(if self.transient_local { 1 } else { 2 }),
-            ),
+            (2, CborValue::Unsigned(if self.transient_local { 1 } else { 2 })),
             (3, CborValue::Unsigned(if self.keep_all { 2 } else { 1 })),
         ];
         if !self.keep_all {
             entries.push((4, CborValue::Unsigned(u64::from(self.depth))));
         }
-        entries.push((
-            7,
-            CborValue::Unsigned(if self.manual_by_topic { 2 } else { 1 }),
-        ));
+        entries.push((7, CborValue::Unsigned(if self.manual_by_topic { 2 } else { 1 })));
         CborValue::Map(entries)
     }
 }

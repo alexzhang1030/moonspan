@@ -103,13 +103,9 @@ fn builder_conflict_and_idempotent() {
     let err = b.register_identity(key2, "d1").unwrap_err();
     assert_eq!(err.code, SchemaErrorCode::SchemaConflict);
 
-    b.register_wire_profile("pkg/msg/A", "J-FT", CdrRepresentation::Le, 4)
-        .unwrap();
-    b.register_wire_profile("pkg/msg/A", "J-FT", CdrRepresentation::Le, 4)
-        .unwrap();
-    let err = b
-        .register_wire_profile("pkg/msg/A", "J-FT", CdrRepresentation::Le, 0)
-        .unwrap_err();
+    b.register_wire_profile("pkg/msg/A", "J-FT", CdrRepresentation::Le, 4).unwrap();
+    b.register_wire_profile("pkg/msg/A", "J-FT", CdrRepresentation::Le, 4).unwrap();
+    let err = b.register_wire_profile("pkg/msg/A", "J-FT", CdrRepresentation::Le, 0).unwrap_err();
     assert_eq!(err.code, SchemaErrorCode::SchemaConflict);
 }
 

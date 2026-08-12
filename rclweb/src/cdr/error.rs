@@ -80,32 +80,17 @@ pub struct CdrError {
 impl CdrError {
     #[must_use]
     pub const fn new(code: CdrErrorCode, offset: usize, needed: u64, remaining: u64) -> Self {
-        Self {
-            code,
-            offset,
-            needed,
-            remaining,
-        }
+        Self { code, offset, needed, remaining }
     }
 
     #[must_use]
     pub const fn invalid_encapsulation(offset: usize, needed: u64, remaining: u64) -> Self {
-        Self::new(
-            CdrErrorCode::InvalidEncapsulation,
-            offset,
-            needed,
-            remaining,
-        )
+        Self::new(CdrErrorCode::InvalidEncapsulation, offset, needed, remaining)
     }
 
     #[must_use]
     pub const fn unsupported_representation(offset: usize, remaining: u64) -> Self {
-        Self::new(
-            CdrErrorCode::UnsupportedRepresentation,
-            offset,
-            0,
-            remaining,
-        )
+        Self::new(CdrErrorCode::UnsupportedRepresentation, offset, 0, remaining)
     }
 
     /// `needed` is the rejected limit field value; `remaining` is the peer constraint.
@@ -133,12 +118,7 @@ impl CdrError {
     /// Char8 declared span ends on a nonzero final byte, or length is zero.
     #[must_use]
     pub const fn missing_string_terminator(offset: usize, needed: u64, remaining: u64) -> Self {
-        Self::new(
-            CdrErrorCode::MissingStringTerminator,
-            offset,
-            needed,
-            remaining,
-        )
+        Self::new(CdrErrorCode::MissingStringTerminator, offset, needed, remaining)
     }
 
     /// ROS legacy wstring slot outside accepted Unicode scalars. `needed` is 4.

@@ -52,18 +52,10 @@ impl<'a> CdrReader<'a> {
         limits.validate()?;
         let len = bytes.len();
         if len > limits.max_stream_bytes {
-            return Err(CdrError::bounds_exceeded(
-                0,
-                len as u64,
-                limits.max_stream_bytes as u64,
-            ));
+            return Err(CdrError::bounds_exceeded(0, len as u64, limits.max_stream_bytes as u64));
         }
         if len < HEADER_LENGTH {
-            return Err(CdrError::invalid_encapsulation(
-                0,
-                HEADER_LENGTH as u64,
-                len as u64,
-            ));
+            return Err(CdrError::invalid_encapsulation(0, HEADER_LENGTH as u64, len as u64));
         }
         let representation = u16::from_be_bytes([bytes[0], bytes[1]]);
         let options = u16::from_be_bytes([bytes[2], bytes[3]]);
@@ -78,11 +70,7 @@ impl<'a> CdrReader<'a> {
             bytes,
             offset: BODY_ORIGIN,
             limits,
-            header: CdrHeader {
-                representation,
-                options,
-                endian,
-            },
+            header: CdrHeader { representation, options, endian },
         })
     }
 
@@ -151,11 +139,7 @@ impl<'a> CdrReader<'a> {
         let next = parent.depth + 1;
         let max_d = self.limits.max_nesting_depth;
         if next > max_d {
-            return Err(CdrError::bounds_exceeded(
-                self.offset,
-                next as u64,
-                max_d as u64,
-            ));
+            return Err(CdrError::bounds_exceeded(self.offset, next as u64, max_d as u64));
         }
         Ok(CdrNesting { depth: next })
     }
@@ -174,11 +158,7 @@ impl<'a> CdrReader<'a> {
         };
         if pad > 0 && rem < pad {
             self.offset = field_start;
-            return Err(CdrError::alignment_overflow(
-                field_start,
-                pad as u64,
-                rem as u64,
-            ));
+            return Err(CdrError::alignment_overflow(field_start, pad as u64, rem as u64));
         }
         if rem < needed {
             self.offset = field_start;
@@ -322,11 +302,7 @@ impl<'a> CdrReader<'a> {
         let max_stream = self.limits.max_stream_bytes;
         let bytes = multiply_length(count, element_size, field_start, rem)?;
         if bytes > max_stream {
-            return Err(CdrError::length_overflow(
-                field_start,
-                bytes as u64,
-                max_stream as u64,
-            ));
+            return Err(CdrError::length_overflow(field_start, bytes as u64, max_stream as u64));
         }
         if bytes > rem {
             return Err(CdrError::truncated(field_start, bytes as u64, rem as u64));
@@ -341,11 +317,7 @@ impl<'a> CdrReader<'a> {
         let capacity = self.limits.max_temporary_allocation;
         let bytes = multiply_length(count, element_size, field_start, rem)?;
         if bytes > capacity {
-            return Err(CdrError::bounds_exceeded(
-                field_start,
-                bytes as u64,
-                capacity as u64,
-            ));
+            return Err(CdrError::bounds_exceeded(field_start, bytes as u64, capacity as u64));
         }
         Ok(bytes)
     }
@@ -401,11 +373,7 @@ impl<'a> CdrReader<'a> {
         let len_u = self.read_u32_at(len_pos);
         if len_u == 0 {
             self.offset = field_start;
-            return Err(CdrError::missing_string_terminator(
-                field_start,
-                1,
-                rem_at_start as u64,
-            ));
+            return Err(CdrError::missing_string_terminator(field_start, 1, rem_at_start as u64));
         }
         let payload_u = u64::from(len_u) - 1;
         if let Some(bound) = max_bytes
@@ -420,70 +388,38 @@ impl<'a> CdrReader<'a> {
         }
         let Ok(len_i) = usize::try_from(len_u) else {
             self.offset = field_start;
-            return Err(CdrError::length_overflow(
-                field_start,
-                0,
-                rem_at_start as u64,
-            ));
+            return Err(CdrError::length_overflow(field_start, 0, rem_at_start as u64));
         };
         let payload_i = len_i - 1;
         if len_i > max_stream {
             self.offset = field_start;
-            return Err(CdrError::length_overflow(
-                field_start,
-                len_i as u64,
-                max_stream as u64,
-            ));
+            return Err(CdrError::length_overflow(field_start, len_i as u64, max_stream as u64));
         }
         let Some(header_and_pad) = checked_add_usize(pad, 4) else {
             self.offset = field_start;
-            return Err(CdrError::length_overflow(
-                field_start,
-                0,
-                rem_at_start as u64,
-            ));
+            return Err(CdrError::length_overflow(field_start, 0, rem_at_start as u64));
         };
         let Some(total_needed) = checked_add_usize(header_and_pad, len_i) else {
             self.offset = field_start;
-            return Err(CdrError::length_overflow(
-                field_start,
-                0,
-                rem_at_start as u64,
-            ));
+            return Err(CdrError::length_overflow(field_start, 0, rem_at_start as u64));
         };
         if rem_at_start < total_needed {
             self.offset = field_start;
-            return Err(CdrError::truncated(
-                field_start,
-                total_needed as u64,
-                rem_at_start as u64,
-            ));
+            return Err(CdrError::truncated(field_start, total_needed as u64, rem_at_start as u64));
         }
         // Worst-case owned UTF-16 storage charge: payload_bytes * 2.
         let Some(worst_u) = payload_u.checked_mul(2) else {
             self.offset = field_start;
-            return Err(CdrError::length_overflow(
-                field_start,
-                0,
-                rem_at_start as u64,
-            ));
+            return Err(CdrError::length_overflow(field_start, 0, rem_at_start as u64));
         };
         let Ok(worst_i) = usize::try_from(worst_u) else {
             self.offset = field_start;
-            return Err(CdrError::length_overflow(
-                field_start,
-                0,
-                rem_at_start as u64,
-            ));
+            return Err(CdrError::length_overflow(field_start, 0, rem_at_start as u64));
         };
         let temp_cap = self.limits.max_temporary_allocation;
         if worst_i > temp_cap {
             self.offset = field_start;
-            return Err(CdrError::bounds_exceeded(
-                field_start,
-                worst_i as u64,
-                temp_cap as u64,
-            ));
+            return Err(CdrError::bounds_exceeded(field_start, worst_i as u64, temp_cap as u64));
         }
         let data_start = len_pos + 4;
         let data_end = data_start + len_i;
@@ -504,11 +440,7 @@ impl<'a> CdrReader<'a> {
             }
             Err(_) => {
                 self.offset = field_start;
-                Err(CdrError::invalid_utf8(
-                    field_start,
-                    len_i as u64,
-                    rem_at_start as u64,
-                ))
+                Err(CdrError::invalid_utf8(field_start, len_i as u64, rem_at_start as u64))
             }
         }
     }
@@ -535,27 +467,15 @@ impl<'a> CdrReader<'a> {
         }
         let Ok(count_i) = usize::try_from(count_u) else {
             self.offset = field_start;
-            return Err(CdrError::length_overflow(
-                field_start,
-                0,
-                rem_at_start as u64,
-            ));
+            return Err(CdrError::length_overflow(field_start, 0, rem_at_start as u64));
         };
         let Some(payload_u64) = u64::from(count_u).checked_mul(4) else {
             self.offset = field_start;
-            return Err(CdrError::length_overflow(
-                field_start,
-                0,
-                rem_at_start as u64,
-            ));
+            return Err(CdrError::length_overflow(field_start, 0, rem_at_start as u64));
         };
         let Ok(payload_i) = usize::try_from(payload_u64) else {
             self.offset = field_start;
-            return Err(CdrError::length_overflow(
-                field_start,
-                0,
-                rem_at_start as u64,
-            ));
+            return Err(CdrError::length_overflow(field_start, 0, rem_at_start as u64));
         };
         if payload_i > max_stream {
             self.offset = field_start;
@@ -567,36 +487,20 @@ impl<'a> CdrReader<'a> {
         }
         let Some(header_and_pad) = checked_add_usize(pad, 4) else {
             self.offset = field_start;
-            return Err(CdrError::length_overflow(
-                field_start,
-                0,
-                rem_at_start as u64,
-            ));
+            return Err(CdrError::length_overflow(field_start, 0, rem_at_start as u64));
         };
         let Some(total_needed) = checked_add_usize(header_and_pad, payload_i) else {
             self.offset = field_start;
-            return Err(CdrError::length_overflow(
-                field_start,
-                0,
-                rem_at_start as u64,
-            ));
+            return Err(CdrError::length_overflow(field_start, 0, rem_at_start as u64));
         };
         if rem_at_start < total_needed {
             self.offset = field_start;
-            return Err(CdrError::truncated(
-                field_start,
-                total_needed as u64,
-                rem_at_start as u64,
-            ));
+            return Err(CdrError::truncated(field_start, total_needed as u64, rem_at_start as u64));
         }
         let temp_cap = self.limits.max_temporary_allocation;
         if payload_i > temp_cap {
             self.offset = field_start;
-            return Err(CdrError::bounds_exceeded(
-                field_start,
-                payload_i as u64,
-                temp_cap as u64,
-            ));
+            return Err(CdrError::bounds_exceeded(field_start, payload_i as u64, temp_cap as u64));
         }
         let data_start = count_pos + 4;
         let mut out = String::with_capacity(count_i);
@@ -604,10 +508,7 @@ impl<'a> CdrReader<'a> {
             let slot = self.read_u32_at(data_start + k * 4);
             if !is_accepted_wstring_scalar(slot) {
                 self.offset = field_start;
-                return Err(CdrError::invalid_wstring_scalar(
-                    field_start,
-                    rem_at_start as u64,
-                ));
+                return Err(CdrError::invalid_wstring_scalar(field_start, rem_at_start as u64));
             }
             // Accepted range fits in char.
             out.push(char::from_u32(slot).expect("accepted wstring scalar"));
@@ -676,27 +577,15 @@ impl<'a> CdrReader<'a> {
         let count_i = count_u as usize;
         let Some(header_and_pad) = checked_add_usize(pad, 4) else {
             self.offset = field_start;
-            return Err(CdrError::length_overflow(
-                field_start,
-                0,
-                rem_at_start as u64,
-            ));
+            return Err(CdrError::length_overflow(field_start, 0, rem_at_start as u64));
         };
         let Some(total_needed) = checked_add_usize(header_and_pad, count_i) else {
             self.offset = field_start;
-            return Err(CdrError::length_overflow(
-                field_start,
-                0,
-                rem_at_start as u64,
-            ));
+            return Err(CdrError::length_overflow(field_start, 0, rem_at_start as u64));
         };
         if rem_at_start < total_needed {
             self.offset = field_start;
-            return Err(CdrError::truncated(
-                field_start,
-                total_needed as u64,
-                rem_at_start as u64,
-            ));
+            return Err(CdrError::truncated(field_start, total_needed as u64, rem_at_start as u64));
         }
         let data_start = count_pos + 4;
         let data_end = data_start + count_i;

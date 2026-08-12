@@ -43,7 +43,7 @@ The restructure plan governs sequencing: R0 stop-loss, R1 walking skeleton, R2 d
 
 | Area | Read first |
 |---|---|
-| Root tooling | [Technology stack](../.agents/docs/technology-stack.md), [repository README](../README.md) |
+| Root tooling | [Technology stack](../.agents/docs/technology-stack.md), [repository README](../README.md), [CONTRIBUTING.md](../CONTRIBUTING.md) |
 | `protocol/**` | [R2WP](./protocol/r2wp.md), [normative contract](../protocol/r2wp-v0.md), [fixtures](../protocol/testdata/README.md) |
 | `rclweb/**` | [`rclweb` core](./runtime/core.md), [CDR contract](./runtime/cdr.md), [architecture](./architecture.md) |
 | `rclwebd/**` | [`rclwebd`](./gateway/rclwebd.md), [security](./security.md) |

@@ -47,10 +47,7 @@ impl SubscriptionSample {
         if let Some(telemetry) = telemetry {
             telemetry.record_payload_copy(payload.len());
         }
-        Self {
-            channel_id,
-            frame_buf,
-        }
+        Self { channel_id, frame_buf }
     }
 
     #[must_use]
@@ -76,11 +73,7 @@ impl ServiceRequest {
     pub fn from_payload(channel_id: u32, operation_id: [u8; 16], payload: &[u8]) -> Self {
         let mut frame_buf = vec![0u8; SAMPLE_HEADER_PREFIX + payload.len()];
         frame_buf[SAMPLE_HEADER_PREFIX..].copy_from_slice(payload);
-        Self {
-            channel_id,
-            operation_id,
-            frame_buf,
-        }
+        Self { channel_id, operation_id, frame_buf }
     }
 
     #[must_use]
@@ -92,35 +85,19 @@ impl ServiceRequest {
 /// Inbound action goal or cancel for an ActionServer channel (browser server).
 #[derive(Debug)]
 pub enum ActionInbound {
-    Goal {
-        channel_id: u32,
-        operation_id: [u8; 16],
-        frame_buf: Vec<u8>,
-    },
-    Cancel {
-        channel_id: u32,
-        operation_id: [u8; 16],
-        frame_buf: Vec<u8>,
-    },
+    Goal { channel_id: u32, operation_id: [u8; 16], frame_buf: Vec<u8> },
+    Cancel { channel_id: u32, operation_id: [u8; 16], frame_buf: Vec<u8> },
 }
 
 impl ActionInbound {
     #[must_use]
     pub fn from_goal_payload(channel_id: u32, operation_id: [u8; 16], payload: &[u8]) -> Self {
-        Self::Goal {
-            channel_id,
-            operation_id,
-            frame_buf: Self::prefixed(payload),
-        }
+        Self::Goal { channel_id, operation_id, frame_buf: Self::prefixed(payload) }
     }
 
     #[must_use]
     pub fn from_cancel_payload(channel_id: u32, operation_id: [u8; 16], payload: &[u8]) -> Self {
-        Self::Cancel {
-            channel_id,
-            operation_id,
-            frame_buf: Self::prefixed(payload),
-        }
+        Self::Cancel { channel_id, operation_id, frame_buf: Self::prefixed(payload) }
     }
 
     fn prefixed(payload: &[u8]) -> Vec<u8> {
@@ -197,10 +174,7 @@ pub struct BackendError {
 impl BackendError {
     #[must_use]
     pub fn new(code: u8, message: impl Into<String>) -> Self {
-        Self {
-            code,
-            message: message.into(),
-        }
+        Self { code, message: message.into() }
     }
 
     /// Live ROS service/action FFI is not linked in this build.

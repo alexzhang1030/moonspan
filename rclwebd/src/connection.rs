@@ -97,22 +97,14 @@ const BOOTSTRAP_ERROR_CODES: [u8; 6] = [1, 2, 4, 16, 24, 25];
 
 fn bootstrap_error_code(err: &ProtocolError) -> u8 {
     let code = err.code as u8;
-    if BOOTSTRAP_ERROR_CODES.contains(&code) {
-        code
-    } else {
-        1
-    }
+    if BOOTSTRAP_ERROR_CODES.contains(&code) { code } else { 1 }
 }
 
 /// Wire error codes are 1..=28 excluding 20; anything else degrades to
 /// protocol_violation.
 fn wire_error_code(err: &ProtocolError) -> u8 {
     let code = err.code as u8;
-    if (1..=28).contains(&code) && code != 20 {
-        code
-    } else {
-        25
-    }
+    if (1..=28).contains(&code) && code != 20 { code } else { 25 }
 }
 
 fn frame_operation_id(frame: &rclweb::DecodedFrame<'_>) -> Option<[u8; 16]> {
@@ -206,11 +198,7 @@ impl<'a> ConnState<'a> {
     }
 
     fn push_bootstrap_error(&mut self, outcome: &mut Outcome, code: u8, message: &str) {
-        let record = BootstrapErrorRecord {
-            code,
-            message: Some(message.to_owned()),
-            detail: None,
-        };
+        let record = BootstrapErrorRecord { code, message: Some(message.to_owned()), detail: None };
         if let Ok(bytes) = encode_bootstrap_error(&record) {
             outcome.outbound.push(Bytes::from(bytes));
         }
@@ -244,15 +232,7 @@ impl<'a> ConnState<'a> {
             self.handle_bootstrap(bytes, &mut outcome);
             return outcome;
         }
-        self.handle_frame(
-            bytes,
-            backend,
-            sample_tx,
-            service_tx,
-            action_tx,
-            &mut outcome,
-        )
-        .await;
+        self.handle_frame(bytes, backend, sample_tx, service_tx, action_tx, &mut outcome).await;
         outcome
     }
 
@@ -389,17 +369,9 @@ impl<'a> ConnState<'a> {
             return;
         };
         let generation = base.saturating_add(1);
-        let ops = vec![control::graph_delta_add_endpoint(
-            endpoint,
-            self.config.support_row,
-        )];
-        let delta = control::graph_delta(
-            self.config,
-            &control::ZERO_CORRELATION,
-            base,
-            generation,
-            ops,
-        );
+        let ops = vec![control::graph_delta_add_endpoint(endpoint, self.config.support_row)];
+        let delta =
+            control::graph_delta(self.config, &control::ZERO_CORRELATION, base, generation, ops);
         if self.push_control(outcome, &delta) {
             self.graph_generation = Some(generation);
         }
@@ -523,11 +495,7 @@ impl<'a> ConnState<'a> {
             return;
         }
 
-        let requested = msg
-            .fields
-            .get(&11)
-            .map(RequestedQos::from_wire)
-            .unwrap_or_default();
+        let requested = msg.fields.get(&11).map(RequestedQos::from_wire).unwrap_or_default();
         let effective = resolve_effective(&requested);
         let spec = ChannelSpec {
             channel_id,
@@ -749,9 +717,8 @@ impl<'a> ConnState<'a> {
                 }
             }
             (OperationKind::ServiceServer, OPCODE_SERVICE_RESPONSE) => {
-                if let Err(err) = backend
-                    .send_service_response(entity, opid, payload.to_vec())
-                    .await
+                if let Err(err) =
+                    backend.send_service_response(entity, opid, payload.to_vec()).await
                 {
                     let reply = control::channel_error(channel_id, err.code, &err.message);
                     self.push_control(outcome, &reply);
@@ -795,10 +762,7 @@ impl<'a> ConnState<'a> {
 
         match (kind, frame.opcode) {
             (OperationKind::ActionClient, OPCODE_ACTION_GOAL) => {
-                match backend
-                    .send_action_goal(entity, opid, payload.to_vec())
-                    .await
-                {
+                match backend.send_action_goal(entity, opid, payload.to_vec()).await {
                     Ok(result) => {
                         let Some(runtime) = self.channels.get_mut(&channel_id) else {
                             return;
@@ -829,28 +793,20 @@ impl<'a> ConnState<'a> {
                 }
             }
             (OperationKind::ActionServer, OPCODE_ACTION_FEEDBACK) => {
-                if let Err(err) = backend
-                    .send_action_feedback(entity, opid, payload.to_vec())
-                    .await
+                if let Err(err) = backend.send_action_feedback(entity, opid, payload.to_vec()).await
                 {
                     let reply = control::channel_error(channel_id, err.code, &err.message);
                     self.push_control(outcome, &reply);
                 }
             }
             (OperationKind::ActionServer, OPCODE_ACTION_RESULT) => {
-                if let Err(err) = backend
-                    .send_action_result(entity, opid, payload.to_vec())
-                    .await
-                {
+                if let Err(err) = backend.send_action_result(entity, opid, payload.to_vec()).await {
                     let reply = control::channel_error(channel_id, err.code, &err.message);
                     self.push_control(outcome, &reply);
                 }
             }
             (OperationKind::ActionServer, OPCODE_ACTION_STATUS) => {
-                if let Err(err) = backend
-                    .send_action_status(entity, opid, payload.to_vec())
-                    .await
-                {
+                if let Err(err) = backend.send_action_status(entity, opid, payload.to_vec()).await {
                     let reply = control::channel_error(channel_id, err.code, &err.message);
                     self.push_control(outcome, &reply);
                 }
@@ -869,11 +825,7 @@ impl<'a> ConnState<'a> {
         let header = FrameHeader {
             version: 0,
             opcode: OPCODE_ROS_SAMPLE,
-            flags: if runtime.reliable {
-                FLAG_ROS_RELIABLE
-            } else {
-                0
-            },
+            flags: if runtime.reliable { FLAG_ROS_RELIABLE } else { 0 },
             channel_id: sample.channel_id,
             sequence: runtime.seq_out,
             source_time_ns: 0,

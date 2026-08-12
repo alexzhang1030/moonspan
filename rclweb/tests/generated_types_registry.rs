@@ -56,9 +56,7 @@ fn schema_identity_helper_for_roots() {
     assert_eq!(id.0, SCHEME_REP2011_RIHS);
     assert!(id.1.starts_with("RIHS01_"));
     assert!(
-        schema_identity_for_type("std_msgs/msg/String", SCHEME_REP2011_RIHS)
-            .unwrap()
-            .is_none()
+        schema_identity_for_type("std_msgs/msg/String", SCHEME_REP2011_RIHS).unwrap().is_none()
     );
 }
 

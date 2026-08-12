@@ -38,9 +38,7 @@ impl TlsAdvertisement {
         if let Some(prev) = &self.previous_spki_sha256 {
             let previous = B64.encode(prev);
             hashes.push(',');
-            hashes.push_str(&format!(
-                "{{\"algorithm\":\"sha-256\",\"value\":\"{previous}\"}}"
-            ));
+            hashes.push_str(&format!("{{\"algorithm\":\"sha-256\",\"value\":\"{previous}\"}}"));
         }
         format!(
             "{{\"active\":true,\"algorithm\":\"ECDSA_P256\",\"spkiSha256\":\"{current}\",\"notBefore\":{},\"notAfter\":{},\"hashes\":[{hashes}]}}",
@@ -83,11 +81,7 @@ impl LocalDevTls {
         }
         let now = system_now();
         let material = mint_material(now, lifetime, None)?;
-        Ok(Self {
-            lifetime,
-            remint_remaining: REMINT_REMAINING,
-            inner: Mutex::new(material),
-        })
+        Ok(Self { lifetime, remint_remaining: REMINT_REMAINING, inner: Mutex::new(material) })
     }
 
     /// Default 7-day lifetime.
@@ -102,14 +96,8 @@ impl LocalDevTls {
 
     /// Testable remint decision at an explicit instant (`secs` since Unix epoch).
     pub fn ensure_fresh_at(&self, now_unix_secs: u64) -> Result<TlsAdvertisement, String> {
-        let mut guard = self
-            .inner
-            .lock()
-            .map_err(|_| "local-dev TLS lock poisoned".to_owned())?;
-        let remaining = guard
-            .advertisement
-            .not_after_unix_secs
-            .saturating_sub(now_unix_secs);
+        let mut guard = self.inner.lock().map_err(|_| "local-dev TLS lock poisoned".to_owned())?;
+        let remaining = guard.advertisement.not_after_unix_secs.saturating_sub(now_unix_secs);
         if Duration::from_secs(remaining) < self.remint_remaining {
             let previous = Some(guard.advertisement.spki_sha256);
             *guard = mint_material(now_unix_secs, self.lifetime, previous)?;
@@ -119,37 +107,25 @@ impl LocalDevTls {
 
     /// Current advertisement without reminting.
     pub fn advertisement(&self) -> Result<TlsAdvertisement, String> {
-        let guard = self
-            .inner
-            .lock()
-            .map_err(|_| "local-dev TLS lock poisoned".to_owned())?;
+        let guard = self.inner.lock().map_err(|_| "local-dev TLS lock poisoned".to_owned())?;
         Ok(guard.advertisement.clone())
     }
 
     /// PEM material for a WebTransport/`wtransport` Identity (stays in-process).
     pub fn pem_pair(&self) -> Result<(String, String), String> {
-        let guard = self
-            .inner
-            .lock()
-            .map_err(|_| "local-dev TLS lock poisoned".to_owned())?;
+        let guard = self.inner.lock().map_err(|_| "local-dev TLS lock poisoned".to_owned())?;
         Ok((guard.cert_pem.clone(), guard.key_pem.clone()))
     }
 
     /// DER cert + PKCS#8 key for constructing a `wtransport::Identity`.
     pub fn der_pair(&self) -> Result<(Vec<u8>, Vec<u8>), String> {
-        let guard = self
-            .inner
-            .lock()
-            .map_err(|_| "local-dev TLS lock poisoned".to_owned())?;
+        let guard = self.inner.lock().map_err(|_| "local-dev TLS lock poisoned".to_owned())?;
         Ok((guard.cert_der.clone(), guard.key_der_pkcs8.clone()))
     }
 }
 
 fn system_now() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs())
-        .unwrap_or(0)
+    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
 }
 
 fn mint_material(

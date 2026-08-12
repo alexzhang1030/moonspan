@@ -160,6 +160,7 @@ bindgen "$root/rclwebd/src/ros/ffi/wrapper.h" \
   --raw-line '//! Regenerate with scripts/generate-rcl-bindings.sh; do not edit by hand.' \
   --raw-line '#![allow(non_upper_case_globals, non_camel_case_types, non_snake_case)]' \
   --raw-line '#![allow(unsafe_code, dead_code, clippy::all, missing_docs)]' \
+  --raw-line '#![cfg_attr(rustfmt, rustfmt::skip)]' \
   -o "$root/rclwebd/src/ros/ffi/bindings.rs" \
   -- "${include_flags[@]}"
 

@@ -96,12 +96,7 @@ fn read_u16_be(bytes: &[u8], offset: usize) -> u16 {
 }
 
 fn read_u32_be(bytes: &[u8], offset: usize) -> u32 {
-    u32::from_be_bytes([
-        bytes[offset],
-        bytes[offset + 1],
-        bytes[offset + 2],
-        bytes[offset + 3],
-    ])
+    u32::from_be_bytes([bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]])
 }
 
 fn map_cbor_error(err: CborError, payload_base: usize) -> ProtocolError {
@@ -167,11 +162,7 @@ fn as_uint_range(
         }
     };
     if n < i128::from(min) || n > i128::from(max) {
-        return Err(ProtocolError::malformed_bootstrap(
-            "range_violation",
-            offset,
-            9,
-        ));
+        return Err(ProtocolError::malformed_bootstrap("range_violation", offset, 9));
     }
     Ok(n as u64)
 }
@@ -190,11 +181,7 @@ fn as_text(value: &CborValue<'_>, offset: usize) -> Result<String, ProtocolError
     match value {
         CborValue::Text(t) => {
             if t.len() > UTF8_TEXT_MAX_BYTES {
-                return Err(ProtocolError::malformed_bootstrap(
-                    "text_too_long",
-                    offset,
-                    9,
-                ));
+                return Err(ProtocolError::malformed_bootstrap("text_too_long", offset, 9));
             }
             Ok(t.as_ref().to_owned())
         }
@@ -241,22 +228,14 @@ fn decode_buffer(value: CborValue<'_>, offset: usize) -> Result<BufferCapabiliti
 fn decode_wire_versions(value: &CborValue<'_>, offset: usize) -> Result<Vec<u8>, ProtocolError> {
     let arr = as_array(value, offset)?;
     if arr.is_empty() || arr.len() > WIRE_VERSIONS_MAX {
-        return Err(ProtocolError::malformed_bootstrap(
-            "range_violation",
-            offset,
-            9,
-        ));
+        return Err(ProtocolError::malformed_bootstrap("range_violation", offset, 9));
     }
     let mut out = Vec::with_capacity(arr.len());
     let mut seen = std::collections::BTreeSet::new();
     for el in arr {
         let v = as_uint8(el, offset)?;
         if !seen.insert(v) {
-            return Err(ProtocolError::malformed_bootstrap(
-                "unique_violation",
-                offset,
-                9,
-            ));
+            return Err(ProtocolError::malformed_bootstrap("unique_violation", offset, 9));
         }
         out.push(v);
     }
@@ -269,35 +248,20 @@ fn decode_extension_capabilities(
 ) -> Result<Vec<u16>, ProtocolError> {
     let arr = as_array(value, offset)?;
     if arr.len() > CAPABILITY_IDS_MAX {
-        return Err(ProtocolError::malformed_bootstrap(
-            "range_violation",
-            offset,
-            9,
-        ));
+        return Err(ProtocolError::malformed_bootstrap("range_violation", offset, 9));
     }
     let mut out = Vec::with_capacity(arr.len());
     let mut prev: Option<u16> = None;
     for el in arr {
-        let id = as_uint_range(
-            el,
-            offset,
-            u64::from(CAPABILITY_ID_MIN),
-            u64::from(CAPABILITY_ID_MAX),
-        )? as u16;
+        let id =
+            as_uint_range(el, offset, u64::from(CAPABILITY_ID_MIN), u64::from(CAPABILITY_ID_MAX))?
+                as u16;
         if let Some(p) = prev {
             if id == p {
-                return Err(ProtocolError::malformed_bootstrap(
-                    "unique_violation",
-                    offset,
-                    9,
-                ));
+                return Err(ProtocolError::malformed_bootstrap("unique_violation", offset, 9));
             }
             if id < p {
-                return Err(ProtocolError::malformed_bootstrap(
-                    "order_violation",
-                    offset,
-                    9,
-                ));
+                return Err(ProtocolError::malformed_bootstrap("order_violation", offset, 9));
             }
         }
         prev = Some(id);
@@ -403,11 +367,7 @@ fn decode_server_hello(value: CborValue<'_>, offset: usize) -> Result<ServerHell
             1 => {
                 let s = as_uint8(&v, offset)?;
                 if s != 0 {
-                    return Err(ProtocolError::malformed_bootstrap(
-                        "range_violation",
-                        offset,
-                        9,
-                    ));
+                    return Err(ProtocolError::malformed_bootstrap("range_violation", offset, 9));
                 }
                 selected = Some(s);
             }
@@ -435,17 +395,9 @@ fn decode_bootstrap_error(
     require_exact_keys(&map, &[1], &[2, 3], offset)?;
     let code_num = as_uint_range(get(&map, 1).unwrap(), offset, 0, 255)? as u8;
     if !BOOTSTRAP_ERROR_CODES.contains(&code_num) {
-        return Err(ProtocolError::malformed_bootstrap(
-            "range_violation",
-            offset,
-            9,
-        ));
+        return Err(ProtocolError::malformed_bootstrap("range_violation", offset, 9));
     }
-    let mut out = BootstrapErrorRecord {
-        code: code_num,
-        message: None,
-        detail: None,
-    };
+    let mut out = BootstrapErrorRecord { code: code_num, message: None, detail: None };
     if let Some(v) = get(&map, 2) {
         out.message = Some(as_text(v, offset)?);
     }
@@ -461,15 +413,11 @@ fn decode_payload_by_kind(
     offset: usize,
 ) -> Result<BootstrapRecord, ProtocolError> {
     match kind {
-        KIND_CLIENT_HELLO => Ok(BootstrapRecord::ClientHello(decode_client_hello(
-            value, offset,
-        )?)),
-        KIND_SERVER_HELLO => Ok(BootstrapRecord::ServerHello(decode_server_hello(
-            value, offset,
-        )?)),
-        KIND_BOOTSTRAP_ERROR => Ok(BootstrapRecord::BootstrapError(decode_bootstrap_error(
-            value, offset,
-        )?)),
+        KIND_CLIENT_HELLO => Ok(BootstrapRecord::ClientHello(decode_client_hello(value, offset)?)),
+        KIND_SERVER_HELLO => Ok(BootstrapRecord::ServerHello(decode_server_hello(value, offset)?)),
+        KIND_BOOTSTRAP_ERROR => {
+            Ok(BootstrapRecord::BootstrapError(decode_bootstrap_error(value, offset)?))
+        }
         _ => Err(ProtocolError::malformed_bootstrap("unassigned_kind", 5, 5)),
     }
 }
@@ -490,11 +438,7 @@ pub fn parse_bootstrap(bytes: &[u8]) -> Result<BootstrapRecord, ProtocolError> {
 
     // 3. bootstrap_version 0
     if bytes[4] != BOOTSTRAP_VERSION {
-        return Err(ProtocolError::unsupported_version(
-            "unsupported_bootstrap_version",
-            4,
-            3,
-        ));
+        return Err(ProtocolError::unsupported_version("unsupported_bootstrap_version", 4, 3));
     }
 
     // 4. flags zero
@@ -520,11 +464,7 @@ pub fn parse_bootstrap(bytes: &[u8]) -> Result<BootstrapRecord, ProtocolError> {
         .checked_add(payload_len as usize)
         .ok_or_else(|| ProtocolError::malformed_bootstrap("exact_total_mismatch", 0, 7))?;
     if bytes.len() != expected_total {
-        return Err(ProtocolError::malformed_bootstrap(
-            "exact_total_mismatch",
-            0,
-            7,
-        ));
+        return Err(ProtocolError::malformed_bootstrap("exact_total_mismatch", 0, 7));
     }
 
     let payload = &bytes[BOOTSTRAP_PREFIX_LENGTH..expected_total];
@@ -574,9 +514,8 @@ mod unit_tests {
 
     #[test]
     fn trailing_total_mismatch_step7() {
-        let mut bytes = vec![
-            0x52, 0x32, 0x57, 0x50, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
-        ];
+        let mut bytes =
+            vec![0x52, 0x32, 0x57, 0x50, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01];
         // payload_len=1 but two body bytes
         bytes.extend_from_slice(&[0xf5, 0x00]);
         let err = parse_bootstrap(&bytes).unwrap_err();

@@ -10,10 +10,7 @@ pub struct Time {
 }
 
 pub fn decode_time(r: &mut CdrReader<'_>, _n: CdrNesting) -> Result<Time, CdrError> {
-    Ok(Time {
-        sec: r.read_i32()?,
-        nanosec: r.read_u32()?,
-    })
+    Ok(Time { sec: r.read_i32()?, nanosec: r.read_u32()? })
 }
 
 pub fn encode_time(w: &mut CdrWriter, v: &Time, _n: CdrNesting) -> Result<(), CdrError> {

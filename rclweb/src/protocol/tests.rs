@@ -11,10 +11,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 fn repo_root() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .expect("workspace root")
-        .to_path_buf()
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().expect("workspace root").to_path_buf()
 }
 
 fn read_json(path: &Path) -> Value {
@@ -32,17 +29,12 @@ fn frame_options_from_context(ctx: &Value) -> FrameOptions {
     if let Some(v) = ctx.get("selectedVersion").and_then(|x| x.as_u64()) {
         opts.selected_version = v as u8;
     }
-    if let Some(v) = ctx
-        .get("experimentalOpcodesEnabled")
-        .and_then(|x| x.as_bool())
-    {
+    if let Some(v) = ctx.get("experimentalOpcodesEnabled").and_then(|x| x.as_bool()) {
         opts.experimental_opcodes_enabled = v;
     }
     if let Some(arr) = ctx.get("availableClockIds").and_then(|x| x.as_array()) {
-        opts.available_clock_ids = arr
-            .iter()
-            .filter_map(|x| x.as_u64().map(|n| n as u8))
-            .collect::<BTreeSet<_>>();
+        opts.available_clock_ids =
+            arr.iter().filter_map(|x| x.as_u64().map(|n| n as u8)).collect::<BTreeSet<_>>();
     }
     opts
 }
@@ -56,12 +48,9 @@ fn parse_manifest_i64(v: &Value, label: &str) -> i64 {
         return i64::try_from(n).unwrap_or_else(|_| panic!("{label}: u64 out of i64 range"));
     }
     if v.get("$type").and_then(|t| t.as_str()) == Some("bigint") {
-        let s = v["value"]
-            .as_str()
-            .unwrap_or_else(|| panic!("{label}: bigint value must be string"));
-        return s
-            .parse::<i64>()
-            .unwrap_or_else(|e| panic!("{label}: parse bigint {s}: {e}"));
+        let s =
+            v["value"].as_str().unwrap_or_else(|| panic!("{label}: bigint value must be string"));
+        return s.parse::<i64>().unwrap_or_else(|e| panic!("{label}: parse bigint {s}: {e}"));
     }
     panic!("{label}: expected number or bigint wrapper, got {v}");
 }
@@ -75,10 +64,7 @@ fn parse_hex_pattern(hex: &str) -> Vec<u8> {
         hex.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f')),
         "pattern_hex must be lowercase hex"
     );
-    (0..hex.len())
-        .step_by(2)
-        .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
-        .collect()
+    (0..hex.len()).step_by(2).map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap()).collect()
 }
 
 /// Materialize one segment_recipe frame from a valid/boundary manifest entry.
@@ -101,10 +87,7 @@ fn materialize_segment_recipe_frame(entry: &Value) -> (Vec<u8>, u8, u32, u64, u8
     let pattern_hex = recipe["pattern_hex"].as_str().expect("pattern_hex");
     let pattern = parse_hex_pattern(pattern_hex);
     let payload_len = recipe["length"].as_u64().expect("recipe length") as u32;
-    assert_eq!(
-        entry["payload_length"].as_u64().expect("payload_length") as u32,
-        payload_len
-    );
+    assert_eq!(entry["payload_length"].as_u64().expect("payload_length") as u32, payload_len);
     let byte_length = entry["byte_length"].as_u64().expect("byte_length") as usize;
     assert_eq!(byte_length, FRAME_HEADER_LENGTH + payload_len as usize);
 
@@ -122,15 +105,7 @@ fn materialize_segment_recipe_frame(entry: &Value) -> (Vec<u8>, u8, u32, u64, u8
     for (i, b) in payload.iter_mut().enumerate() {
         *b = pattern[i % pattern.len()];
     }
-    (
-        bytes,
-        opcode,
-        channel_id,
-        sequence,
-        priority,
-        clock_id,
-        payload_len,
-    )
+    (bytes, opcode, channel_id, sequence, priority, clock_id, payload_len)
 }
 
 #[test]
@@ -150,11 +125,7 @@ fn valid_bootstrap_fixtures_parse_key_fields() {
         let id = entry["id"].as_str().unwrap();
         let path = entry["path"].as_str().expect("binary bootstrap path");
         let bytes = load_bin(&root, path);
-        assert_eq!(
-            bytes.len(),
-            entry["byte_length"].as_u64().unwrap() as usize,
-            "{id} length"
-        );
+        assert_eq!(bytes.len(), entry["byte_length"].as_u64().unwrap() as usize, "{id} length");
 
         let record = parse_bootstrap(&bytes).unwrap_or_else(|e| {
             panic!("{id}: expected success, got {e:?}");
@@ -173,10 +144,7 @@ fn valid_bootstrap_fixtures_parse_key_fields() {
                 assert_eq!(ch.requested_limits.max_channels, Some(u32::MAX));
                 assert_eq!(ch.requested_limits.max_session_bytes, Some(u64::MAX));
                 assert_eq!(ch.requested_limits.max_message_bytes, Some(u32::MAX));
-                assert_eq!(
-                    ch.requested_limits.max_control_payload_bytes,
-                    Some(u32::MAX)
-                );
+                assert_eq!(ch.requested_limits.max_control_payload_bytes, Some(u32::MAX));
                 assert_eq!(ch.extension_capabilities.len(), 64);
                 assert_eq!(ch.extension_capabilities.first().copied(), Some(1));
                 assert_eq!(ch.extension_capabilities.last().copied(), Some(64));
@@ -207,10 +175,7 @@ fn valid_bootstrap_fixtures_parse_key_fields() {
         }
         seen += 1;
     }
-    assert_eq!(
-        seen, 3,
-        "expected exactly 3 materialized valid bootstrap bins"
-    );
+    assert_eq!(seen, 3, "expected exactly 3 materialized valid bootstrap bins");
 }
 
 #[test]
@@ -230,11 +195,7 @@ fn valid_frame_fixtures_parse_key_fields() {
         let id = entry["id"].as_str().unwrap();
         let path = entry["path"].as_str().expect("binary frame path");
         let bytes = load_bin(&root, path);
-        assert_eq!(
-            bytes.len(),
-            entry["byte_length"].as_u64().unwrap() as usize,
-            "{id} length"
-        );
+        assert_eq!(bytes.len(), entry["byte_length"].as_u64().unwrap() as usize, "{id} length");
         let frame = parse_frame(&bytes, None).unwrap_or_else(|e| {
             panic!("{id}: expected success, got {e:?}");
         });
@@ -288,18 +249,12 @@ fn valid_frame_fixtures_parse_key_fields() {
             }
         }
         if id.contains("service-request-trace") {
-            assert!(
-                frame.extensions.iter().any(|e| e.type_id == 1),
-                "{id} TRACE"
-            );
+            assert!(frame.extensions.iter().any(|e| e.type_id == 1), "{id} TRACE");
             assert!(frame.extensions.iter().any(|e| e.type_id == 2), "{id} OPID");
         }
         seen += 1;
     }
-    assert_eq!(
-        seen, 18,
-        "expected exactly 18 materialized valid frame bins"
-    );
+    assert_eq!(seen, 18, "expected exactly 18 materialized valid frame bins");
 }
 
 #[test]
@@ -307,15 +262,9 @@ fn valid_segment_recipe_64mib_frame_parses_with_borrowed_payload() {
     let root = repo_root();
     let manifest = read_json(&root.join("protocol/testdata/manifest.json"));
     let fixtures = manifest["fixtures"].as_array().expect("fixtures array");
-    let recipes: Vec<&Value> = fixtures
-        .iter()
-        .filter(|f| f["representation"] == "segment_recipe")
-        .collect();
-    assert_eq!(
-        recipes.len(),
-        1,
-        "expected exactly one segment_recipe entry"
-    );
+    let recipes: Vec<&Value> =
+        fixtures.iter().filter(|f| f["representation"] == "segment_recipe").collect();
+    assert_eq!(recipes.len(), 1, "expected exactly one segment_recipe entry");
     let entry = recipes[0];
     assert_eq!(entry["id"], "frame-app-payload-64mib-recipe");
 
@@ -380,46 +329,22 @@ fn malformed_bootstrap_fixtures_match_expected_oracle() {
         if entry["kind"].as_str() != Some("bootstrap") {
             continue;
         }
-        let path = entry["path"]
-            .as_str()
-            .unwrap_or_else(|| panic!("{}: missing path", entry["id"]));
+        let path =
+            entry["path"].as_str().unwrap_or_else(|| panic!("{}: missing path", entry["id"]));
         let id = entry["id"].as_str().unwrap();
         let bytes = load_bin(&root, path);
         let expected = &entry["expected"];
         let err = parse_bootstrap(&bytes).expect_err(&format!("{id} should fail"));
 
-        assert_eq!(
-            err.code,
-            expected["registry_code"].as_u64().unwrap() as u32,
-            "{id} code"
-        );
-        assert_eq!(
-            err.name,
-            expected["registry_name"].as_str().unwrap(),
-            "{id} name"
-        );
-        assert_eq!(
-            err.reason,
-            expected["reason"].as_str().unwrap(),
-            "{id} reason"
-        );
-        assert_eq!(
-            err.offset,
-            expected["offset"].as_u64().unwrap() as usize,
-            "{id} offset"
-        );
+        assert_eq!(err.code, expected["registry_code"].as_u64().unwrap() as u32, "{id} code");
+        assert_eq!(err.name, expected["registry_name"].as_str().unwrap(), "{id} name");
+        assert_eq!(err.reason, expected["reason"].as_str().unwrap(), "{id} reason");
+        assert_eq!(err.offset, expected["offset"].as_u64().unwrap() as usize, "{id} offset");
         assert_eq!(err.plane, expected["plane"].as_str().unwrap(), "{id} plane");
-        assert_eq!(
-            err.step,
-            expected["step"].as_u64().unwrap() as u8,
-            "{id} step"
-        );
+        assert_eq!(err.step, expected["step"].as_u64().unwrap() as u8, "{id} step");
         seen += 1;
     }
-    assert_eq!(
-        seen, 14,
-        "expected exactly 14 executable malformed bootstrap bins"
-    );
+    assert_eq!(seen, 14, "expected exactly 14 executable malformed bootstrap bins");
 }
 
 #[test]
@@ -433,29 +358,18 @@ fn malformed_frame_fixtures_match_expected_oracle() {
         if entry["kind"].as_str() != Some("frame") {
             continue;
         }
-        let path = entry["path"]
-            .as_str()
-            .unwrap_or_else(|| panic!("{}: missing path", entry["id"]));
+        let path =
+            entry["path"].as_str().unwrap_or_else(|| panic!("{}: missing path", entry["id"]));
         let id = entry["id"].as_str().unwrap();
         let bytes = load_bin(&root, path);
         let expected = &entry["expected"];
-        let ctx = entry
-            .get("decoder_context")
-            .cloned()
-            .unwrap_or(Value::Object(Default::default()));
+        let ctx =
+            entry.get("decoder_context").cloned().unwrap_or(Value::Object(Default::default()));
         let opts = frame_options_from_context(&ctx);
         let err = parse_frame(&bytes, Some(&opts)).expect_err(&format!("{id} should fail"));
 
-        assert_eq!(
-            err.code,
-            expected["registry_code"].as_u64().unwrap() as u32,
-            "{id} code"
-        );
-        assert_eq!(
-            err.name,
-            expected["registry_name"].as_str().unwrap(),
-            "{id} name"
-        );
+        assert_eq!(err.code, expected["registry_code"].as_u64().unwrap() as u32, "{id} code");
+        assert_eq!(err.name, expected["registry_name"].as_str().unwrap(), "{id} name");
         assert_eq!(
             err.reason,
             expected["reason"].as_str().unwrap(),
@@ -480,10 +394,7 @@ fn malformed_frame_fixtures_match_expected_oracle() {
         );
         seen += 1;
     }
-    assert_eq!(
-        seen, 41,
-        "expected exactly 41 executable malformed frame bins"
-    );
+    assert_eq!(seen, 41, "expected exactly 41 executable malformed frame bins");
 }
 
 #[test]
@@ -519,9 +430,7 @@ fn short_and_adversarial_inputs_return_stable_errors() {
     }
 
     // Step 6: legal 12-byte prefix declaring payload_len 65536 (head-only payload).
-    let step6 = [
-        0x52, 0x32, 0x57, 0x50, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
-    ];
+    let step6 = [0x52, 0x32, 0x57, 0x50, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00];
     let err = parse_bootstrap(&step6).unwrap_err();
     assert_eq!(err.step, 6);
     assert_eq!(err.reason, "payload_too_large");
@@ -529,9 +438,7 @@ fn short_and_adversarial_inputs_return_stable_errors() {
     assert_eq!(err.offset, 8);
 
     // Step 8: valid prefix with payload_len 0 and absent body → cbor_profile.
-    let empty_payload = [
-        0x52, 0x32, 0x57, 0x50, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    ];
+    let empty_payload = [0x52, 0x32, 0x57, 0x50, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
     let err = parse_bootstrap(&empty_payload).unwrap_err();
     assert_eq!(err.step, 8);
     assert_eq!(err.reason, "cbor_profile");

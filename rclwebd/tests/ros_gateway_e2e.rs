@@ -29,9 +29,7 @@ async fn start_rcl_gateway() -> String {
         domain_id: DOMAIN,
         ..rclwebd::GatewayConfig::default()
     });
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("bind");
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.expect("bind");
     let addr = listener.local_addr().expect("local addr").to_string();
     tokio::spawn(async move {
         let _ = rclwebd::serve(listener, config, backend).await;
@@ -60,9 +58,7 @@ fn start_talker() -> Child {
 async fn ready(client: &mut TestClient) {
     let record = client.bootstrap(&TestClient::default_hello()).await;
     assert!(matches!(record, BootstrapRecord::ServerHello(_)));
-    client
-        .send_control(&TestClient::authenticate_msg(&corr(0x01)))
-        .await;
+    client.send_control(&TestClient::authenticate_msg(&corr(0x01))).await;
     let (_, effects) = client.recv_ingested().await.expect("session ready");
     assert!(effects.entered_ready);
     // GraphSnapshot (kind 3) follows SessionReady before any OpenChannel.
@@ -118,11 +114,7 @@ fn try_decode_sample_string(bytes: &[u8]) -> Option<(u32, u64, String)> {
         return None;
     }
     assert_eq!(frame.opcode, OPCODE_ROS_SAMPLE);
-    assert_ne!(
-        frame.flags & 0x0001,
-        0,
-        "reliable channel sets ROS_RELIABLE"
-    );
+    assert_ne!(frame.flags & 0x0001, 0, "reliable channel sets ROS_RELIABLE");
     let FramePayload::Application(payload) = frame.payload else {
         panic!("expected application payload");
     };
@@ -164,9 +156,7 @@ async fn live_talker_reaches_websocket_client_and_publish_crosses_dds() {
         open_ready_channel(&mut client, 8, 0, "/rclwebd_e2e_echo").await;
         open_ready_channel(&mut client, 9, 1, "/rclwebd_e2e_echo").await;
         let mut writer = CdrWriter::new_default(CdrEndian::Little).expect("writer");
-        writer
-            .write_string("echo through dds", None)
-            .expect("write string");
+        writer.write_string("echo through dds", None).expect("write string");
         let message = writer.to_bytes();
 
         let mut publish_seq = 0u64;

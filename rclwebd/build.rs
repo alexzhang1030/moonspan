@@ -35,14 +35,7 @@ fn main() {
     );
 
     println!("cargo:rustc-link-search=native={lib_dir}");
-    for lib in [
-        "rcl",
-        "rcl_action",
-        "rcutils",
-        "rmw",
-        "rmw_implementation",
-        "rosidl_runtime_c",
-    ] {
+    for lib in ["rcl", "rcl_action", "rcutils", "rmw", "rmw_implementation", "rosidl_runtime_c"] {
         println!("cargo:rustc-link-lib=dylib={lib}");
     }
     // dlopen typesupport libraries at runtime (libdl).

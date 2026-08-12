@@ -52,9 +52,7 @@ impl Transport for WsTransport {
                 Ok(Message::Ping(_) | Message::Pong(_)) => continue,
                 Ok(Message::Close(_)) => return None,
                 Err(err) => {
-                    return Some(Err(TransportError {
-                        reason: err.to_string(),
-                    }));
+                    return Some(Err(TransportError { reason: err.to_string() }));
                 }
             }
         }
@@ -64,9 +62,7 @@ impl Transport for WsTransport {
         self.socket
             .send(Message::Binary(bytes))
             .await
-            .map_err(|err| TransportError {
-                reason: err.to_string(),
-            })
+            .map_err(|err| TransportError { reason: err.to_string() })
     }
 
     async fn close(&mut self) {
@@ -95,12 +91,7 @@ async fn healthz<B: RosBackend>(State(state): State<AppState<B>>) -> Response {
         Some(tls) => match tls.ensure_fresh() {
             Ok(adv) => {
                 let body = format!("{{\"status\":\"ok\",\"localDevTls\":{}}}", adv.to_json());
-                (
-                    StatusCode::OK,
-                    [(header::CONTENT_TYPE, "application/json")],
-                    body,
-                )
-                    .into_response()
+                (StatusCode::OK, [(header::CONTENT_TYPE, "application/json")], body).into_response()
             }
             Err(err) => (
                 StatusCode::SERVICE_UNAVAILABLE,
@@ -122,11 +113,7 @@ async fn local_dev_tls_handler<B: RosBackend>(State(state): State<AppState<B>>) 
             .into_response();
     };
     match tls.ensure_fresh() {
-        Ok(adv) => (
-            StatusCode::OK,
-            [(header::CONTENT_TYPE, "application/json")],
-            adv.to_json(),
-        )
+        Ok(adv) => (StatusCode::OK, [(header::CONTENT_TYPE, "application/json")], adv.to_json())
             .into_response(),
         Err(err) => (
             StatusCode::SERVICE_UNAVAILABLE,
@@ -152,11 +139,7 @@ pub fn router<B: RosBackend>(
         .route("/healthz", get(healthz::<B>))
         .route("/telemetryz", get(telemetryz))
         .route("/local-dev/tls", get(local_dev_tls_handler::<B>))
-        .with_state(AppState {
-            config,
-            backend,
-            local_dev_tls,
-        })
+        .with_state(AppState { config, backend, local_dev_tls })
 }
 
 /// Serve the gateway on an already-bound listener until the task is dropped.
@@ -197,11 +180,7 @@ pub async fn serve<B: RosBackend>(
         None
     };
 
-    match wt::maybe_spawn(
-        Arc::clone(&config),
-        Arc::clone(&backend),
-        local_dev_tls.clone(),
-    ) {
+    match wt::maybe_spawn(Arc::clone(&config), Arc::clone(&backend), local_dev_tls.clone()) {
         Ok(true) => {}
         Ok(false) => {}
         Err(err) => eprintln!("rclwebd webtransport: {err}"),

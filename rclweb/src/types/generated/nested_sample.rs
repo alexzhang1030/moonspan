@@ -26,11 +26,7 @@ pub fn decode_nested_sample(
     let scalars = decode_primitive_scalars(r, scalars_n)?;
     let coll_n = r.enter_nested(current)?;
     let collections = decode_collections(r, coll_n)?;
-    Ok(NestedSample {
-        stamp,
-        scalars,
-        collections,
-    })
+    Ok(NestedSample { stamp, scalars, collections })
 }
 
 pub fn encode_nested_sample(

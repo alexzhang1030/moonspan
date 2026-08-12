@@ -31,11 +31,8 @@ fn env_flag(name: &str) -> bool {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let bind = std::env::var("RCLWEBD_BIND").unwrap_or_else(|_| "127.0.0.1:8794".to_owned());
-    let domain_id: u8 = std::env::var("ROS_DOMAIN_ID")
-        .ok()
-        .map(|v| v.parse())
-        .transpose()?
-        .unwrap_or(0);
+    let domain_id: u8 =
+        std::env::var("ROS_DOMAIN_ID").ok().map(|v| v.parse()).transpose()?.unwrap_or(0);
 
     let support_row = match std::env::var("RCLWEBD_SUPPORT_ROW") {
         Ok(raw) => parse_support_row(&raw).ok_or_else(|| {
@@ -83,9 +80,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
     let backend = Arc::new(RclBackend::spawn(domain_id)?);
 
-    let runtime = tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()?;
+    let runtime = tokio::runtime::Builder::new_multi_thread().enable_all().build()?;
     runtime.block_on(async move {
         let listener = tokio::net::TcpListener::bind(&bind).await?;
         eprintln!(

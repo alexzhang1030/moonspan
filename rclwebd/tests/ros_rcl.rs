@@ -70,16 +70,11 @@ async fn serialized_loopback_publish_take_and_graph() {
     let deadline = Instant::now() + Duration::from_secs(10);
     loop {
         let topics = backend.graph_topics().await.expect("graph query");
-        if topics
-            .iter()
-            .any(|(name, types)| name == topic && types.iter().any(|t| t == type_name))
+        if topics.iter().any(|(name, types)| name == topic && types.iter().any(|t| t == type_name))
         {
             break;
         }
-        assert!(
-            Instant::now() < deadline,
-            "topic not visible in graph: {topics:?}"
-        );
+        assert!(Instant::now() < deadline, "topic not visible in graph: {topics:?}");
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
 
@@ -87,10 +82,7 @@ async fn serialized_loopback_publish_take_and_graph() {
     let message = cdr_string_message("hello rclwebd loopback");
     let deadline = Instant::now() + Duration::from_secs(15);
     let sample = loop {
-        backend
-            .publish(pub_entity, message.clone())
-            .await
-            .expect("serialized publish");
+        backend.publish(pub_entity, message.clone()).await.expect("serialized publish");
         match tokio::time::timeout(Duration::from_millis(200), samples.recv()).await {
             Ok(Some(sample)) => break sample,
             Ok(None) => panic!("sample channel closed"),
@@ -100,10 +92,7 @@ async fn serialized_loopback_publish_take_and_graph() {
 
     assert_eq!(sample.channel_id, 1);
     assert_eq!(sample.payload(), &message[..], "bytes pass through intact");
-    assert_eq!(
-        decode_cdr_string(sample.payload()),
-        "hello rclwebd loopback"
-    );
+    assert_eq!(decode_cdr_string(sample.payload()), "hello rclwebd loopback");
 
     backend.destroy(sub_entity).await;
     backend.destroy(pub_entity).await;
@@ -208,9 +197,7 @@ fn cdr_fibonacci_goal(order: i32) -> Vec<u8> {
 fn cdr_fibonacci_get_result_response(status: i8) -> Vec<u8> {
     let mut writer = CdrWriter::new_default(CdrEndian::Little).expect("writer");
     writer.write_i8(status).expect("write status");
-    writer
-        .write_sequence_length(0, None)
-        .expect("empty sequence");
+    writer.write_sequence_length(0, None).expect("empty sequence");
     writer.to_bytes()
 }
 

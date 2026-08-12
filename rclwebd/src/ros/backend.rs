@@ -140,25 +140,18 @@ impl RclBackend {
                 return Err(BackendError::new(13, "ros thread died during init"));
             }
         };
-        Ok(Self {
-            commands: Some(command_tx),
-            trigger,
-            thread: Some(thread),
-        })
+        Ok(Self { commands: Some(command_tx), trigger, thread: Some(thread) })
     }
 
     fn send(&self, command: Command) -> Result<(), BackendError> {
         let sender = self.commands.as_ref().expect("backend used after shutdown");
-        sender
-            .send(command)
-            .map_err(|_| BackendError::new(13, "ros thread stopped"))?;
+        sender.send(command).map_err(|_| BackendError::new(13, "ros thread stopped"))?;
         self.trigger.trigger();
         Ok(())
     }
 
     async fn await_reply<T>(rx: oneshot::Receiver<T>) -> Result<T, BackendError> {
-        rx.await
-            .map_err(|_| BackendError::new(13, "ros thread dropped reply"))
+        rx.await.map_err(|_| BackendError::new(13, "ros thread dropped reply"))
     }
 
     /// Graph query evidence surface: visible topics with their types.
@@ -176,30 +169,19 @@ impl RosBackend for RclBackend {
         sink: mpsc::Sender<SubscriptionSample>,
     ) -> Result<EntityId, BackendError> {
         let (reply, rx) = oneshot::channel();
-        self.send(Command::CreateSubscription {
-            spec: spec.clone(),
-            sink,
-            reply,
-        })?;
+        self.send(Command::CreateSubscription { spec: spec.clone(), sink, reply })?;
         Self::await_reply(rx).await?
     }
 
     async fn create_publisher(&self, spec: &ChannelSpec) -> Result<EntityId, BackendError> {
         let (reply, rx) = oneshot::channel();
-        self.send(Command::CreatePublisher {
-            spec: spec.clone(),
-            reply,
-        })?;
+        self.send(Command::CreatePublisher { spec: spec.clone(), reply })?;
         Self::await_reply(rx).await?
     }
 
     async fn publish(&self, entity: EntityId, payload: Vec<u8>) -> Result<(), BackendError> {
         let (reply, rx) = oneshot::channel();
-        self.send(Command::Publish {
-            entity,
-            payload,
-            reply,
-        })?;
+        self.send(Command::Publish { entity, payload, reply })?;
         Self::await_reply(rx).await?
     }
 
@@ -212,10 +194,7 @@ impl RosBackend for RclBackend {
 
     async fn create_client(&self, spec: &ChannelSpec) -> Result<EntityId, BackendError> {
         let (reply, rx) = oneshot::channel();
-        self.send(Command::CreateClient {
-            spec: spec.clone(),
-            reply,
-        })?;
+        self.send(Command::CreateClient { spec: spec.clone(), reply })?;
         Self::await_reply(rx).await?
     }
 
@@ -225,11 +204,7 @@ impl RosBackend for RclBackend {
         sink: mpsc::Sender<ServiceRequest>,
     ) -> Result<EntityId, BackendError> {
         let (reply, rx) = oneshot::channel();
-        self.send(Command::CreateService {
-            spec: spec.clone(),
-            sink,
-            reply,
-        })?;
+        self.send(Command::CreateService { spec: spec.clone(), sink, reply })?;
         Self::await_reply(rx).await?
     }
 
@@ -240,12 +215,7 @@ impl RosBackend for RclBackend {
         request: Vec<u8>,
     ) -> Result<Vec<u8>, BackendError> {
         let (reply, rx) = oneshot::channel();
-        self.send(Command::Call {
-            entity,
-            operation_id,
-            request,
-            reply,
-        })?;
+        self.send(Command::Call { entity, operation_id, request, reply })?;
         Self::await_reply(rx).await?
     }
 
@@ -256,21 +226,13 @@ impl RosBackend for RclBackend {
         response: Vec<u8>,
     ) -> Result<(), BackendError> {
         let (reply, rx) = oneshot::channel();
-        self.send(Command::SendServiceResponse {
-            entity,
-            operation_id,
-            response,
-            reply,
-        })?;
+        self.send(Command::SendServiceResponse { entity, operation_id, response, reply })?;
         Self::await_reply(rx).await?
     }
 
     async fn create_action_client(&self, spec: &ChannelSpec) -> Result<EntityId, BackendError> {
         let (reply, rx) = oneshot::channel();
-        self.send(Command::CreateActionClient {
-            spec: spec.clone(),
-            reply,
-        })?;
+        self.send(Command::CreateActionClient { spec: spec.clone(), reply })?;
         Self::await_reply(rx).await?
     }
 
@@ -280,11 +242,7 @@ impl RosBackend for RclBackend {
         sink: mpsc::Sender<ActionInbound>,
     ) -> Result<EntityId, BackendError> {
         let (reply, rx) = oneshot::channel();
-        self.send(Command::CreateActionServer {
-            spec: spec.clone(),
-            sink,
-            reply,
-        })?;
+        self.send(Command::CreateActionServer { spec: spec.clone(), sink, reply })?;
         Self::await_reply(rx).await?
     }
 
@@ -295,12 +253,7 @@ impl RosBackend for RclBackend {
         request: Vec<u8>,
     ) -> Result<Vec<u8>, BackendError> {
         let (reply, rx) = oneshot::channel();
-        self.send(Command::SendActionGoal {
-            entity,
-            operation_id,
-            request,
-            reply,
-        })?;
+        self.send(Command::SendActionGoal { entity, operation_id, request, reply })?;
         Self::await_reply(rx).await?
     }
 
@@ -311,12 +264,7 @@ impl RosBackend for RclBackend {
         request: Vec<u8>,
     ) -> Result<Vec<u8>, BackendError> {
         let (reply, rx) = oneshot::channel();
-        self.send(Command::CancelAction {
-            entity,
-            operation_id,
-            request,
-            reply,
-        })?;
+        self.send(Command::CancelAction { entity, operation_id, request, reply })?;
         Self::await_reply(rx).await?
     }
 
@@ -327,12 +275,7 @@ impl RosBackend for RclBackend {
         payload: Vec<u8>,
     ) -> Result<(), BackendError> {
         let (reply, rx) = oneshot::channel();
-        self.send(Command::SendActionFeedback {
-            entity,
-            operation_id,
-            payload,
-            reply,
-        })?;
+        self.send(Command::SendActionFeedback { entity, operation_id, payload, reply })?;
         Self::await_reply(rx).await?
     }
 
@@ -343,12 +286,7 @@ impl RosBackend for RclBackend {
         payload: Vec<u8>,
     ) -> Result<(), BackendError> {
         let (reply, rx) = oneshot::channel();
-        self.send(Command::SendActionResult {
-            entity,
-            operation_id,
-            payload,
-            reply,
-        })?;
+        self.send(Command::SendActionResult { entity, operation_id, payload, reply })?;
         Self::await_reply(rx).await?
     }
 
@@ -462,10 +400,7 @@ fn map_rcl_error(err: super::rcl::RclError) -> BackendError {
 }
 
 fn map_pump_error(err: BackendError) -> super::rcl::RclError {
-    super::rcl::RclError {
-        ret: i32::from(err.code),
-        message: err.message,
-    }
+    super::rcl::RclError { ret: i32::from(err.code), message: err.message }
 }
 
 fn check_adapter_probe() -> Result<(), BackendError> {
@@ -551,11 +486,7 @@ impl Worker {
             Command::CreatePublisher { spec, reply } => {
                 let _ = reply.send(self.create_publisher(&spec));
             }
-            Command::Publish {
-                entity,
-                payload,
-                reply,
-            } => {
+            Command::Publish { entity, payload, reply } => {
                 let result = match self.publishers.get_mut(&entity) {
                     Some(publisher) => publisher.publish(&payload).map_err(map_rcl_error),
                     None => Err(BackendError::new(13, "unknown publisher entity")),
@@ -568,21 +499,11 @@ impl Worker {
             Command::CreateService { spec, sink, reply } => {
                 let _ = reply.send(self.create_service(&spec, sink));
             }
-            Command::Call {
-                entity,
-                operation_id: _,
-                request,
-                reply,
-            } => {
+            Command::Call { entity, operation_id: _, request, reply } => {
                 let result = self.call_client(commands, entity, &request);
                 let _ = reply.send(result);
             }
-            Command::SendServiceResponse {
-                entity,
-                operation_id,
-                response,
-                reply,
-            } => {
+            Command::SendServiceResponse { entity, operation_id, response, reply } => {
                 let result = self.send_service_response(entity, operation_id, &response);
                 let _ = reply.send(result);
             }
@@ -592,39 +513,19 @@ impl Worker {
             Command::CreateActionServer { spec, sink, reply } => {
                 let _ = reply.send(self.create_action_server(&spec, sink));
             }
-            Command::SendActionGoal {
-                entity,
-                operation_id,
-                request,
-                reply,
-            } => {
+            Command::SendActionGoal { entity, operation_id, request, reply } => {
                 let result = self.send_action_goal(commands, entity, operation_id, &request);
                 let _ = reply.send(result);
             }
-            Command::CancelAction {
-                entity,
-                operation_id,
-                request: _,
-                reply,
-            } => {
+            Command::CancelAction { entity, operation_id, request: _, reply } => {
                 let result = self.cancel_action(entity, operation_id);
                 let _ = reply.send(result);
             }
-            Command::SendActionFeedback {
-                entity,
-                operation_id,
-                payload,
-                reply,
-            } => {
+            Command::SendActionFeedback { entity, operation_id, payload, reply } => {
                 let result = self.send_action_feedback(entity, operation_id, &payload);
                 let _ = reply.send(result);
             }
-            Command::SendActionResult {
-                entity,
-                operation_id,
-                payload,
-                reply,
-            } => {
+            Command::SendActionResult { entity, operation_id, payload, reply } => {
                 let result = self.send_action_result(entity, operation_id, &payload);
                 let _ = reply.send(result);
             }
@@ -646,20 +547,12 @@ impl Worker {
     }
 
     fn graph_topics(&mut self) -> Result<GraphTopics, BackendError> {
-        self.attachment
-            .topic_names_and_types()
-            .map_err(map_rcl_error)
+        self.attachment.topic_names_and_types().map_err(map_rcl_error)
     }
 
     fn build_graph_view(&mut self) -> Result<GraphView, BackendError> {
-        let topics = self
-            .attachment
-            .topic_names_and_types()
-            .map_err(map_rcl_error)?;
-        let services = self
-            .attachment
-            .service_names_and_types()
-            .map_err(map_rcl_error)?;
+        let topics = self.attachment.topic_names_and_types().map_err(map_rcl_error)?;
+        let services = self.attachment.service_names_and_types().map_err(map_rcl_error)?;
         let node_id = {
             let mut id = [0u8; 16];
             id[15] = 1;
@@ -674,10 +567,8 @@ impl Worker {
         let mut endpoints = Vec::new();
         let mut index = 0usize;
         for (name, types) in topics {
-            let type_name = types
-                .into_iter()
-                .next()
-                .unwrap_or_else(|| "std_msgs/msg/String".to_owned());
+            let type_name =
+                types.into_iter().next().unwrap_or_else(|| "std_msgs/msg/String".to_owned());
             let mut eid = [0u8; 16];
             let n = (index as u64).saturating_add(1);
             eid[8..].copy_from_slice(&n.to_be_bytes());
@@ -692,10 +583,8 @@ impl Worker {
             index += 1;
         }
         for (name, types) in services {
-            let type_name = types
-                .into_iter()
-                .next()
-                .unwrap_or_else(|| "std_msgs/srv/Empty".to_owned());
+            let type_name =
+                types.into_iter().next().unwrap_or_else(|| "std_msgs/srv/Empty".to_owned());
             let mut eid = [0u8; 16];
             let n = (index as u64).saturating_add(1);
             eid[8..].copy_from_slice(&n.to_be_bytes());
@@ -709,10 +598,7 @@ impl Worker {
             });
             index += 1;
         }
-        Ok(GraphView {
-            nodes: vec![node],
-            endpoints,
-        })
+        Ok(GraphView { nodes: vec![node], endpoints })
     }
 
     fn create_subscription(
@@ -773,8 +659,7 @@ impl Worker {
             SerializedClient::create(&mut self.attachment, &spec.topic, service_ts, &spec.qos)
                 .map_err(map_rcl_error)?;
         let entity = self.allocate();
-        self.clients
-            .insert(entity, ClientEntry { client, service_ts });
+        self.clients.insert(entity, ClientEntry { client, service_ts });
         Ok(entity)
     }
 
@@ -817,8 +702,7 @@ impl Worker {
         let client = ActionClient::create(&mut self.attachment, &spec.topic, action_ts, &spec.qos)
             .map_err(map_rcl_error)?;
         let entity = self.allocate();
-        self.action_clients
-            .insert(entity, ActionClientEntry { client, action_ts });
+        self.action_clients.insert(entity, ActionClientEntry { client, action_ts });
         Ok(entity)
     }
 
@@ -874,11 +758,10 @@ impl Worker {
                 SERVICE_CALL_TIMEOUT,
                 || {
                     self.drain_commands(commands);
-                    self.pump_services_and_subscriptions()
-                        .map_err(|err| super::rcl::RclError {
-                            ret: err.code as i32,
-                            message: err.message,
-                        })
+                    self.pump_services_and_subscriptions().map_err(|err| super::rcl::RclError {
+                        ret: err.code as i32,
+                        message: err.message,
+                    })
                 },
             )
             .map_err(map_rcl_error);
@@ -931,8 +814,7 @@ impl Worker {
                 ACTION_CALL_TIMEOUT,
                 || {
                     self.drain_commands(commands);
-                    self.pump_services_and_subscriptions()
-                        .map_err(map_pump_error)?;
+                    self.pump_services_and_subscriptions().map_err(map_pump_error)?;
                     self.pump_action_servers().map_err(map_pump_error)
                 },
             )
@@ -997,11 +879,7 @@ impl Worker {
                 .get_mut(&operation_id)
                 .ok_or_else(|| BackendError::new(13, "unknown action goal operation_id"))?;
             slot.result_cdr = Some(payload.to_vec());
-            (
-                slot.handle,
-                slot.pending_result_header.take(),
-                slot.succeeded,
-            )
+            (slot.handle, slot.pending_result_header.take(), slot.succeeded)
         };
         if !already_succeeded {
             entry.server.succeed_goal(handle).map_err(map_rcl_error)?;
@@ -1027,11 +905,7 @@ impl Worker {
     }
 
     fn destroy_entity(&mut self, entity: EntityId) {
-        if let Some(index) = self
-            .subscriptions
-            .iter()
-            .position(|entry| entry.entity == entity)
-        {
+        if let Some(index) = self.subscriptions.iter().position(|entry| entry.entity == entity) {
             let entry = self.subscriptions.remove(index);
             entry.subscription.fini(&mut self.attachment);
         }
@@ -1065,14 +939,8 @@ impl Worker {
         if sub_cap > self.wait_set.subscription_capacity()
             || svc_cap > self.wait_set.service_capacity()
         {
-            let fresh = WaitSet::new(
-                self.attachment.context_ptr(),
-                sub_cap * 2,
-                0,
-                svc_cap * 2,
-                1,
-            )
-            .map_err(map_rcl_error)?;
+            let fresh = WaitSet::new(self.attachment.context_ptr(), sub_cap * 2, 0, svc_cap * 2, 1)
+                .map_err(map_rcl_error)?;
             let old = std::mem::replace(&mut self.wait_set, fresh);
             old.fini();
         }
@@ -1139,10 +1007,7 @@ impl Worker {
         loop {
             match entry.server.take_goal(&entry.action_ts) {
                 Ok(Some((mut header, uuid, goal_cdr))) => {
-                    match entry
-                        .server
-                        .accept_goal(&entry.action_ts, &mut header, uuid)
-                    {
+                    match entry.server.accept_goal(&entry.action_ts, &mut header, uuid) {
                         Ok(handle) => {
                             entry.goals.insert(
                                 uuid,
@@ -1201,9 +1066,7 @@ impl Worker {
                         }
                     }
                     let mut header = header;
-                    if let Err(err) = entry
-                        .server
-                        .send_result(&entry.action_ts, &mut header, &cdr)
+                    if let Err(err) = entry.server.send_result(&entry.action_ts, &mut header, &cdr)
                     {
                         eprintln!("rclwebd action send_result failed: {err}");
                     }
@@ -1233,11 +1096,8 @@ impl Worker {
 
     fn wait_and_pump(&mut self) -> Result<(), BackendError> {
         self.resize_wait_set_if_needed()?;
-        let sub_handles: Vec<&SerializedSubscription> = self
-            .subscriptions
-            .iter()
-            .map(|entry| &entry.subscription)
-            .collect();
+        let sub_handles: Vec<&SerializedSubscription> =
+            self.subscriptions.iter().map(|entry| &entry.subscription).collect();
         let svc_handles: Vec<&SerializedService> =
             self.services.values().map(|entry| &entry.service).collect();
         let _ready = self

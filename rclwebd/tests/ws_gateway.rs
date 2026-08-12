@@ -52,9 +52,7 @@ async fn ready_session_expecting(
     assert!(server_hello.extension_capabilities.is_empty());
 
     let auth_corr = corr(0xA1);
-    client
-        .send_control(&TestClient::authenticate_msg(&auth_corr))
-        .await;
+    client.send_control(&TestClient::authenticate_msg(&auth_corr)).await;
     let (bytes, effects) = client.recv_ingested().await.expect("session ready");
     assert!(effects.entered_ready);
     assert!(effects.auth_correlation_matched);
@@ -164,9 +162,7 @@ async fn subscribe_channel_streams_samples() {
     assert_eq!(kind, 12);
 
     // Close: backend entity destroyed; later samples are dropped.
-    client
-        .send_control(&TestClient::close_channel_msg(&corr(0xC3), 7))
-        .await;
+    client.send_control(&TestClient::close_channel_msg(&corr(0xC3), 7)).await;
     tokio::time::timeout(std::time::Duration::from_secs(5), async {
         while backend.live_subscriptions() != 0 {
             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
@@ -270,9 +266,7 @@ async fn unknown_type_fails_channel_and_data_on_it_errors() {
 async fn malformed_bootstrap_yields_bootstrap_error_and_close() {
     let (addr, _backend) = start_gateway().await;
     let mut client = TestClient::connect(&addr).await;
-    client
-        .send_raw(b"XXXX\x00\x01\x00\x00\x00\x00\x00\x00".to_vec())
-        .await;
+    client.send_raw(b"XXXX\x00\x01\x00\x00\x00\x00\x00\x00".to_vec()).await;
     let bytes = client.recv_frame_raw().await.expect("bootstrap error");
     let record = rclweb::parse_bootstrap(&bytes).expect("parse bootstrap error");
     let BootstrapRecord::BootstrapError(err) = record else {
@@ -286,10 +280,7 @@ async fn malformed_bootstrap_yields_bootstrap_error_and_close() {
 async fn no_common_version_yields_code_2() {
     let (addr, _backend) = start_gateway().await;
     let mut client = TestClient::connect(&addr).await;
-    let hello = rclweb::ClientHello {
-        wire_versions: vec![7],
-        ..TestClient::default_hello()
-    };
+    let hello = rclweb::ClientHello { wire_versions: vec![7], ..TestClient::default_hello() };
     let bytes = rclweb::encode_client_hello(&hello).unwrap();
     client.send_raw(bytes).await;
     let bytes = client.recv_frame_raw().await.expect("bootstrap error");
@@ -405,10 +396,7 @@ async fn service_client_round_trip_echoes_payload() {
     assert!(fields.contains_key(&60), "effective_service_qos");
     assert!(!fields.contains_key(&57), "topic qos absent on service");
     assert_eq!(client.session.channel_state(11), ChannelState::Active);
-    assert_eq!(
-        backend.created.lock().unwrap()[0].type_name,
-        "example_interfaces/srv/AddTwoInts"
-    );
+    assert_eq!(backend.created.lock().unwrap()[0].type_name, "example_interfaces/srv/AddTwoInts");
 
     let opid = [0x42u8; 16];
     let request = b"req-bytes".as_slice();
@@ -419,11 +407,7 @@ async fn service_client_round_trip_echoes_payload() {
     assert_eq!(frame.channel_id, 11);
     assert_eq!(frame.sequence, 0);
     assert_eq!(frame.flags & 0x0001, 0x0001);
-    let ext_opid = frame
-        .extensions
-        .iter()
-        .find(|e| e.type_id == 2)
-        .expect("OPERATION_ID");
+    let ext_opid = frame.extensions.iter().find(|e| e.type_id == 2).expect("OPERATION_ID");
     assert_eq!(ext_opid.value, &opid);
     match frame.payload {
         FramePayload::Application(p) => {
@@ -529,9 +513,7 @@ async fn oidc_mode_rejects_anonymous_token() {
     let mut client = TestClient::connect(&addr).await;
     let hello = TestClient::default_hello();
     let _ = client.bootstrap(&hello).await;
-    client
-        .send_control(&TestClient::authenticate_msg(&corr(0xA1)))
-        .await;
+    client.send_control(&TestClient::authenticate_msg(&corr(0xA1))).await;
     let bytes = client.recv_frame_raw().await.expect("auth error");
     let (kind, fields) = control_fields(&bytes);
     assert_eq!(kind, 15, "Error");
@@ -558,11 +540,7 @@ async fn oidc_mode_accepts_valid_jwt_subject() {
     let hello = TestClient::default_hello();
     let _ = client.bootstrap(&hello).await;
     client
-        .send_control(&TestClient::authenticate_msg_with(
-            &corr(0xA1),
-            "oidc",
-            token.as_bytes(),
-        ))
+        .send_control(&TestClient::authenticate_msg_with(&corr(0xA1), "oidc", token.as_bytes()))
         .await;
     let (bytes, effects) = client.recv_ingested().await.expect("session ready");
     assert!(effects.entered_ready);
@@ -578,11 +556,7 @@ async fn off_mode_ignores_token_and_stays_anonymous() {
     let hello = TestClient::default_hello();
     let _ = client.bootstrap(&hello).await;
     client
-        .send_control(&TestClient::authenticate_msg_with(
-            &corr(0xA1),
-            "token",
-            b"operator",
-        ))
+        .send_control(&TestClient::authenticate_msg_with(&corr(0xA1), "token", b"operator"))
         .await;
     let (bytes, effects) = client.recv_ingested().await.expect("session ready");
     assert!(effects.entered_ready);

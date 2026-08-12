@@ -44,11 +44,7 @@ pub enum AppCommand {
         webtransport: bool,
     },
     /// Send Authenticate after ServerHello.
-    Authenticate {
-        correlation: [u8; 16],
-        scheme: String,
-        token: Vec<u8>,
-    },
+    Authenticate { correlation: [u8; 16], scheme: String, token: Vec<u8> },
     /// Open a TOPIC_SUBSCRIBE channel.
     Subscribe {
         correlation: [u8; 16],
@@ -72,10 +68,7 @@ pub enum AppCommand {
         domain_id: u8,
     },
     /// Send one `std_msgs/msg/String` sample on a ready publish channel.
-    SendSample {
-        channel_id: u32,
-        string_data: String,
-    },
+    SendSample { channel_id: u32, string_data: String },
     /// Open a SERVICE_CLIENT or SERVICE_SERVER channel.
     OpenService {
         correlation: [u8; 16],
@@ -86,17 +79,9 @@ pub enum AppCommand {
         client: bool,
     },
     /// Client → server service call (SERVICE_REQUEST).
-    CallService {
-        channel_id: u32,
-        operation_id: [u8; 16],
-        request: Vec<u8>,
-    },
+    CallService { channel_id: u32, operation_id: [u8; 16], request: Vec<u8> },
     /// Server → client service reply (SERVICE_RESPONSE).
-    SendServiceResponse {
-        channel_id: u32,
-        operation_id: [u8; 16],
-        response: Vec<u8>,
-    },
+    SendServiceResponse { channel_id: u32, operation_id: [u8; 16], response: Vec<u8> },
     /// Open an ACTION_CLIENT or ACTION_SERVER channel.
     OpenAction {
         correlation: [u8; 16],
@@ -107,39 +92,17 @@ pub enum AppCommand {
         client: bool,
     },
     /// Client → server action goal.
-    SendActionGoal {
-        channel_id: u32,
-        operation_id: [u8; 16],
-        goal: Vec<u8>,
-    },
+    SendActionGoal { channel_id: u32, operation_id: [u8; 16], goal: Vec<u8> },
     /// Client → server action cancel (empty payload is allowed).
-    CancelAction {
-        channel_id: u32,
-        operation_id: [u8; 16],
-    },
+    CancelAction { channel_id: u32, operation_id: [u8; 16] },
     /// Server → client action feedback.
-    SendActionFeedback {
-        channel_id: u32,
-        operation_id: [u8; 16],
-        feedback: Vec<u8>,
-    },
+    SendActionFeedback { channel_id: u32, operation_id: [u8; 16], feedback: Vec<u8> },
     /// Server → client action result.
-    SendActionResult {
-        channel_id: u32,
-        operation_id: [u8; 16],
-        result: Vec<u8>,
-    },
+    SendActionResult { channel_id: u32, operation_id: [u8; 16], result: Vec<u8> },
     /// Server → client action status (zero `operation_id` allowed for the status stream).
-    SendActionStatus {
-        channel_id: u32,
-        operation_id: [u8; 16],
-        status: Vec<u8>,
-    },
+    SendActionStatus { channel_id: u32, operation_id: [u8; 16], status: Vec<u8> },
     /// Close an open channel (subscribe, publish, service, or action).
-    Unsubscribe {
-        correlation: [u8; 16],
-        channel_id: u32,
-    },
+    Unsubscribe { correlation: [u8; 16], channel_id: u32 },
     /// Tear down the session (best-effort; host closes the transport).
     Close,
 }
@@ -150,23 +113,11 @@ pub enum AppEvent {
     /// ServerHello accepted; selected plane entered.
     BootstrapComplete { selected_wire_version: u8 },
     /// SessionReady accepted.
-    SessionReady {
-        support_row: String,
-        domain_id: u8,
-        gateway_instance_id: String,
-    },
+    SessionReady { support_row: String, domain_id: u8, gateway_instance_id: String },
     /// ChannelReady allow|limited for a subscribe channel.
-    Subscribed {
-        channel_id: u32,
-        topic: String,
-        type_name: String,
-    },
+    Subscribed { channel_id: u32, topic: String, type_name: String },
     /// ChannelReady deny|error, or open rejected (subscribe).
-    SubscribeFailed {
-        channel_id: u32,
-        code: u8,
-        message: String,
-    },
+    SubscribeFailed { channel_id: u32, code: u8, message: String },
     /// ChannelReady allow|limited for a publish channel.
     Published {
         channel_id: u32,
@@ -176,11 +127,7 @@ pub enum AppEvent {
         qos_reliability: u8,
     },
     /// ChannelReady deny|error, or open rejected (publish).
-    PublishFailed {
-        channel_id: u32,
-        code: u8,
-        message: String,
-    },
+    PublishFailed { channel_id: u32, code: u8, message: String },
     /// Inbound ROS_SAMPLE on a subscribe channel.
     ///
     /// The CDR payload is reachable as a borrowed view via
@@ -198,87 +145,31 @@ pub enum AppEvent {
     /// Peer heartbeat observed (and optionally replied).
     Heartbeat { counter: u64 },
     /// ChannelReady allow|limited for a service channel.
-    ServiceReady {
-        channel_id: u32,
-        name: String,
-        type_name: String,
-        client: bool,
-    },
+    ServiceReady { channel_id: u32, name: String, type_name: String, client: bool },
     /// ChannelReady deny|error, or open rejected (service).
-    ServiceFailed {
-        channel_id: u32,
-        code: u8,
-        message: String,
-    },
+    ServiceFailed { channel_id: u32, code: u8, message: String },
     /// Inbound SERVICE_REQUEST (server role).
-    ServiceRequest {
-        channel_id: u32,
-        operation_id: [u8; 16],
-        lease_id: u32,
-        sequence: u64,
-    },
+    ServiceRequest { channel_id: u32, operation_id: [u8; 16], lease_id: u32, sequence: u64 },
     /// Inbound SERVICE_RESPONSE (client role).
-    ServiceResponse {
-        channel_id: u32,
-        operation_id: [u8; 16],
-        lease_id: u32,
-        sequence: u64,
-    },
+    ServiceResponse { channel_id: u32, operation_id: [u8; 16], lease_id: u32, sequence: u64 },
     /// ChannelReady allow|limited for an action channel.
-    ActionReady {
-        channel_id: u32,
-        name: String,
-        type_name: String,
-        client: bool,
-    },
+    ActionReady { channel_id: u32, name: String, type_name: String, client: bool },
     /// ChannelReady deny|error, or open rejected (action).
-    ActionFailed {
-        channel_id: u32,
-        code: u8,
-        message: String,
-    },
+    ActionFailed { channel_id: u32, code: u8, message: String },
     /// Inbound ACTION_GOAL.
-    ActionGoal {
-        channel_id: u32,
-        operation_id: [u8; 16],
-        lease_id: u32,
-        sequence: u64,
-    },
+    ActionGoal { channel_id: u32, operation_id: [u8; 16], lease_id: u32, sequence: u64 },
     /// Inbound ACTION_FEEDBACK.
-    ActionFeedback {
-        channel_id: u32,
-        operation_id: [u8; 16],
-        lease_id: u32,
-        sequence: u64,
-    },
+    ActionFeedback { channel_id: u32, operation_id: [u8; 16], lease_id: u32, sequence: u64 },
     /// Inbound ACTION_RESULT.
-    ActionResult {
-        channel_id: u32,
-        operation_id: [u8; 16],
-        lease_id: u32,
-        sequence: u64,
-    },
+    ActionResult { channel_id: u32, operation_id: [u8; 16], lease_id: u32, sequence: u64 },
     /// Inbound ACTION_STATUS (zero `operation_id` allowed).
-    ActionStatus {
-        channel_id: u32,
-        operation_id: [u8; 16],
-        lease_id: u32,
-        sequence: u64,
-    },
+    ActionStatus { channel_id: u32, operation_id: [u8; 16], lease_id: u32, sequence: u64 },
     /// GraphSnapshot control → JSON arrays for the SDK.
-    GraphSnapshot {
-        generation: u64,
-        nodes_json: String,
-        endpoints_json: String,
-    },
+    GraphSnapshot { generation: u64, nodes_json: String, endpoints_json: String },
     /// GraphDelta accepted; generation advanced.
     GraphDelta { generation: u64 },
     /// Operation-scoped Error cancelled an in-flight operation.
-    OperationCancelled {
-        channel_id: u32,
-        code: u8,
-        message: String,
-    },
+    OperationCancelled { channel_id: u32, code: u8, message: String },
     /// Session-scope error; connection should close.
     Error { code: u8, message: String },
     /// Engine reached a terminal phase.
