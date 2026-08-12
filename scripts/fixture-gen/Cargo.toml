@@ -1,0 +1,13 @@
+[package]
+name = "r1_04_fixture_gen"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "r1_04_fixture_gen"
+path = "main.rs"
+
+[dependencies]
+rclweb = { path = "../../rclweb" }
+serde_json = "1"

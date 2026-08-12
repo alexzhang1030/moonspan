@@ -9,6 +9,6 @@
   "scripts": {
     "check": "bun build ./src/index.ts --target=browser --outdir=./dist",
     "test": "bun test",
-    "build": "bun build ./src/index.ts --target=browser --outdir=./dist"
+    "build": "bun build ./src/index.ts --target=browser --outdir=./dist && bun build ./src/worker/io-worker.ts --target=browser --outdir=./dist/worker"
   }
 }

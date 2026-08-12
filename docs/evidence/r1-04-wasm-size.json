@@ -1,0 +1,10 @@
+{
+  "task": "R1-04",
+  "artifact": "sdk/typescript/wasm/rclweb.wasm",
+  "profile": "release-wasm",
+  "target": "wasm32-unknown-unknown",
+  "bytes": 283755,
+  "kib": 277.1,
+  "recordedAt": "2026-08-12T07:58:02.042Z",
+  "note": "Hand-written poll ABI (no wasm-bindgen). Poll latency evidence lands in R1-05."
+}

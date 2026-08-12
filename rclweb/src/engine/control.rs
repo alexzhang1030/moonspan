@@ -1,0 +1,99 @@
+//! Client-side control-message builders for the v0.1 walking skeleton.
+//!
+//! Maps mirror the shapes exercised by the R1-03 gateway test client so the
+//! client engine and gateway stay on one contract. Every outbound control frame
+//! is self-parsed and recorded through [`crate::Session`] before it leaves the
+//! engine.
+
+use crate::protocol::cbor::CborValue;
+use std::borrow::Cow;
+
+/// Demo schema hash used until R3 dual-scheme identity lands.
+pub const DEMO_SCHEMA_HASH: &str =
+    "RIHS01_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+pub const ZERO_CORRELATION: [u8; 16] = [0u8; 16];
+
+fn bytes_val(bytes: &[u8]) -> CborValue<'static> {
+    CborValue::Bytes(Cow::Owned(bytes.to_vec()))
+}
+
+fn text_val(text: &str) -> CborValue<'static> {
+    CborValue::Text(Cow::Owned(text.to_owned()))
+}
+
+/// Authenticate (kind 1). v0.1 accepts every credential.
+#[must_use]
+pub fn authenticate(correlation: &[u8; 16], scheme: &str, token: &[u8]) -> CborValue<'static> {
+    CborValue::Map(vec![
+        (1, CborValue::Unsigned(1)),
+        (2, bytes_val(correlation)),
+        (16, text_val(scheme)),
+        (17, bytes_val(token)),
+    ])
+}
+
+/// OpenChannel (kind 8) for a topic subscribe or publish on support row J-FT.
+#[must_use]
+#[allow(clippy::too_many_arguments)]
+pub fn open_topic(
+    correlation: &[u8; 16],
+    channel_id: u32,
+    operation_kind: u64,
+    topic: &str,
+    type_name: &str,
+    qos_reliability: u64,
+    domain_id: u8,
+) -> CborValue<'static> {
+    CborValue::Map(vec![
+        (1, CborValue::Unsigned(8)),
+        (2, bytes_val(correlation)),
+        (29, CborValue::Unsigned(u64::from(channel_id))),
+        (30, CborValue::Unsigned(operation_kind)),
+        (31, text_val(topic)),
+        (4, text_val(type_name)),
+        (
+            3,
+            CborValue::Map(vec![
+                (1, text_val("rep2011-rihs")),
+                (2, text_val(DEMO_SCHEMA_HASH)),
+            ]),
+        ),
+        (5, CborValue::Unsigned(1)),
+        (6, CborValue::Unsigned(0)),
+        (
+            11,
+            CborValue::Map(vec![
+                (1, CborValue::Unsigned(qos_reliability)),
+                (2, CborValue::Unsigned(0)),
+                (3, CborValue::Unsigned(1)),
+                (4, CborValue::Unsigned(5)),
+            ]),
+        ),
+        (32, CborValue::Unsigned(2)),
+        (12, CborValue::Map(Vec::new())),
+        (9, CborValue::Unsigned(u64::from(domain_id))),
+        (8, text_val("J-FT")),
+    ])
+}
+
+/// CloseChannel (kind 10).
+#[must_use]
+pub fn close_channel(correlation: &[u8; 16], channel_id: u32) -> CborValue<'static> {
+    CborValue::Map(vec![
+        (1, CborValue::Unsigned(10)),
+        (2, bytes_val(correlation)),
+        (29, CborValue::Unsigned(u64::from(channel_id))),
+        (34, CborValue::Unsigned(1)),
+    ])
+}
+
+/// Heartbeat (kind 12).
+#[must_use]
+pub fn heartbeat(counter: u64) -> CborValue<'static> {
+    CborValue::Map(vec![
+        (1, CborValue::Unsigned(12)),
+        (2, bytes_val(&ZERO_CORRELATION)),
+        (40, CborValue::Unsigned(counter)),
+    ])
+}

@@ -74,12 +74,12 @@ ros-test: toolchain-check
     cargo test --locked -p rclwebd --features ros
     cargo clippy --locked -p rclwebd --features ros --all-targets -- -D warnings
 
-# Cargo native build, rclweb wasm32 build, and SDK build.
+# Cargo native build, rclweb wasm32 (fat LTO) staged into the SDK, and SDK build.
 [group('quality')]
 build: toolchain-check
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{root}}"
     cargo build --locked --workspace
-    cargo build --locked -p rclweb --target wasm32-unknown-unknown
+    bun run scripts/build-wasm.ts
     bun run --filter @rclweb/sdk build
