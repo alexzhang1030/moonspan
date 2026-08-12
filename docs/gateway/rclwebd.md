@@ -37,6 +37,8 @@ One `rclwebd` process binds one adapter support row; Phase 1 gates J-FT, with th
 
 `support_row_id` is fixed for the running artifact. `gateway_instance_id` identifies the logical deployment and supports resume across ordinary restart or in-place upgrade when state is preserved. Startup validates the configured row, ROS distribution, RMW, adapter ABI, and artifact profile. A mismatch keeps readiness closed with `adapter_profile_mismatch`.
 
+Local-dev WebTransport TLS (opt-in auto-minted short-lived certs + `serverCertificateHashes`, rotate before the browser 14-day ceiling) is specified in [ADR 0011](../adr/0011-local-dev-webtransport-tls.md) and lands with R3 transport bring-up.
+
 Graph, schema, channel, policy, telemetry, audit, and evidence records retain gateway, support-row, and domain provenance.
 
 ## ROS adapter surface
