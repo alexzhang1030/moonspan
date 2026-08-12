@@ -1,17 +1,46 @@
 {
   "task": "R3-03",
   "kind": "e2e-live-subscribe",
-  "startedAt": null,
-  "finishedAt": null,
+  "startedAt": "2026-08-12T15:31:02.883Z",
+  "finishedAt": "2026-08-12T15:31:03.968Z",
   "supportRow": "H-FT",
   "gatewayUrl": "ws://127.0.0.1:8794/ws",
   "topic": "/chatter",
   "typeName": "std_msgs/msg/String",
-  "samplesReceived": 0,
-  "samplePreview": [],
-  "note": "Placeholder overwritten by docker/compose.r3-03-h-ft-e2e.yml / CI e2e-ros-talker-h-ft.",
+  "samplesReceived": 3,
+  "samplePreview": [
+    "rclweb-r3-03-h-ft-e2e",
+    "rclweb-r3-03-h-ft-e2e",
+    "rclweb-r3-03-h-ft-e2e"
+  ],
+  "engineTelemetry": {
+    "copiesIntoEngine": 8,
+    "bytesCopiedIntoEngine": 995,
+    "pollTurns": 14,
+    "pollNanosTotal": 0,
+    "samplesEmitted": 3,
+    "leasesReleased": 3,
+    "samplesSent": 0
+  },
+  "gatewayTelemetry": {
+    "payload_copies": 3,
+    "bytes_copied": 96,
+    "samples_framed": 3,
+    "controllable_copies_per_sample": 1,
+    "delivered": 3,
+    "sequence_gap": 0,
+    "stale_sequence": 0,
+    "reliable_queue_drop": 0
+  },
+  "copyBudget": {
+    "targetControllableCopies": 2,
+    "gatewayControllableCopiesPerSample": 1,
+    "browserControllableCopy": "Worker/host \u2192 engine retained memory (copiesIntoEngine)",
+    "applicationDelivery": "borrowed view / decoded string_data (0 controllable)"
+  },
   "revision": {
-    "note": "filled by CI when available",
-    "githubSha": null
+    "note": "CI run 31612296338 (e2e-ros-talker-h-ft)",
+    "githubSha": "9165170bfb8d07b763fbabcf0a5ad326fc57a3fa",
+    "runUrl": "https://github.com/alexzhang1030/rclweb/actions/runs/31612296338"
   }
 }
