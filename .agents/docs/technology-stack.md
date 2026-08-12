@@ -46,6 +46,7 @@ Pixi is not in that pin set. `pixi.toml` is an optional local Jazzy prefix for `
 | `sdk/typescript/wasm/` | Staged `rclweb.wasm` from `scripts/build-wasm.ts` (fat LTO) |
 | `protocol/` | Normative contracts, registries, schemas, and frozen fixtures |
 | `conformance/` | CDR corpus and qualification workloads |
+| `pixi.toml` | Optional RoboStack J-FT prefix for `just ros-test-pixi`; not a toolchain pin |
 | `studio/` | U0 workspace added after release |
 
 ## ROS profile
@@ -58,7 +59,7 @@ Phase 1 gates J-FT (Jazzy + Fast DDS). Corpus data for all six rows (H-FT, H-CY,
 
 For machines where apt ROS or Docker is too heavy, `pixi.toml` installs a RoboStack Jazzy prefix (`just ros-test-pixi` / `pixi run just ros-test`). That path is optional: pixi is not a toolchain pin, not checked by `just toolchain-check`, and not CI evidence. Digest-pinned Docker compose (`just e2e` / `just e2e-h-ft`) remains the talker → gateway → SDK gate. This env is J-FT only; H-FT still needs Humble (the existing Docker image or a second prefix).
 
-RoboStack Jazzy is a conda-forge rebuild, not Ubuntu's `/opt/ros/jazzy`. A green `ros-test-pixi` does not substitute for the Ubuntu Jazzy e2e lane.
+RoboStack Jazzy is a conda-forge rebuild, not Ubuntu's `/opt/ros/jazzy`. A green `ros-test-pixi` does not substitute for the Ubuntu Jazzy e2e lane. Landed in [`25fb42f`](https://github.com/alexzhang1030/rclweb/commit/25fb42f) (#20); reproduce with `just ros-test-pixi`.
 
 ## Decision lifecycle
 
