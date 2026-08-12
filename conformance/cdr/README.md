@@ -37,14 +37,19 @@ bun run test:cdr-corpus        # focused helper suite
 bun run cdr-tail-slack:check   # verify top-level tail-slack evidence artifact
 bun run cdr-tail-slack:write   # regenerate tail-slack.json from committed binaries
 bun run test:cdr-tail-slack    # focused tail-slack helper suite
+bun run generated-types:check  # M1-02b metadata byte-identity check
+bun run generated-types:write  # regenerate rclweb/generated/metadata/
+bun run test:generated-types   # focused generated-types helper suite
 just cdr-corpus-check
 just cdr-corpus-write
 just cdr-corpus-reproduce
 just cdr-tail-slack-check
 just cdr-tail-slack-write
+just generated-types-check
+just generated-types-write
 ```
 
-Root `bun run check` runs `cdr-corpus:check` and `cdr-tail-slack:check`.
+Root `bun run check` runs `cdr-corpus:check`, `cdr-tail-slack:check`, and `generated-types:check`.
 
 ## Top-level tail slack
 

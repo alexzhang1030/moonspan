@@ -29,3 +29,18 @@ R3-01 reliable operation streams (SERVICE_REQUEST/RESPONSE, ACTION_GOAL/CANCEL/R
 ## Service/action poll events carry payload views
 
 App events 13–14 and 17–20 include `lease_id` plus `payload_ptr`/`payload_len` (same lease model as Sample). The abbreviated command layouts omit those ptr fields; without them the wasm host cannot copy request/response bodies. TS must release the lease after `IoHost.copyPayload`.
+
+## Phase 1 schema metadata JSON shape
+
+`rclweb/generated/metadata/` is produced by `scripts/generated-types.ts`. Rust embeds four files via `include_str!`:
+
+- `descriptors.json` → top-level `roots[]` (`descriptor_id`, `type_name`, …)
+- `identities.json` → `identities[]`
+- `wire_profiles.json` → `profiles[]` with `cdr_representation` as `"CDR_LE"` / `"CDR_BE"`
+- `provenance.json` → `mappings[]`
+
+Do not rename those array keys without updating both the Bun generator and `rclweb/src/types/registry.rs`. `normalized_sources.json` is generator-only and is not loaded by the Rust registry.
+
+## Sectioned corpus roots are graph endpoints without source rows
+
+Canonical CDR bundles for `*_Request` / `*_Response` / `*_Goal` / `*_Result` / `*_Feedback` store interface text under the parent `.srv` / `.action` type, while `dependency_graph` edges use the sectioned `root_type_name` as `from`. M1-02b join validation must accept `root_type_name` as a known endpoint alongside `sources[].type_name`; requiring every `from` to appear in `sources` rejects the committed Phase 1 corpus.

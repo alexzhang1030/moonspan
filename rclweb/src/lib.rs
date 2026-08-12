@@ -13,6 +13,7 @@ pub mod engine;
 pub mod host;
 pub mod protocol;
 pub mod session;
+pub mod types;
 
 pub use cdr::{
     BODY_ORIGIN, CdrEndian, CdrError, CdrErrorCode, CdrHeader, CdrLimits, CdrNesting, CdrReader,
@@ -56,6 +57,14 @@ pub use protocol::{
 pub use session::{
     ChannelEntry, ChannelResult, ChannelState, ChannelTable, OperationKind, Role, Session,
     SessionEffects, SessionPhase,
+};
+pub use types::{
+    CdrRepresentation, Collections, ENCODING_CDR1, EchoNestedRequest, EchoNestedResponse,
+    LookupResult, MeasureSequenceFeedback, MeasureSequenceGoal, MeasureSequenceResult,
+    NestedSample, PHASE1_ROOT_TYPE_NAMES, PHASE1_SCHEMA_GENERATION, PointCloud2, PrimitiveScalars,
+    SCHEME_MOONSPAN_SCHEMA_V1, SCHEME_REP2011_RIHS, SchemaError, SchemaErrorCode, SchemaKey,
+    SchemaRegistry, SchemaRegistryBuilder, Time, WIRE_ERROR_SCHEMA_UNAVAILABLE,
+    lookup_phase1_root_for_open, schema_identity_for_type,
 };
 
 #[cfg(test)]

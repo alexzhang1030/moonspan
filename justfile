@@ -56,6 +56,16 @@ cdr-tail-slack-check: toolchain-check
 cdr-tail-slack-write: toolchain-check
     cd "{{root}}" && bun run cdr-tail-slack:write
 
+# Generated-types metadata check (M1-02b descriptors / identities / wire profiles).
+[group('quality')]
+generated-types-check: toolchain-check
+    cd "{{root}}" && bun run generated-types:check
+
+# Regenerate generated-types metadata under rclweb/generated/metadata/.
+[group('quality')]
+generated-types-write: toolchain-check
+    cd "{{root}}" && bun run generated-types:write
+
 # Docs, protocol, and corpus checks; Rust fmt/clippy; SDK typecheck.
 [group('quality')]
 check: toolchain-check

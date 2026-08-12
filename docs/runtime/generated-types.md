@@ -101,20 +101,22 @@ Separator lines are a single line whose trimmed content is exactly `---`, matchi
 
 Phase 1 examples: `EchoNested_Request` / `EchoNested_Response` from `EchoNested.srv`; `MeasureSequence_Goal` / `_Result` / `_Feedback` from `MeasureSequence.action`.
 
+Root `bun run check` includes the generator check once M1-02b lands. Exact script and package paths land with that batch.
+
 ## Generator contract (M1-02b)
 
 | Rule | Contract |
 |---|---|
-| Tooling | Bun script with `--write` and `--check` |
-| `--write` | Regenerates committed normalized-descriptor and static-metadata artifacts from the authoritative inputs |
-| `--check` | Rebuilds in memory (or to a temp path) and requires **byte identity** with the committed output |
+| Tooling | Bun script with `--write` and `--check` (`scripts/generated-types.ts`; `bun run generated-types:write` / `generated-types:check`) |
+| `--write` | Regenerates committed normalized-descriptor and static-metadata artifacts from the authoritative inputs into `rclweb/generated/metadata/` |
+| `--check` | Rebuilds in memory (or to a temp path) and requires **byte identity** with the committed output; drift exits non-zero with `schema_generation_drift` |
 | Determinism | Same committed inputs produce identical output bytes |
 | Sources | `ROS2_INTERFACE_TEXT` only; section selection as above |
 | Validation | Full authoritative-input joins and bounds before emit |
 | Output | Checked-in validated normalized descriptors and static metadata (identity rows, descriptor handles, wire-profile tail tables, provenance rows). Check runs from committed tree inputs only |
 | Failure | Non-zero exit and a stable diagnostic when inputs are missing, malformed, out of bounds, or output drifts |
 
-Root `bun run check` includes the generator check once M1-02b lands. Exact script and package paths land with that batch.
+Root `bun run check` includes `generated-types:check` after `cdr-tail-slack:check`.
 
 ## Codec contract (M1-02c)
 

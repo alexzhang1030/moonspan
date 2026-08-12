@@ -31,7 +31,13 @@ The Rust CDR port implements the frozen [CDR core contract](./cdr.md) and must p
 
 ## Types and schemas
 
-The dual-scheme registry contract ([generated types](./generated-types.md)) is frozen and retargets to Rust code generation in R3. Jazzy uses `rep2011-rihs` identity; Humble uses `moonspan-schema-v1` bundles (historical identifier, frozen on the wire).
+The dual-scheme registry contract ([generated types](./generated-types.md)) is
+implemented in Rust (`rclweb/src/types/`, R3-02): Bun generator metadata under
+`rclweb/generated/metadata/`, production codecs for the nine Phase 1 corpus roots,
+and an immutable `SchemaRegistry::phase1()` with representation-aware zero-tail
+lookup. Jazzy uses `rep2011-rihs` identity; Humble uses `moonspan-schema-v1`
+bundles (historical identifier, frozen on the wire). Wire SchemaRequest/Advertise/Response
+exchange remains parked until a gateway schema-cache path lands.
 
 ## Validation
 
