@@ -6,7 +6,7 @@
 //! - `RCLWEBD_SUPPORT_ROW` — support row id (`J-FT` default; `H-FT` accepted)
 //! - `RCLWEBD_LOCAL_DEV_TLS` — `1`/`true` enables ADR 0011 local-dev TLS
 //! - `RCLWEBD_OFFER_WEBTRANSPORT` — `1`/`true` AND-negotiates WT + starts accept
-//! - `RCLWEBD_AUTH_MODE` — `dev` (default, accept any credential) or `oidc`
+//! - `RCLWEBD_AUTH_MODE` — `off` (default) or `oidc` (JWT; requires issuer/keys)
 //! - `RCLWEBD_OIDC_ISSUER` / `RCLWEBD_OIDC_AUDIENCE` — required in `oidc` mode
 //! - `RCLWEBD_OIDC_HS_SECRET` or `RCLWEBD_OIDC_JWKS` / `RCLWEBD_OIDC_JWKS_PATH`
 //!
@@ -62,12 +62,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let auth_mode = match std::env::var("RCLWEBD_AUTH_MODE") {
         Ok(raw) => AuthMode::parse(&raw).ok_or_else(|| {
-            format!("unsupported RCLWEBD_AUTH_MODE={raw:?}; expected dev or oidc")
+            format!("unsupported RCLWEBD_AUTH_MODE={raw:?}; expected off or oidc")
         })?,
-        Err(_) => AuthMode::Dev,
+        Err(_) => AuthMode::Off,
     };
     let oidc = match auth_mode {
-        AuthMode::Dev => None,
+        AuthMode::Off => None,
         AuthMode::Oidc => Some(OidcSettings::from_env()?),
     };
 

@@ -9,15 +9,15 @@ vendor.
 
 | Area | Behavior |
 |---|---|
-| `dev` (default) | Accept any credential; SessionReady field 21 is the token UTF-8 or `anonymous`. Existing e2e stays green. |
+| `off` (default) | Auth disabled. Any credential is accepted; SessionReady field 21 stays `anonymous`; no audit. Same as R1–R3. `dev` is an alias. |
 | `oidc` | JWT with issuer + audience + signature (`HS256` secret or JWKS). Fail closed at process start if issuer/audience/keys are missing. Fail Authenticate with wire code 26 (`authentication_failed`) and close. |
-| Audit | One JSON line per Authenticate (`rclwebd audit {…}`) with decision, subject, scheme, gateway/row/domain, and `ROS_SECURITY_ENABLE` if set |
+| Audit | One JSON line per Authenticate **in `oidc` mode** (`rclwebd audit {…}`) with decision, subject, scheme, gateway/row/domain, and `ROS_SECURITY_ENABLE` if set. Off mode is silent. |
 | SROS2 / ACL | Not in this slice. Enclave mapping and channel ACLs wait on D-04 plus a follow-up in this task |
 
 ## Config
 
 ```bash
-RCLWEBD_AUTH_MODE=dev|oidc          # default dev
+RCLWEBD_AUTH_MODE=off|oidc          # default off (`dev` is an alias for off)
 RCLWEBD_OIDC_ISSUER=https://…
 RCLWEBD_OIDC_AUDIENCE=rclwebd
 RCLWEBD_OIDC_HS_SECRET=…            # tests / local HS256

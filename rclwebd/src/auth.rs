@@ -1,10 +1,9 @@
 //! Session identity for Authenticate (R4-01).
 //!
-//! `dev` (default) keeps the walking-skeleton accept-all path so J-FT/H-FT
-//! e2e stays green. `oidc` verifies a JWT (issuer + audience + signature)
-//! and fails closed with wire code 26 (`authentication_failed`). The OIDC
-//! *tenant* and SROS2 keystore remain D-04 — this module does not pick a
-//! vendor; it consumes issuer/audience/keys from config.
+//! Default is **off**: accept any credential, SessionReady subject stays
+//! `anonymous`, no audit line — same as R1–R3. `oidc` is opt-in
+//! (`RCLWEBD_AUTH_MODE=oidc`) and verifies a JWT (issuer + audience +
+//! signature). The OIDC tenant and SROS2 keystore remain D-04.
 
 use crate::config::GatewayConfig;
 use jsonwebtoken::{Algorithm, DecodingKey, Validation, decode, decode_header, jwk::JwkSet};
@@ -14,23 +13,32 @@ use std::time::{SystemTime, UNIX_EPOCH};
 /// Wire error code `authentication_failed`.
 pub const AUTHENTICATION_FAILED: u8 = 26;
 
+/// Walking-skeleton SessionReady identity when auth is off.
+pub const ANONYMOUS_SUBJECT: &str = "anonymous";
+
 /// How Authenticate is evaluated for this process.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AuthMode {
-    /// Accept any credential; SessionReady subject is the token UTF-8 or `anonymous`.
-    Dev,
+    /// Auth disabled: accept any credential, subject `anonymous`, no audit.
+    Off,
     /// Require a JWT matching [`OidcSettings`].
     Oidc,
 }
 
 impl AuthMode {
+    /// `off` (default) and the compatibility alias `dev` disable auth.
     #[must_use]
     pub fn parse(raw: &str) -> Option<Self> {
-        match raw.trim() {
-            "" | "dev" => Some(Self::Dev),
+        match raw.trim().to_ascii_lowercase().as_str() {
+            "" | "off" | "dev" => Some(Self::Off),
             "oidc" => Some(Self::Oidc),
             _ => None,
         }
+    }
+
+    #[must_use]
+    pub fn is_off(self) -> bool {
+        matches!(self, Self::Off)
     }
 }
 
@@ -93,33 +101,28 @@ pub struct AuthResult {
 }
 
 /// Evaluate Authenticate fields 16 (scheme) and 17 (token).
+///
+/// Off mode does not inspect the token and does not emit audit.
 #[must_use]
 pub fn authenticate(config: &GatewayConfig, scheme: &str, token: &[u8]) -> AuthResult {
-    let result = match config.auth_mode {
-        AuthMode::Dev => dev_accept(token),
-        AuthMode::Oidc => match config.oidc.as_ref() {
-            Some(settings) => verify_jwt(settings, token),
-            None => AuthResult {
-                allow: false,
-                subject: String::new(),
-                reason: "oidc_not_configured".to_owned(),
-            },
+    match config.auth_mode {
+        AuthMode::Off => AuthResult {
+            allow: true,
+            subject: ANONYMOUS_SUBJECT.to_owned(),
+            reason: "auth_off".to_owned(),
         },
-    };
-    emit_audit(config, scheme, &result);
-    result
-}
-
-fn dev_accept(token: &[u8]) -> AuthResult {
-    let subject = if token.is_empty() {
-        "anonymous".to_owned()
-    } else {
-        String::from_utf8_lossy(token).into_owned()
-    };
-    AuthResult {
-        allow: true,
-        subject,
-        reason: "dev_accept".to_owned(),
+        AuthMode::Oidc => {
+            let result = match config.oidc.as_ref() {
+                Some(settings) => verify_jwt(settings, token),
+                None => AuthResult {
+                    allow: false,
+                    subject: String::new(),
+                    reason: "oidc_not_configured".to_owned(),
+                },
+            };
+            emit_audit(config, scheme, &result);
+            result
+        }
     }
 }
 
@@ -198,7 +201,7 @@ fn emit_audit(config: &GatewayConfig, scheme: &str, result: &AuthResult) {
         "support_row_id": config.support_row.id,
         "domain_id": config.domain_id,
         "auth_mode": match config.auth_mode {
-            AuthMode::Dev => "dev",
+            AuthMode::Off => "off",
             AuthMode::Oidc => "oidc",
         },
         "ros_security_enable": ros_security,
@@ -267,14 +270,24 @@ mod tests {
     }
 
     #[test]
-    fn dev_accepts_anonymous_and_utf8_subject() {
+    fn parse_off_aliases_and_oidc() {
+        assert_eq!(AuthMode::parse(""), Some(AuthMode::Off));
+        assert_eq!(AuthMode::parse("off"), Some(AuthMode::Off));
+        assert_eq!(AuthMode::parse("DEV"), Some(AuthMode::Off));
+        assert_eq!(AuthMode::parse("oidc"), Some(AuthMode::Oidc));
+        assert_eq!(AuthMode::parse("jwt"), None);
+    }
+
+    #[test]
+    fn off_ignores_token_and_stays_anonymous() {
         let config = GatewayConfig::default();
+        assert!(config.auth_mode.is_off());
         let anon = authenticate(&config, "token", b"");
         assert!(anon.allow);
-        assert_eq!(anon.subject, "anonymous");
+        assert_eq!(anon.subject, ANONYMOUS_SUBJECT);
         let named = authenticate(&config, "token", b"operator");
         assert!(named.allow);
-        assert_eq!(named.subject, "operator");
+        assert_eq!(named.subject, ANONYMOUS_SUBJECT);
     }
 
     #[test]

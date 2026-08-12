@@ -77,9 +77,8 @@ pub enum ActiveTransport {
     WebTransportHttp3,
 }
 
-/// Gateway configuration. Identity/policy: Authenticate is evaluated per
-/// [`crate::auth::AuthMode`] (`dev` accept-all by default; `oidc` JWT). The
-/// production OIDC tenant and SROS2 keystore remain D-04.
+/// Gateway configuration. Authenticate is off by default (R1–R3 accept-all).
+/// `oidc` is opt-in; the production tenant and SROS2 keystore remain D-04.
 #[derive(Debug, Clone)]
 pub struct GatewayConfig {
     pub gateway_instance_id: String,
@@ -108,8 +107,8 @@ pub struct GatewayConfig {
     pub offer_webtransport: bool,
     /// UDP bind for the WebTransport listener (default `127.0.0.1:4433`).
     pub webtransport_bind: String,
-    /// Authenticate evaluation (`dev` default; `oidc` fail-closed). D-04 fills
-    /// the production tenant; see [`crate::auth`].
+    /// Authenticate evaluation. Default [`crate::auth::AuthMode::Off`] leaves
+    /// the R1–R3 accept-all path unchanged. `oidc` is opt-in.
     pub auth_mode: crate::auth::AuthMode,
     /// Required when [`Self::auth_mode`] is `Oidc`.
     pub oidc: Option<crate::auth::OidcSettings>,
@@ -132,7 +131,7 @@ impl Default for GatewayConfig {
             local_dev_tls_enabled: false,
             offer_webtransport: false,
             webtransport_bind: "127.0.0.1:4433".to_owned(),
-            auth_mode: crate::auth::AuthMode::Dev,
+            auth_mode: crate::auth::AuthMode::Off,
             oidc: None,
         }
     }

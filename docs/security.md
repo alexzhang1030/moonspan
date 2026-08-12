@@ -13,7 +13,7 @@
 
 Robot private keys stay in the edge enclave.
 
-Authenticate is evaluated at the gateway ([R4-01](./milestones/r4-01-oidc-sros2-audit.md)). Default `dev` still accepts any credential. `oidc` mode verifies JWT issuer, audience, expiry, and signature (HS256 secret or JWKS) and fails with wire code 26. The named OIDC tenant and SROS2 keystore are D-04; this process does not embed a vendor.
+Authenticate is evaluated at the gateway ([R4-01](./milestones/r4-01-oidc-sros2-audit.md)). Default `off` accepts any credential and keeps SessionReady field 21 as `anonymous` (no audit). `oidc` mode verifies JWT issuer, audience, expiry, and signature (HS256 secret or JWKS) and fails with wire code 26. The named OIDC tenant and SROS2 keystore are D-04; this process does not embed a vendor.
 
 ## Authorization
 

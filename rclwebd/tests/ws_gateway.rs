@@ -64,6 +64,7 @@ async fn ready_session_expecting(
     assert_eq!(text(&fields, 18), ros_distro);
     assert_eq!(text(&fields, 19), rmw_identifier);
     assert_eq!(text(&fields, 7), "gw-test");
+    assert_eq!(text(&fields, 21), "anonymous");
 
     // R3-01: GraphSnapshot generation=1 follows SessionReady.
     let (bytes, effects) = client.recv_ingested().await.expect("graph snapshot");
@@ -568,4 +569,24 @@ async fn oidc_mode_accepts_valid_jwt_subject() {
     let (kind, fields) = control_fields(&bytes);
     assert_eq!(kind, 2, "SessionReady");
     assert_eq!(text(&fields, 21), "alice");
+}
+
+#[tokio::test]
+async fn off_mode_ignores_token_and_stays_anonymous() {
+    let (addr, _backend) = start_gateway().await;
+    let mut client = TestClient::connect(&addr).await;
+    let hello = TestClient::default_hello();
+    let _ = client.bootstrap(&hello).await;
+    client
+        .send_control(&TestClient::authenticate_msg_with(
+            &corr(0xA1),
+            "token",
+            b"operator",
+        ))
+        .await;
+    let (bytes, effects) = client.recv_ingested().await.expect("session ready");
+    assert!(effects.entered_ready);
+    let (kind, fields) = control_fields(&bytes);
+    assert_eq!(kind, 2, "SessionReady");
+    assert_eq!(text(&fields, 21), "anonymous");
 }
