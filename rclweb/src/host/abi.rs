@@ -107,8 +107,10 @@ pub unsafe extern "C" fn rclweb_poll(handle: u32, batch_ptr: *const u8, batch_le
             return Err(BatchError::Truncated);
         }
         // SAFETY: host allocated the WS payload with rclweb_alloc and filled it.
-        let slice = unsafe { std::slice::from_raw_parts(ptr as *const u8, len as usize) };
-        Ok(slice.to_vec())
+        // Take ownership so the retain path moves bytes without a second deep copy
+        // (R2-02 large-message controllable-copy budget).
+        let vec = unsafe { Vec::from_raw_parts(ptr as *mut u8, len as usize, len as usize) };
+        Ok(vec)
     }) {
         Ok(events) => events,
         Err(err) => return map_batch_err(err),
@@ -117,7 +119,7 @@ pub unsafe extern "C" fn rclweb_poll(handle: u32, batch_ptr: *const u8, batch_le
     let encoded = ENGINES.with(|engines| {
         let mut map = engines.borrow_mut();
         let engine = map.get_mut(&handle)?;
-        let outcome = engine.poll(&events);
+        let outcome = engine.poll(events);
         let result = encode_poll_result(&outcome, |lease_id| {
             match engine.lease_payload_view(lease_id) {
                 Some(view) => (view.as_ptr() as u32, view.len() as u32),
@@ -191,5 +193,52 @@ pub unsafe extern "C" fn rclweb_telemetry(handle: u32, out_ptr: *mut u8) -> i32 
     for (i, value) in fields.iter().enumerate() {
         out[i * 8..(i + 1) * 8].copy_from_slice(&value.to_le_bytes());
     }
+    0
+}
+
+/// Decode PointCloud2 metadata from a CDR payload in wasm linear memory.
+///
+/// Writes a fixed little-endian meta record to `out_ptr` (40 bytes):
+/// `height:u32, width:u32, point_step:u32, row_step:u32, data_offset:u32,
+/// data_len:u32, is_bigendian:u8, is_dense:u8, pad:u16, field_count:u32`.
+/// `data_offset` is relative to `payload_ptr`. Returns 0 on success, negative
+/// on fault. Does not materialize or iterate the point payload (R2-02).
+///
+/// # Safety
+/// `payload_ptr` must address `payload_len` readable bytes; `out_ptr` must
+/// address 40 writable bytes.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rclweb_point_cloud2_meta(
+    payload_ptr: *const u8,
+    payload_len: u32,
+    out_ptr: *mut u8,
+) -> i32 {
+    if payload_ptr.is_null() || out_ptr.is_null() {
+        return -1;
+    }
+    // SAFETY: host provides a readable CDR payload region.
+    let payload = unsafe { std::slice::from_raw_parts(payload_ptr, payload_len as usize) };
+    let view = match crate::cdr::decode_point_cloud2_le(payload) {
+        Ok(v) => v,
+        Err(_) => return -2,
+    };
+    let data_offset = (view.data.as_ptr() as usize).saturating_sub(payload.as_ptr() as usize);
+    if data_offset > u32::MAX as usize || view.data.len() > u32::MAX as usize {
+        return -3;
+    }
+    // SAFETY: host provides a 40-byte writable region.
+    let out = unsafe { std::slice::from_raw_parts_mut(out_ptr, 40) };
+    out[0..4].copy_from_slice(&view.height.to_le_bytes());
+    out[4..8].copy_from_slice(&view.width.to_le_bytes());
+    out[8..12].copy_from_slice(&view.point_step.to_le_bytes());
+    out[12..16].copy_from_slice(&view.row_step.to_le_bytes());
+    out[16..20].copy_from_slice(&(data_offset as u32).to_le_bytes());
+    out[20..24].copy_from_slice(&(view.data.len() as u32).to_le_bytes());
+    out[24] = u8::from(view.is_bigendian);
+    out[25] = u8::from(view.is_dense);
+    out[26] = 0;
+    out[27] = 0;
+    out[28..32].copy_from_slice(&(view.fields.len() as u32).to_le_bytes());
+    out[32..40].fill(0);
     0
 }

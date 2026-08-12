@@ -18,7 +18,9 @@ pub use cdr::{
     BODY_ORIGIN, CdrEndian, CdrError, CdrErrorCode, CdrHeader, CdrLimits, CdrNesting, CdrReader,
     CdrWriter, DEFAULT_MAX_NESTING_DEPTH, DEFAULT_MAX_STREAM_BYTES,
     DEFAULT_MAX_TEMPORARY_ALLOCATION, HEADER_LENGTH, MIN_MAX_NESTING_DEPTH, MIN_MAX_STREAM_BYTES,
-    REPRESENTATION_CDR_BE, REPRESENTATION_CDR_LE, WRITER_INITIAL_SIZE_HINT,
+    PointCloud2Header, PointCloud2View, PointField, REPRESENTATION_CDR_BE, REPRESENTATION_CDR_LE,
+    SENSOR_MSGS_POINT_CLOUD2, WRITER_INITIAL_SIZE_HINT, build_synthetic_xyz_cdr,
+    decode_point_cloud2, decode_point_cloud2_le, encode_point_cloud2, encode_point_cloud2_le,
 };
 pub use engine::{
     AppCommand, AppEvent, ClientEngine, DEFAULT_QOS_DEPTH, DEMO_SCHEMA_HASH, EngineTelemetry,

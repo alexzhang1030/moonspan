@@ -11,6 +11,7 @@ mod types;
 #[cfg(test)]
 mod tests;
 
+pub use crate::cdr::SENSOR_MSGS_POINT_CLOUD2;
 pub use control::{
     DEFAULT_QOS_DEPTH, DEMO_SCHEMA_HASH, ZERO_CORRELATION, authenticate, close_channel, heartbeat,
     open_topic,
@@ -20,7 +21,7 @@ pub use types::{
     MAX_OUTBOUND_PER_POLL, OutboundMessage, PollOutcome, ReleasedBuffer, STD_MSGS_STRING,
 };
 
-use crate::cdr::{CdrEndian, CdrReader, CdrWriter};
+use crate::cdr::{CdrEndian, CdrError, CdrReader, CdrWriter, PointCloud2View, decode_point_cloud2};
 use crate::protocol::bootstrap::{
     BufferCapabilities, ClientHello, RequestedLimits, TransportCapabilities,
 };
@@ -38,6 +39,7 @@ use crate::protocol::{
     parse_frame,
 };
 use crate::session::{ChannelState, Role, Session, SessionEffects, SessionPhase};
+use bytes::Bytes;
 use std::collections::HashMap;
 
 const HEARTBEAT_INTERVAL_MS: u64 = 15_000;
@@ -69,7 +71,8 @@ struct ActivePublish {
 
 #[derive(Debug)]
 struct RetainedBuffer {
-    bytes: Vec<u8>,
+    /// Inbound frame bytes. `Bytes` so parse/lease paths share without a deep copy.
+    bytes: Bytes,
     /// Number of outstanding sample leases pointing into this buffer.
     lease_refs: u32,
     /// True once the host has finished the poll that ingested these bytes
@@ -166,7 +169,11 @@ impl ClientEngine {
 
     /// Drive one host turn: ingest a bounded event batch, return outbound work,
     /// application events, released buffers, and the next deadline.
-    pub fn poll(&mut self, events: &[HostEvent]) -> PollOutcome {
+    ///
+    /// Takes ownership of events so inbound `WsBytes` payloads move into the
+    /// retained slab (the browser-side controllable copy) without a second
+    /// deep copy of large frames (R2-02).
+    pub fn poll(&mut self, events: Vec<HostEvent>) -> PollOutcome {
         #[cfg(not(target_arch = "wasm32"))]
         let started = std::time::Instant::now();
         let mut outcome = PollOutcome::default();
@@ -185,7 +192,7 @@ impl ClientEngine {
             return outcome;
         }
         let limit = events.len().min(MAX_HOST_EVENTS_PER_POLL);
-        for event in events.iter().take(limit) {
+        for event in events.into_iter().take(limit) {
             self.handle_event(event, &mut outcome);
             if self.closed {
                 break;
@@ -204,15 +211,15 @@ impl ClientEngine {
         outcome
     }
 
-    fn handle_event(&mut self, event: &HostEvent, outcome: &mut PollOutcome) {
+    fn handle_event(&mut self, event: HostEvent, outcome: &mut PollOutcome) {
         match event {
-            HostEvent::Command(cmd) => self.handle_command(cmd, outcome),
+            HostEvent::Command(cmd) => self.handle_command(&cmd, outcome),
             HostEvent::WsBytes { buffer_id, bytes } => {
-                self.handle_ws_bytes(*buffer_id, bytes, outcome);
+                self.handle_ws_bytes(buffer_id, Bytes::from(bytes), outcome);
             }
-            HostEvent::Timer { now_ms } => self.handle_timer(*now_ms, outcome),
+            HostEvent::Timer { now_ms } => self.handle_timer(now_ms, outcome),
             HostEvent::ReleaseLease { lease_id } => {
-                self.release_lease(*lease_id);
+                self.release_lease(lease_id);
             }
         }
     }
@@ -437,24 +444,22 @@ impl ClientEngine {
         self.telemetry.samples_sent = self.telemetry.samples_sent.saturating_add(1);
     }
 
-    fn handle_ws_bytes(&mut self, buffer_id: u32, bytes: &[u8], outcome: &mut PollOutcome) {
-        // Retain a copy so sample leases outlive this poll turn. The host's
-        // `buffer_id` is recorded so it can appear in `released_buffers` once
-        // leases clear (the host may free its transferable AB independently;
-        // the engine's copy is the lease backing store).
-        // This retention is the browser-side controllable copy (budget slot 2).
+    fn handle_ws_bytes(&mut self, buffer_id: u32, bytes: Bytes, outcome: &mut PollOutcome) {
+        // Move into the retained slab. This retention is the browser-side
+        // controllable copy (budget slot 2) when the host already placed bytes
+        // in engine-owned storage; `Bytes` keeps later parse clones O(1).
         self.telemetry.copies_into_engine = self.telemetry.copies_into_engine.saturating_add(1);
         self.telemetry.bytes_copied_into_engine = self
             .telemetry
             .bytes_copied_into_engine
             .saturating_add(bytes.len() as u64);
         let id = if buffer_id == 0 {
-            self.alloc_buffer(bytes.to_vec())
+            self.alloc_buffer(bytes)
         } else {
             self.retained.insert(
                 buffer_id,
                 RetainedBuffer {
-                    bytes: bytes.to_vec(),
+                    bytes,
                     lease_refs: 0,
                     ingest_done: false,
                 },
@@ -772,7 +777,7 @@ impl ClientEngine {
         outcome.outbound.push(OutboundMessage { buffer_id, bytes });
     }
 
-    fn alloc_buffer(&mut self, bytes: Vec<u8>) -> u32 {
+    fn alloc_buffer(&mut self, bytes: Bytes) -> u32 {
         let id = self.next_buffer_id;
         self.next_buffer_id = self.next_buffer_id.saturating_add(1);
         self.retained.insert(
@@ -828,7 +833,7 @@ impl ClientEngine {
     /// payload views without a second materialization).
     #[must_use]
     pub fn buffer_bytes(&self, buffer_id: u32) -> Option<&[u8]> {
-        self.retained.get(&buffer_id).map(|b| b.bytes.as_slice())
+        self.retained.get(&buffer_id).map(|b| b.bytes.as_ref())
     }
 
     /// Look up which retained buffer backs a lease.
@@ -844,6 +849,23 @@ impl ClientEngine {
         let buf = self.retained.get(&lease.buffer_id)?;
         buf.bytes
             .get(lease.payload_offset..lease.payload_offset + lease.payload_len)
+    }
+
+    /// Decode PointCloud2 from a lease as an O(1) borrowed view (R2-02).
+    ///
+    /// Returns `None` if the lease is unknown. Payload decode errors are
+    /// surfaced as `Err` without materializing the point `data` field.
+    pub fn lease_point_cloud2_view(
+        &self,
+        lease_id: u32,
+    ) -> Option<Result<PointCloud2View<'_>, CdrError>> {
+        let payload = self.lease_payload_view(lease_id)?;
+        Some((|| {
+            let mut reader = CdrReader::open_default(payload)?;
+            let view = decode_point_cloud2(&mut reader)?;
+            reader.ensure_complete_with_zero_tail(0)?;
+            Ok(view)
+        })())
     }
 }
 

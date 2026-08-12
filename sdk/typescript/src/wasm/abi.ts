@@ -122,25 +122,23 @@ export type PollResult = {
 const te = new TextEncoder();
 const td = new TextDecoder();
 
-function writeU16(out: number[], value: number): void {
-  out.push(value & 0xff, (value >>> 8) & 0xff);
+function writeU16Into(out: Uint8Array, offset: number, value: number): number {
+  out[offset] = value & 0xff;
+  out[offset + 1] = (value >>> 8) & 0xff;
+  return offset + 2;
 }
-function writeU32(out: number[], value: number): void {
-  out.push(
-    value & 0xff,
-    (value >>> 8) & 0xff,
-    (value >>> 16) & 0xff,
-    (value >>> 24) & 0xff,
-  );
+function writeU32Into(out: Uint8Array, offset: number, value: number): number {
+  out[offset] = value & 0xff;
+  out[offset + 1] = (value >>> 8) & 0xff;
+  out[offset + 2] = (value >>> 16) & 0xff;
+  out[offset + 3] = (value >>> 24) & 0xff;
+  return offset + 4;
 }
-function writeU64(out: number[], value: bigint): void {
+function writeU64Into(out: Uint8Array, offset: number, value: bigint): number {
   const lo = Number(value & 0xffffffffn);
   const hi = Number((value >> 32n) & 0xffffffffn);
-  writeU32(out, lo);
-  writeU32(out, hi);
-}
-function writeI64(out: number[], value: bigint): void {
-  writeU64(out, BigInt.asUintN(64, value));
+  offset = writeU32Into(out, offset, lo);
+  return writeU32Into(out, offset, hi);
 }
 
 function readU16(bytes: Uint8Array, offset: number): number {
@@ -167,113 +165,303 @@ function readI32(bytes: Uint8Array, offset: number): number {
   return readU32(bytes, offset) | 0;
 }
 
-function encodeCommand(out: number[], command: HostCommand): void {
+type PreparedCommand = {
+  cmd: HostCommand;
+  scheme?: Uint8Array;
+  token?: Uint8Array;
+  topic?: Uint8Array;
+  typeName?: Uint8Array;
+  stringData?: Uint8Array;
+};
+
+function prepareCommand(command: HostCommand): PreparedCommand {
+  switch (command.type) {
+    case "authenticate":
+      return {
+        cmd: command,
+        scheme: te.encode(command.scheme),
+        token: command.token,
+      };
+    case "subscribe":
+    case "publish":
+      return {
+        cmd: command,
+        topic: te.encode(command.topic),
+        typeName: te.encode(command.typeName),
+      };
+    case "sendSample":
+      return { cmd: command, stringData: te.encode(command.stringData) };
+    default:
+      return { cmd: command };
+  }
+}
+
+function commandEncodedSize(prepared: PreparedCommand): number {
+  switch (prepared.cmd.type) {
+    case "start":
+      return 4 + 4;
+    case "authenticate":
+      return 4 + 16 + 2 + prepared.scheme!.length + 2 + prepared.token!.length;
+    case "subscribe":
+    case "publish":
+      return 4 + 16 + 4 + 4 + 2 + prepared.topic!.length + 2 + prepared.typeName!.length;
+    case "sendSample":
+      return 4 + 4 + 4 + prepared.stringData!.length;
+    case "unsubscribe":
+      return 4 + 16 + 4;
+    case "close":
+      return 4;
+  }
+}
+
+function writeCommand(out: Uint8Array, offset: number, prepared: PreparedCommand): number {
+  const command = prepared.cmd;
   switch (command.type) {
     case "start":
-      out.push(CMD_START, 0, 0, 0);
-      out.push(command.transferableArrayBuffer ? 1 : 0, 0, 0, 0);
-      break;
+      out[offset++] = CMD_START;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      out[offset++] = command.transferableArrayBuffer ? 1 : 0;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      return offset;
     case "authenticate": {
-      out.push(CMD_AUTHENTICATE, 0, 0, 0);
-      for (let i = 0; i < 16; i++) out.push(command.correlation[i] ?? 0);
-      const scheme = te.encode(command.scheme);
-      writeU16(out, scheme.length);
-      for (let i = 0; i < scheme.length; i++) out.push(scheme[i]!);
-      writeU16(out, command.token.length);
-      for (let i = 0; i < command.token.length; i++) {
-        out.push(command.token[i]!);
-      }
-      break;
+      out[offset++] = CMD_AUTHENTICATE;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      out.set(command.correlation.subarray(0, 16), offset);
+      for (let i = command.correlation.length; i < 16; i++) out[offset + i] = 0;
+      offset += 16;
+      offset = writeU16Into(out, offset, prepared.scheme!.length);
+      out.set(prepared.scheme!, offset);
+      offset += prepared.scheme!.length;
+      offset = writeU16Into(out, offset, prepared.token!.length);
+      out.set(prepared.token!, offset);
+      return offset + prepared.token!.length;
     }
-    case "subscribe": {
-      out.push(CMD_SUBSCRIBE, 0, 0, 0);
-      for (let i = 0; i < 16; i++) out.push(command.correlation[i] ?? 0);
-      writeU32(out, command.channelId >>> 0);
-      out.push(command.qosReliability & 0xff, command.domainId & 0xff);
-      writeU16(out, command.qosDepth & 0xffff);
-      const topic = te.encode(command.topic);
-      writeU16(out, topic.length);
-      for (let i = 0; i < topic.length; i++) out.push(topic[i]!);
-      const typeName = te.encode(command.typeName);
-      writeU16(out, typeName.length);
-      for (let i = 0; i < typeName.length; i++) out.push(typeName[i]!);
-      break;
-    }
+    case "subscribe":
     case "publish": {
-      out.push(CMD_PUBLISH, 0, 0, 0);
-      for (let i = 0; i < 16; i++) out.push(command.correlation[i] ?? 0);
-      writeU32(out, command.channelId >>> 0);
-      out.push(command.qosReliability & 0xff, command.domainId & 0xff);
-      writeU16(out, command.qosDepth & 0xffff);
-      const topic = te.encode(command.topic);
-      writeU16(out, topic.length);
-      for (let i = 0; i < topic.length; i++) out.push(topic[i]!);
-      const typeName = te.encode(command.typeName);
-      writeU16(out, typeName.length);
-      for (let i = 0; i < typeName.length; i++) out.push(typeName[i]!);
-      break;
+      out[offset++] = command.type === "subscribe" ? CMD_SUBSCRIBE : CMD_PUBLISH;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      out.set(command.correlation.subarray(0, 16), offset);
+      for (let i = command.correlation.length; i < 16; i++) out[offset + i] = 0;
+      offset += 16;
+      offset = writeU32Into(out, offset, command.channelId >>> 0);
+      out[offset++] = command.qosReliability & 0xff;
+      out[offset++] = command.domainId & 0xff;
+      offset = writeU16Into(out, offset, command.qosDepth & 0xffff);
+      offset = writeU16Into(out, offset, prepared.topic!.length);
+      out.set(prepared.topic!, offset);
+      offset += prepared.topic!.length;
+      offset = writeU16Into(out, offset, prepared.typeName!.length);
+      out.set(prepared.typeName!, offset);
+      return offset + prepared.typeName!.length;
     }
     case "sendSample": {
-      out.push(CMD_SEND_SAMPLE, 0, 0, 0);
-      writeU32(out, command.channelId >>> 0);
-      const data = te.encode(command.stringData);
-      writeU32(out, data.length);
-      for (let i = 0; i < data.length; i++) out.push(data[i]!);
-      break;
+      out[offset++] = CMD_SEND_SAMPLE;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      offset = writeU32Into(out, offset, command.channelId >>> 0);
+      offset = writeU32Into(out, offset, prepared.stringData!.length);
+      out.set(prepared.stringData!, offset);
+      return offset + prepared.stringData!.length;
     }
     case "unsubscribe": {
-      out.push(CMD_UNSUBSCRIBE, 0, 0, 0);
-      for (let i = 0; i < 16; i++) out.push(command.correlation[i] ?? 0);
-      writeU32(out, command.channelId >>> 0);
-      break;
+      out[offset++] = CMD_UNSUBSCRIBE;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      out.set(command.correlation.subarray(0, 16), offset);
+      for (let i = command.correlation.length; i < 16; i++) out[offset + i] = 0;
+      offset += 16;
+      return writeU32Into(out, offset, command.channelId >>> 0);
     }
     case "close":
-      out.push(CMD_CLOSE, 0, 0, 0);
-      break;
+      out[offset++] = CMD_CLOSE;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      return offset;
   }
 }
 
 /**
  * Encode a host batch with inline WS payloads (bun tests + I/O Worker).
  *
- * Byte arrays are pushed one byte at a time — spreading a large frame into
- * `push(...)` overflows the call stack. The per-byte `number[]` builder is
- * fine for R1 control traffic + small samples; a preallocated encoder is an
- * R2-02 large-message item.
+ * Two-pass preallocated `Uint8Array`: size first, then write. Large frames
+ * must never use `push(...bytes)` / per-byte `number[]` builders (RangeError).
  */
 export function encodeHostBatch(events: HostEventInput[]): Uint8Array {
-  const out: number[] = [];
-  writeU32(out, BATCH_MAGIC);
-  writeU16(out, LAYOUT_VERSION);
-  writeU16(out, FLAG_INLINE_WS_BYTES);
-  writeU32(out, events.length);
-  for (const event of events) {
+  const preparedCommands: Array<PreparedCommand | null> = new Array(events.length);
+  let size = 12; // magic + version + flags + count
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i]!;
+    size += 4; // kind + pad
     switch (event.type) {
       case "wsBytes":
-        out.push(EVENT_WS_BYTES, 0, 0, 0);
-        writeU32(out, event.bufferId >>> 0);
-        writeU32(out, 0);
-        writeU32(out, event.bytes.length);
-        for (let i = 0; i < event.bytes.length; i++) {
-          out.push(event.bytes[i]!);
-        }
+        size += 12 + event.bytes.length;
+        preparedCommands[i] = null;
         break;
       case "timer":
-        out.push(EVENT_TIMER, 0, 0, 0);
-        writeU64(out, event.nowMs);
+        size += 8;
+        preparedCommands[i] = null;
         break;
-      case "command":
-        out.push(EVENT_COMMAND, 0, 0, 0);
-        encodeCommand(out, event.command);
+      case "command": {
+        const prepared = prepareCommand(event.command);
+        preparedCommands[i] = prepared;
+        size += commandEncodedSize(prepared);
         break;
+      }
       case "releaseLease":
-        out.push(EVENT_RELEASE, 0, 0, 0);
-        writeU32(out, event.leaseId >>> 0);
+        size += 4;
+        preparedCommands[i] = null;
         break;
     }
   }
-  return Uint8Array.from(out);
+
+  const out = new Uint8Array(size);
+  let offset = 0;
+  offset = writeU32Into(out, offset, BATCH_MAGIC);
+  offset = writeU16Into(out, offset, LAYOUT_VERSION);
+  offset = writeU16Into(out, offset, FLAG_INLINE_WS_BYTES);
+  offset = writeU32Into(out, offset, events.length);
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i]!;
+    switch (event.type) {
+      case "wsBytes":
+        out[offset++] = EVENT_WS_BYTES;
+        out[offset++] = 0;
+        out[offset++] = 0;
+        out[offset++] = 0;
+        offset = writeU32Into(out, offset, event.bufferId >>> 0);
+        offset = writeU32Into(out, offset, 0);
+        offset = writeU32Into(out, offset, event.bytes.length);
+        out.set(event.bytes, offset);
+        offset += event.bytes.length;
+        break;
+      case "timer":
+        out[offset++] = EVENT_TIMER;
+        out[offset++] = 0;
+        out[offset++] = 0;
+        out[offset++] = 0;
+        offset = writeU64Into(out, offset, event.nowMs);
+        break;
+      case "command":
+        out[offset++] = EVENT_COMMAND;
+        out[offset++] = 0;
+        out[offset++] = 0;
+        out[offset++] = 0;
+        offset = writeCommand(out, offset, preparedCommands[i]!);
+        break;
+      case "releaseLease":
+        out[offset++] = EVENT_RELEASE;
+        out[offset++] = 0;
+        out[offset++] = 0;
+        out[offset++] = 0;
+        offset = writeU32Into(out, offset, event.leaseId >>> 0);
+        break;
+    }
+  }
+  if (offset !== size) {
+    throw new Error(`encodeHostBatch size mismatch: wrote ${offset}, expected ${size}`);
+  }
+  return out;
 }
+
+/**
+ * Encode a host batch that references pre-copied WS payloads in wasm linear
+ * memory (`ptr`/`len` form, no inline trailer). Used by the large-message
+ * transferable path so the engine can take ownership of the allocation.
+ */
+export function encodeHostBatchExternalWs(
+  events: HostEventInput[],
+  wsPtrs: Map<number, { ptr: number; len: number }>,
+): Uint8Array {
+  const preparedCommands: Array<PreparedCommand | null> = new Array(events.length);
+  let size = 12;
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i]!;
+    size += 4;
+    switch (event.type) {
+      case "wsBytes":
+        size += 12;
+        preparedCommands[i] = null;
+        break;
+      case "timer":
+        size += 8;
+        preparedCommands[i] = null;
+        break;
+      case "command": {
+        const prepared = prepareCommand(event.command);
+        preparedCommands[i] = prepared;
+        size += commandEncodedSize(prepared);
+        break;
+      }
+      case "releaseLease":
+        size += 4;
+        preparedCommands[i] = null;
+        break;
+    }
+  }
+  const out = new Uint8Array(size);
+  let offset = 0;
+  offset = writeU32Into(out, offset, BATCH_MAGIC);
+  offset = writeU16Into(out, offset, LAYOUT_VERSION);
+  offset = writeU16Into(out, offset, 0); // no inline flag
+  offset = writeU32Into(out, offset, events.length);
+  let wsIndex = 0;
+  for (let i = 0; i < events.length; i++) {
+    const event = events[i]!;
+    switch (event.type) {
+      case "wsBytes": {
+        const loc = wsPtrs.get(wsIndex);
+        if (!loc) {
+          throw new Error(`missing wasm ptr for wsBytes index ${wsIndex}`);
+        }
+        wsIndex += 1;
+        out[offset++] = EVENT_WS_BYTES;
+        out[offset++] = 0;
+        out[offset++] = 0;
+        out[offset++] = 0;
+        offset = writeU32Into(out, offset, event.bufferId >>> 0);
+        offset = writeU32Into(out, offset, loc.ptr >>> 0);
+        offset = writeU32Into(out, offset, loc.len >>> 0);
+        break;
+      }
+      case "timer":
+        out[offset++] = EVENT_TIMER;
+        out[offset++] = 0;
+        out[offset++] = 0;
+        out[offset++] = 0;
+        offset = writeU64Into(out, offset, event.nowMs);
+        break;
+      case "command":
+        out[offset++] = EVENT_COMMAND;
+        out[offset++] = 0;
+        out[offset++] = 0;
+        out[offset++] = 0;
+        offset = writeCommand(out, offset, preparedCommands[i]!);
+        break;
+      case "releaseLease":
+        out[offset++] = EVENT_RELEASE;
+        out[offset++] = 0;
+        out[offset++] = 0;
+        out[offset++] = 0;
+        offset = writeU32Into(out, offset, event.leaseId >>> 0);
+        break;
+    }
+  }
+  return out;
+}
+
+/** Frames at or above this size use the external-ptr poll path (one controllable copy). */
+export const LARGE_FRAME_INLINE_THRESHOLD = 64 * 1024;
 
 export function decodePollResult(bytes: Uint8Array): PollResult {
   if (bytes.length < 28) {
@@ -478,6 +666,11 @@ export type WasmExports = {
   rclweb_last_result_ptr(handle: number): number;
   rclweb_last_result_len(handle: number): number;
   rclweb_telemetry(handle: number, outPtr: number): number;
+  rclweb_point_cloud2_meta?(
+    payloadPtr: number,
+    payloadLen: number,
+    outPtr: number,
+  ): number;
 };
 
 export type EngineTelemetrySnapshot = {
@@ -488,6 +681,18 @@ export type EngineTelemetrySnapshot = {
   samplesEmitted: number;
   leasesReleased: number;
   samplesSent: number;
+};
+
+export type PointCloud2Meta = {
+  height: number;
+  width: number;
+  pointStep: number;
+  rowStep: number;
+  dataOffset: number;
+  dataLen: number;
+  isBigendian: boolean;
+  isDense: boolean;
+  fieldCount: number;
 };
 
 export async function loadWasm(wasmBytes: ArrayBuffer): Promise<WasmExports> {
@@ -539,11 +744,86 @@ export function readTelemetry(
   }
 }
 
+/**
+ * Decode PointCloud2 metadata from a leased CDR payload in wasm memory.
+ * Point `data` stays as an offset/len into the payload — never copied.
+ */
+export function decodePointCloud2Meta(
+  wasm: WasmExports,
+  payloadPtr: number,
+  payloadLen: number,
+): PointCloud2Meta {
+  const decode = wasm.rclweb_point_cloud2_meta;
+  if (!decode) {
+    throw new Error("wasm missing export rclweb_point_cloud2_meta");
+  }
+  const outPtr = wasm.rclweb_alloc(40);
+  if (outPtr === 0) {
+    throw new Error("rclweb_alloc failed for point_cloud2 meta");
+  }
+  try {
+    const rc = decode(payloadPtr, payloadLen, outPtr);
+    if (rc !== 0) {
+      throw new Error(`rclweb_point_cloud2_meta failed with code ${rc}`);
+    }
+    const view = new DataView(wasm.memory.buffer, outPtr, 40);
+    return {
+      height: view.getUint32(0, true),
+      width: view.getUint32(4, true),
+      pointStep: view.getUint32(8, true),
+      rowStep: view.getUint32(12, true),
+      dataOffset: view.getUint32(16, true),
+      dataLen: view.getUint32(20, true),
+      isBigendian: view.getUint8(24) !== 0,
+      isDense: view.getUint8(25) !== 0,
+      fieldCount: view.getUint32(28, true),
+    };
+  } finally {
+    wasm.rclweb_free(outPtr, 40);
+  }
+}
+
+/**
+ * Borrowed TypedArray view of PointCloud2 `data` inside wasm memory.
+ * Valid while the sample lease is outstanding.
+ */
+export function pointCloud2DataView(
+  wasm: WasmExports,
+  payloadPtr: number,
+  meta: PointCloud2Meta,
+): Uint8Array {
+  return new Uint8Array(
+    wasm.memory.buffer,
+    payloadPtr + meta.dataOffset,
+    meta.dataLen,
+  );
+}
+
+function batchHasLargeWs(events: HostEventInput[]): boolean {
+  for (const event of events) {
+    if (
+      event.type === "wsBytes" &&
+      event.bytes.length >= LARGE_FRAME_INLINE_THRESHOLD
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Poll the engine. Large WS frames use the external-ptr path so the host
+ * copies payload bytes into wasm once and the engine takes ownership
+ * (copy-budget slot 2). Small/control batches keep the inline encoder.
+ */
 export function pollEngine(
   wasm: WasmExports,
   handle: number,
   events: HostEventInput[],
 ): PollResult {
+  if (batchHasLargeWs(events)) {
+    return pollEngineExternalWs(wasm, handle, events);
+  }
   const batch = encodeHostBatch(events);
   const ptr = wasm.rclweb_alloc(batch.length);
   if (ptr === 0 && batch.length !== 0) {
@@ -566,6 +846,64 @@ export function pollEngine(
   } finally {
     if (batch.length !== 0) {
       wasm.rclweb_free(ptr, batch.length);
+    }
+  }
+}
+
+function pollEngineExternalWs(
+  wasm: WasmExports,
+  handle: number,
+  events: HostEventInput[],
+): PollResult {
+  const wsPtrs = new Map<number, { ptr: number; len: number }>();
+  const owned: Array<{ ptr: number; len: number }> = [];
+  let wsIndex = 0;
+  try {
+    for (const event of events) {
+      if (event.type !== "wsBytes") continue;
+      const len = event.bytes.length;
+      const ptr = len === 0 ? 0 : wasm.rclweb_alloc(len);
+      if (len !== 0 && ptr === 0) {
+        throw new Error("rclweb_alloc failed for large wsBytes");
+      }
+      if (len !== 0) {
+        new Uint8Array(wasm.memory.buffer, ptr, len).set(event.bytes);
+        // Ownership transfers into the engine on poll — do not free.
+        owned.push({ ptr, len });
+      }
+      wsPtrs.set(wsIndex, { ptr, len });
+      wsIndex += 1;
+    }
+    const batch = encodeHostBatchExternalWs(events, wsPtrs);
+    const batchPtr = wasm.rclweb_alloc(batch.length);
+    if (batchPtr === 0 && batch.length !== 0) {
+      throw new Error("rclweb_alloc failed for external batch");
+    }
+    try {
+      new Uint8Array(wasm.memory.buffer, batchPtr, batch.length).set(batch);
+      const len = wasm.rclweb_poll(handle, batchPtr, batch.length);
+      if (len < 0) {
+        throw new Error(`rclweb_poll failed with code ${len}`);
+      }
+      // Engine took ownership of payload allocs on success.
+      owned.length = 0;
+      const resultPtr = wasm.rclweb_last_result_ptr(handle);
+      const resultLen = wasm.rclweb_last_result_len(handle);
+      const resultBytes = new Uint8Array(
+        wasm.memory.buffer,
+        resultPtr,
+        resultLen,
+      ).slice();
+      return decodePollResult(resultBytes);
+    } finally {
+      if (batch.length !== 0) {
+        wasm.rclweb_free(batchPtr, batch.length);
+      }
+    }
+  } finally {
+    // Free only if poll failed before ownership transfer.
+    for (const { ptr, len } of owned) {
+      if (len !== 0) wasm.rclweb_free(ptr, len);
     }
   }
 }

@@ -1,0 +1,104 @@
+{
+  "task": "R2-02",
+  "kind": "large-message-path",
+  "recordedAt": "2026-08-12T09:41:04.232Z",
+  "workload": {
+    "description": "Synthetic ~1 MiB PointCloud2-scale frames through both host buffer strategies + two-pass encodeHostBatch; plus one engine retain-copy probe",
+    "pointPayloadBytes": 1048572,
+    "targetRateHz": 10,
+    "frameCount": 30,
+    "warmup": 2,
+    "landedScope": "Host encode + both buffer strategies + O(1) PointCloud2 borrowed CDR + large-frame poll retain copy. Full Foxglove/rosbridge baseline deferred to R2-04."
+  },
+  "copyBudget": {
+    "inboundControllableMax": 2,
+    "browserSlot": "Worker/host → engine retained (copies_into_engine)",
+    "largeFramePath": "external-ptr poll: one set() into wasm alloc; engine takes ownership via from_raw_parts (no second deep copy)",
+    "probe": {
+      "frameBytes": 1048572,
+      "copiesIntoEngineDelta": 1,
+      "bytesCopiedIntoEngineDelta": 1048572,
+      "pollMs": 0.8443,
+      "note": "External-ptr large-frame path: one controllable retain copy (budget slot 2). Frame body is synthetic (not a valid R2WP sample); copy accounting is the gate."
+    }
+  },
+  "sharedArrayBufferGate": {
+    "constructible": true,
+    "isolationRequired": true,
+    "isolationPresent": null,
+    "measured": true,
+    "note": "SAB constructible in this host for reproducible measurement. Browser production still requires COOP/COEP cross-origin isolation; R2WP capability 2 negotiation stays evidence-gated and is not claimed shipped."
+  },
+  "strategies": {
+    "transferableArrayBuffer": {
+      "strategy": "transferable-arraybuffer",
+      "stats": {
+        "strategy": "transferable-arraybuffer",
+        "framesWritten": 32,
+        "bytesWritten": 33554304,
+        "framesDrained": 32,
+        "bytesDrained": 33554304,
+        "hostCopies": 32,
+        "dropCount": 0,
+        "sabAvailable": true,
+        "isolationRequired": false,
+        "isolationPresent": null
+      },
+      "writeDrainMs": {
+        "mean": 0.2992,
+        "p50": 0.1201,
+        "p95": 0.6296,
+        "p99": 0.8491,
+        "min": 0.1088,
+        "max": 0.8491
+      },
+      "encodeHostBatchMs": {
+        "mean": 0.4021,
+        "p50": 0.4046,
+        "p95": 0.4358,
+        "p99": 0.4443,
+        "min": 0.3593,
+        "max": 0.4443
+      },
+      "frames": 30,
+      "payloadBytes": 1048572
+    },
+    "sharedArrayBufferRing": {
+      "strategy": "shared-arraybuffer-ring",
+      "stats": {
+        "strategy": "shared-arraybuffer-ring",
+        "framesWritten": 32,
+        "bytesWritten": 33554304,
+        "framesDrained": 32,
+        "bytesDrained": 33554304,
+        "hostCopies": 64,
+        "dropCount": 0,
+        "sabAvailable": true,
+        "isolationRequired": true,
+        "isolationPresent": null
+      },
+      "writeDrainMs": {
+        "mean": 3.2781,
+        "p50": 3.2248,
+        "p95": 3.5351,
+        "p99": 3.5657,
+        "min": 3.2008,
+        "max": 3.5657
+      },
+      "encodeHostBatchMs": {
+        "mean": 0.3695,
+        "p50": 0.3358,
+        "p95": 0.6598,
+        "p99": 0.762,
+        "min": 0.3203,
+        "max": 0.762
+      },
+      "frames": 30,
+      "payloadBytes": 1048572
+    }
+  },
+  "wasm": {
+    "artifact": "sdk/typescript/wasm/rclweb.wasm",
+    "bytes": 312460
+  }
+}

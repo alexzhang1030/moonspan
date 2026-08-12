@@ -29,7 +29,7 @@ where
     let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
     loop {
         // Flush outbound first.
-        let outcome = engine.poll(&[]);
+        let outcome = engine.poll(vec![]);
         for msg in outcome.outbound {
             ws.send(Message::Binary(bytes::Bytes::from(msg.bytes)))
                 .await
@@ -53,7 +53,7 @@ where
         let Message::Binary(bin) = msg else {
             continue;
         };
-        let outcome = engine.poll(&[HostEvent::WsBytes {
+        let outcome = engine.poll(vec![HostEvent::WsBytes {
             buffer_id: 0,
             bytes: bin.to_vec(),
         }]);
@@ -84,7 +84,7 @@ async fn client_engine_collides_with_gateway_subscribe_path() {
         .expect("connect");
 
     let mut engine = ClientEngine::new();
-    let start = engine.poll(&[HostEvent::Command(AppCommand::Start {
+    let start = engine.poll(vec![HostEvent::Command(AppCommand::Start {
         transferable_arraybuffer: true,
     })]);
     for msg in start.outbound {
@@ -105,7 +105,7 @@ async fn client_engine_collides_with_gateway_subscribe_path() {
     ));
 
     let auth_corr = corr(0xA1);
-    let auth = engine.poll(&[HostEvent::Command(AppCommand::Authenticate {
+    let auth = engine.poll(vec![HostEvent::Command(AppCommand::Authenticate {
         correlation: auth_corr,
         scheme: "token".into(),
         token: b"anonymous".to_vec(),
@@ -132,7 +132,7 @@ async fn client_engine_collides_with_gateway_subscribe_path() {
     assert_eq!(gateway_instance_id, "gw-test");
 
     let sub_corr = corr(0xB2);
-    let sub = engine.poll(&[HostEvent::Command(AppCommand::Subscribe {
+    let sub = engine.poll(vec![HostEvent::Command(AppCommand::Subscribe {
         correlation: sub_corr,
         channel_id: 7,
         topic: "/chatter".into(),
@@ -181,7 +181,7 @@ async fn client_engine_collides_with_gateway_subscribe_path() {
     assert!(!view.is_empty(), "borrowed payload should be non-empty");
 
     // Lease release reclaims the retained inbound slab.
-    let released = engine.poll(&[HostEvent::ReleaseLease { lease_id }]);
+    let released = engine.poll(vec![HostEvent::ReleaseLease { lease_id }]);
     assert!(
         !released.released_buffers.is_empty() || engine.lease_buffer_id(lease_id).is_none(),
         "lease should clear"
@@ -202,7 +202,7 @@ async fn client_engine_collides_with_gateway_publish_path() {
         .expect("connect");
 
     let mut engine = ClientEngine::new();
-    let start = engine.poll(&[HostEvent::Command(AppCommand::Start {
+    let start = engine.poll(vec![HostEvent::Command(AppCommand::Start {
         transferable_arraybuffer: true,
     })]);
     for msg in start.outbound {
@@ -217,7 +217,7 @@ async fn client_engine_collides_with_gateway_publish_path() {
     .await;
 
     let auth_corr = corr(0xA1);
-    let auth = engine.poll(&[HostEvent::Command(AppCommand::Authenticate {
+    let auth = engine.poll(vec![HostEvent::Command(AppCommand::Authenticate {
         correlation: auth_corr,
         scheme: "token".into(),
         token: b"anonymous".to_vec(),
@@ -233,7 +233,7 @@ async fn client_engine_collides_with_gateway_publish_path() {
     .await;
 
     let pub_corr = corr(0xD4);
-    let opened = engine.poll(&[HostEvent::Command(AppCommand::Publish {
+    let opened = engine.poll(vec![HostEvent::Command(AppCommand::Publish {
         correlation: pub_corr,
         channel_id: 9,
         topic: "/cmd".into(),
@@ -260,7 +260,7 @@ async fn client_engine_collides_with_gateway_publish_path() {
         } if topic == "/cmd"
     ));
 
-    let sent = engine.poll(&[HostEvent::Command(AppCommand::SendSample {
+    let sent = engine.poll(vec![HostEvent::Command(AppCommand::SendSample {
         channel_id: 9,
         string_data: "from-engine".into(),
     })]);
@@ -293,7 +293,7 @@ async fn client_engine_collides_with_gateway_publish_path() {
 #[tokio::test]
 async fn client_engine_outbound_client_hello_self_parses() {
     let mut engine = ClientEngine::new();
-    let out = engine.poll(&[HostEvent::Command(AppCommand::Start {
+    let out = engine.poll(vec![HostEvent::Command(AppCommand::Start {
         transferable_arraybuffer: true,
     })]);
     assert_eq!(out.outbound.len(), 1);
