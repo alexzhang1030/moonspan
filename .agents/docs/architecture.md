@@ -1,19 +1,19 @@
 # Architecture rationale
 
-Moonspan places deterministic ROS application state in browser Wasm and robot trust at the edge. This gives applications a portable typed SDK and keeps ROS distribution adaptation, credentials, policy, resource control, and audit inside `rclwebd`.
+rclweb places deterministic ROS application state in browser Wasm and robot trust at the edge, with **one Rust core serving both sides of the wire**. This is the load-bearing decision ([ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md)): the gateway must be native (it binds the rcl C surface), the browser must be Wasm, and any second language for the browser runtime forces every shared contract to exist twice plus permanent cross-implementation verification. The pre-restructure repository paid that bill (three protocol implementations and a ~9,900-line agreement apparatus at tag `pre-restructure`) and it was retired deliberately.
 
-Detailed contracts live in [architecture](../../docs/architecture.md), [R2WP](../../docs/protocol/r2wp.md), [`rclmbt`](../../docs/runtime/rclmbt.md), and [`rclwebd`](../../docs/gateway/rclwebd.md).
+Detailed contracts live in [architecture](../../docs/architecture.md), [R2WP](../../docs/protocol/r2wp.md), [`rclweb` core](../../docs/runtime/core.md), and [`rclwebd`](../../docs/gateway/rclwebd.md).
 
 ## System shape
 
 ```text
 Browser application
-  TypeScript SDK + Workers + rclmbt
+  TypeScript SDK + Workers + rclweb core (wasm32)
                  |
                  | R2WP / CDR
                  v
 Robot edge
-  one rclwebd process and one adapter support row
+  one rclwebd process (same core, native) and one adapter support row
                  |
                  v
 ROS 2 domains for that row
@@ -27,22 +27,21 @@ One gateway process may expose multiple domain IDs within its support row. Fleet
 
 | Unit | Responsibility |
 |---|---|
-| R2WP | Frames, control messages, channels, schema identity, errors, versioning, and provenance |
-| `rclmbt` | CDR ([core contract](../../docs/runtime/cdr.md)), type registry, ROS state, QoS, and host poll contract |
-| Browser SDK | Public API, Worker lifecycle, buffer transfer, telemetry, and reconnect behavior |
-| `rclwebd` | ROS attachment, sessions, schema cache, scheduling, policy, audit, and operations |
-| ROS adapter | Versioned serialized C ABI for one support row |
-| Conformance system | Fixtures, workloads, environment identity, evidence, and reports |
+| R2WP | Frames, control messages, channels, schema identity, errors, versioning, and provenance — normative subset declared per phase |
+| `rclweb` core | Protocol codecs, CDR ([core contract](../../docs/runtime/cdr.md)), type registry, ROS state, QoS, and host poll contract |
+| Browser SDK | Public API, Worker lifecycle, buffer transfer, telemetry, and reconnect behavior — no protocol parsing |
+| `rclwebd` | ROS attachment (serialized-only rcl surface), sessions, schema cache, scheduling, policy, audit, and operations |
+| Conformance system | Fixtures (single oracle), corpus, workloads, environment identity, and reports |
 | Studio | Post-release workspace, panels, rendering, media, and command presentation |
 
 ## Design rules
 
-- CDR stays on the binary data path.
-- Browser APIs remain in JavaScript Workers.
-- Queue, buffer, timeout, retry, and memory budgets are explicit.
-- Shared contracts move with fixtures and multi-owner review.
+- CDR stays on the binary data path; the gateway never parses sample bodies.
+- Browser APIs remain in JavaScript Workers; the core crosses the boundary through bounded poll batches (ADR 0004, unchanged).
+- The copy budget is two controllable payload copies end to end, with telemetry counters ([performance plan](../../docs/proposals/architecture-restructure.md#performance-plan)).
+- Queue, buffer, timeout, retry, and memory budgets are explicit; best-effort channels drop at the edge with stable dispositions.
+- Fixtures are the single conformance oracle; there is no cross-implementation agreement apparatus.
 - Security-sensitive work records effective policy, audit identity, and failure behavior.
-- Performance-sensitive work records latency, throughput, copies, allocations, queues, and memory.
-- Platform expansion enters through the [support matrix](../../docs/support-matrix.md) and [validation gates](../../docs/validation.md).
+- Platform expansion enters through the [support matrix](../../docs/support-matrix.md) and [validation gates](../../docs/validation.md) after the walking skeleton proves the path.
 
-The mainline establishes the application contract. Studio begins after release and validates that contract through a broad integration example.
+The walking skeleton (R1) establishes the application contract under live traffic. Studio begins after release and validates that contract through a broad integration example.

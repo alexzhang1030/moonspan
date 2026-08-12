@@ -1,26 +1,26 @@
 # Architecture
 
-Moonspan places ROS application semantics in the browser and robot trust at the edge. The ROS domain retains native graph and middleware behavior.
+rclweb places ROS application semantics in the browser and robot trust at the edge. The ROS domain retains native graph and middleware behavior. One Rust core serves both sides of the wire.
 
 ## System shape
 
 ```text
 Browser application or conformance harness
   TypeScript SDK
-  rclmbt Worker for ROS state and CDR
+  rclweb core (Rust -> wasm32) in a Worker for protocol, CDR, and ROS state
   I/O Worker for transport and buffers
                  |
                  | R2WP / CDR
                  v
 Robot edge
-  one rclwebd process
+  one rclwebd process (links the same rclweb core natively)
   one selected ROS adapter support row
                  |
                  v
 ROS 2 domains for that support row
 ```
 
-Phase 1 support rows are Humble and Jazzy with Fast DDS, Cyclone DDS, and Zenoh: H-FT, H-CY, H-ZN, J-FT, J-CY, and J-ZN. Fast DDS is the reference row per distro. One gateway process binds one row and may expose multiple domain IDs. Applications combine independent SDK sessions across rows.
+Phase 1 gates one support row, J-FT (Jazzy + Fast DDS); corpus data for all six rows (H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN) stays committed, and breadth returns through the [support matrix](./support-matrix.md) in R3/R4. One gateway process binds one row and may expose multiple domain IDs. Applications combine independent SDK sessions across rows.
 
 `gateway_instance_id` identifies a logical gateway deployment. `support_row_id` identifies the immutable ROS distribution and RMW profile of its artifact. `domain_id` identifies a ROS domain within that row. These values remain attached to graph, schema, channel, policy, audit, telemetry, and evidence records.
 
@@ -29,47 +29,41 @@ Phase 1 support rows are Humble and Jazzy with Fast DDS, Cyclone DDS, and Zenoh:
 | Unit | Responsibility | Boundary |
 |---|---|---|
 | Browser SDK | Public typed API, sessions, Workers, telemetry, and buffer ownership | Versioned TypeScript API and events |
-| I/O Worker | Transport, framing, reconnect, and buffer transfer | R2WP frames and bounded event batches |
-| `rclmbt` | CDR, types, graph, QoS, clocks, executor, and ROS operations | Host poll ABI and typed events |
-| `rclwebd` | ROS attachment, sessions, schema cache, scheduling, policy, audit, and operations | R2WP and the ROS adapter ABI |
-| ROS adapter | Generic serialized operations for one support row | Versioned C ABI |
-| Conformance system | Fixtures, workloads, environments, and reports | Machine-readable evidence |
+| I/O Worker | Transport, reconnect, and buffer transfer | Byte batches to and from the core |
+| `rclweb` core | R2WP codecs, CDR, session/channel state, graph, QoS, clocks, and ROS operations | Host poll ABI (wasm) and Rust API (native) |
+| `rclwebd` | ROS attachment, sessions, schema cache, scheduling, policy, audit, and operations | R2WP and the serialized rcl surface |
+| ROS adapter | Serialized-only rcl FFI for one support row (versioned ABI from R3) | Narrow serialized C surface |
+| Conformance system | Fixtures, corpus, workloads, and reports | Machine-readable evidence |
 | Studio | Post-release workspace and visual application behavior | Released SDK and capability schema |
 
 ## Data paths
 
 Inbound samples follow this path:
 
-1. The ROS adapter receives serialized data and its type, schema, QoS, time, and domain context.
-2. `rclwebd` applies policy, budgets, scheduling, and deployment provenance.
-3. R2WP carries the sample over WebTransport or binary WebSocket.
-4. The I/O Worker validates and transfers a bounded batch to `rclmbt`.
-5. `rclmbt` resolves the schema and emits typed SDK events with correlated telemetry.
+1. The serialized rcl surface receives CDR bytes with type, schema, QoS, time, and domain context.
+2. `rclwebd` applies policy, budgets, scheduling, and deployment provenance on headers only; it never parses or copies the CDR body (`Bytes` fan-out, vectored writes).
+3. R2WP carries the sample over binary WebSocket (WebTransport in R3).
+4. The I/O Worker transfers a bounded batch to the core Worker; one copy into wasm linear memory.
+5. The core resolves the schema and emits typed SDK events whose bulk fields are borrowed views under the lease model.
 
-Outbound operations follow this path:
+Outbound operations follow the reverse path after validation in the core and policy at the gateway.
 
-1. The application creates a typed publish, Service, Action, or Parameter operation.
-2. `rclmbt` validates type, schema, deadline, clock, and local state.
-3. The I/O Worker frames the request with session and trace identity.
-4. `rclwebd` applies authorization and resource policy.
-5. The ROS adapter executes the serialized operation and returns its correlated result.
+The copy budget (two controllable payload copies end-to-end) and the drop discipline (latest-wins admission and byte budgets at the edge) are contracts with telemetry counters from R1; see the [performance plan](./proposals/architecture-restructure.md#performance-plan).
 
 ## Execution and buffers
 
-MoonBit/Wasm owns synchronous state machines and CDR work. TypeScript Workers own browser scheduling, timers, network APIs, and buffer transfer. A bounded `poll` call joins those execution models.
+The Rust/Wasm core owns synchronous state machines and CDR work. TypeScript Workers own browser scheduling, timers, network APIs, and buffer transfer. A bounded `poll` call joins those execution models ([ADR 0004](./adr/0004-browser-wasm-host-boundary.md), unchanged by the restructure).
 
-Cross-origin-isolated deployments may use a bounded `SharedArrayBuffer` ring. General deployments use transferable `ArrayBuffer` ownership. Both paths implement the same behavior and carry separate performance evidence.
+Cross-origin-isolated deployments may later use a bounded `SharedArrayBuffer` ring. General deployments use transferable `ArrayBuffer` ownership. Both paths implement the same behavior and carry separate performance evidence.
 
 ## Invariants
 
-- CDR stays on the main sample path.
-- R2WP framing, control messages, schema identity, errors, and queue reasons are versioned contracts.
+- CDR stays on the main sample path; the gateway never parses sample bodies.
+- R2WP framing, control messages, schema identity, errors, and queue reasons are versioned contracts; the current normative subset is the [v0.1 declaration](../protocol/r2wp-v0.md#normative-scope-after-the-restructure-v01-subset).
 - Every queue declares sample and byte budgets.
 - Browser async work crosses the Wasm boundary in bounded batches.
 - The edge owns identity, SROS2, authorization, resource policy, and audit.
-- Both transports carry the same semantic events.
-- Recording and live transport share schema, channel, and SDK event models.
-- Contract changes include fixtures and review from each consumer.
+- Contract changes include fixtures; fixtures are the single conformance oracle.
 - Performance and security changes include their relevant evidence.
 
 ## Detail ownership
@@ -77,8 +71,9 @@ Cross-origin-isolated deployments may use a bounded `SharedArrayBuffer` ring. Ge
 | Topic | Document |
 |---|---|
 | Product sequence | [Product scope](./product-scope.md) |
+| Restructure plan and rulings | [Proposal](./proposals/architecture-restructure.md), [ADR 0010](./adr/0010-restructure-single-rust-core.md) |
 | Protocol | [R2WP](./protocol/r2wp.md) |
-| Runtime | [`rclmbt`](./runtime/rclmbt.md) |
+| Core | [`rclweb` core](./runtime/core.md), [CDR contract](./runtime/cdr.md), [generated types](./runtime/generated-types.md) |
 | Gateway | [`rclwebd`](./gateway/rclwebd.md) |
 | Security | [Security](./security.md) |
 | Platforms | [Compatibility](./compatibility.md), [support matrix](./support-matrix.md) |

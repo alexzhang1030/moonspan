@@ -1,32 +1,27 @@
 # Technology stack rationale
 
-Moonspan uses a polyglot stack because browser execution, ROS integration, protocol handling, and release tooling have different ownership and runtime constraints.
+rclweb keeps the language count at the minimum the platform forces: Rust for everything that computes on both sides of the wire, TypeScript only where the browser demands JavaScript.
 
 ## Mainline stack
 
 | Area | Choice | Rationale |
 |---|---|---|
-| Browser runtime | MoonBit compiled to Wasm | Deterministic CDR, type, graph, QoS, and executor state |
-| Browser host and SDK | TypeScript Workers | Native browser APIs, scheduling, buffer transfer, and public bindings |
-| Edge gateway | Rust | Concurrent transport, bounded scheduling, policy, telemetry, and operations |
-| ROS boundary | Versioned serialized C ABI | Isolates ROS distribution and RMW variation behind one adapter profile |
-| Wire protocol | R2WP v0 | One binary semantic contract over WebTransport and binary WebSocket |
-| JavaScript tooling | Bun | Workspaces, installation, scripts, tests, builds, and lockfile ownership |
-| Repository commands | just | One root command surface for the polyglot workspace |
+| Core (protocol, CDR, ROS state) | Rust, native + `wasm32-unknown-unknown` | One codebase for gateway and browser removes the N-implementation tax ([ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md)); mature fuzzing/benchmark tooling serves R2 hardening; borrow checker enforces the borrowed-view CDR contract |
+| Browser host and SDK | TypeScript Workers | Native browser APIs, scheduling, buffer transfer, and public bindings; no protocol parsing |
+| Edge gateway | Rust (`rclwebd`, thin over the core) | Concurrent transport, bounded scheduling, policy, telemetry |
+| ROS boundary | Serialized-only rcl FFI (versioned C ABI packaging in R3) | Isolates distribution/RMW variation without embedding or depending on a client library (owner constraint) |
+| Wire protocol | R2WP v0 with a declared normative subset | One binary semantic contract over WebTransport and binary WebSocket |
+| JavaScript tooling | Bun ([ADR 0002](../../docs/adr/0002-use-bun-for-javascript-tooling.md)) | Workspaces, installation, scripts, tests, builds, lockfile |
+| Repository commands | just | One root command surface |
 
-`rclmbt` is a synchronous Wasm state machine hosted by an asynchronous TypeScript Worker. Batched polling keeps browser scheduling outside Wasm and makes ownership, deadlines, and resource budgets visible.
-
-`rclwebd` connects R2WP sessions to one ROS adapter support row per process. The adapter uses generic serialized operations so CDR stays on the main data path.
-
-The [normative R2WP contract](../../protocol/r2wp-v0.md) owns byte-level behavior. [ADR 0009](../../docs/adr/0009-r2wp-v0-wire-encoding.md) records the encoding decision. Committed fixtures and the [agreement runner](../../protocol/testdata/agreement/README.md) keep TypeScript, Rust, and MoonBit aligned.
+MoonBit was the pre-restructure browser runtime language, chosen for Wasm convenience. It was retired because the poll boundary (ADR 0004) is a narrow buffer interface where authoring ergonomics matter least, while the gateway/browser split is where a second language compounds cost. The sole reopen condition is R1 evidence on wasm artifact size or poll latency.
 
 ## Toolchain pins
 
 | Tool | Pin source |
 |---|---|
 | Bun | `.bun-version` and `package.json` |
-| Rust | `rust-toolchain.toml` and the Cargo workspace |
-| MoonBit | `.moon-version` |
+| Rust | `rust-toolchain.toml` (channel + wasm32 target) and the Cargo workspace |
 | just | `.just-version` |
 
 `scripts/toolchain-check.ts` verifies the installed versions. The root command surface is:
@@ -42,23 +37,19 @@ just build
 
 | Path | Tooling and role |
 |---|---|
-| `rclmbt/` | MoonBit workspace and Wasm runtime |
-| `rclwebd/` | Cargo workspace and Rust gateway |
+| `rclweb/` | Cargo crate: the core (native + wasm32) |
+| `rclwebd/` | Cargo crate: the gateway |
 | `sdk/typescript/` | Bun workspace and browser SDK |
-| `protocol/` | Normative contracts, registries, schemas, and fixtures |
-| `conformance/`, `benchmarks/` | Qualification workloads and evidence |
-| `deploy/` | Edge packaging and operations |
-| `studio/` | U0 workspace added after M3 |
+| `protocol/` | Normative contracts, registries, schemas, and frozen fixtures |
+| `conformance/` | CDR corpus and qualification workloads |
+| `studio/` | U0 workspace added after release |
 
 ## ROS profile
 
-Phase 1 qualifies Humble and Jazzy with Fast DDS, Cyclone DDS, and Zenoh (`rmw_zenoh_cpp`) as first-class RMW rows (H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN). Fast DDS remains the reference row per distro. Humble uses `moonspan-schema-v1` bundle identity. Jazzy uses `rep2011-rihs` type identity. Exact images, architectures, browser references, and qualification state live in the [support matrix](../../docs/support-matrix.md).
+Phase 1 gates J-FT (Jazzy + Fast DDS). Corpus data for all six rows (H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN) stays committed; H-FT returns in R3 and the rest in R4 through the [support matrix](../../docs/support-matrix.md). Humble uses `moonspan-schema-v1` bundle identity and Jazzy uses `rep2011-rihs` (frozen historical identifiers — committed hashes depend on them).
 
 ## Decision lifecycle
 
-- Bun is a project constraint recorded by [ADR 0002](../../docs/adr/0002-use-bun-for-javascript-tooling.md).
 - Mainline architecture decisions gain authority through ADR review and validation gates.
 - Platform changes update the support matrix and conformance evidence.
 - Studio technology choices receive their own review at U0 entry.
-
-The Studio prototype is expected to use TypeScript, React, Workers, browser graphics, and WebCodecs. U0 reviews those choices against the released SDK before implementation.

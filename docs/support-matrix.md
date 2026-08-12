@@ -64,7 +64,7 @@ The full schema key includes identity, type name, encoding, and generation. Miss
 | Browser runner | `@playwright/test` 1.62.0 | Qualification target |
 | Browser image | `mcr.microsoft.com/playwright:v1.62.0-noble` | Qualification target |
 | Browser binary | Chrome for Testing 151.0.7922.34 | Qualification target |
-| Wasm runtime | MoonBit `wasm` target in a Dedicated Worker | Qualification target |
+| Wasm runtime | `rclweb` core (`wasm32-unknown-unknown`) in a Dedicated Worker | Qualification target |
 | Reference buffer | Transferable `ArrayBuffer` | Qualification target |
 | Isolated buffer | Bounded `SharedArrayBuffer` | Separate qualification row |
 | Reference transport | WebTransport over HTTP/3 | Qualification target |

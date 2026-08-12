@@ -1,13 +1,13 @@
 # Product scope
 
-Moonspan gives browser applications typed, secure, and measurable access to ROS 2. The mainline serves robotics developers, integration engineers, operators, fleet teams, and application teams through a stable SDK.
+rclweb gives browser applications typed, secure, and measurable access to ROS 2. The mainline serves robotics developers, integration engineers, operators, fleet teams, and application teams through a stable SDK.
 
 ## Mainline outcome
 
 | Deliverable | Role |
 |---|---|
 | R2WP | Versioned binary protocol for ROS data and control over WebTransport and binary WebSocket |
-| `rclmbt` | MoonBit/Wasm runtime for ROS state, CDR, types, QoS, and operations |
+| `rclweb` core | Rust core for protocol, CDR, ROS state, types, QoS, and operations — native in the gateway, wasm32 in the browser |
 | `rclwebd` | Rust edge gateway for ROS attachment, scheduling, identity, policy, audit, and operations |
 | Browser SDK | TypeScript APIs, Worker hosts, typed data, sessions, telemetry, and examples |
 | Qualification package | Fixtures, conformance, benchmarks, security evidence, deployment assets, and release records |
@@ -26,7 +26,7 @@ Delivery follows a dependency chain: contracts and fixtures, core data path, ROS
 
 ## Product contracts
 
-- ROS semantics execute in browser Wasm through `rclmbt`.
+- ROS semantics execute in browser Wasm through the `rclweb` core.
 - CDR stays on the binary data path.
 - Every queue and resource-sensitive operation has visible budgets and telemetry.
 - Identity, SROS2 policy, operation ACLs, resource control, and audit meet at `rclwebd`.

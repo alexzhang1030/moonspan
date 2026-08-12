@@ -35,7 +35,7 @@ Adopt a synchronous, deterministic MoonBit/Wasm state machine with an asynchrono
 ## Consequences
 
 - M1 establishes the host poll ABI, Worker scheduling, and both buffer paths under one behavioral contract.
-- Runtime and SDK ownership split along the poll boundary documented for [`rclmbt`](../runtime/rclmbt.md).
+- Runtime and SDK ownership split along the poll boundary documented for the runtime (now the [`rclweb` core](../runtime/core.md); ADR 0010 replaced MoonBit with Rust, boundary unchanged).
 - Buffer pools, leases, and release paths appear in host results and memory evidence.
 - Batch size and execution time carry measured caps in validation and benchmarks.
 - Application presentation belongs to U0 after the mainline release.
@@ -49,4 +49,4 @@ Adopt a synchronous, deterministic MoonBit/Wasm state machine with an asynchrono
 
 ## Source
 
-Host and buffer model in [architecture](../architecture.md), [architecture rationale](../../.agents/docs/architecture.md), [`rclmbt` runtime](../runtime/rclmbt.md), and [technology stack rationale](../../.agents/docs/technology-stack.md).
+Host and buffer model in [architecture](../architecture.md), [architecture rationale](../../.agents/docs/architecture.md), the [runtime record](../runtime/core.md), and [technology stack rationale](../../.agents/docs/technology-stack.md).

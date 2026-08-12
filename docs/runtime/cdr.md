@@ -1,10 +1,10 @@
 # CDR core contract
 
-Authoritative runtime contract for Moonspan CDR in `cdr_mbt` (M1-01). Generated types and the schema registry ([M1-02](./generated-types.md)) and the Wasm host poll boundary (M1-03) consume this surface.
+Authoritative behavioral contract for rclweb CDR. It was frozen and proven by the retired MoonBit implementation (`cdr_mbt`, tag `pre-restructure`); per [ADR 0010](../adr/0010-restructure-single-rust-core.md) the Rust port inside the [`rclweb` core](./core.md) must pass this contract against the committed corpus as its R1-01 gate. Batch identifiers (M1-01x) are historical proof labels. Generated types and the schema registry ([generated types](./generated-types.md)) and the Wasm host poll boundary consume this surface.
 
 ## Purpose
 
-`cdr_mbt` encodes and decodes ROS sample payloads on the R2WP data path. It owns stream encapsulation, endianness, alignment, primitive and container layouts, nested values, typed codec faults, and bounds-checked borrowed views into caller-retained storage. Schema-keyed generated codecs and dynamic projection build on this core. Browser scheduling, network I/O, and host buffer lifecycle stay in the TypeScript host (M1-03).
+The CDR core encodes and decodes ROS sample payloads on the R2WP data path. It owns stream encapsulation, endianness, alignment, primitive and container layouts, nested values, typed codec faults, and bounds-checked borrowed views into caller-retained storage. Schema-keyed generated codecs and dynamic projection build on this core. Browser scheduling, network I/O, and host buffer lifecycle stay in the TypeScript host.
 
 ## Supported representations
 
@@ -85,7 +85,7 @@ Pinned **Fast-CDR v1.0.29** (`Cdr::serialize(const wchar_t*)` / `Cdr::deserializ
 | Core decode value boundary | Count field plus **`N * 4`** payload bytes |
 | Accepted slot values | Unicode scalar values produced by the ROS `u16string_to_wstring` conversion; M1-01c tests the scalar boundary |
 | Endianness | Follows the CDR1 encapsulation identifier |
-| Canonical Moonspan encode | Exact form only: count + `N * 4` payload |
+| Canonical rclweb encode | Exact form only: count + `N * 4` payload |
 
 #### Top-level zero tail slack
 
@@ -98,7 +98,7 @@ Machine-checkable evidence: [`conformance/cdr/tail-slack.json`](../../conformanc
 | **Strict** (`ensure_complete`) | Fully consumed stream; every remaining tail surfaces as `trailing_data` |
 | **Declared zero tail** (`ensure_complete_with_zero_tail`) | Exact end, or remaining length equals the declared all-zero byte count |
 
-M1-02 supplies the declared expected tail from `SchemaKey` plus wire-profile metadata (`support_row_id` and CDR representation), with committed [`tail-slack.json`](../../conformance/cdr/tail-slack.json) as authority (Phase 1 values `0`, `4`, or `12`). Resolution includes representation because H-FT and J-FT `PrimitiveScalars` each carry little-endian tail 4 and big-endian tail 0. Canonical Moonspan encode remains exact (zero top-level tail). Cross-row semantic agreement compares decoded logical values; M1-01d proves agreement across exact and zero-tail fixtures.
+M1-02 supplies the declared expected tail from `SchemaKey` plus wire-profile metadata (`support_row_id` and CDR representation), with committed [`tail-slack.json`](../../conformance/cdr/tail-slack.json) as authority (Phase 1 values `0`, `4`, or `12`). Resolution includes representation because H-FT and J-FT `PrimitiveScalars` each carry little-endian tail 4 and big-endian tail 0. Canonical rclweb encode remains exact (zero top-level tail). Cross-row semantic agreement compares decoded logical values; M1-01d proves agreement across exact and zero-tail fixtures.
 
 `invalid_wstring_scalar` covers a 32-bit character slot outside the accepted Unicode scalar values for this ROS profile. When a Char8 declared span ends on a nonzero byte, the fault is `missing_string_terminator`.
 
@@ -169,7 +169,9 @@ BytesView  ->  bounds-checked slice into parent storage the caller retains
 - Public codecs are deterministic: the same logical value, the same CDR1 endianness, and the same writer limits produce the same bytes.
 - Large binary fields return a bounds-checked `BytesView` into parent storage. The parent buffer remains retained by the caller for the view’s lifetime. Host lease tracking and buffer release live in M1-03.
 
-### MoonBit surface (`rclmbt/cdr`)
+### Reference implementation surface (retired `rclmbt/cdr`, tag `pre-restructure`)
+
+The Rust port keeps these behaviors and API shapes; type names map to their Rust equivalents.
 
 | Surface | Batch | Notes |
 |---|---|---|
@@ -180,7 +182,7 @@ BytesView  ->  bounds-checked slice into parent storage the caller retains
 | Char8 string | M1-01c2a | `read_string` / `write_string` with optional `max_bytes` (UTF-8 payload bytes excluding NUL); owned `String` decode; direct writer emit after full-field preflight |
 | ROS legacy wstring | M1-01c2b | `read_wstring` / `write_wstring` with optional `max_scalars`; accepted Unicode scalar slots; `invalid_wstring_scalar`; canonical encode exact (count + `N * 4`) |
 | Declared zero tail | M1-01d0 | `ensure_complete_with_zero_tail(expected_tail_bytes)`; top-level completion independent of final member; Phase 1 declarations `0`/`4`/`12` |
-| Corpus fixture bridge | M1-01d1 | Deterministic Bun bridge of the 56-fixture ROS corpus into package-internal MoonBit white-box tests; see [corpus README](../../conformance/cdr/README.md#moonbit-white-box-bridge-m1-01d1) |
+| Corpus fixture bridge | M1-01d1 | Deterministic Bun bridge of the 56-fixture ROS corpus into package-internal white-box tests; see the [corpus README](../../conformance/cdr/README.md) |
 | Corpus semantic proof | M1-01d2 | Hand-written white-box decode/re-encode of all 56 fixtures and 18 comparison groups (`rclmbt/cdr/corpus_semantics_wbtest.mbt`) |
 | Corpus adversarial gate | M1-01d3 | Strict vs declared completion, nonzero tail mutations, exact-end any-declaration success, wrong-declaration rejections on tail-bearing fixtures, stream bounds, PointCloud2 borrowed budget, framing bridge (`rclmbt/cdr/corpus_adversarial_wbtest.mbt`) |
 | Fixed arrays | M1-01c3b | Schema-declared element count composed from existing element codecs; first-element body-origin alignment; optional fixed-width preflight via `checked_span_length` |
@@ -248,7 +250,7 @@ Crossing a limit returns a typed fault from the taxonomy above. On failed encode
 
 **Host (`M1-03`, Wasm poll ABI):**
 
-- Explicit host buffer leases, release, and transferred-buffer lifecycle live in the host poll contract ([`rclmbt`](./rclmbt.md), [ADR 0004](../adr/0004-browser-wasm-host-boundary.md)).
+- Explicit host buffer leases, release, and transferred-buffer lifecycle live in the host poll contract ([`rclweb` core](./core.md), [ADR 0004](../adr/0004-browser-wasm-host-boundary.md)).
 - Applications that keep payload data past host release copy or extend the host lease through the host API.
 - Lease and transfer faults are host ABI concerns; `cdr_mbt` emits only the codec taxonomy above.
 
@@ -284,11 +286,11 @@ Legal ROS encoders may emit distinct bytes for one logical value, including exac
 
 M1-01d proves:
 
-- **M1-01d1 complete:** the 56-fixture ROS corpus bridges into package-internal MoonBit white-box tests (`CdrReader::open_default`, zero-tail and multi-row identity proofs). Authoritative size/SHA and commands: [corpus README](../../conformance/cdr/README.md#moonbit-white-box-bridge-m1-01d1) (`bun run cdr-moonbit-fixtures:check`).
-- **M1-01d2 complete:** hand-written package-internal codecs decode every committed fixture field-by-field against manifest logical values, finish with `ensure_complete_with_zero_tail`, and re-encode to the exact logical prefix (zero top-level tail). All 18 multi-row groups agree semantically; PointCloud2 `data` is a borrowed input-backed view. Tests: `moon test --frozen --target wasm rclmbt/cdr`.
+- **M1-01d1 complete (historical):** the 56-fixture ROS corpus bridged into package-internal white-box tests (`CdrReader::open_default`, zero-tail and multi-row identity proofs); see the [corpus README](../../conformance/cdr/README.md).
+- **M1-01d2 complete (historical):** hand-written package-internal codecs decoded every committed fixture field-by-field against manifest logical values, finished with `ensure_complete_with_zero_tail`, and re-encoded to the exact logical prefix (zero top-level tail). All 18 multi-row groups agree semantically; PointCloud2 `data` is a borrowed input-backed view.
 - **M1-01d3 complete:** corpus adversarial gate over all 56 fixtures — strict vs declared completion (24 exact / 32 tail-bearing), 288 nonzero tail-byte mutations, exact-end accepts declaration 4 (24), wrong declarations reject on 32 tail-bearing fixtures, appended-byte rejection on all 56, stream open at length and reject one-byte-below, PointCloud2 borrowed payload under a small owned-temporary budget, and a concise LE/BE framing bridge. Focused `*_wbtest.mbt` suites remain the typed source for field-level illegal inputs. Completion note: [M1-01 CDR core](../milestones/m1-01-cdr-core.md).
 - exact and zero-tail fixtures for the same logical sample normalize to one semantic value;
-- encode under Moonspan CDR1 uses exact form (zero top-level tail) and round-trips with semantic equality;
+- encode under rclweb CDR1 uses exact form (zero top-level tail) and round-trips with semantic equality;
 - malformed truncation, illegal lengths, and alignment overflow return the typed error taxonomy above (focused suites + corpus gate);
 - resource bounds reject oversized streams with stable codes;
 - strict completion reports `trailing_data` on zero-tail samples; declared completion accepts exact end or the declared all-zero length;
@@ -323,7 +325,7 @@ M1-01 is complete. M1-02 and M1-03 consume this surface: M1-02 adds schema keys 
 | M1-02 generated types | Call `cdr_mbt` for field layout; own schema identity, type registry keys, per-type bounds, and non-terminal member boundary metadata |
 | M2-01 dynamic projection | Reuse reader views and codec error taxonomy; map schema identity faults in the dynamic type layer |
 | M1-03 host ABI | Own buffer ownership transfer, leases, release, and poll batches; pass retained bytes into decode |
-| R2WP / gateway | Carry opaque CDR payloads and schema identity; leave codec work to `rclmbt` |
+| R2WP / gateway | Carry opaque CDR payloads and schema identity; leave codec work to the `rclweb` core |
 | Evidence / N1 gate | Record corpus revision, support rows, and agreement results per [validation](../validation.md) |
 
 ## Sources
@@ -337,7 +339,6 @@ Official references that ground this contract:
 | ROS 2 Creating an RMW Implementation | https://docs.ros.org/en/ros2_documentation/jazzy/Tutorials/Advanced/Creating-An-RMW-Implementation.html | RMW serialization boundary, typesupport expectations, and distribution-facing encode/decode responsibilities |
 | eProsima Fast-CDR v1.0.29 `Cdr.cpp` | https://raw.githubusercontent.com/eProsima/Fast-CDR/v1.0.29/src/cpp/Cdr.cpp | Upstream `serialize(const wchar_t*)` / wide-string deserialize: `uint32` count then `count * 4` payload; Fast-CDR value ends after `N` slots |
 | ROS 2 Humble `rosidl_typesupport_fastrtps_cpp` template | https://raw.githubusercontent.com/ros2/rosidl_typesupport_fastrtps/humble/rosidl_typesupport_fastrtps_cpp/resource/msg__type_support.cpp.em | AbstractWString serialize: `u16string_to_wstring` then Fast-CDR `<<`; size budgeting contributes to top-level serialized-buffer zero tail (see `tail-slack.json`) |
-| MoonBit core `@bytes` package | https://mooncakes.io/docs/moonbitlang/core/bytes | Core bytes and view APIs used for buffer slices |
-| MoonBit language fundamentals | https://docs.moonbitlang.com/en/latest/language/fundamentals.html | Owned `Bytes` versus borrowed `BytesView` table and language-level slicing model |
+| Rust slices and borrowing | https://doc.rust-lang.org/book/ch04-03-slices.html | Owned buffers versus borrowed views in the Rust port |
 
 Committed fixtures under [`conformance/cdr/`](../../conformance/cdr/README.md) are the binding Phase 1 wire contract for this profile. Fast-CDR v1.0.29 is the upstream reference for the core value layout. The Humble fastrtps typesupport template is the source reference for size budgeting associated with the observed top-level zero tail; actual 0/4/12 tail lengths are proven by [`tail-slack.json`](../../conformance/cdr/tail-slack.json). Generator provenance and row pins live in the corpus README. Schema identity across Humble and Jazzy is fixed by [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md).

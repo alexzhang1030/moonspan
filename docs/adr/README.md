@@ -15,10 +15,11 @@ ADRs capture accepted decisions that carry significant reversal cost. Technical 
 | [0007](./0007-humble-jazzy-schema-identity.md) | Accepted | Lock phase-one Humble/Jazzy schema identity with `rep2011-rihs` and `moonspan-schema-v1`. |
 | [0008](./0008-one-adapter-row-per-gateway-process.md) | Accepted | Bind each gateway process to one ROS adapter support row with multi-domain contexts inside that row. |
 | [0009](./0009-r2wp-v0-wire-encoding.md) | Accepted | Freeze R2WP wire version 0 encoding, registries, deterministic CBOR control maps, and transport length rules. |
+| [0010](./0010-restructure-single-rust-core.md) | Accepted | Restructure on a single Rust core (`rclweb`) for gateway and browser; retire MoonBit, the TypeScript protocol implementation, and the agreement apparatus; rename the project rclweb. |
 
 ## Convention
 
 - Files use four-digit sequence numbers and lowercase hyphenated names.
 - Each record states status, date, context, decision, rationale, consequences, revisit triggers, and source.
 - A changed decision receives a new ADR that names the superseded record.
-- ADR 0009 freezes wire version 0, and M0-03 implements that decision across the contract validator, TypeScript codecs, fixtures, Rust and MoonBit parsers, and cross-language agreement. The [M0-03 completion record](../milestones/m0-03-r2wp-foundation.md) owns delivery status and evidence. Runtime, edge, support-profile, and licensing decisions continue through their named gates.
+- ADR 0010 supersedes the language choice inside ADR 0004 (the host boundary itself stands) and retires the multi-implementation delivery model that M0-03 built; the [M0-03 completion record](../milestones/m0-03-r2wp-foundation.md) remains the historical evidence of that milestone.

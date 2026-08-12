@@ -2,14 +2,16 @@
 
 PCR records preserve the durable reasoning that contributors need across tasks. Formal requirements live under [`docs/`](../../docs/README.md). These records remain open to evidence-backed updates.
 
+The project was restructured and renamed from moonspan to rclweb ([ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md), tag `pre-restructure`); the [restructure proposal](../../docs/proposals/architecture-restructure.md) carries the rulings, cut/keep lists, and performance plan.
+
 ## Context records
 
 | Topic | Record |
 |---|---|
 | Product direction and phase boundary | [Intent](./intent.md) |
-| System boundaries and dependency order | [Architecture](./architecture.md) |
+| System boundaries and the single-core decision | [Architecture](./architecture.md) |
 | Languages, platforms, transport, and tooling | [Technology stack](./technology-stack.md) |
-| Evidence and gate authority | [Validation](./validation.md) |
+| Evidence, single oracle, and gate authority | [Validation](./validation.md) |
 | Studio visual system | [DESIGN.md](./DESIGN.md) |
 
 ## Project records
@@ -18,6 +20,7 @@ PCR records preserve the durable reasoning that contributors need across tasks. 
 |---|---|
 | Formal documentation | [Documentation index](../../docs/README.md) |
 | Architecture decisions | [ADR register](../../docs/adr/README.md) |
+| Restructure rulings and plan | [Restructure proposal](../../docs/proposals/architecture-restructure.md) |
 | Delivery sequence | [Implementation plan](../../tasks/plan.md) |
 | Current execution state | [Execution checklist](../../tasks/todo.md) |
 
@@ -25,12 +28,11 @@ PCR records preserve the durable reasoning that contributors need across tasks. 
 
 | Area | Context |
 |---|---|
-| `protocol/**` | [Architecture](./architecture.md), [R2WP](../../docs/protocol/r2wp.md) |
-| `rclmbt/**` | [Architecture](./architecture.md), [technology stack](./technology-stack.md), [`rclmbt`](../../docs/runtime/rclmbt.md), [CDR core](../../docs/runtime/cdr.md), [generated types](../../docs/runtime/generated-types.md) |
+| `protocol/**` | [Architecture](./architecture.md), [R2WP](../../docs/protocol/r2wp.md), [normative subset](../../protocol/r2wp-v0.md#normative-scope-after-the-restructure-v01-subset) |
+| `rclweb/**` | [Architecture](./architecture.md), [technology stack](./technology-stack.md), [`rclweb` core](../../docs/runtime/core.md), [CDR contract](../../docs/runtime/cdr.md), [generated types](../../docs/runtime/generated-types.md) |
 | `rclwebd/**` | [Architecture](./architecture.md), [`rclwebd`](../../docs/gateway/rclwebd.md), [security](../../docs/security.md) |
 | `sdk/**` | [Intent](./intent.md), [architecture](../../docs/architecture.md) |
-| `conformance/**`, `benchmarks/**`, `evidence/**` | [Validation](./validation.md), [CDR core](../../docs/runtime/cdr.md), [support matrix](../../docs/support-matrix.md), [evidence contracts](../../evidence/README.md) |
-| `deploy/**` | [Security](../../docs/security.md), [compatibility](../../docs/compatibility.md) |
+| `conformance/**` | [Validation](./validation.md), [corpus README](../../conformance/cdr/README.md), [support matrix](../../docs/support-matrix.md) |
 | `studio/**` | [Prototype scope](../../docs/prototypes/studio-ui.md), [DESIGN.md](./DESIGN.md) |
 
 ## Design record check

@@ -1,6 +1,6 @@
 # Security model
 
-`rclwebd` is Moonspan's robot trust boundary. Browser identity, effective permissions, resource policy, ROS enclave identity, and audit evidence converge there before an operation reaches ROS.
+`rclwebd` is rclweb's robot trust boundary. Browser identity, effective permissions, resource policy, ROS enclave identity, and audit evidence converge there before an operation reaches ROS.
 
 ## Trust boundaries
 
