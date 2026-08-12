@@ -84,3 +84,7 @@ Foundation CI installs Bun with SHA-pinned `oven-sh/setup-bun` (`.bun-version`) 
 ## release-wasm inherits native release settings
 
 `[profile.release-wasm] inherits = "release"`. Adding `strip`, `lto`, or panic settings to native release also applies to the wasm ship profile unless that key is set again on `release-wasm`. Putting `strip = "symbols"` on native release dropped staged `rclweb.wasm` from 593631 bytes to 376519. Keep fat LTO, `panic = abort`, `opt-level = "z"`, and `strip` explicit on `release-wasm`. Reproduce with `just build` and [`docs/evidence/r1-04-wasm-size.json`](../../docs/evidence/r1-04-wasm-size.json).
+
+## Raw evidence JSON is not a qualification report
+
+`docs/evidence/*.json` are measurements. The checker only accepts `rclweb-qualification-report-v1` documents under [`docs/evidence/reports/`](../../docs/evidence/reports/) and [`docs/evidence/testdata/valid/`](../../docs/evidence/testdata/valid/). Treating a green e2e JSON as **Qualified** skips human review. Promotion is `review.decision = accept`. The pre-restructure harness was parked because it had no real reports to check; do not reintroduce a checker over empty fixtures. [R4-03](../../docs/milestones/r4-03-evidence-harness.md).

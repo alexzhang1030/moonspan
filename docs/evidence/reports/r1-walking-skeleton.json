@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "report_id": "rclweb-qualification-report-v1",
+  "gate": "R1",
+  "evidence_level": "foundation",
+  "identity": {
+    "code_revision": "92ea590a9aef4e49f279d32c7fd10aacddee0523",
+    "fixture_manifests": {
+      "cdr": "319cb1c55da8a236054ba625f3fdbd43e239bd13c74c523d7912618c02b9fa7f",
+      "r2wp": "f96c862f8ff601cd507d2efa55a07fcaaea806af0373f1005e6669d626324d12"
+    },
+    "package_versions": {
+      "bun": "1.3.14",
+      "just": "1.50.0",
+      "rustc": "1.97.1"
+    },
+    "image_digests": {},
+    "environment": {
+      "environment_id": "r1-walking-skeleton-linux-amd64",
+      "platform": "linux/amd64",
+      "toolchain": {
+        "bun": "1.3.14",
+        "just": "1.50.0",
+        "rustc": "1.97.1"
+      },
+      "attributes": {
+        "host_class": "developer-workstation",
+        "profile": "release-wasm"
+      }
+    }
+  },
+  "invocation": {
+    "commands": [
+      "just build",
+      "just poll-latency"
+    ],
+    "workload": "R1 walking-skeleton host measurements: fat-LTO wasm artifact size and wasm pollEngine latency (R-D1 reopen inputs).",
+    "budgets": {
+      "controllable_copies": 2,
+      "timeout_seconds": 1200
+    },
+    "duration_seconds": 1,
+    "sample_count": 500,
+    "warmup_count": 50,
+    "variance": "poll p99 0.0119 ms over 500 iterations after 50 warmup; wasm size is a single artifact measurement"
+  },
+  "artifacts": [
+    {
+      "role": "raw",
+      "path": "docs/evidence/r1-04-wasm-size.json",
+      "sha256": "d5186cee0863cfddb497e02d39799a260f0a9cd9b268a9489552098f004d754e",
+      "byte_length": 338,
+      "media_type": "application/json",
+      "retention_policy": "repository-committed"
+    },
+    {
+      "role": "raw",
+      "path": "docs/evidence/r1-05-poll-latency.json",
+      "sha256": "0dc04445f484edbe09e590bb63c7e5a198aac5660a4e490fe25a729a80c0d529",
+      "byte_length": 764,
+      "media_type": "application/json",
+      "retention_policy": "repository-committed"
+    }
+  ],
+  "measurements": {
+    "timestamps": {
+      "poll_recorded_at": "2026-08-12T08:08:58Z",
+      "wasm_recorded_at": "2026-08-12T18:22:16Z"
+    },
+    "resources": {
+      "wasm_bytes": 376519
+    },
+    "errors": [],
+    "dispositions": [
+      {
+        "name": "measured",
+        "count": 1
+      }
+    ]
+  },
+  "review": {
+    "decision": "pending",
+    "known_limits": [
+      "Poll-latency evidence records wasm bytes 284804 from the R1-05 commit; current staged artifact is 376519 after release-wasm strip inherit (r1-04-wasm-size.json).",
+      "Live Jazzy talker e2e (CI e2e-ros-talker) is not wrapped here because docs/evidence has no r1-05-e2e.json.",
+      "This report does not qualify a support row."
+    ]
+  }
+}

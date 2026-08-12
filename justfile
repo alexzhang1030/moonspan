@@ -122,12 +122,22 @@ cdr-tail-slack-write: toolchain-check
 generated-types-check: toolchain-check
     cd "{{root}}" && bun run generated-types:check
 
+# Qualification-report schema identity, fixtures, and gate-report integrity (R4-03).
+[group('quality')]
+evidence-check: toolchain-check
+    cd "{{root}}" && bun run evidence:check
+
+# Regenerate the public qualification-report JSON Schema from contract constants.
+[group('quality')]
+evidence-write: toolchain-check
+    cd "{{root}}" && bun run evidence:write
+
 # Regenerate generated-types metadata under rclweb/generated/metadata/.
 [group('quality')]
 generated-types-write: toolchain-check
     cd "{{root}}" && bun run generated-types:write
 
-# Docs, protocol, and corpus checks; Rust fmt/clippy; SDK typecheck.
+# Docs, protocol, corpus, and evidence checks; Rust fmt/clippy; SDK typecheck.
 [group('quality')]
 check: toolchain-check
     #!/usr/bin/env bash

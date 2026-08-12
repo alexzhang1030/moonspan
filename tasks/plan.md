@@ -76,8 +76,8 @@ Gate: N2 subset demonstrated; conformance green on two rows and two transports.
 | ID | State | Deliverable |
 |---|---|---|
 | R4-01 | Active | OIDC identity, SROS2/ACL, audit — first slice: Authenticate off-by-default / opt-in `oidc` + audit JSON; tenant/keystore remain D-04 |
-| R4-02 | Active | Deployment packaging and observability — first slice: `/livez` `/readyz` `/configz` `/metrics` `POST /drain`, J-FT runtime image; PKI/H-FT image/orchestrators remain follow-ups |
-| R4-03 | Queued | Evidence harness returns (recycling the pre-restructure report contract) validating real gate reports; support matrix expansion to remaining rows |
+| R4-02 | Active | Deployment packaging and observability — first slice: `/livez` `/readyz` `/configz` `/metrics` `POST /drain`, J-FT and H-FT runtime images; PKI/remaining-row images/orchestrators remain follow-ups |
+| R4-03 | Active | Evidence harness returns (recycling the pre-restructure report contract) validating real gate reports — first slice: checker + schema + pending reports wrapping committed R1/R2/R3 measurements; remaining-row live e2e and human accept remain follow-ups |
 | R4-04 | Queued | SDK stabilization, docs, examples, and release |
 
 Gate: release review. U0 (Studio) follows the release as before.

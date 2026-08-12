@@ -55,7 +55,7 @@ Each accepted claim records:
 - artifact location and integrity;
 - reviewer, gate, decision, and known limits.
 
-The machine-readable qualification-report contract from the pre-restructure evidence harness is parked at tag `pre-restructure` and returns in R4, when real gate reports exist to validate ([ADR 0010](./adr/0010-restructure-single-rust-core.md)).
+The machine-readable qualification-report contract lives under [`docs/evidence/`](./evidence/README.md) (`rclweb-qualification-report-v1`). It recycles the pre-restructure M0-05a shape (tag `pre-restructure`) with R0–R4 gates. Raw measurements stay as sibling JSON; reports under [`docs/evidence/reports/`](./evidence/reports/) wrap them. `just evidence-check` is part of `just check`. Committed reports are `pending` until a human reviewer accepts them ([R4-03](./milestones/r4-03-evidence-harness.md)).
 
 ## Foundation CI
 

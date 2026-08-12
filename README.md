@@ -42,7 +42,7 @@ just build
 | `just toolchain-check` | Verify pinned tools |
 | `just doctor` | Pins plus rustc/rustfmt/clippy identity |
 | `just fmt` / `just fmt-check` / `just clippy` / `just lint-rust` | Rust format and Clippy (subset of `just check`) |
-| `just check` | Docs, protocol, and corpus checks; Rust fmt/clippy; SDK typecheck |
+| `just check` | Docs, protocol, corpus, and evidence checks; Rust fmt/clippy; SDK typecheck |
 | `just test` | Bun and Cargo test suites |
 | `just build` | Native build, fat-LTO `rclweb` wasm staged into the SDK, and SDK build |
 | `just poll-latency` | Record wasm poll latency + size evidence (R-D1) |
@@ -55,16 +55,19 @@ just build
 | `just ros-test` | Gateway tests against real rcl (sourced Jazzy env) |
 | `just ros-test-pixi` | Same, using optional RoboStack Jazzy via pixi (not CI evidence) |
 | `just protocol-check` | Validate the R2WP registry JSON and control CDDL |
+| `just evidence-check` | Validate qualification-report schema, fixtures, and gate-report integrity |
 | `just cdr-corpus-check` | Verify the committed ROS CDR corpus |
 
 ## Status
 
 R0–R3 are complete through R3-04. R4-01 first slice (Authenticate off by
-default, opt-in `oidc`) and R4-02 first slice (operations endpoints + J-FT
-runtime image) are in progress. The walking skeleton reaches a live ROS talker in
-CI (`just e2e` / `e2e-ros-talker`, and Humble via `just e2e-h-ft` /
-`e2e-ros-talker-h-ft`) with a committed demo under `examples/subscribe-chatter`.
-Phases and gates live in the [plan](./tasks/plan.md); current state lives in the
+default, opt-in `oidc`), R4-02 first slice (operations endpoints + J-FT /
+H-FT runtime images), and R4-03 first slice (qualification-report harness
+against committed measurements) are in progress. The walking skeleton
+reaches a live ROS talker in CI (`just e2e` / `e2e-ros-talker`, and Humble
+via `just e2e-h-ft` / `e2e-ros-talker-h-ft`) with a committed demo under
+`examples/subscribe-chatter`. Phases and gates live in the
+[plan](./tasks/plan.md); current state lives in the
 [checklist](./tasks/todo.md).
 
 ## Start here
