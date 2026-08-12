@@ -14,6 +14,10 @@ R3-04 dropped the R1 static link of `std_msgs` / `sensor_msgs` typesupport from 
 
 `RclBackend` owns every rcl entity on one thread. A blocking service `call` or action `send_goal_result` on that thread never returns unless the matching server is pumped in the wait loop (`call_with_pump` / `send_goal_result_with_pump` drain commands and take requests). Without the pump, same-process loopback tests hang until the call timeout. Cross-process ROS clients do not need this; they wait on their own wait set while the gateway thread pumps normally.
 
+## Action client wait-set ready is not the first client slot
+
+`rcl_action_wait_set_add_action_client` inserts three service clients (goal, cancel, result). The returned `client_index` is only the start of that span. Treating `wait_set.clients[client_index]` as “the action client is ready” sees SendGoal responses and misses GetResult/Cancel. After `rcl_wait`, take the specific response and treat `RCL_RET_ACTION_CLIENT_TAKE_FAILED` as empty.
+
 ## Every sample lease has exactly one owner
 
 The engine reclaims a retained inbound slab only when every lease on it is released (`sweep_released` in `rclweb/src/engine/mod.rs` frees a buffer once ingest is done and its lease refcount hits zero). Any host or SDK code path that drops a sample without delivering it MUST release the lease at the drop site — otherwise the slab is pinned forever. The original R1-04 SDK leaked on three drop paths: the Worker's non-String sample branch and the no-handler branch in both `InlineClient` and `WorkerClient`. The no-handler race is reachable in normal operation because `subscribed` and the first samples can arrive in the same poll flush, before the application has called `onMessage`. Fixed in this change, with regression coverage in `sdk/typescript/test/sdk-poll.test.ts` (no-handler sample: `leasesReleased` must equal `samplesEmitted`).

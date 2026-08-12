@@ -880,20 +880,19 @@ impl ActionClient {
                 });
             }
             let slice = remaining.min(Duration::from_millis(50));
-            if self.wait_action_ready(context, guard, slice)? {
-                let mut header = b::rmw_request_id_t {
-                    writer_guid: [0; 16],
-                    sequence_number: 0,
-                };
-                let ret = unsafe {
-                    b::rcl_action_take_goal_response(self.client.as_ref(), &mut header, response)
-                };
-                if ret == RCL_ACTION_CLIENT_TAKE_FAILED {
-                    unsafe { b::rcutils_reset_error() };
-                    continue;
-                }
-                return check(ret, "rcl_action_take_goal_response");
+            let _ = self.wait_action_ready(context, guard, slice)?;
+            let mut header = b::rmw_request_id_t {
+                writer_guid: [0; 16],
+                sequence_number: 0,
+            };
+            let ret = unsafe {
+                b::rcl_action_take_goal_response(self.client.as_ref(), &mut header, response)
+            };
+            if ret == RCL_ACTION_CLIENT_TAKE_FAILED {
+                unsafe { b::rcutils_reset_error() };
+                continue;
             }
+            return check(ret, "rcl_action_take_goal_response");
         }
     }
 
@@ -919,20 +918,19 @@ impl ActionClient {
                 });
             }
             let slice = remaining.min(Duration::from_millis(50));
-            if self.wait_action_ready(context, guard, slice)? {
-                let mut header = b::rmw_request_id_t {
-                    writer_guid: [0; 16],
-                    sequence_number: 0,
-                };
-                let ret = unsafe {
-                    b::rcl_action_take_result_response(self.client.as_ref(), &mut header, response)
-                };
-                if ret == RCL_ACTION_CLIENT_TAKE_FAILED {
-                    unsafe { b::rcutils_reset_error() };
-                    continue;
-                }
-                return check(ret, "rcl_action_take_result_response");
+            let _ = self.wait_action_ready(context, guard, slice)?;
+            let mut header = b::rmw_request_id_t {
+                writer_guid: [0; 16],
+                sequence_number: 0,
+            };
+            let ret = unsafe {
+                b::rcl_action_take_result_response(self.client.as_ref(), &mut header, response)
+            };
+            if ret == RCL_ACTION_CLIENT_TAKE_FAILED {
+                unsafe { b::rcutils_reset_error() };
+                continue;
             }
+            return check(ret, "rcl_action_take_result_response");
         }
     }
 
@@ -953,20 +951,20 @@ impl ActionClient {
                     message: "action cancel response timed out".to_owned(),
                 });
             }
-            if self.wait_action_ready(context, guard, remaining)? {
-                let mut header = b::rmw_request_id_t {
-                    writer_guid: [0; 16],
-                    sequence_number: 0,
-                };
-                let ret = unsafe {
-                    b::rcl_action_take_cancel_response(self.client.as_ref(), &mut header, response)
-                };
-                if ret == RCL_ACTION_CLIENT_TAKE_FAILED {
-                    unsafe { b::rcutils_reset_error() };
-                    continue;
-                }
-                return check(ret, "rcl_action_take_cancel_response");
+            let slice = remaining.min(Duration::from_millis(50));
+            let _ = self.wait_action_ready(context, guard, slice)?;
+            let mut header = b::rmw_request_id_t {
+                writer_guid: [0; 16],
+                sequence_number: 0,
+            };
+            let ret = unsafe {
+                b::rcl_action_take_cancel_response(self.client.as_ref(), &mut header, response)
+            };
+            if ret == RCL_ACTION_CLIENT_TAKE_FAILED {
+                unsafe { b::rcutils_reset_error() };
+                continue;
             }
+            return check(ret, "rcl_action_take_cancel_response");
         }
     }
 
