@@ -2,10 +2,10 @@
 
 Status: Complete (implementation + automated evidence). Wire
 `SchemaRequest` / `SchemaAdvertise` / `SchemaResponse` exchange stays parked
-(local registry from R3-02 remains the schema surface). Live action **server**
-(browser-as-server) stays `schema_unavailable` on `RclBackend`; action **client**
-call-style goal→result is attached. J-FT and H-FT talker e2e lanes must stay green
-([ADR 0008](../adr/0008-one-adapter-row-per-gateway-process.md)).
+(local registry from R3-02 remains the schema surface). Live action **client**
+and **server** (browser-as-server) are attached on `RclBackend` under the same
+ABI major (`serialized-adapter-v1`). J-FT and H-FT talker e2e lanes must stay
+green ([ADR 0008](../adr/0008-one-adapter-row-per-gateway-process.md)).
 
 ## Outcome
 
@@ -16,8 +16,13 @@ call-style goal→result is attached. J-FT and H-FT talker e2e lanes must stay g
 | Topics | Unchanged serialized pub/sub path; unknown types still wire code 10 |
 | Service | Live `RclBackend` client/server via CDR↔ROS message bridge (`rmw_serialize` / `rmw_deserialize`) |
 | Action client | Call-style goal→result (`OPERATION_ID` as goal UUID); returns serialized `GetResult_Response` CDR |
-| Action server | Still stubbed on live backend (MockBackend covers wire/SDK) |
+| Action server | Live `rcl_action_server`: take/accept goal, GetResult, feedback, status, cancel; inbound `ActionInbound` to the browser channel |
 | Schema wire | Remains parked |
+
+Same-thread loopback (client and server on one ROS thread) interleaves
+`drain_commands` + entity pumps inside `send_goal_result_with_pump`, matching
+service `call_with_pump`. Action servers are polled on the wait-set timeout
+(and during that pump); they are not yet added to the main wait set.
 
 ## Delivered scope
 
@@ -43,7 +48,7 @@ just e2e-h-ft     # H-FT talker (must not regress; regenerates FFI in-image)
 Notable tests / artifacts:
 
 - `adapter::tests::*` (ABI probe + buffer ownership)
-- `ros_rcl`: `serialized_loopback_publish_take_and_graph`, `unknown_type_is_schema_unavailable`, `add_two_ints_typesupport_resolves_via_dlopen`, `live_service_add_two_ints_round_trip`
+- `ros_rcl`: `serialized_loopback_publish_take_and_graph`, `unknown_type_is_schema_unavailable`, `add_two_ints_typesupport_resolves_via_dlopen`, `live_service_add_two_ints_round_trip`, `fibonacci_action_typesupport_resolves_via_dlopen`, `live_action_fibonacci_round_trip`
 - MockBackend service/action suite (`ws_gateway`) unchanged
 - Evidence: [`r3-04-adapter-abi.json`](../evidence/r3-04-adapter-abi.json)
 
@@ -51,5 +56,5 @@ Notable tests / artifacts:
 
 R4 owns remaining support rows, OIDC/SROS2, deployment packaging, and any
 multi-process or buffer-sharing ABI extension (new ADR). Un-parking wire schema
-exchange and live action server can land as follow-ups under the same ABI major
-when evidence requires them.
+exchange can land as a follow-up under the same ABI major when evidence
+requires it.

@@ -1,7 +1,8 @@
 //! Serialized-only rcl attachment (`feature = "ros"`).
 //!
 //! Surface: init, node, serialized publish/take, wait set, graph queries,
-//! live service client/server, and call-style action client (goal→result).
+//! live service client/server, and live action client/server (call-style
+//! goal→result; browser-as-server via inbound goals).
 //! Typesupport is resolved dynamically ([`typesupport`]). The versioned
 //! adapter ABI records live in [`crate::adapter`]. Unsafe code stays in
 //! `ffi` / `rcl` / `typesupport`; `backend` owns the single ROS thread.

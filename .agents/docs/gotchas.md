@@ -8,7 +8,11 @@ Traps already paid for in this repository, each with its why.
 
 ## Typesupport is dlopen, not link-time
 
-R3-04 dropped the R1 static link of `std_msgs` / `sensor_msgs` typesupport from `rclwebd/build.rs`. At runtime the ROS thread `dlopen`s `lib{pkg}__rosidl_typesupport_c.so` and `lib{pkg}__rosidl_generator_c.so` under `ROS_PREFIX/lib` (or `AMENT_PREFIX_PATH`). A missing package yields wire code 10 (`schema_unavailable`) the same as the old static miss — install the interface package in the image/environment rather than adding a link line. Service/action live paths also need those packages (for example `example_interfaces` for the AddTwoInts loopback in `just ros-test`).
+R3-04 dropped the R1 static link of `std_msgs` / `sensor_msgs` typesupport from `rclwebd/build.rs`. At runtime the ROS thread `dlopen`s `lib{pkg}__rosidl_typesupport_c.so` and `lib{pkg}__rosidl_generator_c.so` under `ROS_PREFIX/lib` (or `AMENT_PREFIX_PATH`). A missing package yields wire code 10 (`schema_unavailable`) the same as the old static miss — install the interface package in the image/environment rather than adding a link line. Service/action live paths also need those packages (for example `example_interfaces` for the AddTwoInts and Fibonacci loopbacks in `just ros-test`).
+
+## Same-thread ROS loopback must pump
+
+`RclBackend` owns every rcl entity on one thread. A blocking service `call` or action `send_goal_result` on that thread never returns unless the matching server is pumped in the wait loop (`call_with_pump` / `send_goal_result_with_pump` drain commands and take requests). Without the pump, same-process loopback tests hang until the call timeout. Cross-process ROS clients do not need this; they wait on their own wait set while the gateway thread pumps normally.
 
 ## Every sample lease has exactly one owner
 

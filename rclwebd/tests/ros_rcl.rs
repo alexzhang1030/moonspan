@@ -1,7 +1,7 @@
 //! Serialized-only rcl FFI attachment tests (row J-FT).
 //!
 //! Require `--features ros` and a sourced ROS 2 Jazzy environment
-//! (`just ros-test`). Domains 42/43/44 isolate the loopback traffic.
+//! (`just ros-test`). Domains 42/43/44/45 isolate the loopback traffic.
 
 #![cfg(feature = "ros")]
 
@@ -189,4 +189,88 @@ async fn live_service_add_two_ints_round_trip() {
 
     backend.destroy(client_entity).await;
     backend.destroy(service_entity).await;
+}
+
+#[test]
+fn fibonacci_action_typesupport_resolves_via_dlopen() {
+    assert!(
+        typesupport::action_type_support("example_interfaces/action/Fibonacci").is_some(),
+        "Fibonacci action typesupport must resolve via dlopen"
+    );
+}
+
+fn cdr_fibonacci_goal(order: i32) -> Vec<u8> {
+    let mut writer = CdrWriter::new_default(CdrEndian::Little).expect("writer");
+    writer.write_i32(order).expect("write order");
+    writer.to_bytes()
+}
+
+fn cdr_fibonacci_get_result_response(status: i8) -> Vec<u8> {
+    let mut writer = CdrWriter::new_default(CdrEndian::Little).expect("writer");
+    writer.write_i8(status).expect("write status");
+    writer
+        .write_sequence_length(0, None)
+        .expect("empty sequence");
+    writer.to_bytes()
+}
+
+fn decode_get_result_status(payload: &[u8]) -> i8 {
+    let mut reader = CdrReader::open_default(payload).expect("open cdr");
+    reader.read_i8().expect("read status")
+}
+
+#[tokio::test]
+async fn live_action_fibonacci_round_trip() {
+    let backend = RclBackend::spawn(45).expect("rcl init on domain 45");
+    let action_name = "/rclwebd_fibonacci";
+    let type_name = "example_interfaces/action/Fibonacci";
+
+    let (server_sink, mut server_rx) = mpsc::channel(8);
+    let server_entity = backend
+        .create_action_server(&reliable_spec(20, action_name, type_name), server_sink)
+        .await
+        .expect("create action server");
+
+    let client_entity = backend
+        .create_action_client(&reliable_spec(21, action_name, type_name))
+        .await
+        .expect("create action client");
+
+    // Allow discovery between client and server on the same node.
+    tokio::time::sleep(Duration::from_millis(500)).await;
+
+    let goal_cdr = cdr_fibonacci_goal(0);
+    let opid = [0x22u8; 16];
+
+    tokio::pin! {
+        let call_fut = backend.send_action_goal(client_entity, opid, goal_cdr.clone());
+        let server_fut = async {
+            let deadline = Instant::now() + Duration::from_secs(10);
+            while Instant::now() < deadline {
+                match tokio::time::timeout(Duration::from_millis(200), server_rx.recv()).await {
+                    Ok(Some(inbound)) => {
+                        assert_eq!(inbound.channel_id(), 20);
+                        assert_eq!(inbound.operation_id(), opid);
+                        assert_eq!(inbound.payload(), goal_cdr.as_slice());
+                        let result_cdr = cdr_fibonacci_get_result_response(4);
+                        backend
+                            .send_action_result(server_entity, inbound.operation_id(), result_cdr)
+                            .await
+                            .expect("send action result");
+                        return;
+                    }
+                    Ok(None) => panic!("action inbound channel closed"),
+                    Err(_) => continue,
+                }
+            }
+            panic!("no action goal received within 10s");
+        };
+    }
+
+    let (result_cdr, ()) = tokio::join!(call_fut, server_fut);
+    let result_cdr = result_cdr.expect("action goal");
+    assert_eq!(decode_get_result_status(&result_cdr), 4);
+
+    backend.destroy(client_entity).await;
+    backend.destroy(server_entity).await;
 }

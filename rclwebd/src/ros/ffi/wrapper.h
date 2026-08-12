@@ -8,6 +8,7 @@
 #include <rcl/client.h>
 #include <rcl/service.h>
 #include <rcl/error_handling.h>
+#include <rcl/time.h>
 #include <rcl_action/rcl_action.h>
 #include <rcutils/allocator.h>
 #include <rcutils/types/uint8_array.h>
