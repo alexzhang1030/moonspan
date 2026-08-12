@@ -25,7 +25,7 @@ MoonBit was the pre-restructure browser runtime language, chosen for Wasm conven
 | Rust | `rust-toolchain.toml` (channel + wasm32 target) and the Cargo workspace |
 | just | `.just-version` |
 
-`scripts/toolchain-check.ts` verifies the installed versions. The root command surface is:
+`scripts/toolchain-check.ts` verifies the installed versions. CI installs those pins with SHA-pinned setup actions (`oven-sh/setup-bun`, `extractions/setup-just` with one retry, `dtolnay/rust-toolchain`); e2e images copy Bun from digest-pinned `oven/bun`. The root command surface is:
 
 ```bash
 just toolchain-check

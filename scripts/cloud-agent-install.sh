@@ -7,8 +7,11 @@
 # repeatedly and on top of a snapshot that already contains the toolchains.
 #
 # Toolchain versions come from the project pin files (.bun-version,
-# .just-version, rust-toolchain.toml). The just archive digest is pinned to
-# the same value verified in .github/workflows/ci.yml; recompute them together.
+# .just-version, rust-toolchain.toml). CI uses oven-sh/setup-bun,
+# extractions/setup-just, and dtolnay/rust-toolchain. This script is the
+# non-Actions path (cloud-agent VM). The just archive digest and bun zip
+# digests live here / in scripts/install-pinned-bun.sh; recompute them
+# together with the pin files.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -17,8 +20,7 @@ cd "$root"
 bun_version="$(tr -d '[:space:]' < .bun-version)"
 just_version="$(tr -d '[:space:]' < .just-version)"
 
-# Recompute together with .github/workflows/ci.yml when the just release
-# archive changes.
+# Recompute together with scripts/install-pinned-bun.sh when pin files change.
 just_archive_sha256="27e011cd6328fadd632e59233d2cf5f18460b8a8c4269acd324c1a8669f34db0"
 
 export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
@@ -38,7 +40,7 @@ if bun_matches; then
   echo "bun ${bun_version} already installed"
 else
   echo "Installing bun ${bun_version}"
-  curl -fsSL https://bun.sh/install | bash -s "bun-v${bun_version}"
+  bash scripts/install-pinned-bun.sh
 fi
 
 if just_matches; then
@@ -47,7 +49,7 @@ else
   echo "Installing just ${just_version}"
   asset="just-${just_version}-x86_64-unknown-linux-musl.tar.gz"
   archive="$(mktemp --suffix=.tar.gz)"
-  curl -fsSL -L -o "$archive" \
+  bash scripts/github-release-curl.sh -o "$archive" \
     "https://github.com/casey/just/releases/download/${just_version}/${asset}"
   echo "${just_archive_sha256}  ${archive}" | sha256sum -c -
   mkdir -p "$HOME/.local/bin"
