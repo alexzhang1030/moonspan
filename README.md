@@ -44,7 +44,7 @@ just build
 | `just test` | Bun and Cargo test suites |
 | `just build` | Native build, fat-LTO `rclweb` wasm staged into the TypeScript package, and package build |
 | `just npm-pack` | Copy `LICENSE`/`NOTICE` into `typescript/` and write the npm tarball |
-| `just npm-pack-check` | Verify the tarball is `rcl-web@0.0.1` and includes `LICENSE`, `NOTICE`, and wasm |
+| `just npm-pack-check` | Verify the tarball is `rcl-web@0.0.1` with the tsdown `dist/`, `LICENSE`, `NOTICE`, and wasm |
 | `just poll-latency` | Print wasm poll latency + size |
 | `just e2e` | Docker compose: Jazzy talker → rclwebd (J-FT) → SDK subscribe |
 | `just e2e-h-ft` | Docker compose: Humble talker → rclwebd (H-FT) → SDK subscribe |

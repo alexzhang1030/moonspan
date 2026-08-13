@@ -9,7 +9,7 @@ just test
 just build
 ```
 
-`just check` is the foundation gate (docs, protocol, corpus, license inventory, npm pack members, `cargo fmt`, Clippy with `-D warnings`, TypeScript package typecheck). Do not treat a rust-only loop as a substitute.
+`just check` is the foundation gate (docs, protocol, corpus, license inventory, npm pack members, `cargo fmt`, Clippy with `-D warnings`, tsdown ship bundle). Do not treat a rust-only loop as a substitute.
 
 ## Rust workspace
 

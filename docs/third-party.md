@@ -237,5 +237,8 @@ shipped, but they still follow the same OSI-permissive allowlist.
 
 Workspace packages: `@rclweb/e2e-harness`, `@rclweb/subscribe-chatter`, `rcl-web`, `rclweb-workspace`.
 
-No external npm dependencies are declared in the Bun workspace.
+| Package | Version | License |
+|---|---|---|
+| tsdown | 0.22.14 | MIT |
+| typescript | 5.9.3 | Apache-2.0 |
 

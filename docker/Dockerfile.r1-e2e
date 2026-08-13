@@ -45,7 +45,8 @@ COPY . /workspace
 RUN bun install --frozen-lockfile \
   && . /opt/ros/jazzy/setup.sh \
   && cargo build --locked -p rclwebd --features ros --release \
-  && bun run scripts/build-wasm.ts
+  && bun run scripts/build-wasm.ts \
+  && bun run --filter rcl-web build
 
 COPY docker/r1-e2e-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

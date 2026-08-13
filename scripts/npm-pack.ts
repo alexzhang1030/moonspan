@@ -3,7 +3,7 @@
  * Stage LICENSE/NOTICE into typescript/ and verify the npm tarball.
  *
  * --stage  copy root LICENSE and NOTICE into typescript/
- * --check  stage, pack, and require LICENSE, NOTICE, wasm, and source in the tarball
+ * --check  tsdown, stage LICENSE/NOTICE, pack, and require the ship set in the tarball
  */
 import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -17,7 +17,11 @@ export const REQUIRED_TARBALL_MEMBERS = [
   "package/NOTICE",
   "package/README.md",
   "package/package.json",
-  "package/src/index.ts",
+  "package/dist/index.js",
+  "package/dist/index.d.ts",
+  "package/dist/internal.js",
+  "package/dist/internal.d.ts",
+  "package/dist/worker/io-worker.js",
   "package/wasm/rclweb.wasm",
 ] as const;
 
@@ -58,6 +62,11 @@ export function tarballMemberMissing(
   return required.filter((m) => !lines.has(m));
 }
 
+/** npm must ship the tsdown bundle, not TypeScript source. */
+export function tarballContainsSource(listing: string): boolean {
+  return listing.split(/\r?\n/).some((l) => l.trim().startsWith("package/src/"));
+}
+
 function run(cmd: string, args: string[], cwd: string): { status: number; stdout: string; stderr: string } {
   const result = spawnSync(cmd, args, { cwd, encoding: "utf8" });
   return {
@@ -72,6 +81,10 @@ export function packAndList(root: string): { tarball: string; listing: string } 
   const wasm = path.join(pkgDir, "wasm", "rclweb.wasm");
   if (!existsSync(wasm)) {
     throw new Error("typescript/wasm/rclweb.wasm is missing; run just build");
+  }
+  const built = run("bun", ["--bun", "tsdown"], pkgDir);
+  if (built.status !== 0) {
+    throw new Error(`tsdown failed: ${built.stderr || built.stdout}`);
   }
   stageLicenseFiles(root);
   const outDir = mkdtempSync(path.join(tmpdir(), "rclweb-npm-"));
@@ -118,13 +131,23 @@ function main(): void {
     console.error(`npm-pack: missing tarball members: ${missing.join(", ")}`);
     process.exit(1);
   }
+  if (tarballContainsSource(listing)) {
+    console.error("npm-pack: tarball must not include package/src (ship the tsdown dist)");
+    process.exit(1);
+  }
   const pkg = JSON.parse(readFileSync(path.join(root, PACKAGE_DIR_REL, "package.json"), "utf8")) as {
     name: string;
     version: string;
     private?: boolean;
+    exports?: unknown;
+    files?: string[];
   };
   if (pkg.name !== "rcl-web" || pkg.version !== "0.0.1" || pkg.private) {
     console.error("npm-pack: package must be rcl-web@0.0.1 with private unset or false");
+    process.exit(1);
+  }
+  if (JSON.stringify(pkg.exports ?? {}).includes(".ts") || (pkg.files ?? []).includes("src")) {
+    console.error("npm-pack: exports must point at dist; files must not include src");
     process.exit(1);
   }
   console.log(

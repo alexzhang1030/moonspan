@@ -3,7 +3,9 @@
 ## Status
 
 Accepted. The workspace package path in Consequences is superseded by
-[ADR 0013](./0013-typescript-package-rclweb.md).
+[ADR 0013](./0013-typescript-package-rclweb.md). The published TypeScript
+bundle is tsdown ([ADR 0015](./0015-tsdown-ship-bundle.md)); Bun remains
+workspaces, lockfile, scripts, and tests.
 
 ## Date
 
