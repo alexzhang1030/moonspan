@@ -25,7 +25,7 @@ test("sdk package identity and privacy", () => {
     files: string[];
   };
   expect(pkg.name).toBe("rcl-web");
-  expect(pkg.version).toBe("0.0.2");
+  expect(pkg.version).toBe("0.0.3");
   expect(pkg.private).toBe(false);
   expect(pkg.type).toBe("module");
   expect(pkg.files).toEqual(["dist", "wasm", "README.md", "LICENSE", "NOTICE"]);

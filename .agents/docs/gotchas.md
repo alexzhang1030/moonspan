@@ -127,7 +127,7 @@ Canonical bundles live at `conformance/cdr/fixtures/bundles/<type with / → .>.
 
 ## Unscoped `rclweb` is blocked on npm as too similar to `rrweb`
 
-The exact name `rclweb` is unpublished (`GET https://registry.npmjs.org/rclweb` → 404; search total 0). A logged-in `npm publish` still returns **403**: npm's confusion / typo-squatting rule rejects it as too similar to [`rrweb`](https://www.npmjs.com/package/rrweb) (session replay; ~2.7M weekly downloads). The first attempt looked like a 404 because npm hides unauthorized PUTs; after `npm login` the real reason is the similarity check. Do not retry unscoped `rclweb`. The publish and import name is `rcl-web` ([ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md)). `rcl-web@0.0.1` is on the registry (TypeScript source). The tsdown ship is `0.0.2`; npm will not overwrite `0.0.1`.
+The exact name `rclweb` is unpublished (`GET https://registry.npmjs.org/rclweb` → 404; search total 0). A logged-in `npm publish` still returns **403**: npm's confusion / typo-squatting rule rejects it as too similar to [`rrweb`](https://www.npmjs.com/package/rrweb) (session replay; ~2.7M weekly downloads). The first attempt looked like a 404 because npm hides unauthorized PUTs; after `npm login` the real reason is the similarity check. Do not retry unscoped `rclweb`. The publish and import name is `rcl-web` ([ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md)). `rcl-web@0.0.1` is on the registry (TypeScript source). The first tsdown ship is `0.0.2`; current is `0.0.3`. npm will not overwrite a published version.
 
 ## License inventory looks in the declaring workspace first
 
@@ -139,7 +139,7 @@ The published `rcl-web` tarball is tsdown ESM + `.d.ts` under `dist/`, plus `was
 
 ## npm pack copies LICENSE and NOTICE; do not commit them
 
-npm `files` cannot include `../LICENSE`. `scripts/npm-pack.ts --stage` (also the package `prepack` script) copies the repository `LICENSE` and `NOTICE` into `typescript/`. Those copies are gitignored. `just npm-pack-check` requires them in the tarball for `rcl-web@0.0.2`. Do not commit `typescript/LICENSE` or `typescript/NOTICE`.
+npm `files` cannot include `../LICENSE`. `scripts/npm-pack.ts --stage` (also the package `prepack` script) copies the repository `LICENSE` and `NOTICE` into `typescript/`. Those copies are gitignored. `just npm-pack-check` requires them in the tarball for `rcl-web@0.0.3`. Do not commit `typescript/LICENSE` or `typescript/NOTICE`.
 
 ## Crate LICENSE/NOTICE copies are committed
 

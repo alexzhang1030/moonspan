@@ -53,7 +53,7 @@ Outside this inventory (they are not crate/npm release units):
 Workspace Cargo members inherit `license = "Apache-2.0"`. Bun workspace
 packages declare `"license": "Apache-2.0"`.
 
-The current TypeScript package is `rcl-web@0.0.2` (`"private": false`).
+The current TypeScript package is `rcl-web@0.0.3` (`"private": false`).
 `0.0.1` on npm shipped TypeScript source.
 An npm tarball must include the repository `LICENSE` and `NOTICE`.
 `just npm-pack` / the package `prepack` script copies those files into

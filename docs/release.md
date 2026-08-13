@@ -75,8 +75,8 @@ token; provenance is automatic — do not pass `--provenance`. Do not set
 The crates job stages `LICENSE` / `NOTICE`, publishes `rclweb`, then
 retries `rclwebd` until crates.io's index sees the new core crate.
 
-`rcl-web@0.0.2` is already on npm. The next npm publish needs a new
-version. Crates start at `0.0.1`.
+This cut: `rcl-web@0.0.3` and crates `0.0.2`. Tag `v0.0.3` after merge
+to fire both jobs. Do not retag a version already on the registry.
 
 ## Local checks
 
