@@ -85,6 +85,8 @@ struct ConnState<'a> {
   heartbeat_counter: u64,
   channels: HashMap<u32, ChannelRuntime>,
   graph_generation: Option<u64>,
+  /// Effective identity from Authenticate (SessionReady field 21); ACL input.
+  subject: String,
 }
 
 #[derive(Default)]
@@ -131,6 +133,7 @@ impl<'a> ConnState<'a> {
       heartbeat_counter: 0,
       channels: HashMap::new(),
       graph_generation: None,
+      subject: crate::auth::ANONYMOUS_SUBJECT.to_owned(),
     }
   }
 
@@ -403,6 +406,7 @@ impl<'a> ConnState<'a> {
           outcome.close = true;
           return;
         };
+        self.subject = decision.subject.clone();
         let session_id = new_session_id();
         let ready = control::session_ready(
           self.config,
@@ -486,6 +490,34 @@ impl<'a> ConnState<'a> {
       let reply = control::channel_ready_error(&correlation, channel_id, code, reason);
       self.push_control(outcome, &reply);
       return;
+    }
+
+    // R4-01 channel ACL: default-deny in enforce mode, wire code 12 on deny.
+    if let crate::acl::AclMode::Enforce = self.config.acl_mode {
+      let operation = crate::acl::AclOperation::from_kind(kind);
+      let allow = self
+        .config
+        .acl
+        .as_ref()
+        .is_some_and(|policy| policy.allow(&self.subject, operation, &topic));
+      crate::acl::emit_channel_audit(
+        self.config,
+        &self.subject,
+        operation,
+        &topic,
+        &type_name,
+        allow,
+      );
+      if !allow {
+        let reply = control::channel_ready_error(
+          &correlation,
+          channel_id,
+          crate::acl::PERMISSION_DENIED,
+          "permission_denied",
+        );
+        self.push_control(outcome, &reply);
+        return;
+      }
     }
 
     let requested = msg.fields.get(&11).map(RequestedQos::from_wire).unwrap_or_default();

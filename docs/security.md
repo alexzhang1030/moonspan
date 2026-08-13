@@ -19,6 +19,8 @@ Authenticate is evaluated at the gateway ([R4-01](./milestones/r4-01-oidc-sros2-
 
 Policy can scope access by subject, tenant, robot, gateway, support row, ROS domain, operation kind, ROS name, type, schema identity, QoS, resource budget, and diagnostic visibility.
 
+Channel ACLs are enforced at OpenChannel ([R4-01](./milestones/r4-01-oidc-sros2-audit.md)). Default `off` admits every channel (R1–R3). `RCLWEBD_ACL_MODE=enforce` is default-deny over `{subjects, operations, names}` allow rules (`RCLWEBD_ACL` / `RCLWEBD_ACL_PATH`); denials fail the channel with wire code 12 (`permission_denied`) and emit an audit line. The rule content — the reviewed policy matrix — is a human input.
+
 The gateway derives `gateway_instance_id` and `support_row_id`; the active channel supplies `domain_id`. The SDK receives the effective capability set and policy revision so applications can present authorized operations and stable denial reasons.
 
 ## Commands and resources
