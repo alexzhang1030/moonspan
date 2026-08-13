@@ -28,7 +28,7 @@ All six support rows (H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN) have live talker e2e l
 
 | Unit | Responsibility | Boundary |
 |---|---|---|
-| TypeScript package | Public rclcpp-shaped API (`init` / `Node`), sessions, Workers, telemetry, and buffer ownership | Versioned TypeScript API |
+| TypeScript package | Public API (`init` / `Node` / pub / sub / service / action). [How to](./typescript.md), [reference](./api.md) | Versioned TypeScript API |
 | I/O Worker | Transport, reconnect, and buffer transfer | Byte batches to and from the core |
 | `rclweb` core | R2WP codecs, CDR, session/channel state, graph, QoS, clocks, and ROS operations | Host poll ABI (wasm) and Rust API (native) |
 | `rclwebd` | ROS attachment, sessions, schema cache, scheduling, policy, audit, and operations | R2WP and the serialized rcl surface |

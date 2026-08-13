@@ -2,7 +2,8 @@
 
 Browser page that connects to `rclwebd` over WebSocket, subscribes to
 `/chatter`, and can publish `std_msgs/msg/String` samples. This is the
-public `rcl-web` demo ([docs/typescript.md](../../docs/typescript.md)).
+public `rcl-web` demo ([how to](../../docs/typescript.md),
+[API](../../docs/api.md)).
 
 ## Run
 
