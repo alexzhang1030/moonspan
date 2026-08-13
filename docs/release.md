@@ -75,8 +75,10 @@ token; provenance is automatic — do not pass `--provenance`. Do not set
 The crates job stages `LICENSE` / `NOTICE`, publishes `rclweb`, then
 retries `rclwebd` until crates.io's index sees the new core crate.
 
-This cut: `rcl-web@0.0.3` and crates `0.0.2`. Tag `v0.0.3` after merge
-to fire both jobs. Do not retag a version already on the registry.
+This cut: `rcl-web@0.0.3` and crates `0.0.2`. First OIDC automatic
+publish landed 2026-08-13 from tag `v0.0.3` on `e8365a8`
+([release run](https://github.com/alexzhang1030/rclweb/actions/runs/31713576156)).
+Do not retag a version already on the registry.
 
 ## Local checks
 
