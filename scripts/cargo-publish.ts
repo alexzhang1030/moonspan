@@ -11,7 +11,7 @@ import { spawnSync } from "node:child_process";
 
 export const PUBLISHED_CRATES = ["rclweb", "rclwebd"] as const;
 export const UNPUBLISHED_CRATES = ["protocol-fixtures", "r1_04_fixture_gen"] as const;
-export const EXPECTED_CRATE_VERSION = "0.0.1";
+export const EXPECTED_CRATE_VERSION = "0.0.2";
 
 export type CargoPublishMode = "stage" | "check";
 
@@ -119,7 +119,10 @@ function main(): void {
     process.exit(1);
   }
   const ws = readFileSync(path.join(root, "Cargo.toml"), "utf8");
-  if (!ws.includes(`version = "${EXPECTED_CRATE_VERSION}"`) || !ws.includes('rclweb = { path = "rclweb", version = "0.0.1" }')) {
+  if (
+    !ws.includes(`version = "${EXPECTED_CRATE_VERSION}"`) ||
+    !ws.includes(`rclweb = { path = "rclweb", version = "${EXPECTED_CRATE_VERSION}" }`)
+  ) {
     console.error(`cargo-publish: workspace version must be ${EXPECTED_CRATE_VERSION} with a versioned rclweb path dep`);
     process.exit(1);
   }

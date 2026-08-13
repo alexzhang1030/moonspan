@@ -856,7 +856,7 @@ dependencies = [
 
 [[package]]
 name = "protocol-fixtures"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "rclweb",
  "serde_json",
@@ -942,7 +942,7 @@ checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
 
 [[package]]
 name = "r1_04_fixture_gen"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "rclweb",
  "serde_json",
@@ -1019,7 +1019,7 @@ dependencies = [
 
 [[package]]
 name = "rclweb"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "bytes",
  "serde",
@@ -1028,7 +1028,7 @@ dependencies = [
 
 [[package]]
 name = "rclwebd"
-version = "0.0.1"
+version = "0.0.2"
 dependencies = [
  "axum",
  "base64",
