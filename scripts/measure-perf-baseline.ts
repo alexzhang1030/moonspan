@@ -3,9 +3,10 @@
  * Performance baseline versus Foxglove Bridge and rosbridge.
  *
  * Always prints (stdout only; do not commit):
- * 1) structural copy-path table (docs/performance.md twin)
- * 2) protocol wire-cost models (R2WP / Foxglove MessageData / rosbridge JSON+b64 / CBOR-RAW)
- * 3) rclweb host drain + one engine retain probe
+ * 1) latency p50/p99/mean, CPU µs/sample, RSS/heap (primary)
+ * 2) structural copy-path table
+ * 3) protocol wire-cost models
+ * 4) rclweb host drain + one engine retain probe
  *
  * Live three-way compose is a separate command (`just perf-baseline-live`).
  *
@@ -15,6 +16,10 @@
 import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { COPY_PATHS, formatCopyPathTable } from "./perf-baseline/copy-path.ts";
+import {
+  formatIngestTable,
+  measureIngestSuite,
+} from "./perf-baseline/ingest-latency.ts";
 import { measureAllProtocolCosts } from "./perf-baseline/protocol-cost.ts";
 import { measureRclwebHost } from "./perf-baseline/rclweb-host.ts";
 import { POINT_PAYLOAD_BYTES } from "./perf-baseline/workloads.ts";
@@ -28,13 +33,14 @@ if (!existsSync(wasmPath)) {
 }
 
 const wasmBytes = readFileSync(wasmPath);
-const protocolCosts = measureAllProtocolCosts();
-const rclwebHost = await measureRclwebHost(
-  wasmBytes.buffer.slice(
-    wasmBytes.byteOffset,
-    wasmBytes.byteOffset + wasmBytes.byteLength,
-  ),
+const wasmBuffer = wasmBytes.buffer.slice(
+  wasmBytes.byteOffset,
+  wasmBytes.byteOffset + wasmBytes.byteLength,
 );
+
+const ingest = await measureIngestSuite(wasmBuffer);
+const protocolCosts = measureAllProtocolCosts();
+const rclwebHost = await measureRclwebHost(wasmBuffer.slice(0));
 
 const pc2 = protocolCosts.filter((r) => r.workload === "pointcloud2-1mb-10hz");
 const wireByProto = Object.fromEntries(
@@ -49,6 +55,18 @@ const wireByProto = Object.fromEntries(
 );
 
 const report = {
+  ingest: ingest.map((r) => ({
+    hop: r.hop,
+    size: r.size,
+    n: r.latencyMs.n,
+    p50Ms: r.latencyMs.p50,
+    p99Ms: r.latencyMs.p99,
+    meanMs: r.latencyMs.mean,
+    cpuUsPerSample: r.resources.cpuUsPerSample,
+    rssAfterBytes: r.resources.rssAfterBytes,
+    rssDeltaBytes: r.resources.rssDeltaBytes,
+    heapDeltaBytes: r.resources.heapDeltaBytes,
+  })),
   copyPath: Object.fromEntries(
     Object.values(COPY_PATHS).map((p) => [
       p.system,
@@ -64,6 +82,8 @@ const report = {
   })),
 };
 
+console.log(formatIngestTable(ingest));
+console.log("");
 console.log(formatCopyPathTable());
 console.log("");
 console.log(

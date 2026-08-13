@@ -2,9 +2,21 @@
 
 rclweb treats copies of sample CDR as a contract, not a tuning knobs pile. This page compares that path with [Foxglove Bridge](https://github.com/foxglove/foxglove-sdk/blob/main/ros/src/foxglove_bridge/README.md) and [rosbridge_suite](https://docs.ros.org/en/jazzy/p/rosbridge_suite/). Landscape context lives in [landscape](./landscape.md). The rclweb-only hop table is in [architecture](./architecture.md#performance-contracts).
 
-Reproduce numbers with `just perf-baseline` (host + wire-cost models) and `just perf-baseline-live` (Docker, small-message loopback). Those recipes print to stdout. Do not commit the output ([gotcha](../.agents/docs/gotchas.md#do-not-commit-measurement-json)).
+Reproduce numbers with `just perf-baseline` (host ingest) and `just perf-baseline-live` (Docker, small-message loopback). Those recipes print to stdout. Do not commit the output ([gotcha](../.agents/docs/gotchas.md#do-not-commit-measurement-json)).
 
-The TypeScript module [`scripts/perf-baseline/copy-path.ts`](../scripts/perf-baseline/copy-path.ts) is the machine-checkable twin of the copy table below (`bun test scripts/perf-baseline.test.ts`).
+**Primary metrics are latency, CPU, and memory.** Copy counts and wire expansion stay structural context; they are not what the baseline is for.
+
+| Metric | What `just perf-baseline` prints | What `just perf-baseline-live` prints |
+|---|---|---|
+| Latency | p50 / p99 / mean of the wasm ingest hop (scripted-peer `wsBytes` poll until Sample + lease release) at 1 KiB, 32 KiB, and PointCloud2 ~1 MiB | Loopback stamp p50 / p99 on `std_msgs/msg/String` against rclwebd, foxglove_bridge, and rosbridge_suite |
+| CPU | User+system µs per sample (`process.cpuUsage`) for that hop | Client-process user+system µs per sample over the subscribe window |
+| Memory | RSS after the hop, RSS Δ and heap Δ vs post-warmup (`process.memoryUsage`, `Bun.gc` when present) | Client-process RSS / heap after the subscribe window |
+
+Foxglove and rosbridge rows in `just perf-baseline` are **client envelope decode** (MessageData subarray vs JSON.parse + base64 of the same CDR). They are not live bridge e2e. Do not read a faster Foxglove subarray as “Foxglove is a faster ROS client” — that hop never enters wasm. Live e2e is `just perf-baseline-live`.
+
+Engineering targets in [validation](./validation.md#engineering-targets) (loopback p99 ≤ 3 ms @ 1 KiB, LAN p99 ≤ 8 ms @ 32 KiB, PointCloud2 4 MiB @ 10 Hz / 30 min, stable post-warmup RSS) are **e2e / soak** guides. `just perf-baseline` does not fail CI when p99 exceeds 3 ms.
+
+The TypeScript modules [`scripts/perf-baseline/ingest-latency.ts`](../scripts/perf-baseline/ingest-latency.ts) (primary table) and [`scripts/perf-baseline/copy-path.ts`](../scripts/perf-baseline/copy-path.ts) (copy table) are machine-checkable twins (`bun test scripts/perf-baseline.test.ts`).
 
 ## What each system does with a sample
 
@@ -51,7 +63,7 @@ Same CDR body, header and envelope only. Identities match `scripts/perf-baseline
 
 Foxglove is slightly smaller on the wire (13 vs 32 header bytes). At 1 MiB that difference is noise. rosbridge JSON is not: base64 alone is a 33% tax on every blob, every sample.
 
-`just perf-baseline` re-measures encode/decode-touch times for these envelopes and prints them. Treat those timings as this-machine stdout, not a committed gate.
+`just perf-baseline` re-measures encode/decode-touch times for these envelopes and prints them **after** the latency / CPU / memory table. Treat those timings as this-machine stdout, not a committed gate.
 
 ## Where rclweb is actually ahead
 
@@ -81,11 +93,11 @@ rclweb does **not** claim fewer copies into a JS `ArrayBuffer` than Foxglove. Fo
 
 | Command | What it measures | Needs |
 |---|---|---|
-| `just perf-baseline` | Structural copy table, R2WP / Foxglove / rosbridge wire-cost models, rclweb host drain + one engine retain probe | `just build` wasm artifact |
+| `just perf-baseline` | **Primary:** ingest latency p50/p99/mean, CPU µs/sample, RSS/heap at 1 KiB, 32 KiB, PointCloud2 ~1 MiB (rclweb wasm hop + Foxglove/rosbridge envelope decode). **Secondary:** structural copy table, R2WP / Foxglove / rosbridge wire-cost models, host drain + one engine retain probe | `just build` wasm artifact |
 | `just large-message` | PointCloud2-scale host encode + both buffer strategies + engine copy probe | wasm |
-| `just poll-latency` | Wasm poll p50/p99 | wasm |
-| `just perf-baseline-live` | Loopback subscribe latency on stamped `std_msgs/msg/String` against rclwebd, foxglove_bridge, and rosbridge_suite | Docker |
+| `just poll-latency` | Empty timer-poll p50/p99 (wasm reopen input, not sample ingest) | wasm |
+| `just perf-baseline-live` | Loopback subscribe latency p50/p99 plus client CPU/RSS on stamped `std_msgs/msg/String` against rclwebd, foxglove_bridge, and rosbridge_suite | Docker |
 
-Live three-way compose is [`docker/compose.r2-04-perf.yml`](../docker/compose.r2-04-perf.yml). It is a small-message lane. Large PointCloud2 comparison on the live bridges stays on the protocol-cost + host probes until that compose grows a cloud publisher.
+Live three-way compose is [`docker/compose.r2-04-perf.yml`](../docker/compose.r2-04-perf.yml). It is a small-message lane. Large PointCloud2 comparison on the live bridges stays on the ingest + protocol-cost probes until that compose grows a cloud publisher.
 
-Engineering latency targets (not accepted evidence) remain in [validation](./validation.md#engineering-targets).
+Engineering latency targets (not accepted evidence, not CI fail) remain in [validation](./validation.md#engineering-targets).

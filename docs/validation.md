@@ -22,7 +22,7 @@ ROS talker
   -> typed event in a demo page or harness
 ```
 
-`just e2e` / `just e2e-h-ft` / `just e2e-row` are the live gates. `just poll-latency`, `just large-message`, and `just perf-baseline` print measurements to stdout. Do not commit that output. The Foxglove / rosbridge comparison (copy path, wire expansion, commands) is in [performance](./performance.md).
+`just e2e` / `just e2e-h-ft` / `just e2e-row` are the live gates. `just poll-latency`, `just large-message`, and `just perf-baseline` print measurements to stdout. Do not commit that output. `just perf-baseline` leads with ingest latency (p50/p99/mean), CPU µs/sample, and RSS/heap; copy path and wire expansion stay secondary. The Foxglove / rosbridge comparison is in [performance](./performance.md).
 
 ## Engineering targets
 

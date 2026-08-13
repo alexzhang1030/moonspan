@@ -163,7 +163,7 @@ npm trusted publishing matches owner + repo + workflow **filename**. A GitHub `e
 
 ## Do not commit measurement JSON
 
-The owner deleted `docs/evidence/*.json`. Nothing in CI read those files. `just build` used to rewrite `recordedAt` on a wasm-size file, dirtying the tree. Qualification is a human edit of the [support matrix](../../docs/support-matrix.md). Measurement recipes (`just poll-latency`, `just large-message`, `just perf-baseline`) print to stdout. Do not add an evidence-check job.
+The owner deleted `docs/evidence/*.json`. Nothing in CI read those files. `just build` used to rewrite `recordedAt` on a wasm-size file, dirtying the tree. Qualification is a human edit of the [support matrix](../../docs/support-matrix.md). Measurement recipes (`just poll-latency`, `just large-message`, `just perf-baseline`) print to stdout. `just perf-baseline` leads with latency / CPU / RSS. Do not add an evidence-check job.
 
 ## Do not wrap cargo tests in a Docker mock lane
 

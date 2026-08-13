@@ -225,7 +225,7 @@ poll-latency: toolchain-check
 large-message: toolchain-check
     cd "{{root}}" && bun run scripts/measure-large-message.ts
 
-# R2-04 performance baseline (copy-path table, protocol-cost models, host probe). Prints to stdout.
+# R2-04 performance baseline (latency / CPU / mem primary; copy-path and wire secondary). Prints to stdout.
 [group('quality')]
 perf-baseline: toolchain-check
     cd "{{root}}" && bun run scripts/measure-perf-baseline.ts
