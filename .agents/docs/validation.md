@@ -23,7 +23,7 @@ Historical evidence stays in git history. Promotion to **Qualified** is a human 
 ## Review triggers
 
 - CDR differences reopen codec and type-system review.
-- Timing, copies, allocations, memory growth, or toolchain drift reopen runtime-boundary review; the copy budget (two controllable payload copies) is a standing contract.
+- Timing, copies, allocations, memory growth, or toolchain drift reopen runtime-boundary review; the copy budget (two controllable payload copies) is a standing contract. The published baseline's primary metrics are ingest latency, CPU, and RSS ([performance](../../docs/performance.md)).
 - Transport, proxy, reconnect, or roaming gaps reopen channel and compatibility review.
 - QoS or semantic differences reopen runtime and RMW review.
 - Security, deployment, soak, fault, or recovery findings reopen release review.

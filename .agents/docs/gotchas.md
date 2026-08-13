@@ -46,9 +46,13 @@ The engine reclaims a retained inbound slab only when every lease on it is relea
 
 `rcl-web` is rclcpp-shaped (`init` / `Node` / `createSubscription`). Message types are `std_msgs.msg.String` / `sensor_msgs.msg.PointCloud2` / `rclweb_cdr_interfaces.msg.*`, not all-caps constants. The callback receives an owned message; `Node` copies PointCloud2 `data` and calls `lease.release()` after the callback returns. Applications must not import `rcl-web/internal` `connect` unless they are hosting the poll ABI — that path still requires an explicit release. [How to](../../docs/typescript.md), [API](../../docs/api.md).
 
+## parse_frame must not build default FrameOptions on the sample path
+
+`parse_frame` used to construct `FrameOptions::default()` (a `BTreeSet` of clock ids) on every call, then `unwrap_or`. The engine always passes `Some(&self.frame_options)`, but `Default` still ran, so every ROS_SAMPLE ingest paid that allocation. Build the fallback only in the `None` branch.
+
 ## encodeHostBatch large-frame encoder
 
-Spread-pushing a byte array into a `number[]` (`out.push(...bytes)`) throws a RangeError on large frames — every element becomes a call argument, and hundreds of KB / ~1 MiB (PointCloud2 scale) exceeds the engine's argument/call-stack limit. `encodeHostBatch` in `typescript/src/wasm/abi.ts` is a two-pass preallocated `Uint8Array` encoder (size, then write). Do not reintroduce `push(...bytes)` or per-byte `number[]` builders on the data path. Large WS frames (≥64 KiB) also take the external-ptr poll path so the engine can own the wasm allocation without a second deep copy.
+Spread-pushing a byte array into a `number[]` (`out.push(...bytes)`) throws a RangeError on large frames — every element becomes a call argument, and hundreds of KB / ~1 MiB (PointCloud2 scale) exceeds the engine's argument/call-stack limit. `encodeHostBatch` in `typescript/src/wasm/abi.ts` is a two-pass preallocated `Uint8Array` encoder (size, then write). Do not reintroduce `push(...bytes)` or per-byte `number[]` builders on the data path. Live WS ingest uses the external-ptr poll path for every frame so the engine owns the wasm allocation without a second deep copy; `encodeHostBatch` stays for command-only batches and tests.
 
 ## WebTransport local certs are ≤14 days by browser rule
 
@@ -60,7 +64,7 @@ v0.1 parks SessionResume (capability 1). Reconnect means: close the transport, a
 
 ## Worker telemetry is the last poll snapshot
 
-`WorkerClient.telemetry()` used to return `null` because engine counters lived only inside the Worker. `IoHost` now posts a telemetry message at the end of each poll, before sample/op events, and main caches the latest snapshot. The API stays synchronous. Do not block delivery on a telemetry round-trip, and do not read wasm counters from the main thread.
+`WorkerClient.telemetry()` used to return `null` because engine counters lived only inside the Worker. `IoHost` posts a telemetry message at the end of each poll when `onPollEnd` is set (the Worker always sets it), before sample/op events, and main caches the latest snapshot. Inline hosts skip that read unless `onPollEnd` is set; `telemetry()` still reads wasm on demand. The API stays synchronous. Do not block delivery on a telemetry round-trip, and do not read wasm counters from the main thread.
 
 ## GraphSnapshot follows SessionReady on the gateway
 
@@ -163,7 +167,11 @@ npm trusted publishing matches owner + repo + workflow **filename**. A GitHub `e
 
 ## Do not commit measurement JSON
 
-The owner deleted `docs/evidence/*.json`. Nothing in CI read those files. `just build` used to rewrite `recordedAt` on a wasm-size file, dirtying the tree. Qualification is a human edit of the [support matrix](../../docs/support-matrix.md). Measurement recipes (`just poll-latency`, `just large-message`, `just perf-baseline`) print to stdout. Do not add an evidence-check job.
+The owner deleted `docs/evidence/*.json`. Nothing in CI read those files. `just build` used to rewrite `recordedAt` on a wasm-size file, dirtying the tree. Qualification is a human edit of the [support matrix](../../docs/support-matrix.md). Measurement recipes (`just poll-latency`, `just large-message`, `just perf-baseline`) print to stdout. `just perf-baseline` leads with latency / CPU / RSS. Do not add an evidence-check job.
+
+## process.memoryUsage can return EINTR
+
+Bun on Linux can throw `SystemError: Failed to get memory usage` with errno 4 (`EINTR`), especially right after `Bun.gc(true)`. The perf-baseline harness retries (`scripts/perf-baseline/resources.ts`). Do not treat one failed snapshot as a leak, and do not skip RSS because of it.
 
 ## Do not wrap cargo tests in a Docker mock lane
 

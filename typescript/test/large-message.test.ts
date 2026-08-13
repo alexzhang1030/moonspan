@@ -81,32 +81,36 @@ test("createBufferStrategy factory", () => {
   }
 });
 
-test("large-frame poll uses external path and records one engine copy", async () => {
+test("wsBytes poll uses external path and records one engine copy", async () => {
   const wasm = await loadWasm(loadWasmBytes());
-  const handle = wasm.rclweb_engine_new();
-  expect(handle).toBeGreaterThan(0);
-  try {
-    // Bootstrap start so engine is alive; large garbage WS bytes will fail
-    // bootstrap parse but still count as a retained copy.
-    pollEngine(wasm, handle, [
-      {
-        type: "command",
-        command: { type: "start", transferableArrayBuffer: true },
-      },
-    ]);
-    const large = new Uint8Array(LARGE_FRAME_INLINE_THRESHOLD);
-    large[0] = 0x00;
-    large[1] = 0x01; // look a bit like CDR LE header — still invalid bootstrap
-    const before = readTelemetry(wasm, handle);
-    pollEngine(wasm, handle, [
-      { type: "wsBytes", bufferId: 0, bytes: large },
-    ]);
-    const after = readTelemetry(wasm, handle);
-    expect(after.copiesIntoEngine - before.copiesIntoEngine).toBe(1);
-    expect(after.bytesCopiedIntoEngine - before.bytesCopiedIntoEngine).toBe(
-      large.length,
-    );
-  } finally {
-    wasm.rclweb_engine_free(handle);
+  // 32 KiB is the medium-message validation target; 64 KiB was the
+  // old inline/external split. Both must take the one-copy path.
+  // Each size gets a fresh engine: garbage bootstrap bytes fail the
+  // session, so a second poll on the same handle would not ingest.
+  for (const size of [128, 32 * 1024, LARGE_FRAME_INLINE_THRESHOLD]) {
+    const handle = wasm.rclweb_engine_new();
+    expect(handle).toBeGreaterThan(0);
+    try {
+      pollEngine(wasm, handle, [
+        {
+          type: "command",
+          command: { type: "start", transferableArrayBuffer: true },
+        },
+      ]);
+      const frame = new Uint8Array(size);
+      frame[0] = 0x00;
+      frame[1] = 0x01;
+      const before = readTelemetry(wasm, handle);
+      pollEngine(wasm, handle, [
+        { type: "wsBytes", bufferId: 0, bytes: frame },
+      ]);
+      const after = readTelemetry(wasm, handle);
+      expect(after.copiesIntoEngine - before.copiesIntoEngine).toBe(1);
+      expect(after.bytesCopiedIntoEngine - before.bytesCopiedIntoEngine).toBe(
+        frame.length,
+      );
+    } finally {
+      wasm.rclweb_engine_free(handle);
+    }
   }
 });

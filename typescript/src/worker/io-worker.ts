@@ -158,7 +158,11 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
                 pendingPublish.delete(event.channelId);
                 break;
               }
-              case "sample":
+              case "sample": {
+                host?.fillStringSample(
+                  event,
+                  channelTypes.get(event.channelId),
+                );
                 if (event.stringData != null) {
                   post({
                     type: "sample",
@@ -209,6 +213,7 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
                   }
                 }
                 break;
+              }
               case "serviceReady": {
                 const pending = pendingService.get(event.channelId);
                 post({

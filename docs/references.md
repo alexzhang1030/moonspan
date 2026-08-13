@@ -40,6 +40,16 @@ These sources support rclweb's architecture and ADRs. Project requirements live 
 
 ## Browser and Wasm platform
 
+- [Haas et al., Bringing the Web up to Speed with WebAssembly (PLDI 2017)](https://dl.acm.org/doi/10.1145/3062341.3062363)
+- [Jangda et al., Not So Fast: Analyzing the Performance of WebAssembly vs. Native Code (USENIX ATC 2019)](https://www.usenix.org/conference/atc19/presentation/jangda)
+- [Zero-copy pass ArrayBuffer from JS to WebAssembly (Wasm design #1162)](https://github.com/WebAssembly/design/issues/1162)
+- [Creating WebAssembly Memory from an existing ArrayBuffer is rejected (Wasm spec #831)](https://github.com/WebAssembly/spec/issues/831)
+- [BYOB reads transfer the buffer; wasm Memory is not transferable (WHATWG streams #1109)](https://github.com/whatwg/streams/issues/1109)
+- [BYOB `read` detaches the whole ArrayBuffer (WHATWG streams #1348)](https://github.com/whatwg/streams/issues/1348)
+- [Foxglove `@foxglove/cdr` aligned `typedArray` view](https://github.com/foxglove/cdr/blob/main/src/CdrReader.ts)
+- [ROS 2 zero-copy via loaned messages](https://design.ros2.org/articles/zero_copy.html)
+- [dlmalloc-rs (default `wasm32-unknown-unknown` allocator)](https://github.com/alexcrichton/dlmalloc-rs)
+- [Talc wasm allocator](https://docs.rs/talc/latest/talc/wasm/index.html)
 - [Rust and WebAssembly (wasm-bindgen)](https://rustwasm.github.io/docs/wasm-bindgen/)
 - [Rust wasm32-unknown-unknown platform support](https://doc.rust-lang.org/rustc/platform-support/wasm32-unknown-unknown.html)
 - [WebTransport](https://developer.mozilla.org/en-US/docs/Web/API/WebTransport_API)

@@ -721,6 +721,8 @@ class InlineClient implements RclwebClient {
           this.#host.releaseLease(event.leaseId);
           break;
         }
+        const typeName = this.#channels.get(event.channelId)?.typeName;
+        this.#host.fillStringSample(event, typeName);
         const leaseId = event.leaseId;
         const lease: SampleLease = {
           leaseId,
@@ -733,7 +735,6 @@ class InlineClient implements RclwebClient {
           handler({ data: event.stringData }, lease);
           break;
         }
-        const typeName = this.#channels.get(event.channelId)?.typeName;
         if (typeName && isGeneratedMsgType(typeName)) {
           const generated = this.#host.decodeGenerated(
             typeName,

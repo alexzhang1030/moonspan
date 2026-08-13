@@ -22,6 +22,7 @@ These pages are for people changing this repository, not for calling `Node`.
 |---|---|
 | What ships, what does not | [Product scope](./product-scope.md) |
 | Process boundaries | [Architecture](./architecture.md) |
+| Sample path vs Foxglove / rosbridge | [Performance](./performance.md) |
 | Related projects | [Landscape](./landscape.md), [references](./references.md) |
 | Wire protocol | [R2WP](./protocol/r2wp.md) |
 | Rust core / CDR | [`rclweb` core](./runtime/core.md), [CDR](./runtime/cdr.md), [generated types](./runtime/generated-types.md) |

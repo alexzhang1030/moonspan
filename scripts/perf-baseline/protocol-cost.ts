@@ -42,7 +42,7 @@ export type ProtocolCostResult = {
   note: string;
 };
 
-function encodeR2wp(cdr: Uint8Array): Uint8Array {
+export function encodeR2wp(cdr: Uint8Array): Uint8Array {
   const out = new Uint8Array(R2WP_FRAME_HEADER_BYTES + cdr.length);
   out[0] = 0; // version
   out[1] = 2; // OPCODE_ROS_SAMPLE
@@ -51,7 +51,7 @@ function encodeR2wp(cdr: Uint8Array): Uint8Array {
   return out;
 }
 
-function encodeFoxglove(cdr: Uint8Array, subId = 1): Uint8Array {
+export function encodeFoxglove(cdr: Uint8Array, subId = 1): Uint8Array {
   const out = new Uint8Array(FOXGLOVE_MESSAGE_DATA_HEADER_BYTES + cdr.length);
   out[0] = 0x01; // Message Data
   const view = new DataView(out.buffer, out.byteOffset, out.byteLength);
@@ -61,7 +61,7 @@ function encodeFoxglove(cdr: Uint8Array, subId = 1): Uint8Array {
   return out;
 }
 
-function encodeRosbridgeJson(topic: string, cdr: Uint8Array): string {
+export function encodeRosbridgeJson(topic: string, cdr: Uint8Array): string {
   // rosbridge_suite binary fields commonly travel as base64 inside JSON.
   const b64 = Buffer.from(cdr).toString("base64");
   return JSON.stringify({
@@ -71,13 +71,13 @@ function encodeRosbridgeJson(topic: string, cdr: Uint8Array): string {
   });
 }
 
-function decodeRosbridgeJson(text: string): Uint8Array {
+export function decodeRosbridgeJson(text: string): Uint8Array {
   const obj = JSON.parse(text) as { msg: { data: string } };
   return new Uint8Array(Buffer.from(obj.msg.data, "base64"));
 }
 
 /** Minimal CBOR bstr wrapper: 0x5a + u32 length + bytes (CBOR major type 2). */
-function encodeCborRaw(cdr: Uint8Array): Uint8Array {
+export function encodeCborRaw(cdr: Uint8Array): Uint8Array {
   const out = new Uint8Array(1 + 4 + cdr.length);
   out[0] = 0x5a;
   const view = new DataView(out.buffer, out.byteOffset, out.byteLength);
@@ -86,7 +86,14 @@ function encodeCborRaw(cdr: Uint8Array): Uint8Array {
   return out;
 }
 
-function decodeCborRaw(frame: Uint8Array): Uint8Array {
+export function decodeFoxgloveMessageData(frame: Uint8Array): Uint8Array {
+  if (frame.byteLength < FOXGLOVE_MESSAGE_DATA_HEADER_BYTES) {
+    throw new Error("foxglove MessageData truncated");
+  }
+  return frame.subarray(FOXGLOVE_MESSAGE_DATA_HEADER_BYTES);
+}
+
+export function decodeCborRaw(frame: Uint8Array): Uint8Array {
   if (frame[0] !== 0x5a) throw new Error("expected CBOR bstr u32");
   const view = new DataView(frame.buffer, frame.byteOffset, frame.byteLength);
   const len = view.getUint32(1, false);

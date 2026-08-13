@@ -326,6 +326,12 @@ fn writer_atomicity_and_capacity_and_snapshot() {
     e.push(1);
     e
   });
+
+  let mut w = CdrWriter::new_default(CdrEndian::Little).unwrap();
+  w.write_u8(9).unwrap();
+  let snap = w.to_bytes();
+  let moved = w.into_bytes();
+  assert_eq!(snap, moved);
 }
 
 #[test]

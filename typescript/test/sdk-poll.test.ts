@@ -10,6 +10,7 @@ import {
   pollEngine,
   resolveIoWorkerUrl,
 } from "../src/internal.ts";
+import { decodeStdMsgsStringAt } from "../src/wasm/abi.ts";
 import { scriptedPeerFixtures } from "./scripted-peer.ts";
 
 const wasmPath = path.join(import.meta.dir, "..", "wasm", "rclweb.wasm");
@@ -138,12 +139,27 @@ test("wasm artifact loads and exports the poll ABI", async () => {
   expect(result.outbound.length).toBe(1);
   expect(result.outbound[0]!.bytes.length).toBeGreaterThan(12);
   expect(typeof wasm.rclweb_decode_generated).toBe("function");
+  expect(typeof wasm.rclweb_poll_ws).toBe("function");
   // Result codec round-trip
   const reencoded = encodeHostBatch([]);
   expect(reencoded[0]).toBeDefined();
   void batch;
   void decodePollResult;
   wasm.rclweb_engine_free(handle);
+});
+
+test("decodeStdMsgsStringAt reads a filled (possibly uninit) wasm alloc", async () => {
+  const bytes = readFileSync(wasmPath);
+  const wasm = await loadWasm(bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength,
+  ));
+  const cdr = scriptedPeerFixtures().sample.subarray(32);
+  const ptr = wasm.rclweb_alloc(cdr.length);
+  expect(ptr).toBeGreaterThan(0);
+  new Uint8Array(wasm.memory.buffer, ptr, cdr.length).set(cdr);
+  expect(decodeStdMsgsStringAt(wasm, ptr, cdr.length)).toBe("hello-from-fixture");
+  wasm.rclweb_free(ptr, cdr.length);
 });
 
 test("scripted peer: connect → subscribe → String sample + lease release", async () => {

@@ -1,16 +1,23 @@
 /**
- * Live bridge latency probe (docker compose lane).
+ * Live bridge latency / CPU / memory probe (docker compose lane).
  * Compares loopback subscribe latency for stamped std_msgs/String on:
  * - rclwebd (R2WP / rclweb)
  * - foxglove_bridge (Foxglove WS protocol)
  * - rosbridge_suite (rosbridge JSON)
  *
- * Large PointCloud2 live e2e remains protocol-cost + rclweb-host for now;
- * this lane owns clocked e2e p50/p99 on the small-message path.
+ * Large PointCloud2 live e2e remains the host ingest probe
+ * (`just perf-baseline`) for now; this lane owns clocked e2e p50/p99 plus
+ * client-process CPU and RSS on the small-message path.
  */
 
 import path from "node:path";
 import { init, Node, shutdown, std_msgs } from "rcl-web";
+import {
+  cpuDeltaUs,
+  cpuStart,
+  snapshotMemory,
+  tryGc,
+} from "./resources.ts";
 import { summarize } from "./stats.ts";
 
 const topic = process.env.RCLWEB_PERF_TOPIC ?? "/bench/stamp";
@@ -26,6 +33,10 @@ type PathResult = {
   status: "measured" | "failed";
   latencyMs?: ReturnType<typeof summarize>;
   samples?: number;
+  cpuUsPerSample?: number;
+  rssBytes?: number;
+  heapUsedBytes?: number;
+  rssDeltaBytes?: number;
   error?: string;
 };
 
@@ -42,6 +53,9 @@ async function measureRclweb(): Promise<PathResult> {
     await init(rclwebUrl, { inline: true, wasmUrl });
     const node = new Node("perf_measure");
     const samples: number[] = [];
+    tryGc();
+    const mem0 = snapshotMemory();
+    const cpu0 = cpuStart();
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(
         () => reject(new Error("rclweb timeout")),
@@ -58,12 +72,18 @@ async function measureRclweb(): Promise<PathResult> {
         }
       });
     });
+    const cpuUs = cpuDeltaUs(cpu0);
+    const mem1 = snapshotMemory();
     await shutdown();
     return {
       system: "rclwebd",
       status: "measured",
       latencyMs: summarize(samples),
       samples: samples.length,
+      cpuUsPerSample: Number((cpuUs / Math.max(1, samples.length)).toFixed(1)),
+      rssBytes: mem1.rssBytes,
+      heapUsedBytes: mem1.heapUsedBytes,
+      rssDeltaBytes: mem1.rssBytes - mem0.rssBytes,
     };
   } catch (err) {
     return {
@@ -96,6 +116,9 @@ async function measureRosbridge(): Promise<PathResult> {
         type: "std_msgs/msg/String",
       }),
     );
+    tryGc();
+    const mem0 = snapshotMemory();
+    const cpu0 = cpuStart();
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(
         () => reject(new Error("rosbridge timeout")),
@@ -121,11 +144,17 @@ async function measureRosbridge(): Promise<PathResult> {
       });
     });
     ws.close();
+    const cpuUs = cpuDeltaUs(cpu0);
+    const mem1 = snapshotMemory();
     return {
       system: "rosbridge_suite",
       status: "measured",
       latencyMs: summarize(samples),
       samples: samples.length,
+      cpuUsPerSample: Number((cpuUs / Math.max(1, samples.length)).toFixed(1)),
+      rssBytes: mem1.rssBytes,
+      heapUsedBytes: mem1.heapUsedBytes,
+      rssDeltaBytes: mem1.rssBytes - mem0.rssBytes,
     };
   } catch (err) {
     return {
@@ -153,6 +182,9 @@ async function measureFoxglove(): Promise<PathResult> {
       });
     });
 
+    tryGc();
+    const mem0 = snapshotMemory();
+    const cpu0 = cpuStart();
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(
         () => reject(new Error("foxglove timeout")),
@@ -216,11 +248,17 @@ async function measureFoxglove(): Promise<PathResult> {
       });
     });
     ws.close();
+    const cpuUs = cpuDeltaUs(cpu0);
+    const mem1 = snapshotMemory();
     return {
       system: "foxglove_bridge",
       status: "measured",
       latencyMs: summarize(samples),
       samples: samples.length,
+      cpuUsPerSample: Number((cpuUs / Math.max(1, samples.length)).toFixed(1)),
+      rssBytes: mem1.rssBytes,
+      heapUsedBytes: mem1.heapUsedBytes,
+      rssDeltaBytes: mem1.rssBytes - mem0.rssBytes,
     };
   } catch (err) {
     return {

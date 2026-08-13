@@ -22,5 +22,8 @@ bytes.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+talc.workspace = true
+
 [dev-dependencies]
 serde_json.workspace = true

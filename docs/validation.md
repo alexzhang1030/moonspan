@@ -22,7 +22,7 @@ ROS talker
   -> typed event in a demo page or harness
 ```
 
-`just e2e` / `just e2e-h-ft` / `just e2e-row` are the live gates. `just poll-latency`, `just large-message`, and `just perf-baseline` print measurements to stdout. Do not commit that output.
+`just e2e` / `just e2e-h-ft` / `just e2e-row` are the live gates. `just perf-baseline` prints latency / CPU / RSS to stdout. Do not commit that output. Details: [performance](./performance.md).
 
 ## Engineering targets
 
