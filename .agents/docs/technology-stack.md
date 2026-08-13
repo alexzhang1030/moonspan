@@ -82,6 +82,15 @@ For machines where apt ROS or Docker is too heavy, `pixi.toml` installs a RoboSt
 
 RoboStack Jazzy is a conda-forge rebuild, not Ubuntu's `/opt/ros/jazzy`. A green `ros-test-pixi` does not substitute for the Ubuntu Jazzy e2e lane. Landed in [`25fb42f`](https://github.com/alexzhang1030/rclweb/commit/25fb42f) (#20); reproduce with `just ros-test-pixi`.
 
+## Licensing
+
+The repository is Apache-2.0 ([D-06](../../tasks/plan.md#kickoff-decision-register)).
+Third-party crates and npm packages on the published surface must be
+OSI-permissive. The allowlist and inventory live in
+[licensing](../../docs/licensing.md) and
+[third-party](../../docs/third-party.md); `just license-inventory-check`
+is part of `just check`.
+
 ## Decision lifecycle
 
 - Mainline architecture decisions gain authority through ADR review and validation gates.

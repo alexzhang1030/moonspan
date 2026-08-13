@@ -19,6 +19,7 @@ R0–R3 are complete. R4 (identity, deployment, support-matrix qualification, SD
 | Supported ROS profiles | [Support matrix](./support-matrix.md) |
 | Evidence and release gates | [Validation](./validation.md), [support matrix](./support-matrix.md) |
 | Browser SDK | [SDK](./sdk.md) |
+| License and third-party policy | [Licensing](./licensing.md), [third-party inventory](./third-party.md) |
 | Architecture decisions | [ADR register](./adr/README.md) |
 | R1-01 Rust CDR | [Completion note](./milestones/r1-01-cdr-rust-port.md) |
 | R1-02 session/channel state machine | [Completion note](./milestones/r1-02-session-channel-state.md) |
@@ -44,7 +45,7 @@ R0–R3 are complete. R4 (identity, deployment, support-matrix qualification, SD
 
 | Area | Read first |
 |---|---|
-| Root tooling | [Technology stack](../.agents/docs/technology-stack.md), [repository README](../README.md), [CONTRIBUTING.md](../CONTRIBUTING.md) |
+| Root tooling | [Technology stack](../.agents/docs/technology-stack.md), [repository README](../README.md), [CONTRIBUTING.md](../CONTRIBUTING.md), [licensing](./licensing.md) |
 | `protocol/**` | [R2WP](./protocol/r2wp.md), [normative contract](../protocol/r2wp-v0.md), [fixtures](../protocol/testdata/README.md) |
 | `rclweb/**` | [`rclweb` core](./runtime/core.md), [CDR contract](./runtime/cdr.md), [architecture](./architecture.md) |
 | `rclwebd/**` | [`rclwebd`](./gateway/rclwebd.md), [security](./security.md), [deploy](./deploy.md) |

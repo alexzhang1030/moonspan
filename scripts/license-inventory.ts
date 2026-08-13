@@ -1,0 +1,465 @@
+#!/usr/bin/env bun
+/**
+ * Third-party license inventory and OSI-permissive policy check (D-06).
+ *
+ * --write  regenerates docs/third-party.md from Cargo.lock and Bun manifests
+ * --check  verifies the committed inventory matches regeneration and that
+ *          every third-party license on the workspace graph is allowed
+ */
+import { spawnSync } from "node:child_process";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
+
+export const INVENTORY_REL = "docs/third-party.md";
+
+/** SPDX identifiers allowed on the published surface and the workspace graph. */
+export const ALLOWED_LICENSE_IDS = [
+  "0BSD",
+  "Apache-2.0",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "CC0-1.0",
+  "ISC",
+  "MIT",
+  "MIT-0",
+  "NCSA",
+  "OpenSSL",
+  "Unicode-3.0",
+  "Unicode-DFS-2016",
+  "Unlicense",
+  "Zlib",
+] as const;
+
+const ALLOWED = new Set<string>(ALLOWED_LICENSE_IDS);
+
+export type InventoryRow = {
+  name: string;
+  version: string;
+  license: string;
+};
+
+export type InventoryModel = {
+  published: InventoryRow[];
+  development: InventoryRow[];
+  bunExternal: InventoryRow[];
+  bunWorkspace: string[];
+};
+
+type CargoPackage = {
+  name: string;
+  version: string;
+  id: string;
+  license: string | null;
+  license_file: string | null;
+  source: string | null;
+};
+
+type CargoDepKind = {
+  kind: string | null;
+  target?: string | null;
+};
+
+type CargoResolveNode = {
+  id: string;
+  deps: { name: string; pkg: string; dep_kinds?: CargoDepKind[] }[];
+};
+
+type CargoMetadata = {
+  packages: CargoPackage[];
+  workspace_members: string[];
+  resolve: { nodes: CargoResolveNode[] } | null;
+};
+
+type BunManifest = {
+  name?: string;
+  dependencies?: Record<string, string>;
+  optionalDependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
+  workspaces?: string[] | { packages?: string[] };
+};
+
+export function splitTopLevel(expr: string, keyword: "OR" | "AND"): string[] {
+  const parts: string[] = [];
+  const token = keyword === "OR" ? /^\s+OR\s+/i : /^\s+AND\s+/i;
+  let depth = 0;
+  let start = 0;
+  let i = 0;
+  while (i < expr.length) {
+    const ch = expr[i];
+    if (ch === "(") {
+      depth += 1;
+      i += 1;
+      continue;
+    }
+    if (ch === ")") {
+      depth -= 1;
+      i += 1;
+      continue;
+    }
+    if (depth === 0) {
+      const m = expr.slice(i).match(token);
+      if (m) {
+        parts.push(expr.slice(start, i).trim());
+        i += m[0].length;
+        start = i;
+        continue;
+      }
+    }
+    i += 1;
+  }
+  parts.push(expr.slice(start).trim());
+  return parts.filter(Boolean);
+}
+
+function unwrapParens(expr: string): string {
+  let text = expr.trim();
+  while (text.startsWith("(") && text.endsWith(")")) {
+    let depth = 0;
+    let wraps = true;
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] === "(") depth += 1;
+      else if (text[i] === ")") depth -= 1;
+      if (depth === 0 && i < text.length - 1) {
+        wraps = false;
+        break;
+      }
+    }
+    if (!wraps) break;
+    text = text.slice(1, -1).trim();
+  }
+  return text;
+}
+
+/** Normalize legacy `MIT/Apache-2.0` cargo forms to SPDX OR. */
+export function normalizeLicenseExpression(expr: string): string {
+  return expr.trim().replace(/\s*\/\s*/g, " OR ");
+}
+
+export function licenseExpressionAllowed(expr: string | null | undefined): boolean {
+  if (expr == null) return false;
+  const normalized = normalizeLicenseExpression(expr);
+  if (!normalized) return false;
+  return licenseExprAllowedInner(normalized);
+}
+
+function licenseExprAllowedInner(expr: string): boolean {
+  const text = unwrapParens(expr);
+  if (!text) return false;
+  const orParts = splitTopLevel(text, "OR");
+  if (orParts.length > 1) return orParts.some(licenseExprAllowedInner);
+  const andParts = splitTopLevel(text, "AND");
+  if (andParts.length > 1) return andParts.every(licenseExprAllowedInner);
+  const withParts = text.split(/\s+WITH\s+/i);
+  const base = withParts[0]?.trim() ?? "";
+  return ALLOWED.has(base);
+}
+
+export function licenseDiagnostics(rows: InventoryRow[]): string[] {
+  const out: string[] = [];
+  for (const row of rows) {
+    if (!licenseExpressionAllowed(row.license)) {
+      out.push(`${row.name}@${row.version}: disallowed or missing license ${JSON.stringify(row.license)}`);
+    }
+  }
+  return out;
+}
+
+function compareRows(a: InventoryRow, b: InventoryRow): number {
+  return a.name.localeCompare(b.name) || a.version.localeCompare(b.version);
+}
+
+export function renderInventoryMarkdown(model: InventoryModel): string {
+  const published = [...model.published].sort(compareRows);
+  const development = [...model.development].sort(compareRows);
+  const bunExternal = [...model.bunExternal].sort(compareRows);
+  const bunWorkspace = [...model.bunWorkspace].sort((a, b) => a.localeCompare(b));
+
+  const lines: string[] = [
+    "<!-- Generated by `just license-inventory`. Do not edit by hand. -->",
+    "",
+    "# Third-party dependency inventory",
+    "",
+    "Generated from [`Cargo.lock`](../Cargo.lock) and the Bun workspace manifests by",
+    "[`scripts/license-inventory.ts`](../scripts/license-inventory.ts).",
+    "Policy: [licensing](./licensing.md). First-party notice: [NOTICE](../NOTICE).",
+    "",
+    "Reproduce:",
+    "",
+    "```bash",
+    "just license-inventory",
+    "```",
+    "",
+    "First-party Cargo workspace members are Apache-2.0 and are omitted from the",
+    "Rust tables. Optional local tooling (pixi / RoboStack) and container / ROS",
+    "distro packages are outside this inventory; see [licensing](./licensing.md).",
+    "",
+    "## Published surface",
+    "",
+    "Rust crates reachable from `rclweb` and `rclwebd` with `--all-features`",
+    "(normal and build dependencies). That graph covers the wasm artifact and",
+    "the gateway binary, including optional `ros` and `webtransport`.",
+    "",
+  ];
+
+  if (published.length === 0) {
+    lines.push("No third-party Rust crates on the published surface.", "");
+  } else {
+    lines.push("| Crate | Version | License |", "|---|---|---|");
+    for (const row of published) {
+      lines.push(`| ${row.name} | ${row.version} | ${row.license} |`);
+    }
+    lines.push("");
+  }
+
+  lines.push(
+    "## Workspace development graph",
+    "",
+    "Crates reached only as `dev-dependency` of workspace members. They are not",
+    "shipped, but they still follow the same OSI-permissive allowlist.",
+    "",
+  );
+
+  if (development.length === 0) {
+    lines.push("No development-only third-party Rust crates.", "");
+  } else {
+    lines.push("| Crate | Version | License |", "|---|---|---|");
+    for (const row of development) {
+      lines.push(`| ${row.name} | ${row.version} | ${row.license} |`);
+    }
+    lines.push("");
+  }
+
+  lines.push("## Bun workspace", "");
+  lines.push(`Workspace packages: ${bunWorkspace.map((n) => `\`${n}\``).join(", ") || "(none)"}.`, "");
+
+  if (bunExternal.length === 0) {
+    lines.push("No external npm dependencies are declared in the Bun workspace.", "");
+  } else {
+    lines.push("| Package | Version | License |", "|---|---|---|");
+    for (const row of bunExternal) {
+      lines.push(`| ${row.name} | ${row.version} | ${row.license} |`);
+    }
+    lines.push("");
+  }
+
+  return `${lines.join("\n")}\n`;
+}
+
+function cargoMetadata(root: string): CargoMetadata {
+  const run = spawnSync("cargo", ["metadata", "--format-version", "1", "--locked", "--all-features"], {
+    cwd: root,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  if (run.status !== 0) {
+    throw new Error(`cargo metadata failed: ${run.stderr || run.stdout || `status=${run.status}`}`);
+  }
+  return JSON.parse(run.stdout) as CargoMetadata;
+}
+
+function walkResolve(
+  nodes: Map<string, CargoResolveNode>,
+  startIds: string[],
+  includeDev: boolean,
+): Set<string> {
+  const seen = new Set<string>();
+  const queue = [...startIds];
+  while (queue.length) {
+    const id = queue.pop()!;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    const node = nodes.get(id);
+    if (!node) continue;
+    for (const dep of node.deps) {
+      const kinds = dep.dep_kinds ?? [{ kind: null }];
+      const take = kinds.some((k) => (k.kind === "dev" ? includeDev : true));
+      if (take) queue.push(dep.pkg);
+    }
+  }
+  return seen;
+}
+
+function rowFromPackage(pkg: CargoPackage): InventoryRow {
+  return {
+    name: pkg.name,
+    version: pkg.version,
+    license: pkg.license?.trim() || (pkg.license_file ? `license-file:${pkg.license_file}` : ""),
+  };
+}
+
+export function modelFromCargoMetadata(meta: CargoMetadata): {
+  published: InventoryRow[];
+  development: InventoryRow[];
+} {
+  if (!meta.resolve) throw new Error("cargo metadata missing resolve graph");
+  const byId = new Map(meta.packages.map((p) => [p.id, p]));
+  const members = new Set(meta.workspace_members);
+  const nodes = new Map(meta.resolve.nodes.map((n) => [n.id, n]));
+  const memberPkgs = meta.packages.filter((p) => members.has(p.id));
+  const publishedRoots = memberPkgs.filter((p) => p.name === "rclweb" || p.name === "rclwebd").map((p) => p.id);
+  if (publishedRoots.length !== 2) {
+    throw new Error(`expected rclweb and rclwebd workspace members, found ${publishedRoots.join(", ")}`);
+  }
+  const publishedIds = walkResolve(nodes, publishedRoots, false);
+  const allIds = walkResolve(
+    nodes,
+    memberPkgs.map((p) => p.id),
+    true,
+  );
+
+  const published: InventoryRow[] = [];
+  const development: InventoryRow[] = [];
+  for (const id of allIds) {
+    const pkg = byId.get(id);
+    if (!pkg || members.has(id)) continue;
+    const row = rowFromPackage(pkg);
+    if (publishedIds.has(id)) published.push(row);
+    else development.push(row);
+  }
+  return { published, development };
+}
+
+function readJson(abs: string): BunManifest {
+  return JSON.parse(readFileSync(abs, "utf8")) as BunManifest;
+}
+
+function workspaceGlobs(manifest: BunManifest): string[] {
+  if (Array.isArray(manifest.workspaces)) return manifest.workspaces;
+  return manifest.workspaces?.packages ?? [];
+}
+
+function expandWorkspaceGlob(root: string, glob: string): string[] {
+  if (glob.endsWith("/*")) {
+    const parent = glob.slice(0, -2);
+    const dir = path.join(root, parent);
+    try {
+      return readdirSync(dir, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .filter((entry) => {
+          try {
+            readFileSync(path.join(dir, entry.name, "package.json"));
+            return true;
+          } catch {
+            return false;
+          }
+        })
+        .map((entry) => path.join(parent, entry.name));
+    } catch {
+      return [];
+    }
+  }
+  return [glob];
+}
+
+function declaredDeps(manifest: BunManifest): { name: string; spec: string }[] {
+  const out: { name: string; spec: string }[] = [];
+  for (const field of ["dependencies", "optionalDependencies", "devDependencies", "peerDependencies"] as const) {
+    const deps = manifest[field];
+    if (!deps) continue;
+    for (const [name, spec] of Object.entries(deps)) out.push({ name, spec });
+  }
+  return out;
+}
+
+export function modelFromBunWorkspace(root: string): { bunExternal: InventoryRow[]; bunWorkspace: string[] } {
+  const rootManifest = readJson(path.join(root, "package.json"));
+  const rels = new Set<string>();
+  for (const glob of workspaceGlobs(rootManifest)) {
+    for (const rel of expandWorkspaceGlob(root, glob)) rels.add(rel);
+  }
+  const manifests: { rel: string; manifest: BunManifest }[] = [
+    { rel: ".", manifest: rootManifest },
+    ...[...rels].map((rel) => ({ rel, manifest: readJson(path.join(root, rel, "package.json")) })),
+  ];
+  const bunWorkspace = manifests.map((m) => m.manifest.name || m.rel).filter(Boolean);
+  const bunExternal: InventoryRow[] = [];
+  const seen = new Set<string>();
+  for (const { manifest } of manifests) {
+    for (const dep of declaredDeps(manifest)) {
+      if (dep.spec.startsWith("workspace:")) continue;
+      const key = `${dep.name}@${dep.spec}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const installed = path.join(root, "node_modules", dep.name, "package.json");
+      let license = "";
+      let version = dep.spec;
+      try {
+        const pkg = readJson(installed);
+        license = typeof (pkg as { license?: unknown }).license === "string" ? (pkg as { license: string }).license : "";
+        if (typeof (pkg as { version?: unknown }).version === "string") {
+          version = (pkg as { version: string }).version;
+        }
+      } catch {
+        license = "";
+      }
+      bunExternal.push({ name: dep.name, version, license });
+    }
+  }
+  return { bunExternal, bunWorkspace };
+}
+
+export function collectInventory(root: string): InventoryModel {
+  const cargo = modelFromCargoMetadata(cargoMetadata(root));
+  const bun = modelFromBunWorkspace(root);
+  return {
+    published: cargo.published,
+    development: cargo.development,
+    bunExternal: bun.bunExternal,
+    bunWorkspace: bun.bunWorkspace,
+  };
+}
+
+export function inventoryDiagnostics(model: InventoryModel): string[] {
+  return [
+    ...licenseDiagnostics(model.published),
+    ...licenseDiagnostics(model.development),
+    ...licenseDiagnostics(model.bunExternal),
+  ];
+}
+
+function parseArgs(argv: string[]): "write" | "check" {
+  if (argv.includes("--write")) return "write";
+  if (argv.includes("--check")) return "check";
+  throw new Error("usage: bun run scripts/license-inventory.ts --write|--check");
+}
+
+function main(): void {
+  const mode = parseArgs(process.argv.slice(2));
+  const root = path.resolve(import.meta.dir, "..");
+  const model = collectInventory(root);
+  const policy = inventoryDiagnostics(model);
+  if (policy.length) {
+    for (const line of policy) console.error(line);
+    console.error("license-inventory: disallowed third-party license (see docs/licensing.md)");
+    process.exit(1);
+  }
+  const rendered = renderInventoryMarkdown(model);
+  const dest = path.join(root, INVENTORY_REL);
+  if (mode === "write") {
+    writeFileSync(dest, rendered, "utf8");
+    console.log(
+      `license-inventory: wrote ${INVENTORY_REL} published=${model.published.length} development=${model.development.length} bun_external=${model.bunExternal.length}`,
+    );
+    return;
+  }
+  let committed = "";
+  try {
+    committed = readFileSync(dest, "utf8");
+  } catch {
+    console.error(`${INVENTORY_REL}: missing; run just license-inventory`);
+    process.exit(1);
+  }
+  if (committed !== rendered) {
+    console.error(`${INVENTORY_REL}: stale; run just license-inventory`);
+    process.exit(1);
+  }
+  console.log(
+    `license-inventory: status=ok published=${model.published.length} development=${model.development.length} bun_external=${model.bunExternal.length}`,
+  );
+}
+
+if (import.meta.main) {
+  main();
+}

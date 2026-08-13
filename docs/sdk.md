@@ -7,7 +7,7 @@ message types. The SDK does not parse R2WP: the I/O Worker owns transport
 bytes and the wasm core owns protocol, CDR, and ROS state
 ([architecture](./architecture.md), [ADR 0004](./adr/0004-browser-wasm-host-boundary.md)).
 
-The package lives at [`sdk/typescript/`](../sdk/typescript/) and is consumed from this repository's Bun workspace. It stays `"private": true` and `"version": "0.0.0"` until a human release review. This slice does not publish to npm and does not pick [D-06](../tasks/plan.md#kickoff-decision-register) licensing.
+The package lives at [`sdk/typescript/`](../sdk/typescript/) and is consumed from this repository's Bun workspace. It stays `"private": true` and `"version": "0.0.0"` until a human release review. This slice does not publish to npm. The package is Apache-2.0 ([licensing](./licensing.md)).
 
 ## Install (workspace)
 
@@ -162,7 +162,7 @@ See [examples/README.md](../examples/README.md).
 
 ## Version and release
 
-Independent SDK versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). R2WP wire version is a separate identity ([ADR 0005](./adr/0005-r2wp-wire-versioning.md)). This package does not bump to `1.0.0`, set `"private": false`, or publish. Remaining R4-04 work: npm publish after D-06, and a human release review.
+Independent SDK versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). R2WP wire version is a separate identity ([ADR 0005](./adr/0005-r2wp-wire-versioning.md)). This package does not bump to `1.0.0`, set `"private": false`, or publish. Remaining R4-04 work: npm publish after a human release review. An npm tarball must include the repository `LICENSE` and `NOTICE`.
 
 ## Related
 

@@ -6,6 +6,7 @@ members = ["rclweb", "rclwebd", "scripts/fixture-gen", "scripts/protocol-fixture
 version = "0.0.0"
 edition = "2024"
 rust-version = "1.97.1"
+license = "Apache-2.0"
 
 [workspace.dependencies]
 axum = { version = "0.8.9", features = ["ws"] }

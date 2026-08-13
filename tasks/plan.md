@@ -78,7 +78,7 @@ Gate: N2 subset demonstrated; conformance green on two rows and two transports.
 | R4-01 | Active | OIDC identity, SROS2/ACL, audit — Authenticate off-by-default / opt-in `oidc` + audit JSON; channel ACLs off-by-default / opt-in `enforce` (default-deny, wire code 12); tenant/keystore and matrix content remain D-04 / human input |
 | R4-02 | Active | Deployment packaging and observability — `/livez` `/readyz` `/configz` `/metrics` `POST /drain`, runtime images for all six rows (CY/ZN via build args, zenoh router companion); PKI/orchestrators/remote export remain follow-ups |
 | R4-03 | Active | Support matrix against live gates — no committed measurement JSON; live lanes cover all six rows (J-CY/J-ZN/H-CY/H-ZN via `e2e-ros-talker-jazzy-rmw` / `e2e-ros-talker-humble-rmw`); human Qualified promotion remains a follow-up |
-| R4-04 | Active | SDK stabilization, docs, examples, and release — rclcpp-shaped `init`/`Node`, Worker URL, subscribe-chatter on `dist/`, Worker session ops, PointCloud2 and Phase 1 corpus msg/srv/action types, reconnect reopens service/action, Worker telemetry, public Node graph; npm publish / `1.0.0` / D-06 remain follow-ups |
+| R4-04 | Active | SDK stabilization, docs, examples, and release — rclcpp-shaped `init`/`Node`, Worker URL, subscribe-chatter on `dist/`, Worker session ops, PointCloud2 and Phase 1 corpus msg/srv/action types, reconnect reopens service/action, Worker telemetry, public Node graph; D-06 is Apache-2.0; npm publish / `1.0.0` remain follow-ups |
 
 Gate: release review. U0 (Studio) follows the release as before.
 
@@ -95,4 +95,4 @@ Every task provides acceptance evidence, focused tests, explicit budgets where r
 | D-03 | Bun version and workspace convention | Project pins, workspace manifests, lockfile, and root checks | Resolved 2026-08-11 with Bun 1.3.14 |
 | D-04 | OIDC provider and SROS2 reference environment | Identity tenant and SROS2 environment record | Open (R4 entry). Gateway consumes issuer/audience/JWKS from env; it does not pick a vendor. |
 | D-05 | Benchmark artifact retention and publication | Storage, retention, access, and integrity policy | Open (R2 entry) |
-| D-06 | Repository license and third-party licensing policy | License, notice, dependency inventory, and compliance policy | Human ruling pending |
+| D-06 | Repository license and third-party licensing policy | License, notice, dependency inventory, and compliance policy | Resolved 2026-08-13: Apache License 2.0; OSI-permissive third-party policy ([licensing](../docs/licensing.md)) |

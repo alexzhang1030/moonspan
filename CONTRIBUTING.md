@@ -9,11 +9,11 @@ just test
 just build
 ```
 
-`just check` is the foundation gate (docs, protocol, corpus, `cargo fmt`, Clippy with `-D warnings`, SDK typecheck). Do not treat a rust-only loop as a substitute.
+`just check` is the foundation gate (docs, protocol, corpus, license inventory, `cargo fmt`, Clippy with `-D warnings`, SDK typecheck). Do not treat a rust-only loop as a substitute.
 
 ## Rust workspace
 
-The compiler pin is `rust-toolchain.toml` (**1.97.1** plus `wasm32-unknown-unknown`). Workspace crates inherit `edition` and `rust-version` from the root `Cargo.toml`.
+The compiler pin is `rust-toolchain.toml` (**1.97.1** plus `wasm32-unknown-unknown`). Workspace crates inherit `edition`, `rust-version`, and `license` from the root `Cargo.toml`.
 
 | File | Role |
 |---|---|
@@ -37,3 +37,13 @@ just fix-rust
 ## Records
 
 Read the [PCR map](.agents/docs/README.md) before changing an enrolled area. Update the authoritative document with the code. Durable decisions live under [`docs/adr/`](docs/adr/README.md). The browser SDK application contract is [`docs/sdk.md`](docs/sdk.md).
+
+## License
+
+The repository is Apache License 2.0 ([LICENSE](./LICENSE), [NOTICE](./NOTICE),
+[licensing](./docs/licensing.md)). Contributions submitted for inclusion are
+under that license unless you state otherwise in writing.
+
+Third-party crates and npm packages on the published surface must stay
+OSI-permissive. After changing Cargo or Bun dependencies, run
+`just license-inventory` and keep `just license-inventory-check` green.

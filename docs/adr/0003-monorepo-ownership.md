@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted
+Accepted. Repository licensing is Apache-2.0 as of D-06 (2026-08-13); see
+[licensing](../licensing.md).
 
 ## Date
 
@@ -41,7 +42,7 @@ Use one monorepo for Rust, MoonBit, TypeScript, R2WP contracts and fixtures, con
 - M0-02 records exact pin files (`.bun-version`, `.moon-version`, `.just-version`, `rust-toolchain.toml`), lockfiles (`Cargo.lock`, `bun.lock`), and root recipes in the `justfile`.
 - Shared-contract changes update fixtures and require review from every consuming owner.
 - Generated artifacts publish through versioned manifests with explicit consumer imports; build outputs stay ignored (`target/`, `_build/`, `dist/`, `node_modules/`, `.mooncakes/`).
-- Dependency resolution follows each ecosystem's workspace-level lock and pin conventions; the current tree carries zero external package dependencies and omits repository `LICENSE`/`NOTICE` until D-06 resolves.
+- Dependency resolution follows each ecosystem's workspace-level lock and pin conventions. Repository licensing is Apache-2.0 ([D-06](../../tasks/plan.md#kickoff-decision-register)); third-party crates on the published surface must be OSI-permissive ([licensing](../licensing.md)).
 - Conformance, deployment, and documentation live in-tree with the mainline delivery sequence.
 
 ## Revisit triggers

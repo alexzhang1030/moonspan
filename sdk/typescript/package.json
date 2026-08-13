@@ -2,6 +2,7 @@
   "name": "@rclweb/sdk",
   "version": "0.0.0",
   "private": true,
+  "license": "Apache-2.0",
   "description": "Browser TypeScript SDK for rclweb (R2WP client around the rclweb wasm core)",
   "type": "module",
   "exports": {
