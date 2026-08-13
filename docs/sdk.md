@@ -14,7 +14,7 @@ The package lives at [`sdk/typescript/`](../sdk/typescript/) and is consumed fro
 Root `package.json` already lists `sdk/*` as a workspace. Examples depend on `"@rclweb/sdk": "workspace:*"`. After `just setup`:
 
 ```ts
-import { init, Node, std_msgs, sensor_msgs } from "@rclweb/sdk";
+import { init, Node, std_msgs, sensor_msgs, rclweb_cdr_interfaces } from "@rclweb/sdk";
 ```
 
 `just build` stages `sdk/typescript/wasm/rclweb.wasm` and emits `sdk/typescript/dist/` (gitignored). The workspace export map points at TypeScript source so Bun tests and scripts do not need `dist/`. Browser pages should load the built `dist/index.js` (see [subscribe-chatter](../examples/subscribe-chatter/README.md)).
@@ -69,13 +69,23 @@ cloudPub.publish(cloud);
 node.createSubscription(sensor_msgs.msg.PointCloud2, "points", 10, (msg) => {
   console.log(msg.width, msg.point_step, msg.data.byteLength);
 });
+
+const scalarsPub = node.createPublisher(rclweb_cdr_interfaces.msg.PrimitiveScalars, "scalars", 10);
+const scalars = new rclweb_cdr_interfaces.msg.PrimitiveScalars();
+scalars.string_value = "hello-scalars";
+scalars.int64_value = -70000n;
+scalarsPub.publish(scalars);
+
+node.createSubscription(rclweb_cdr_interfaces.msg.PrimitiveScalars, "scalars", 10, (msg) => {
+  console.log(msg.string_value, msg.int64_value);
+});
 ```
 
 TypeScript cannot write `create_publisher<std_msgs::msg::String>(topic, qos)`, so the message type is the first argument (`std_msgs.msg.String`, not an all-caps constant). `10` is KeepLast(10) + reliable, same as rclcpp. `new QoS(10).bestEffort()` and `KeepLast(10)` are the object form.
 
 Message field names follow the ROS IDL (`data`, `point_step`, `is_bigendian`, `frame_id`). Callbacks receive an owned message; there is no lease to release. `createWallTimer(periodMs, callback)` matches `create_wall_timer`. Relative names (`"chatter"`) resolve under the node namespace like rclcpp.
 
-Typed samples are `std_msgs/msg/String` and `sensor_msgs/msg/PointCloud2`. Other inbound types are dropped. PointCloud2 encode lives in the wasm core and round-trips header stamp/`frame_id` and the PointField list.
+Typed samples are `std_msgs/msg/String`, `sensor_msgs/msg/PointCloud2`, and the Phase 1 message roots `rclweb_cdr_interfaces/msg/PrimitiveScalars`, `Collections`, and `NestedSample`. Other inbound types are dropped. PointCloud2 encode lives in the wasm core and round-trips header stamp/`frame_id` and the PointField list. Generated messages use a packed host layout; wasm converts to and from CDR. `int64` / `uint64` are `bigint`.
 
 ## Services
 
@@ -111,7 +121,7 @@ See [examples/README.md](../examples/README.md).
 
 ## Version and release
 
-Independent SDK versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). R2WP wire version is a separate identity ([ADR 0005](./adr/0005-r2wp-wire-versioning.md)). This package does not bump to `1.0.0`, set `"private": false`, or publish. Remaining R4-04 work: npm publish after D-06, typed samples beyond String and PointCloud2, and a human release review.
+Independent SDK versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). R2WP wire version is a separate identity ([ADR 0005](./adr/0005-r2wp-wire-versioning.md)). This package does not bump to `1.0.0`, set `"private": false`, or publish. Remaining R4-04 work: npm publish after D-06, generated TypeScript service/action request types, and a human release review.
 
 ## Related
 

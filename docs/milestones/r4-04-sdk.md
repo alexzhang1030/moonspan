@@ -66,7 +66,7 @@ and the session/lease host live on `@rclweb/sdk/internal`.
 |---|---|
 | Context | [`init` / `ok` / `spin` / `shutdown`](../../sdk/typescript/src/context.ts). The extra argument versus `rclcpp::init` is the gateway URL. |
 | Node | [`Node`](../../sdk/typescript/src/node.ts): `createPublisher`, `createSubscription`, `createClient`, `createService`, `createWallTimer`. `10` is KeepLast(10) + reliable. |
-| Messages | [`std_msgs` / `sensor_msgs`](../../sdk/typescript/src/interfaces.ts) classes with ROS IDL field names. |
+| Messages | [`std_msgs` / `sensor_msgs` / `rclweb_cdr_interfaces`](../../sdk/typescript/src/interfaces.ts) classes with ROS IDL field names. |
 | Demo / e2e | subscribe-chatter and the e2e harness use `init` + `Node`. |
 | Tests | [`node.test.ts`](../../sdk/typescript/test/node.test.ts) covers subscribe/publish without leases. Host 0-copy tests stay on `internal`. |
 
@@ -79,6 +79,17 @@ Subscribe and publish round-trip `sensor_msgs/msg/PointCloud2` header stamp/`fra
 | Command | `CMD_SEND_POINT_CLOUD2` carries stamp, `frame_id`, and each PointField before `data`. |
 | Inbound meta | `rclweb_point_cloud2_meta` writes stamp/`frame_id`/fields after the numeric prefix. Point `data` stays an offset/len view. |
 | Node | `wireToRos` / `rosToWire` copy header and fields. Applications set `cloud.header.frame_id` like rclcpp. |
+
+## Outcome (this slice — typed corpus messages)
+
+Subscribe and publish deliver Phase 1 message roots as ROS classes: `rclweb_cdr_interfaces.msg.PrimitiveScalars`, `Collections`, and `NestedSample`. The host and wasm share a packed little-endian layout (not CDR, not JSON). The engine converts host-value ↔ CDR with the generated codecs. `int64` / `uint64` are `bigint`. Service and action request types stay CDR.
+
+| Area | Behavior |
+|---|---|
+| Command | Poll ABI `CMD_SEND_GENERATED` (18): channel id, ROS type name, opaque host-value bytes. `LAYOUT_VERSION` stays 1. |
+| Wasm | `rclweb_decode_generated` writes host-value bytes (`-4` + needed-size retry, same as PointCloud2 meta). |
+| Worker | Tracks `channelId → typeName`. Generated samples are copied as objects and the lease is released before `postMessage`. Unknown non-String types still drop-and-release. |
+| Fixtures | [`scripts/fixture-gen`](../../scripts/fixture-gen/) emits `primitiveScalarsSample` and `nestedSample`. |
 
 ## Delivered scope
 
@@ -101,7 +112,6 @@ bun test sdk/typescript/test
 
 ## Still open in R4-04
 
-- Typed sample events beyond String and PointCloud2
 - Generated TypeScript service/action request types (createClient still takes CDR)
 - npm publish, `"private": false`, and a human-chosen version
 - D-06 repository license on the package

@@ -1,5 +1,7 @@
 /** Host/session message and lease types. Application code uses `@rclweb/sdk` `Node`. */
 
+import type { GeneratedMsg } from "./generated-value.ts";
+
 /** Default KEEP_LAST depth when callers omit QoS depth (matches core). */
 export const DEFAULT_QOS_DEPTH = 5;
 
@@ -29,14 +31,18 @@ export type PointCloud2 = {
   data: Uint8Array;
 };
 
-export type SampleMessage = StdMsgsString | PointCloud2;
+export type SampleMessage = StdMsgsString | PointCloud2 | GeneratedMsg;
 
 export function isStdMsgsString(message: SampleMessage): message is StdMsgsString {
-  return typeof message.data === "string";
+  return "data" in message && typeof message.data === "string";
 }
 
 export function isPointCloud2(message: SampleMessage): message is PointCloud2 {
-  return message.data instanceof Uint8Array;
+  return (
+    "data" in message &&
+    message.data instanceof Uint8Array &&
+    "frameId" in message
+  );
 }
 
 /** Borrowed-view lease: call `release()` when the payload is no longer needed. */

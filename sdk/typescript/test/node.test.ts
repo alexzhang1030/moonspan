@@ -9,6 +9,7 @@ import {
   init,
   Node,
   ok,
+  rclweb_cdr_interfaces,
   sensor_msgs,
   shutdown,
   std_msgs,
@@ -33,6 +34,7 @@ afterEach(async () => {
 
 function serveScripted(options: {
   inboundSample?: boolean;
+  inboundFrame?: Uint8Array;
   onOutboundSample?: (bytes: Uint8Array) => void;
 } = {}) {
   const fixtures = scriptedPeerFixtures();
@@ -67,7 +69,7 @@ function serveScripted(options: {
           if (options.inboundSample !== false) {
             setTimeout(() => {
               if (step === "sample") {
-                ws.send(fixtures.sample);
+                ws.send(options.inboundFrame ?? fixtures.sample);
                 step = "done";
               }
             }, 10);
@@ -284,5 +286,93 @@ test("init is required and is not callable twice", async () => {
   await expect(
     init(`ws://127.0.0.1:${server.port}`, { wasmUrl: pathToFileUrl(wasmPath) }),
   ).rejects.toThrow("already called");
+  server.stop(true);
+});
+
+test("Node subscribe delivers PrimitiveScalars without a lease", async () => {
+  const fixtures = scriptedPeerFixtures();
+  const server = serveScripted({ inboundFrame: fixtures.primitiveScalarsSample });
+  await init(`ws://127.0.0.1:${server.port}`, {
+    wasmUrl: pathToFileUrl(wasmPath),
+  });
+  const node = new Node("scalar_listener");
+  const sample = await new Promise<InstanceType<typeof rclweb_cdr_interfaces.msg.PrimitiveScalars>>(
+    (resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("sample timeout")), 5000);
+      node.createSubscription(
+        rclweb_cdr_interfaces.msg.PrimitiveScalars,
+        "scalars",
+        10,
+        (msg) => {
+          clearTimeout(timer);
+          resolve(msg);
+        },
+      );
+    },
+  );
+  expect(sample.string_value).toBe("hello-scalars");
+  expect(sample.int64_value).toBe(-70_000n);
+  expect(sample.wstring_value).toBe("wide");
+  server.stop(true);
+});
+
+test("Node publish sends PrimitiveScalars", async () => {
+  let sampleFrame: Uint8Array | null = null;
+  const server = serveScripted({
+    inboundSample: false,
+    onOutboundSample: (bytes) => {
+      sampleFrame = bytes;
+    },
+  });
+  await init(`ws://127.0.0.1:${server.port}`, {
+    wasmUrl: pathToFileUrl(wasmPath),
+  });
+  const node = new Node("scalar_talker");
+  const publisher = node.createPublisher(
+    rclweb_cdr_interfaces.msg.PrimitiveScalars,
+    "scalars",
+    10,
+  );
+  const message = new rclweb_cdr_interfaces.msg.PrimitiveScalars();
+  message.string_value = "hello-scalars";
+  message.int64_value = -70_000n;
+  message.uint64_value = 80_000n;
+  message.bool_value = true;
+  publisher.publish(message);
+  const deadline = Date.now() + 5000;
+  while (sampleFrame == null && Date.now() < deadline) {
+    await Bun.sleep(10);
+  }
+  expect(sampleFrame).not.toBeNull();
+  expect(sampleFrame!.length).toBeGreaterThan(4);
+  server.stop(true);
+});
+
+test("Node subscribe delivers NestedSample collections", async () => {
+  const fixtures = scriptedPeerFixtures();
+  const server = serveScripted({ inboundFrame: fixtures.nestedSample });
+  await init(`ws://127.0.0.1:${server.port}`, {
+    wasmUrl: pathToFileUrl(wasmPath),
+  });
+  const node = new Node("nested_listener");
+  const sample = await new Promise<InstanceType<typeof rclweb_cdr_interfaces.msg.NestedSample>>(
+    (resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error("nested timeout")), 5000);
+      node.createSubscription(
+        rclweb_cdr_interfaces.msg.NestedSample,
+        "nested",
+        10,
+        (msg) => {
+          clearTimeout(timer);
+          resolve(msg);
+        },
+      );
+    },
+  );
+  expect(sample.stamp.sec).toBe(11);
+  expect(sample.stamp.nanosec).toBe(22);
+  expect(sample.scalars.string_value).toBe("hello-scalars");
+  expect(sample.collections.bounded_string).toBe("abc");
+  expect([...sample.collections.bytes_value]).toEqual([10, 20, 30]);
   server.stop(true);
 });

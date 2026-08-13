@@ -386,6 +386,21 @@ impl ClientEngine {
           }
         }
       }
+      AppCommand::SendGenerated { channel_id, type_name, value } => {
+        let encoded = crate::types::decode_host_value(type_name, value)
+          .ok()
+          .and_then(|msg| crate::types::encode_generated_cdr(&msg).ok());
+        match encoded {
+          Some(payload) => self.send_sample_payload(*channel_id, &payload, outcome),
+          None => {
+            outcome.events.push(AppEvent::PublishFailed {
+              channel_id: *channel_id,
+              code: 1,
+              message: "cdr_encode_failed".to_owned(),
+            });
+          }
+        }
+      }
       AppCommand::OpenService { correlation, channel_id, name, type_name, domain_id, client } => {
         let kind = if *client { PendingKind::ServiceClient } else { PendingKind::ServiceServer };
         if self.emit_schema_unavailable_if_needed(type_name, *channel_id, kind, outcome) {

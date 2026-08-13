@@ -18,9 +18,11 @@ import {
   PointCloud2,
   PointField,
   String as StdMsgsStringMsg,
+  isGeneratedMsgType,
   type MessageType,
 } from "./interfaces.ts";
 import { qosToOptions, type QoSInput } from "./qos.ts";
+import { reviveGenerated } from "./generated-value.ts";
 import {
   isPointCloud2,
   isStdMsgsString,
@@ -316,6 +318,9 @@ function fromWire(typeName: string, wire: SampleMessage): unknown {
   if (typeName === PointCloud2.typeName && isPointCloud2(wire)) {
     return wireToRos(wire);
   }
+  if (isGeneratedMsgType(typeName)) {
+    return reviveGenerated(typeName, wire);
+  }
   throw new Error(`unsupported message type ${typeName}`);
 }
 
@@ -329,6 +334,9 @@ function toWire(typeName: string, message: unknown): SampleMessage {
   }
   if (typeName === PointCloud2.typeName) {
     return rosToWire(message as PointCloud2);
+  }
+  if (isGeneratedMsgType(typeName)) {
+    return message as SampleMessage;
   }
   throw new Error(`unsupported message type ${typeName}`);
 }

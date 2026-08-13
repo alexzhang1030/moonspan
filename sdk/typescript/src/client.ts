@@ -11,8 +11,12 @@
 import { IoHost } from "./host.ts";
 import type { AppEvent } from "./wasm/abi.ts";
 import {
+  Collections,
+  NestedSample,
   PointCloud2 as PointCloud2Msg,
+  PrimitiveScalars,
   String as StdMsgsStringMsg,
+  isGeneratedMsgType,
   typeNameOf,
   type TypeNameLike,
 } from "./interfaces.ts";
@@ -40,6 +44,10 @@ import {
   isPointCloud2,
   isStdMsgsString,
 } from "./types.ts";
+import {
+  encodeGeneratedHostValue,
+  reviveGenerated,
+} from "./generated-value.ts";
 import type { MainToWorker, WorkerToMain } from "./worker/messages.ts";
 
 export type {
@@ -96,12 +104,17 @@ function dispatchPublish(
   message: SampleMessage,
   sendString: (data: string) => void,
   sendCloud: (cloud: PointCloud2) => void,
+  sendGenerated: (typeName: string, value: Uint8Array) => void,
 ): void {
   if (typeName === PointCloud2Msg.typeName) {
     if (!isPointCloud2(message)) {
       throw new Error("PointCloud2 publish requires a PointCloud2 message");
     }
     sendCloud(message);
+    return;
+  }
+  if (isGeneratedMsgType(typeName)) {
+    sendGenerated(typeName, encodeGeneratedHostValue(typeName, message));
     return;
   }
   if (!isStdMsgsString(message)) {
@@ -139,6 +152,21 @@ export type RclwebSession = {
   ): Promise<Subscription<PointCloud2>>;
   subscribe(
     topic: string,
+    type: typeof PrimitiveScalars,
+    qos?: QosOptions,
+  ): Promise<Subscription<PrimitiveScalars>>;
+  subscribe(
+    topic: string,
+    type: typeof NestedSample,
+    qos?: QosOptions,
+  ): Promise<Subscription<NestedSample>>;
+  subscribe(
+    topic: string,
+    type: typeof Collections,
+    qos?: QosOptions,
+  ): Promise<Subscription<Collections>>;
+  subscribe(
+    topic: string,
     type?: typeof StdMsgsStringMsg | TypeNameLike,
     qos?: QosOptions,
   ): Promise<Subscription<StdMsgsString>>;
@@ -152,6 +180,21 @@ export type RclwebSession = {
     type: typeof PointCloud2Msg,
     qos?: QosOptions,
   ): Promise<Publisher<PointCloud2>>;
+  publish(
+    topic: string,
+    type: typeof PrimitiveScalars,
+    qos?: QosOptions,
+  ): Promise<Publisher<PrimitiveScalars>>;
+  publish(
+    topic: string,
+    type: typeof NestedSample,
+    qos?: QosOptions,
+  ): Promise<Publisher<NestedSample>>;
+  publish(
+    topic: string,
+    type: typeof Collections,
+    qos?: QosOptions,
+  ): Promise<Publisher<Collections>>;
   publish(
     topic: string,
     type?: typeof StdMsgsStringMsg | TypeNameLike,
@@ -496,6 +539,9 @@ class InlineClient implements RclwebClient {
               (cloud) => {
                 this.#host.sendPointCloud2(channelId, cloud);
               },
+              (typeName, value) => {
+                this.#host.sendGenerated(channelId, typeName, value);
+              },
             );
             this.#host.flushSync();
           },
@@ -533,6 +579,20 @@ class InlineClient implements RclwebClient {
         };
         if (event.stringData != null) {
           handler({ data: event.stringData }, lease);
+          break;
+        }
+        const typeName = this.#channels.get(event.channelId)?.typeName;
+        if (typeName && isGeneratedMsgType(typeName)) {
+          const generated = this.#host.decodeGenerated(
+            typeName,
+            event.payloadPtr,
+            event.payloadLen,
+          );
+          if (!generated) {
+            this.#host.releaseLease(event.leaseId);
+            break;
+          }
+          handler(generated, lease);
           break;
         }
         const cloud = this.#host.decodePointCloud2(
@@ -1175,6 +1235,17 @@ class WorkerClient implements RclwebClient {
               });
               return;
             }
+            if (isGeneratedMsgType(msg.typeName)) {
+              const value = encodeGeneratedHostValue(msg.typeName, message);
+              await this.#request({
+                type: "sendGenerated",
+                requestId: 0,
+                channelId,
+                typeName: msg.typeName,
+                value,
+              });
+              return;
+            }
             if (!isStdMsgsString(message)) {
               throw new Error("String publish requires { data: string }");
             }
@@ -1236,6 +1307,23 @@ class WorkerClient implements RclwebClient {
         }
         const leaseId = msg.leaseId;
         handler(msg.message, {
+          leaseId,
+          release: () => {
+            this.#worker.postMessage({
+              type: "releaseLease",
+              leaseId,
+            } satisfies MainToWorker);
+          },
+        });
+        break;
+      }
+      case "sampleGenerated": {
+        const handler = this.#handlers.get(msg.channelId);
+        if (!handler) {
+          break;
+        }
+        const leaseId = msg.leaseId;
+        handler(reviveGenerated(msg.typeName, msg.message), {
           leaseId,
           release: () => {
             this.#worker.postMessage({

@@ -238,3 +238,46 @@ pub unsafe extern "C" fn rclweb_point_cloud2_meta(
     None => -3,
   }
 }
+
+/// Decode a Phase 1 generated message from CDR into the packed host layout.
+///
+/// `type_ptr`/`type_len` is the ROS type name. Returns bytes written, or
+/// negative on fault. `-4` plus a `u32` size at `out_ptr` means retry with a
+/// larger buffer (same convention as [`rclweb_point_cloud2_meta`]).
+///
+/// # Safety
+/// Pointers must address the stated readable/writable lengths in wasm memory.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rclweb_decode_generated(
+  type_ptr: *const u8,
+  type_len: u32,
+  payload_ptr: *const u8,
+  payload_len: u32,
+  out_ptr: *mut u8,
+  out_len: u32,
+) -> i32 {
+  if type_ptr.is_null() || payload_ptr.is_null() || out_ptr.is_null() {
+    return -1;
+  }
+  // SAFETY: host provides readable type name and CDR payload.
+  let type_name = unsafe { std::slice::from_raw_parts(type_ptr, type_len as usize) };
+  let Ok(type_name) = std::str::from_utf8(type_name) else {
+    return -2;
+  };
+  let payload = unsafe { std::slice::from_raw_parts(payload_ptr, payload_len as usize) };
+  let msg = match crate::types::decode_generated_cdr(type_name, payload) {
+    Ok(v) => v,
+    Err(_) => return -2,
+  };
+  let encoded = crate::types::encode_host_value(&msg);
+  if (out_len as usize) < encoded.len() {
+    if out_len >= 4 {
+      let out = unsafe { std::slice::from_raw_parts_mut(out_ptr, out_len as usize) };
+      out[..4].copy_from_slice(&(encoded.len() as u32).to_le_bytes());
+    }
+    return -4;
+  }
+  let out = unsafe { std::slice::from_raw_parts_mut(out_ptr, out_len as usize) };
+  out[..encoded.len()].copy_from_slice(&encoded);
+  i32::try_from(encoded.len()).unwrap_or(-3)
+}

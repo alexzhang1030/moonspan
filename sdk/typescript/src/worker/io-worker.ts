@@ -5,10 +5,13 @@
  *
  * Service/action payloads are copied out of wasm here and the lease is
  * released before the message crosses to main. PointCloud2 `data` is copied
- * the same way; String samples keep the lease until main calls release().
+ * the same way; generated corpus messages are copied as host-value objects.
+ * String samples keep the lease until main calls release().
  */
 
 import { IoHost } from "../host.ts";
+import { isGeneratedMsgType } from "../interfaces.ts";
+import type { GeneratedMsg } from "../generated-value.ts";
 import type { MainToWorker, WorkerToMain } from "./messages.ts";
 
 declare const self: DedicatedWorkerGlobalScope;
@@ -34,6 +37,7 @@ const pendingAction = new Map<
 >();
 const pendingCalls = new Map<string, number>();
 const pendingActionResults = new Map<string, number>();
+const channelTypes = new Map<number, string>();
 
 function post(msg: WorkerToMain, transfer: Transferable[] = []): void {
   if (transfer.length > 0) {
@@ -49,6 +53,16 @@ function opidKey(channelId: number, operationId: Uint8Array): string {
     hex += operationId[i]!.toString(16).padStart(2, "0");
   }
   return hex;
+}
+
+function generatedTransferables(message: GeneratedMsg): Transferable[] {
+  if ("bytes_value" in message && message.bytes_value.byteLength > 0) {
+    return [message.bytes_value.buffer];
+  }
+  if ("collections" in message && message.collections.bytes_value.byteLength > 0) {
+    return [message.collections.bytes_value.buffer];
+  }
+  return [];
 }
 
 function asBytes(value: Uint8Array | number[]): Uint8Array {
@@ -144,22 +158,45 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
                     data: event.stringData,
                   });
                 } else {
-                  const copied = host?.copyPointCloud2(
-                    event.payloadPtr,
-                    event.payloadLen,
-                  );
-                  host?.releaseLease(event.leaseId);
-                  host?.flushSync();
-                  if (copied) {
-                    post(
-                      {
-                        type: "samplePointCloud2",
-                        channelId: event.channelId,
-                        leaseId: event.leaseId,
-                        message: copied,
-                      },
-                      [copied.data.buffer],
+                  const typeName = channelTypes.get(event.channelId);
+                  if (typeName && isGeneratedMsgType(typeName)) {
+                    const copied = host?.decodeGenerated(
+                      typeName,
+                      event.payloadPtr,
+                      event.payloadLen,
                     );
+                    host?.releaseLease(event.leaseId);
+                    host?.flushSync();
+                    if (copied) {
+                      post(
+                        {
+                          type: "sampleGenerated",
+                          channelId: event.channelId,
+                          leaseId: event.leaseId,
+                          typeName,
+                          message: copied,
+                        },
+                        generatedTransferables(copied),
+                      );
+                    }
+                  } else {
+                    const copied = host?.copyPointCloud2(
+                      event.payloadPtr,
+                      event.payloadLen,
+                    );
+                    host?.releaseLease(event.leaseId);
+                    host?.flushSync();
+                    if (copied) {
+                      post(
+                        {
+                          type: "samplePointCloud2",
+                          channelId: event.channelId,
+                          leaseId: event.leaseId,
+                          message: copied,
+                        },
+                        [copied.data.buffer],
+                      );
+                    }
                   }
                 }
                 break;
@@ -355,6 +392,7 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
           requestId: msg.requestId,
           channelId: msg.channelId,
         });
+        channelTypes.set(msg.channelId, msg.typeName);
         host.subscribe({
           correlation: Uint8Array.from(msg.correlation),
           channelId: msg.channelId,
@@ -371,6 +409,7 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
           requestId: msg.requestId,
           channelId: msg.channelId,
         });
+        channelTypes.set(msg.channelId, msg.typeName);
         host.publish({
           correlation: Uint8Array.from(msg.correlation),
           channelId: msg.channelId,
@@ -395,8 +434,16 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
         post({ type: "ack", requestId: msg.requestId });
         break;
       }
+      case "sendGenerated": {
+        if (!host) throw new Error("host not initialized");
+        host.sendGenerated(msg.channelId, msg.typeName, asBytes(msg.value));
+        host.flushSync();
+        post({ type: "ack", requestId: msg.requestId });
+        break;
+      }
       case "unsubscribe": {
         if (!host) throw new Error("host not initialized");
+        channelTypes.delete(msg.channelId);
         host.unsubscribe(Uint8Array.from(msg.correlation), msg.channelId);
         break;
       }
@@ -507,6 +554,7 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
       case "close": {
         host?.dispose();
         host = null;
+        channelTypes.clear();
         post({ type: "closed", requestId: msg.requestId });
         break;
       }

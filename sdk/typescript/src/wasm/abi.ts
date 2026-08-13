@@ -30,6 +30,7 @@ export const CMD_SEND_ACTION_FEEDBACK = 14;
 export const CMD_SEND_ACTION_RESULT = 15;
 export const CMD_SEND_ACTION_STATUS = 16;
 export const CMD_SEND_POINT_CLOUD2 = 17;
+export const CMD_SEND_GENERATED = 18;
 
 export const APP_BOOTSTRAP_COMPLETE = 1;
 export const APP_SESSION_READY = 2;
@@ -104,6 +105,7 @@ export type HostCommand =
       }>;
       data: Uint8Array;
     }
+  | { type: "sendGenerated"; channelId: number; typeName: string; value: Uint8Array }
   | {
       type: "openService";
       correlation: Uint8Array;
@@ -397,6 +399,12 @@ function prepareCommand(command: HostCommand): PreparedCommand {
         frameId: te.encode(command.frameId),
         fieldNames: command.fields.map((field) => te.encode(field.name)),
       };
+    case "sendGenerated":
+      return {
+        cmd: command,
+        typeName: te.encode(command.typeName),
+        payload: command.value,
+      };
     case "openService":
     case "openAction":
       return {
@@ -442,6 +450,9 @@ function commandEncodedSize(prepared: PreparedCommand): number {
       // field_count(4) + fields + data_len(4) + data
       return 4 + 32 + 2 + prepared.frameId!.length + 4 + fieldsSize + 4 + prepared.payload!.length;
     }
+    case "sendGenerated":
+      // cmd(4) + channel_id(4) + type_len(2) + type + value_len(4) + value
+      return 4 + 4 + 2 + prepared.typeName!.length + 4 + prepared.payload!.length;
     case "openService":
     case "openAction":
       return 4 + 16 + 4 + 4 + 2 + prepared.name!.length + 2 + prepared.typeName!.length;
@@ -576,6 +587,21 @@ function writeCommand(out: Uint8Array, offset: number, prepared: PreparedCommand
       offset = writeU32Into(out, offset, data.length);
       out.set(data, offset);
       return offset + data.length;
+    }
+    case "sendGenerated": {
+      out[offset++] = CMD_SEND_GENERATED;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      offset = writeU32Into(out, offset, command.channelId >>> 0);
+      const typeName = prepared.typeName!;
+      offset = writeU16Into(out, offset, typeName.length);
+      out.set(typeName, offset);
+      offset += typeName.length;
+      const value = prepared.payload!;
+      offset = writeU32Into(out, offset, value.length);
+      out.set(value, offset);
+      return offset + value.length;
     }
     case "openService":
     case "openAction": {
@@ -1169,6 +1195,14 @@ export type WasmExports = {
     outPtr: number,
     outLen: number,
   ): number;
+  rclweb_decode_generated?(
+    typePtr: number,
+    typeLen: number,
+    payloadPtr: number,
+    payloadLen: number,
+    outPtr: number,
+    outLen: number,
+  ): number;
 };
 
 export type EngineTelemetrySnapshot = {
@@ -1323,6 +1357,72 @@ export function decodePointCloud2Meta(
     if (outPtr !== 0) {
       wasm.rclweb_free(outPtr, cap);
     }
+  }
+}
+
+/**
+ * Decode a Phase 1 generated message from leased CDR into packed host-value
+ * bytes. The TypeScript field decoder lives in `generated-value.ts`.
+ */
+export function decodeGeneratedBytes(
+  wasm: WasmExports,
+  typeName: string,
+  payloadPtr: number,
+  payloadLen: number,
+): Uint8Array {
+  const decode = wasm.rclweb_decode_generated;
+  if (!decode) {
+    throw new Error("wasm missing export rclweb_decode_generated");
+  }
+  const typeBytes = te.encode(typeName);
+  const typePtr = wasm.rclweb_alloc(typeBytes.length);
+  if (typePtr === 0) {
+    throw new Error("rclweb_alloc failed for generated type name");
+  }
+  try {
+    new Uint8Array(wasm.memory.buffer, typePtr, typeBytes.length).set(typeBytes);
+    let cap = 4096;
+    let outPtr = wasm.rclweb_alloc(cap);
+    if (outPtr === 0) {
+      throw new Error("rclweb_alloc failed for generated decode");
+    }
+    try {
+      let rc = decode(
+        typePtr,
+        typeBytes.length,
+        payloadPtr,
+        payloadLen,
+        outPtr,
+        cap,
+      );
+      if (rc === -4) {
+        const need = new DataView(wasm.memory.buffer, outPtr, 4).getUint32(0, true);
+        wasm.rclweb_free(outPtr, cap);
+        cap = need;
+        outPtr = wasm.rclweb_alloc(cap);
+        if (outPtr === 0) {
+          throw new Error("rclweb_alloc failed for generated decode retry");
+        }
+        rc = decode(
+          typePtr,
+          typeBytes.length,
+          payloadPtr,
+          payloadLen,
+          outPtr,
+          cap,
+        );
+      }
+      if (rc < 0) {
+        throw new Error(`rclweb_decode_generated failed with code ${rc}`);
+      }
+      return new Uint8Array(wasm.memory.buffer, outPtr, rc).slice();
+    } finally {
+      if (outPtr !== 0) {
+        wasm.rclweb_free(outPtr, cap);
+      }
+    }
+  } finally {
+    wasm.rclweb_free(typePtr, typeBytes.length);
   }
 }
 

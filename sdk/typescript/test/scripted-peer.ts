@@ -15,6 +15,8 @@ type FixtureSet = {
   graphSnapshot: string;
   sample: string;
   pointCloud2Sample: string;
+  primitiveScalarsSample: string;
+  nestedSample: string;
   authCorrelationHex: string;
   subCorrelationHex: string;
   serviceCorrelationHex: string;
@@ -42,6 +44,8 @@ export function scriptedPeerFixtures() {
     graphSnapshot: hexToBytes(cached.graphSnapshot),
     sample: hexToBytes(cached.sample),
     pointCloud2Sample: hexToBytes(cached.pointCloud2Sample),
+    primitiveScalarsSample: hexToBytes(cached.primitiveScalarsSample),
+    nestedSample: hexToBytes(cached.nestedSample),
     authCorrelation: hexToBytes(cached.authCorrelationHex),
     subCorrelation: hexToBytes(cached.subCorrelationHex),
     serviceCorrelation: hexToBytes(cached.serviceCorrelationHex),
