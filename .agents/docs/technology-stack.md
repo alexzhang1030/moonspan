@@ -62,7 +62,7 @@ Committed rustfmt/clippy knobs, workspace lints, shared crate versions, and name
 |---|---|
 | `rclweb/` | Cargo crate: the core (native + wasm32); `cdylib` exports the hand-written poll ABI. crates.io publish unit |
 | `rclwebd/` | Cargo crate: the gateway. crates.io publish unit (`--features ros` for the binary) |
-| `typescript/` | Bun workspace package `rcl-web@0.0.2` (public). tsdown ship bundle. Public application contract; `rcl-web/internal` is host/ABI/test helpers ([`rcl-web`](../../docs/typescript.md), [ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md), [ADR 0015](../../docs/adr/0015-tsdown-ship-bundle.md)). Publish is GitHub OIDC ([release](../../docs/release.md), [ADR 0016](../../docs/adr/0016-oidc-trusted-publish.md)) |
+| `typescript/` | Bun workspace package `rcl-web` (public). tsdown ship bundle. Customer docs: [how to](../../docs/typescript.md), [API](../../docs/api.md). `rcl-web/internal` is host/ABI/test helpers ([ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md), [ADR 0015](../../docs/adr/0015-tsdown-ship-bundle.md)). Publish is GitHub OIDC ([release](../../docs/release.md), [ADR 0016](../../docs/adr/0016-oidc-trusted-publish.md)) |
 | `typescript/wasm/` | Staged `rclweb.wasm` from `scripts/build-wasm.ts` (fat LTO) |
 | `protocol/` | Normative contracts, registries, schemas, and frozen fixtures |
 | `conformance/` | CDR corpus and qualification workloads |

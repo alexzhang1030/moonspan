@@ -4,7 +4,7 @@ rclweb gives browser applications typed, secure access to ROS 2 through a versio
 
 ## What this is trying to be
 
-A production edge + browser path: one Rust core ([ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md)), R2WP over WebSocket and WebTransport, `rclwebd` as the trust boundary, and an rclcpp-shaped TypeScript API ([`rclweb`](../../docs/typescript.md)).
+A production edge + browser path: one Rust core ([ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md)), R2WP over WebSocket and WebTransport, `rclwebd` as the trust boundary, and an rclcpp-shaped TypeScript API. Customer-facing docs are that API — [how to](../../docs/typescript.md) (`Node`, topics, services, actions) and the [reference](../../docs/api.md) — not the protocol or delivery ledger.
 
 ## Users
 

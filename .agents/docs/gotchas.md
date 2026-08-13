@@ -44,7 +44,7 @@ The engine reclaims a retained inbound slab only when every lease on it is relea
 
 ## Public Node releases leases
 
-`rcl-web` is rclcpp-shaped (`init` / `Node` / `createSubscription`). Message types are `std_msgs.msg.String` / `sensor_msgs.msg.PointCloud2` / `rclweb_cdr_interfaces.msg.*`, not all-caps constants. The callback receives an owned message; `Node` copies PointCloud2 `data` and calls `lease.release()` after the callback returns. Applications must not import `rcl-web/internal` `connect` unless they are hosting the poll ABI — that path still requires an explicit release. [`rcl-web`](../../docs/typescript.md).
+`rcl-web` is rclcpp-shaped (`init` / `Node` / `createSubscription`). Message types are `std_msgs.msg.String` / `sensor_msgs.msg.PointCloud2` / `rclweb_cdr_interfaces.msg.*`, not all-caps constants. The callback receives an owned message; `Node` copies PointCloud2 `data` and calls `lease.release()` after the callback returns. Applications must not import `rcl-web/internal` `connect` unless they are hosting the poll ABI — that path still requires an explicit release. [How to](../../docs/typescript.md), [API](../../docs/api.md).
 
 ## encodeHostBatch large-frame encoder
 
