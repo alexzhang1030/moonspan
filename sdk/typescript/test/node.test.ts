@@ -32,6 +32,19 @@ function isHello(bytes: Uint8Array): boolean {
   return bytes.length >= 4 && bytes[0] === 0x52 && bytes[1] === 0x32;
 }
 
+async function waitUntil(
+  predicate: () => boolean,
+  timeoutMs = 5000,
+): Promise<void> {
+  const start = Date.now();
+  while (!predicate()) {
+    if (Date.now() - start >= timeoutMs) {
+      throw new Error("waitUntil timeout");
+    }
+    await Bun.sleep(10);
+  }
+}
+
 afterEach(async () => {
   if (ok()) await shutdown();
 });
@@ -560,5 +573,55 @@ test("Node createActionClient MeasureSequence round-trips typed goal and result"
   expect(res.result.stamp.sec).toBe(11);
   expect(res.result.scalars.string_value).toBe("hello-scalars");
   expect(res.result.collections.bounded_string).toBe("abc");
+  server.stop(true);
+});
+
+test("Node graph getters match rclcpp names without GraphSnapshot types", async () => {
+  const fixtures = scriptedPeerFixtures();
+  let step: "hello" | "ready" | "done" = "hello";
+  const server = Bun.serve({
+    port: 0,
+    fetch(req, server) {
+      if (server.upgrade(req)) return undefined;
+      return new Response("expected websocket", { status: 400 });
+    },
+    websocket: {
+      message(ws, message) {
+        const bytes =
+          message instanceof ArrayBuffer
+            ? new Uint8Array(message)
+            : typeof message === "string"
+              ? new TextEncoder().encode(message)
+              : new Uint8Array(message);
+        if (step === "hello" && isHello(bytes)) {
+          step = "ready";
+          ws.send(fixtures.serverHello);
+          return;
+        }
+        if (step === "ready" && bytes[1] === OPCODE_CONTROL) {
+          step = "done";
+          ws.send(fixtures.sessionReady);
+          ws.send(fixtures.graphSnapshot);
+        }
+      },
+    },
+  });
+
+  await init(`ws://127.0.0.1:${server.port}`, {
+    wasmUrl: pathToFileUrl(wasmPath),
+  });
+  const node = new Node("graph_listener");
+  await waitUntil(() => node.getNodeNames().includes("/talker"));
+  expect(node.getNodeNames()).toEqual(["/talker"]);
+  expect(node.getTopicNamesAndTypes()).toEqual([
+    { name: "/chatter", types: ["std_msgs/msg/String"] },
+  ]);
+  expect(node.countPublishers("chatter")).toBe(1);
+  expect(node.countPublishers("/chatter")).toBe(1);
+  expect(node.countSubscribers("chatter")).toBe(0);
+  expect(node.getServiceNamesAndTypes()).toEqual([
+    { name: "/add_two_ints", types: ["example_interfaces/srv/AddTwoInts"] },
+  ]);
+  expect(node.getActionNamesAndTypes()).toEqual([]);
   server.stop(true);
 });

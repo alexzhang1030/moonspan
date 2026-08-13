@@ -38,16 +38,46 @@ fn channel_ready_map(correlation: &[u8; 16], channel_id: u32) -> CborValue<'stat
     (33, CborValue::Unsigned(0)),
     (12, CborValue::Map(Vec::new())),
     (59, CborValue::Unsigned(2)),
-    (
-      57,
-      CborValue::Map(vec![
-        (1, CborValue::Unsigned(1)),
-        (2, CborValue::Unsigned(2)),
-        (3, CborValue::Unsigned(1)),
-        (4, CborValue::Unsigned(5)),
-        (7, CborValue::Unsigned(1)),
-      ]),
-    ),
+    (57, topic_qos()),
+    (9, CborValue::Unsigned(0)),
+    (8, text_val("J-FT")),
+  ])
+}
+
+fn topic_qos() -> CborValue<'static> {
+  CborValue::Map(vec![
+    (1, CborValue::Unsigned(1)),
+    (2, CborValue::Unsigned(2)),
+    (3, CborValue::Unsigned(1)),
+    (4, CborValue::Unsigned(5)),
+    (7, CborValue::Unsigned(1)),
+  ])
+}
+
+fn j_ft_identity() -> CborValue<'static> {
+  CborValue::Map(vec![
+    (1, text_val("rep2011-rihs")),
+    (2, text_val("RIHS01_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")),
+  ])
+}
+
+fn graph_endpoint(
+  id: &[u8; 16],
+  node_id: &[u8; 16],
+  name: &str,
+  kind: u64,
+  type_name: &str,
+) -> CborValue<'static> {
+  CborValue::Map(vec![
+    (56, bytes_val(id)),
+    (55, bytes_val(node_id)),
+    (1, text_val(name)),
+    (2, CborValue::Unsigned(kind)),
+    (3, text_val(type_name)),
+    (4, j_ft_identity()),
+    (5, CborValue::Unsigned(1)),
+    (6, CborValue::Unsigned(0)),
+    (7, topic_qos()),
     (9, CborValue::Unsigned(0)),
     (8, text_val("J-FT")),
   ])
@@ -117,6 +147,8 @@ fn main() {
     encode_control_frame(0, 1, &channel_ready_map(&action_corr, 1)).expect("action channel ready");
 
   let node_id = [0xaau8; 16];
+  let chatter_id = [0xbbu8; 16];
+  let add_id = [0xccu8; 16];
   let graph_snapshot = encode_control_frame(
     0,
     1,
@@ -134,7 +166,19 @@ fn main() {
           (9, CborValue::Unsigned(0)),
         ])]),
       ),
-      (23, CborValue::Array(Vec::new())),
+      (
+        23,
+        CborValue::Array(vec![
+          graph_endpoint(&chatter_id, &node_id, "/chatter", 0, "std_msgs/msg/String"),
+          graph_endpoint(
+            &add_id,
+            &node_id,
+            "/add_two_ints",
+            2,
+            "example_interfaces/srv/AddTwoInts",
+          ),
+        ]),
+      ),
     ]),
   )
   .expect("graph snapshot");

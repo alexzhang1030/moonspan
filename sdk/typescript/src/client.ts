@@ -220,6 +220,8 @@ export type RclwebSession = {
     handlers?: ActionServerHandlers,
   ): Promise<ActionServer>;
   onGraph(handler: GraphHandler): void;
+  /** Latest GraphSnapshot/Delta view (internal). */
+  graph(): GraphView;
   /** Thin wrapper: `node/get_parameters` service call with raw CDR request bytes. */
   getParameters(node: string, requestCdr?: Uint8Array): Promise<Uint8Array>;
   setParameters(node: string, requestCdr?: Uint8Array): Promise<Uint8Array>;
@@ -416,7 +418,7 @@ class InlineClient implements RclwebClient {
   #actionStatus = new Map<number, ActionStatusHandler>();
   #actionServerHandlers = new Map<number, ActionServerHandlers>();
   #channelTypes = new Map<number, string>();
-  #graphHandler: GraphHandler | null = null;
+  #graphHandlers = new Set<GraphHandler>();
   #graph: GraphView = { generation: 0, nodes: [], endpoints: [] };
   #connectWaiters: Array<() => void> = [];
   #reconnectAttempts = 0;
@@ -503,9 +505,10 @@ class InlineClient implements RclwebClient {
       createActionServer: (name, typeName = "", handlers = {}) =>
         this.#createActionServer(name, typeName, handlers),
       onGraph: (handler) => {
-        this.#graphHandler = handler;
+        this.#graphHandlers.add(handler);
         if (this.#graph.generation > 0) handler(this.#graph);
       },
+      graph: () => this.#graph,
       getParameters: (node, requestCdr = new Uint8Array()) =>
         this.#paramService(node, "get_parameters", "rcl_interfaces/srv/GetParameters", requestCdr),
       setParameters: (node, requestCdr = new Uint8Array()) =>
@@ -517,6 +520,12 @@ class InlineClient implements RclwebClient {
 
   telemetry() {
     return this.#host.engineTelemetry();
+  }
+
+  #emitGraph(): void {
+    for (const handler of this.#graphHandlers) {
+      handler(this.#graph);
+    }
   }
 
   async reconnect(): Promise<void> {
@@ -999,7 +1008,7 @@ class InlineClient implements RclwebClient {
           nodes,
           endpoints,
         };
-        this.#graphHandler?.(this.#graph);
+        this.#emitGraph();
         break;
       }
       case "graphDelta": {
@@ -1007,7 +1016,7 @@ class InlineClient implements RclwebClient {
           ...this.#graph,
           generation: Number(event.generation),
         };
-        this.#graphHandler?.(this.#graph);
+        this.#emitGraph();
         break;
       }
       case "operationCancelled": {
@@ -1281,7 +1290,7 @@ class WorkerClient implements RclwebClient {
   #inflightByChannel = new Map<number, Set<number>>();
   #channels = new Map<number, ChannelRecord>();
   #telemetry: EngineTelemetrySnapshot | null = null;
-  #graphHandler: GraphHandler | null = null;
+  #graphHandlers = new Set<GraphHandler>();
   #graph: GraphView = { generation: 0, nodes: [], endpoints: [] };
   #session: RclwebSession;
   #reconnectAttempts = 0;
@@ -1305,9 +1314,10 @@ class WorkerClient implements RclwebClient {
       createActionServer: (name, typeName = "", handlers = {}) =>
         this.#createActionServer(name, typeName, handlers),
       onGraph: (handler) => {
-        this.#graphHandler = handler;
+        this.#graphHandlers.add(handler);
         if (this.#graph.generation > 0) handler(this.#graph);
       },
+      graph: () => this.#graph,
       getParameters: (node, requestCdr = new Uint8Array()) =>
         this.#paramService(
           node,
@@ -1376,6 +1386,12 @@ class WorkerClient implements RclwebClient {
 
   telemetry() {
     return this.#telemetry;
+  }
+
+  #emitGraph(): void {
+    for (const handler of this.#graphHandlers) {
+      handler(this.#graph);
+    }
   }
 
   async reconnect(): Promise<void> {
@@ -1848,7 +1864,7 @@ class WorkerClient implements RclwebClient {
           nodes,
           endpoints,
         };
-        this.#graphHandler?.(this.#graph);
+        this.#emitGraph();
         break;
       }
       case "graphDelta": {
@@ -1856,7 +1872,7 @@ class WorkerClient implements RclwebClient {
           ...this.#graph,
           generation: msg.generation,
         };
-        this.#graphHandler?.(this.#graph);
+        this.#emitGraph();
         break;
       }
       case "operationCancelled": {

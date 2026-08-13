@@ -129,6 +129,19 @@ console.log(done.result.stamp.sec);
 
 `createActionClient` / `createActionServer` match rclcpp names. Phase 1 generated roots (`rclweb_cdr_interfaces.action.MeasureSequence`) use ROS classes (`Goal` / `Result` / `Feedback`). Other action types stay CDR `Uint8Array`. `ACTION_STATUS` stays CDR.
 
+## Graph
+
+```ts
+const node = new Node("listener");
+node.onGraphChange(() => {
+  console.log(node.getNodeNames());
+  console.log(node.getTopicNamesAndTypes());
+});
+console.log(node.countPublishers("chatter"));
+```
+
+`getNodeNames`, `getTopicNamesAndTypes`, `getServiceNamesAndTypes`, `getActionNamesAndTypes`, `countPublishers`, and `countSubscribers` match rclcpp (and rclcpp_action for actions). Relative topic names resolve under the node namespace. `onGraphChange` is the event-loop analog of `wait_for_graph_change`: call the getters from the callback. GraphSnapshot, GraphDelta, generation, and endpoint kind numbers stay off this surface.
+
 ## Public vs internal
 
 | Import | Stability | Contents |
