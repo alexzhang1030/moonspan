@@ -123,6 +123,11 @@ pub struct GatewayConfig {
   pub auth_mode: crate::auth::AuthMode,
   /// Required when [`Self::auth_mode`] is `Oidc`.
   pub oidc: Option<crate::auth::OidcSettings>,
+  /// OpenChannel authorization. Default [`crate::acl::AclMode::Off`] admits
+  /// every channel (R1–R3). `enforce` is opt-in default-deny.
+  pub acl_mode: crate::acl::AclMode,
+  /// Required when [`Self::acl_mode`] is `Enforce`.
+  pub acl: Option<crate::acl::AclPolicy>,
   /// Seconds to wait for live sessions after drain (SIGTERM / ctrl_c).
   pub drain_timeout_secs: u64,
   /// When true, HTTP responses include COOP/COEP/CORP (browser isolation).
@@ -150,6 +155,8 @@ impl Default for GatewayConfig {
       webtransport_bind: "127.0.0.1:4433".to_owned(),
       auth_mode: crate::auth::AuthMode::Off,
       oidc: None,
+      acl_mode: crate::acl::AclMode::Off,
+      acl: None,
       drain_timeout_secs: 15,
       isolation_headers: false,
       cors_origins: Vec::new(),

@@ -10,6 +10,10 @@ Traps already paid for in this repository, each with its why.
 
 R4-01 can evaluate Authenticate, but `RCLWEBD_AUTH_MODE` defaults to `off`: any credential is accepted, SessionReady field 21 stays `anonymous`, and no audit line is emitted — same as R1–R3. `dev` is an alias for `off`. Opt in with `oidc` plus issuer/audience/keys; missing keys fail process start, bad JWT is wire code 26. Do not treat a green e2e lane as proof that identity is on. Tenant choice remains D-04 ([R4-01](../../docs/milestones/r4-01-oidc-sros2-audit.md)). Landed in [`301c987`](https://github.com/alexzhang1030/rclweb/commit/301c987) (#18).
 
+## ACLs default to off; enforce is default-deny
+
+`RCLWEBD_ACL_MODE` defaults to `off`: every OpenChannel is admitted, same as R1–R3 — a green e2e lane proves nothing about authorization. `enforce` flips to **default-deny**: only `{subjects, operations, names}` allow rules admit a channel (wire code 12 `permission_denied` otherwise), and a missing/invalid policy fails process start. There are no deny rules — express policy as allows. The subject is whatever Authenticate produced (`anonymous` when auth is off), so ACLs work without OIDC but only distinguish users with it. The policy body never appears on `/configz` (rule count only). Rule *content* is the reviewed policy matrix — a human input ([R4-01](../../docs/milestones/r4-01-oidc-sros2-audit.md)).
+
 ## `/healthz` is liveness, not readiness
 
 `GET /healthz` must stay HTTP 200 with body `ok` (when local-dev TLS is off) even while the process is draining. The R1-05 e2e harness treats that exact body as “gateway is up”. Load balancers and deploy hooks must probe `GET /readyz` (503 after `POST /drain` / SIGTERM) and must not treat `/healthz` as admission. `/livez` is the JSON liveness twin. [R4-02](../../docs/milestones/r4-02-deployment-observability.md).

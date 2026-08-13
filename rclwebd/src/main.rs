@@ -12,6 +12,8 @@
 //! - `RCLWEBD_AUTH_MODE` — `off` (default) or `oidc` (JWT; requires issuer/keys)
 //! - `RCLWEBD_OIDC_ISSUER` / `RCLWEBD_OIDC_AUDIENCE` — required in `oidc` mode
 //! - `RCLWEBD_OIDC_HS_SECRET` or `RCLWEBD_OIDC_JWKS` / `RCLWEBD_OIDC_JWKS_PATH`
+//! - `RCLWEBD_ACL_MODE` — `off` (default) or `enforce` (default-deny OpenChannel)
+//! - `RCLWEBD_ACL` (inline JSON) or `RCLWEBD_ACL_PATH` — required in `enforce` mode
 //! - `RCLWEBD_ISOLATION_HEADERS` — `1`/`true` adds COOP/COEP/CORP on HTTP
 //! - `RCLWEBD_CORS_ORIGINS` — comma-separated origins (`*` allowed); empty = none
 //! - `RCLWEBD_DRAIN_TIMEOUT_SECS` — wait for sessions after SIGTERM (default 15)
@@ -25,7 +27,8 @@
 
 use rclwebd::ros::RclBackend;
 use rclwebd::{
-  AuthMode, GatewayConfig, OidcSettings, SUPPORT_ROW_J_FT, parse_support_row, serve_with_os_signals,
+  AclMode, AclPolicy, AuthMode, GatewayConfig, OidcSettings, SUPPORT_ROW_J_FT, parse_support_row,
+  serve_with_os_signals,
 };
 use std::sync::Arc;
 
@@ -80,6 +83,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     AuthMode::Oidc => Some(OidcSettings::from_env()?),
   };
 
+  let acl_mode = match std::env::var("RCLWEBD_ACL_MODE") {
+    Ok(raw) => AclMode::parse(&raw)
+      .ok_or_else(|| format!("unsupported RCLWEBD_ACL_MODE={raw:?}; expected off or enforce"))?,
+    Err(_) => AclMode::Off,
+  };
+  let acl = match acl_mode {
+    AclMode::Off => None,
+    AclMode::Enforce => Some(AclPolicy::from_env()?),
+  };
+
   let mut config = GatewayConfig {
     domain_id,
     support_row,
@@ -88,6 +101,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     webtransport_bind,
     auth_mode,
     oidc,
+    acl_mode,
+    acl,
     isolation_headers: env_flag("RCLWEBD_ISOLATION_HEADERS"),
     cors_origins: std::env::var("RCLWEBD_CORS_ORIGINS")
       .ok()
@@ -106,6 +121,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     if !rev.is_empty() {
       config.policy_revision = rev.to_owned();
     }
+  }
+  // A policy document naming its revision wins: SessionReady then advertises
+  // the matrix that actually admits channels.
+  if let Some(rev) = config.acl.as_ref().and_then(|policy| policy.revision.clone()) {
+    config.policy_revision = rev;
   }
   if let Ok(raw) = std::env::var("RCLWEBD_DRAIN_TIMEOUT_SECS") {
     config.drain_timeout_secs = raw.parse().map_err(|_| {
@@ -134,6 +154,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
           "auth_mode": match config.auth_mode {
               AuthMode::Off => "off",
               AuthMode::Oidc => "oidc",
+          },
+          "acl_mode": match config.acl_mode {
+              AclMode::Off => "off",
+              AclMode::Enforce => "enforce",
           },
           "local_dev_tls": config.local_dev_tls_enabled,
           "isolation_headers": config.isolation_headers,

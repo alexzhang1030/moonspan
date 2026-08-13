@@ -562,6 +562,158 @@ async fn off_mode_ignores_token_and_stays_anonymous() {
   assert_eq!(text(&fields, 21), "anonymous");
 }
 
+fn enforce_config(policy_json: &str) -> rclwebd::GatewayConfig {
+  rclwebd::GatewayConfig {
+    gateway_instance_id: "gw-test".to_owned(),
+    acl_mode: rclwebd::AclMode::Enforce,
+    acl: Some(rclwebd::AclPolicy::from_json(policy_json).expect("test policy")),
+    ..rclwebd::GatewayConfig::default()
+  }
+}
+
+/// Expect a ChannelReady failure with the given wire code on `channel_id`.
+async fn expect_channel_denied(client: &mut TestClient, channel_id: u32, code: u64) {
+  let (bytes, effects) = client.recv_ingested().await.expect("channel ready failure");
+  assert_eq!(effects.channel_failed, Some(channel_id));
+  let (kind, fields) = control_fields(&bytes);
+  assert_eq!(kind, 9, "ChannelReady");
+  assert_eq!(uint(&fields, 33), 3, "result error");
+  let CborValue::Map(body) = fields.get(&15).expect("error body") else {
+    panic!("expected error body map");
+  };
+  let body: BTreeMap<u64, CborValue<'_>> = body.iter().map(|(k, v)| (*k, v.clone())).collect();
+  assert_eq!(uint(&body, 48), code, "wire error code");
+  assert_eq!(client.session.channel_state(channel_id), ChannelState::Failed);
+}
+
+#[tokio::test]
+async fn acl_enforce_is_default_deny_with_wire_code_12() {
+  // Anyone may subscribe /chatter; nothing else is admitted.
+  let policy = r#"{
+    "revision": "matrix-test-1",
+    "rules": [{"subjects": ["*"], "operations": ["subscribe"], "names": ["/chatter"]}]
+  }"#;
+  let (addr, backend) = start_gateway_with_config(enforce_config(policy)).await;
+
+  // /configz reports the mode, rule count, and the policy has no secrets to leak.
+  let (status, _, body) = http_get(&addr, "/configz").await;
+  assert_eq!(status, 200);
+  let config: serde_json::Value = serde_json::from_str(&body).expect("configz json");
+  assert_eq!(config["acl_mode"], "enforce");
+  assert_eq!(config["acl_rules"], 1);
+
+  let mut client = TestClient::connect(&addr).await;
+  ready_session(&mut client).await;
+
+  // Allowed: subscribe /chatter.
+  client
+    .send_control(&TestClient::open_topic_msg(
+      &corr(0xC1),
+      5,
+      0, // TOPIC_SUBSCRIBE
+      "/chatter",
+      "std_msgs/msg/String",
+      1,
+    ))
+    .await;
+  let (bytes, _) = expect_channel_ready_then_optional_delta(&mut client).await;
+  let (_, fields) = control_fields(&bytes);
+  assert_eq!(uint(&fields, 33), 0, "result allow");
+  assert_eq!(backend.created.lock().unwrap()[0].topic, "/chatter");
+
+  // Denied: publish on the same name (no publish rule).
+  client
+    .send_control(&TestClient::open_topic_msg(
+      &corr(0xC2),
+      6,
+      1, // TOPIC_PUBLISH
+      "/chatter",
+      "std_msgs/msg/String",
+      1,
+    ))
+    .await;
+  expect_channel_denied(&mut client, 6, 12).await;
+
+  // Denied: subscribe on an unlisted name (default-deny).
+  client
+    .send_control(&TestClient::open_topic_msg(
+      &corr(0xC3),
+      7,
+      0,
+      "/other",
+      "std_msgs/msg/String",
+      1,
+    ))
+    .await;
+  expect_channel_denied(&mut client, 7, 12).await;
+
+  // The backend only ever saw the allowed channel.
+  assert_eq!(backend.created.lock().unwrap().len(), 1);
+}
+
+#[tokio::test]
+async fn acl_enforce_scopes_by_oidc_subject() {
+  let secret = b"test-secret-32-bytes-minimum-ok";
+  let policy = r#"{
+    "rules": [
+      {"subjects": ["*"], "operations": ["subscribe"], "names": ["/chatter"]},
+      {"subjects": ["alice"], "operations": ["publish"], "names": ["/cmd_vel"]}
+    ]
+  }"#;
+  let config = rclwebd::GatewayConfig {
+    auth_mode: rclwebd::AuthMode::Oidc,
+    oidc: Some(rclwebd::OidcSettings {
+      issuer: "https://issuer.test".to_owned(),
+      audience: "rclwebd".to_owned(),
+      hs_secret: Some(secret.to_vec()),
+      jwks: None,
+    }),
+    ..enforce_config(policy)
+  };
+  let (addr, backend) = start_gateway_with_config(config).await;
+
+  let open_cmd_vel = |correlation: [u8; 16], channel_id: u32| {
+    TestClient::open_topic_msg(
+      &correlation,
+      channel_id,
+      1, // TOPIC_PUBLISH
+      "/cmd_vel",
+      "std_msgs/msg/String",
+      1,
+    )
+  };
+
+  // alice: publish /cmd_vel admitted.
+  let alice = rclwebd::mint_hs256_token(secret, "https://issuer.test", "rclwebd", "alice");
+  let mut client = TestClient::connect(&addr).await;
+  let _ = client.bootstrap(&TestClient::default_hello()).await;
+  client
+    .send_control(&TestClient::authenticate_msg_with(&corr(0xA1), "oidc", alice.as_bytes()))
+    .await;
+  let (_, effects) = client.recv_ingested().await.expect("session ready");
+  assert!(effects.entered_ready);
+  let _ = client.recv_ingested().await.expect("graph snapshot");
+  client.send_control(&open_cmd_vel(corr(0xC4), 3)).await;
+  let (bytes, _) = expect_channel_ready_then_optional_delta(&mut client).await;
+  let (_, fields) = control_fields(&bytes);
+  assert_eq!(uint(&fields, 33), 0, "alice publish allowed");
+  assert_eq!(backend.created.lock().unwrap().len(), 1);
+
+  // bob: same OpenChannel denied with wire code 12.
+  let bob = rclwebd::mint_hs256_token(secret, "https://issuer.test", "rclwebd", "bob");
+  let mut client = TestClient::connect(&addr).await;
+  let _ = client.bootstrap(&TestClient::default_hello()).await;
+  client
+    .send_control(&TestClient::authenticate_msg_with(&corr(0xA2), "oidc", bob.as_bytes()))
+    .await;
+  let (_, effects) = client.recv_ingested().await.expect("session ready");
+  assert!(effects.entered_ready);
+  let _ = client.recv_ingested().await.expect("graph snapshot");
+  client.send_control(&open_cmd_vel(corr(0xC5), 3)).await;
+  expect_channel_denied(&mut client, 3, 12).await;
+  assert_eq!(backend.created.lock().unwrap().len(), 1, "bob never reached the backend");
+}
+
 async fn http_exchange(addr: &str, request: &str) -> (u16, String, String) {
   use tokio::io::{AsyncReadExt, AsyncWriteExt};
   let mut last = String::new();

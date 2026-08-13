@@ -91,6 +91,13 @@ fn auth_mode_name(config: &GatewayConfig) -> &'static str {
   }
 }
 
+fn acl_mode_name(config: &GatewayConfig) -> &'static str {
+  match config.acl_mode {
+    crate::acl::AclMode::Off => "off",
+    crate::acl::AclMode::Enforce => "enforce",
+  }
+}
+
 /// JSON for `GET /readyz`. HTTP status is chosen by the caller.
 #[must_use]
 pub fn readyz_json(config: &GatewayConfig, ops: &OpsState) -> String {
@@ -140,6 +147,8 @@ pub fn configz_json(config: &GatewayConfig, ops: &OpsState) -> String {
       "adapter_abi_version": config.adapter_abi_version,
       "auth_mode": auth_mode_name(config),
       "oidc": oidc,
+      "acl_mode": acl_mode_name(config),
+      "acl_rules": config.acl.as_ref().map(|policy| policy.rules.len()),
       "local_dev_tls": config.local_dev_tls_enabled,
       "offer_webtransport": config.offer_webtransport,
       "webtransport_bind": config.webtransport_bind,
