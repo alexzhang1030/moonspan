@@ -64,7 +64,7 @@ Documentation describes the product. It is not a delivery-phase ledger. Historic
 | `pixi.toml` | Optional RoboStack J-FT ([technology stack](./technology-stack.md#optional-local-ros-prefix), [gotchas](./gotchas.md#pixi-ros-test-must-pin-rosprefix-over-a-host-optros)) |
 | `scripts/build-wasm.ts` | Fat-LTO wasm ship ([gotchas](./gotchas.md#release-wasm-inherits-native-release-settings)) |
 | Support matrix | Human matrix edit; no committed measurement JSON ([gotchas](./gotchas.md#do-not-commit-measurement-json)) |
-| `scripts/perf-baseline/**`, `scripts/measure-perf-baseline.ts` | [Performance](../../docs/performance.md); primary metrics are latency / CPU / RSS; stdout only, no committed JSON ([gotchas](./gotchas.md#do-not-commit-measurement-json)). RSS snapshots retry EINTR ([gotchas](./gotchas.md#processmemoryusage-can-return-eintr)) |
+| `scripts/perf-baseline/**`, `scripts/measure-perf-baseline.ts` | [Performance](../../docs/performance.md); primary metrics are latency / CPU / RSS; stdout only, no committed JSON ([gotchas](./gotchas.md#do-not-commit-measurement-json)). Hops must pair by work ([gotchas](./gotchas.md#perf-baseline-hops-must-pair-by-work)). RSS snapshots retry EINTR ([gotchas](./gotchas.md#processmemoryusage-can-return-eintr)) |
 | `studio/` (not in the tree) | [Studio](../../docs/prototypes/studio-ui.md), [DESIGN.md](./DESIGN.md) |
 
 ## Design record check

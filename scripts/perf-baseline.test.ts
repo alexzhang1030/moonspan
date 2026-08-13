@@ -194,7 +194,7 @@ describe("ingest latency / CPU / mem harness", () => {
   );
 
   test.skipIf(!hasWasm)(
-    "ingest suite includes Foxglove and rosbridge envelope hops",
+    "ingest suite pairs decode hops and deliver hops",
     async () => {
       const bytes = readFileSync(wasmPath);
       const rows = await measureIngestSuite(
@@ -207,9 +207,12 @@ describe("ingest latency / CPU / mem harness", () => {
         2,
       );
       expect(rows.map((r) => r.hop)).toEqual([
-        "rclweb.ingest",
+        "rclweb.cdrDecode",
         "foxglove.cdrDecode",
         "rosbridge.jsonDecode",
+        "rclweb.ingest",
+        "foxglove.deliver",
+        "rosbridge.deliver",
       ]);
       for (const row of rows) {
         expect(row.latencyMs.n).toBe(6);

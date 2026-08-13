@@ -173,6 +173,10 @@ npm trusted publishing matches owner + repo + workflow **filename**. A GitHub `e
 
 The owner deleted `docs/evidence/*.json`. Nothing in CI read those files. `just build` used to rewrite `recordedAt` on a wasm-size file, dirtying the tree. Qualification is a human edit of the [support matrix](../../docs/support-matrix.md). Measurement recipes (`just poll-latency`, `just large-message`, `just perf-baseline`) print to stdout. `just perf-baseline` leads with latency / CPU / RSS. Do not add an evidence-check job.
 
+## perf-baseline hops must pair by work
+
+`just perf-baseline` used to put `rclweb.ingest` (subscribe + flush + lease + `onMessage`) next to `foxglove.cdrDecode` (13-byte skip + our own CDR). The Foxglove row was not a Foxglove client. Paid when the owner called that comparison non-corresponding (2026-08-13). Decode hops are header skip + CDR on both sides. Deliver hops are framed bytes → callback (`rclweb.ingest` with `foxglove.deliver`). Do not mix the classes in one comparison. [performance](../../docs/performance.md).
+
 ## process.memoryUsage can return EINTR
 
 Bun on Linux can throw `SystemError: Failed to get memory usage` with errno 4 (`EINTR`), especially right after `Bun.gc(true)`. The perf-baseline harness retries (`scripts/perf-baseline/resources.ts`). Do not treat one failed snapshot as a leak, and do not skip RSS because of it.

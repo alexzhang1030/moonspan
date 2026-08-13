@@ -61,10 +61,9 @@ JavaScript already owned buffer lifetimes.
 
 - Controllable inbound copies drop from two to **one** (RMW serialized
   take). Worker→wasm is 0 for sample bodies.
-- `just perf-baseline` on the inline host times host-retain ROS_SAMPLE
-  (header peek + JS CDR + subscribe/lease dispatch). Foxglove's row is a
-  bare MessageData skip + CDR decode. Remaining latency is that dispatch,
-  not the 19 extra header bytes.
+- `just perf-baseline` splits decode hops (header skip + CDR, paired)
+  from deliver hops (framed bytes → callback). `rclweb.ingest` pairs
+  with `foxglove.deliver`, not with a 13-byte MessageData skip.
 - The I/O Worker still copies PointCloud2 `data` (and service/action CDR)
   onto the main thread.
 - `hostRetainPrefixLen` peeks version, opcode, `payload_len`, and
