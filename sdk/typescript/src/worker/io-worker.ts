@@ -365,6 +365,11 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
           onClosed() {
             post({ type: "closed" });
           },
+          onPollEnd(snapshot) {
+            if (snapshot) {
+              post({ type: "telemetry", snapshot });
+            }
+          },
         });
         post({ type: "ready" });
         break;
@@ -392,6 +397,12 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
         if (!host) throw new Error("host not initialized");
         if (!connectUrl) throw new Error("reconnect without prior connect");
         connectRequestId = msg.requestId;
+        pendingSubscribe.clear();
+        pendingPublish.clear();
+        pendingService.clear();
+        pendingAction.clear();
+        pendingCalls.clear();
+        pendingActionResults.clear();
         await host.reconnect(connectUrl);
         break;
       }

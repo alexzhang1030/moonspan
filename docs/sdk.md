@@ -38,6 +38,8 @@ const node = new Node("minimal_publisher");
 
 `init` currently authenticates as scheme `token` / `anonymous`. The gateway default is Authenticate `off` ([R4-01](./milestones/r4-01-oidc-sros2-audit.md)). Optional `InitOptions` (`inline`, `wasmUrl`, `transport`, WebTransport hashes) are for tests and local-dev TLS — applications leave them unset.
 
+`InitOptions.reconnect` (default off) is a fresh session: ClientHello → Authenticate → SessionReady, then the SDK re-opens topics, services, and actions with the same channel IDs so existing `Node` objects keep working. In-flight service calls and action results reject with `"session reconnected"`. SessionResume stays parked. This applies on both the default I/O Worker path and `inline: true`.
+
 ## Publisher and subscription
 
 ```ts

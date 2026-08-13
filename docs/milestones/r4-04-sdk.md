@@ -103,6 +103,16 @@ Phase 1 service and action roots are ROS classes on `Node`: `rclweb_cdr_interfac
 | Host / Worker | Inbound generated ops copy host-value bytes via `rclweb_decode_generated` and release the lease. The Worker keys service/action channels by `typeName`. |
 | Fixtures | [`scripts/fixture-gen`](../../scripts/fixture-gen/) emits EchoNested and MeasureSequence CDR payloads. Tests rewrite the frame payload (request CDR ≠ response CDR). |
 
+## Outcome (this slice — reconnect and Worker telemetry)
+
+Reconnect is a fresh session on both the I/O Worker path and the inline host. After SessionReady the SDK re-opens tracked subscribe, publish, service, and action channels with the **same client-assigned channel IDs**, so existing session objects keep calling. In-flight service calls and action results reject. `WorkerClient.telemetry()` returns the last poll snapshot (it used to be `null`).
+
+| Area | Behavior |
+|---|---|
+| IDs | Re-open uses the original channel id. Do not allocate a new id on reconnect. |
+| Worker | `onPollEnd` posts `{ type: "telemetry", snapshot }` before sample/op events. Main caches it; `telemetry()` stays synchronous. |
+| Tests | [`worker-ops.test.ts`](../../sdk/typescript/test/worker-ops.test.ts): Worker telemetry after a sample; Worker and inline reconnect keep the same subscription / service client. |
+
 ## Delivered scope
 
 | Surface | Location |

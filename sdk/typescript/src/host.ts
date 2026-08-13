@@ -31,6 +31,8 @@ export type HostCallbacks = {
   onEvent(event: AppEvent): void;
   onTransportError(message: string): void;
   onClosed(): void;
+  /** Called after each poll with the latest engine counters (Worker telemetry). */
+  onPollEnd?(snapshot: EngineTelemetrySnapshot | null): void;
 };
 
 export type HostConnectOptions = {
@@ -148,6 +150,7 @@ export class IoHost {
       this.#callbacks.onTransportError("websocket error");
     });
     ws.addEventListener("close", () => {
+      if (this.#ws !== ws) return;
       this.#closed = true;
       if (!this.#suppressCloseHandler) {
         this.#callbacks.onClosed();
@@ -219,6 +222,7 @@ export class IoHost {
       });
       void this.#readWtLoop(reader);
       void wt.closed.then(() => {
+        if (this.#wt !== wt) return;
         this.#closed = true;
         if (!this.#suppressCloseHandler) {
           this.#callbacks.onClosed();
@@ -607,7 +611,7 @@ export class IoHost {
 
   /**
    * Replace the engine and reopen the transport (fresh session reconnect).
-   * Caller must re-issue subscribe/publish after sessionReady.
+   * Caller must re-issue subscribe/publish/service/action after sessionReady.
    */
   async reconnect(url: string): Promise<void> {
     this.#suppressCloseHandler = true;
@@ -687,6 +691,7 @@ export class IoHost {
     this.#pending = [];
     const result = pollEngine(this.#wasm, this.#handle, batch);
     this.#lastTelemetry = readTelemetry(this.#wasm, this.#handle);
+    this.#callbacks.onPollEnd?.(this.#lastTelemetry);
     for (const msg of result.outbound) {
       const sink = this.#sink;
       if (sink) {
