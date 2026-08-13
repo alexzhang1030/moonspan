@@ -1,10 +1,10 @@
 # rclweb execution checklist
 
-Status values: `[ ]` queued, `[~]` active, `[x]` verified. Phase details live in the [plan](./plan.md); pre-restructure M-phase history lives at tag `pre-restructure`.
+Status values: `[ ]` queued, `[~]` active, `[x]` verified. Phase details live in the [plan](./plan.md).
 
 ## R0: Stop-loss and renames
 
-- [x] R0-01 Tag `pre-restructure`; delete the agreement apparatus, fixture generators, MoonBit stack, TS protocol implementation, and evidence harness.
+- [x] R0-01 One implementation per side; baseline tagged.
 - [x] R0-02 Extract the `rclweb` core crate; thin `rclwebd`; wasm32 build in the command surface.
 - [x] R0-03 Rename project to rclweb; declare the protocol v0.1 normative scope.
 - [x] R0-04 Rewrite plan/checklist, add ADR 0010, refresh PCR records and docs tree.
@@ -42,8 +42,8 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified. Phase details live in
 ## R4: Productionization
 
 - [~] R4-01 OIDC, SROS2/ACL, audit (Authenticate off-by-default / opt-in `oidc` + audit; ACL/SROS2 enclave still open).
-- [~] R4-02 Deployment and observability (ops endpoints + J-FT runtime image; PKI/H-FT image/orchestrators still open).
-- [ ] R4-03 Evidence harness returns; support matrix expansion.
+- [~] R4-02 Deployment and observability (ops endpoints + J-FT / H-FT runtime images; PKI/remaining-row images/orchestrators still open).
+- [~] R4-03 Support matrix against live gates (no committed measurement JSON; remaining-row live e2e and human Qualified promotion still open).
 - [ ] R4-04 SDK stabilization and release.
 
 ## Kickoff decisions

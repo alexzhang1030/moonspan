@@ -100,9 +100,9 @@ describe("generated-types corpus build", () => {
     expect(roots).toEqual([...PHASE1_ROOTS].sort(asciiCompare));
 
     const schemes = new Set(built.artifacts.identities.identities.map((i) => i.scheme));
-    expect(schemes).toEqual(new Set(["moonspan-schema-v1", "rep2011-rihs"]));
+    expect(schemes).toEqual(new Set(["rclweb-schema-v1", "rep2011-rihs"]));
 
-    const primitive = "moonspan_cdr_interfaces/msg/PrimitiveScalars";
+    const primitive = "rclweb_cdr_interfaces/msg/PrimitiveScalars";
     const hftLe = built.artifacts.wire_profiles.profiles.find(
       (p) =>
         p.type_name === primitive &&

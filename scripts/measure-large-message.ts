@@ -12,7 +12,6 @@
  * Usage: `bun run scripts/measure-large-message.ts`
  */
 
-import { writeFileSync } from "node:fs";
 import path from "node:path";
 import {
   LARGE_FRAME_INLINE_THRESHOLD,
@@ -29,7 +28,6 @@ import {
 
 const root = path.resolve(import.meta.dir, "..");
 const wasmPath = path.join(root, "sdk/typescript/wasm/rclweb.wasm");
-const outPath = path.join(root, "docs/evidence/r2-02-large-message.json");
 
 const POINT_PAYLOAD_BYTES = 87_381 * 12; // 1_048_572
 const FRAME_COUNT = 30; // 3 seconds at 10 Hz
@@ -133,69 +131,15 @@ const transferable = measureHostPath(
 );
 
 let shared: ReturnType<typeof measureHostPath> | null = null;
-let sabGate: Record<string, unknown>;
 if (sharedArrayBufferConstructible()) {
   shared = measureHostPath(
     "shared-arraybuffer-ring",
     new SharedArrayBufferRingStrategy(4 * 1024 * 1024),
   );
-  sabGate = {
-    constructible: true,
-    isolationRequired: true,
-    isolationPresent:
-      typeof globalThis.crossOriginIsolated === "boolean"
-        ? globalThis.crossOriginIsolated
-        : null,
-    measured: true,
-    note:
-      "SAB constructible in this host for reproducible measurement. Browser production still requires COOP/COEP cross-origin isolation; R2WP capability 2 negotiation stays evidence-gated and is not claimed shipped.",
-  };
-} else {
-  sabGate = {
-    constructible: false,
-    isolationRequired: true,
-    isolationPresent: null,
-    measured: false,
-    note: "SharedArrayBuffer unavailable — ring path not measured in this environment.",
-  };
 }
 
 const engineCopy = await measureEngineRetainCopy(wasmBytes);
 
-const record = {
-  task: "R2-02",
-  kind: "large-message-path",
-  recordedAt: new Date().toISOString(),
-  workload: {
-    description:
-      "Synthetic ~1 MiB PointCloud2-scale frames through both host buffer strategies + two-pass encodeHostBatch; plus one engine retain-copy probe",
-    pointPayloadBytes: POINT_PAYLOAD_BYTES,
-    targetRateHz: 10,
-    frameCount: FRAME_COUNT,
-    warmup: WARMUP,
-    landedScope:
-      "Host encode + both buffer strategies + O(1) PointCloud2 borrowed CDR + large-frame poll retain copy. Full Foxglove/rosbridge baseline deferred to R2-04.",
-  },
-  copyBudget: {
-    inboundControllableMax: 2,
-    browserSlot: "Worker/host → engine retained (copies_into_engine)",
-    largeFramePath:
-      "external-ptr poll: one set() into wasm alloc; engine takes ownership via from_raw_parts (no second deep copy)",
-    probe: engineCopy,
-  },
-  sharedArrayBufferGate: sabGate,
-  strategies: {
-    transferableArrayBuffer: transferable,
-    sharedArrayBufferRing: shared,
-  },
-  wasm: {
-    artifact: "sdk/typescript/wasm/rclweb.wasm",
-    bytes: wasmBytes.byteLength,
-  },
-};
-
-writeFileSync(outPath, `${JSON.stringify(record, null, 2)}\n`);
-console.log(`wrote ${outPath}`);
 console.log(
   JSON.stringify(
     {

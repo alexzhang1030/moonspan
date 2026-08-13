@@ -12,7 +12,7 @@ digest-pinned compose lane `docker/compose.r3-03-h-ft-e2e.yml` (CI job
 |---|---|
 | Gateway config | `SupportRow` on `GatewayConfig`; `RCLWEBD_SUPPORT_ROW` selects `J-FT` (default) or `H-FT` |
 | SessionReady | Fields 8/18/19 carry row id / distro / RMW from config |
-| OpenChannel | Client engine remembers SessionReady row; `H-*` → `moonspan-schema-v1`, `J-*` → `rep2011-rihs` |
+| OpenChannel | Client engine remembers SessionReady row; `H-*` → `rclweb-schema-v1`, `J-*` → `rep2011-rihs` |
 | Wrong row | Gateway rejects OpenChannel with `support_row_mismatch` (wire 25) |
 | Live Humble rcl | Digest-pinned Humble image regenerates FFI (`scripts/generate-rcl-bindings.sh`) then links `--features ros` with `ROS_PREFIX=/opt/ros/humble` and `RCLWEBD_SUPPORT_ROW=H-FT`; talker → gateway → SDK harness |
 
@@ -26,7 +26,7 @@ digest-pinned compose lane `docker/compose.r3-03-h-ft-e2e.yml` (CI job
 | Engine / SDK | `AppCommand::Start { webtransport }` + `ConnectOptions.transport` / `serverCertificateHashes` / optional `/local-dev/tls` fetch |
 | WT accept | Behind `--features webtransport` (`wtransport`); length-prefixed bi-stream ↔ `connection::run`; stub without feature |
 
-Evidence: [`r3-03-h-ft-row.json`](../evidence/r3-03-h-ft-row.json), [`r3-03-local-dev-tls.json`](../evidence/r3-03-local-dev-tls.json), [`r3-03-h-ft-e2e.json`](../evidence/r3-03-h-ft-e2e.json) (written by the live compose lane).
+Evidence: `just test` (H-FT protocol + local-dev TLS) and `just e2e-h-ft` (live Humble talker).
 
 ## Acceptance evidence
 
@@ -42,7 +42,7 @@ just e2e-h-ft   # or CI job e2e-ros-talker-h-ft
 
 Optional WT accept: `cargo test --locked -p rclwebd --features webtransport --lib`
 
-Optional mock compose: `docker compose -f docker/compose.r3-03-h-ft.yml run --rm h-ft-protocol`
+H-FT protocol without Humble packages is the mock gateway in `cargo test` (`just test`). There is no separate Docker mock lane.
 
 ## Surfaces
 
@@ -54,9 +54,8 @@ Optional mock compose: `docker compose -f docker/compose.r3-03-h-ft.yml run --rm
 | HTTP advertise + WS | [`rclwebd/src/ws.rs`](../../rclwebd/src/ws.rs) |
 | Engine OpenChannel / ClientHello | [`rclweb/src/engine/`](../../rclweb/src/engine/) |
 | SDK ConnectOptions / host | [`sdk/typescript/src/`](../../sdk/typescript/src/) |
-| Mock H-FT e2e | [`rclwebd/tests/ws_gateway.rs`](../../rclwebd/tests/ws_gateway.rs) |
+| Mock H-FT protocol | [`rclwebd/tests/ws_gateway.rs`](../../rclwebd/tests/ws_gateway.rs) (runs under `just test`) |
 | Live Humble e2e | [`docker/compose.r3-03-h-ft-e2e.yml`](../../docker/compose.r3-03-h-ft-e2e.yml) |
-| Mock protocol scaffolding | [`docker/compose.r3-03-h-ft.yml`](../../docker/compose.r3-03-h-ft.yml) |
 
 ## Deferred
 

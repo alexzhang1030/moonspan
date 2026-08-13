@@ -1,4 +1,4 @@
-//! `moonspan_cdr_interfaces/msg/NestedSample`.
+//! `rclweb_cdr_interfaces/msg/NestedSample`.
 
 use super::collections::{Collections, decode_collections, encode_collections};
 use super::primitive_scalars::{
@@ -7,7 +7,7 @@ use super::primitive_scalars::{
 use super::time::{Time, decode_time, encode_time};
 use crate::cdr::{CdrEndian, CdrError, CdrNesting, CdrReader, CdrWriter};
 
-pub const TYPE_NAME: &str = "moonspan_cdr_interfaces/msg/NestedSample";
+pub const TYPE_NAME: &str = "rclweb_cdr_interfaces/msg/NestedSample";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct NestedSample {

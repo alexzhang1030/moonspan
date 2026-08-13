@@ -4,7 +4,7 @@ Traps already paid for in this repository, each with its why.
 
 ## One gateway process binds one support row
 
-`rclwebd` carries a single [`SupportRow`](../../rclwebd/src/config.rs) for the process lifetime ([ADR 0008](../../docs/adr/0008-one-adapter-row-per-gateway-process.md)). `RCLWEBD_SUPPORT_ROW` selects `J-FT` (default) or `H-FT`. Mixing rows in one process is unsupported — run separate gateways and compose SDK sessions. H-FT OpenChannel uses `moonspan-schema-v1`; J-FT uses `rep2011-rihs`. Wrong-row OpenChannel fails with wire code 25 (`support_row_mismatch`). Pair the row with the linked ROS prefix (`J-FT` ↔ `/opt/ros/jazzy`, `H-FT` ↔ `/opt/ros/humble`); the H-FT live image regenerates vendored FFI against Humble before `cargo build --features ros` so layouts match that distro. Startup also probes adapter ABI `serialized-adapter-v1` against the row/distro ([R3-04](../../docs/milestones/r3-04-adapter-abi-typesupport.md)).
+`rclwebd` carries a single [`SupportRow`](../../rclwebd/src/config.rs) for the process lifetime ([ADR 0008](../../docs/adr/0008-one-adapter-row-per-gateway-process.md)). `RCLWEBD_SUPPORT_ROW` selects `J-FT` (default) or `H-FT`. Mixing rows in one process is unsupported — run separate gateways and compose SDK sessions. H-FT OpenChannel uses `rclweb-schema-v1`; J-FT uses `rep2011-rihs`. Wrong-row OpenChannel fails with wire code 25 (`support_row_mismatch`). Pair the row with the linked ROS prefix (`J-FT` ↔ `/opt/ros/jazzy`, `H-FT` ↔ `/opt/ros/humble`); the H-FT live image regenerates vendored FFI against Humble before `cargo build --features ros` so layouts match that distro. Startup also probes adapter ABI `serialized-adapter-v1` against the row/distro ([R3-04](../../docs/milestones/r3-04-adapter-abi-typesupport.md)).
 
 ## Authenticate defaults to off
 
@@ -83,4 +83,16 @@ Foundation CI installs Bun with SHA-pinned `oven-sh/setup-bun` (`.bun-version`) 
 
 ## release-wasm inherits native release settings
 
-`[profile.release-wasm] inherits = "release"`. Adding `strip`, `lto`, or panic settings to native release also applies to the wasm ship profile unless that key is set again on `release-wasm`. Putting `strip = "symbols"` on native release dropped staged `rclweb.wasm` from 593631 bytes to 376519. Keep fat LTO, `panic = abort`, `opt-level = "z"`, and `strip` explicit on `release-wasm`. Reproduce with `just build` and [`docs/evidence/r1-04-wasm-size.json`](../../docs/evidence/r1-04-wasm-size.json).
+`[profile.release-wasm] inherits = "release"`. Adding `strip`, `lto`, or panic settings to native release also applies to the wasm ship profile unless that key is set again on `release-wasm`. Putting `strip = "symbols"` on native release dropped staged `rclweb.wasm` from 593631 bytes to 376519. Keep fat LTO, `panic = abort`, `opt-level = "z"`, and `strip` explicit on `release-wasm`. Reproduce with `just build` (it prints the staged size).
+
+## Bundle files are named by type
+
+Canonical bundles live at `conformance/cdr/fixtures/bundles/<type with / → .>.json` (for example `rclweb_cdr_interfaces.msg.PrimitiveScalars.json`). Humble `SchemaKey.value` is still the SHA-256 of those bytes — that digest is a wire field, not a filename. Renaming scheme/package strings inside the JSON changes the digest; do not Docker `--write` the corpus for a name change. [ADR 0012](../../docs/adr/0012-rclweb-schema-identifiers.md).
+
+## Do not commit measurement JSON
+
+The owner deleted `docs/evidence/*.json`. Nothing in CI read those files. `just build` used to rewrite `recordedAt` on a wasm-size file, dirtying the tree. Qualification is a human edit of the [support matrix](../../docs/support-matrix.md). Measurement recipes (`just poll-latency`, `just large-message`, `just perf-baseline`) print to stdout. Do not add an evidence-check job. [R4-03](../../docs/milestones/r4-03-support-matrix.md).
+
+## Do not wrap cargo tests in a Docker mock lane
+
+R3-03 added `docker/compose.r3-03-h-ft.yml` whose image only re-ran `cargo test` inside `rust:1.97.1`. Foundation already runs those tests via `just test`. The CI job was `workflow_dispatch`-only, so it never gated. Live Humble remains [`docker/compose.r3-03-h-ft-e2e.yml`](../../docker/compose.r3-03-h-ft-e2e.yml). Do not add a compose file whose only command is cargo tests the workspace already runs.

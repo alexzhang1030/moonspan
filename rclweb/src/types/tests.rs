@@ -1,7 +1,7 @@
 //! Unit tests for the Phase 1 schema registry and key validation.
 
 use super::error::SchemaErrorCode;
-use super::key::{SCHEME_MOONSPAN_SCHEMA_V1, SCHEME_REP2011_RIHS, SchemaKey};
+use super::key::{SCHEME_RCLWEB_SCHEMA_V1, SCHEME_REP2011_RIHS, SchemaKey};
 use super::registry::{CdrRepresentation, SchemaRegistry, SchemaRegistryBuilder};
 
 #[test]
@@ -14,10 +14,10 @@ fn phase1_has_eighteen_identities_and_nine_descriptors() {
 #[test]
 fn primitive_scalars_h_ft_and_j_ft_tails() {
   let reg = SchemaRegistry::phase1().unwrap();
-  let type_name = "moonspan_cdr_interfaces/msg/PrimitiveScalars";
+  let type_name = "rclweb_cdr_interfaces/msg/PrimitiveScalars";
 
   for (scheme, value) in [
-    (SCHEME_MOONSPAN_SCHEMA_V1, "3aba18ec187625b72e035716e63d060ece2e68946990bf04f77c93802eb669fd"),
+    (SCHEME_RCLWEB_SCHEMA_V1, "d5d0a3d49f52d81a21b93f6d49e9f64f37de0057ef387189740d6510e9048280"),
     (
       SCHEME_REP2011_RIHS,
       "RIHS01_db44c373c05fc055970958730d7cb835f816b091b68bfdf93d6ed50086092cea",
@@ -36,9 +36,9 @@ fn primitive_scalars_h_ft_and_j_ft_tails() {
 #[test]
 fn invalid_key_faults() {
   let err = SchemaKey::new(
-    SCHEME_MOONSPAN_SCHEMA_V1,
+    SCHEME_RCLWEB_SCHEMA_V1,
     "3ABA18EC187625B72E035716E63D060ECE2E68946990BF04F77C93802EB669FD",
-    "moonspan_cdr_interfaces/msg/PrimitiveScalars",
+    "rclweb_cdr_interfaces/msg/PrimitiveScalars",
     1,
     1,
   )
@@ -47,7 +47,7 @@ fn invalid_key_faults() {
 
   let err = SchemaKey::new(
     "unknown-scheme",
-    "3aba18ec187625b72e035716e63d060ece2e68946990bf04f77c93802eb669fd",
+    "d5d0a3d49f52d81a21b93f6d49e9f64f37de0057ef387189740d6510e9048280",
     "t",
     1,
     1,
@@ -66,8 +66,8 @@ fn invalid_key_faults() {
   assert_eq!(err.code, SchemaErrorCode::InvalidSchemaKey);
 
   let err = SchemaKey::new(
-    SCHEME_MOONSPAN_SCHEMA_V1,
-    "3aba18ec187625b72e035716e63d060ece2e68946990bf04f77c93802eb669fd",
+    SCHEME_RCLWEB_SCHEMA_V1,
+    "d5d0a3d49f52d81a21b93f6d49e9f64f37de0057ef387189740d6510e9048280",
     "t",
     2,
     1,
@@ -85,7 +85,7 @@ fn builder_conflict_and_idempotent() {
   assert_eq!(err.code, SchemaErrorCode::SchemaConflict);
 
   let key = SchemaKey::new(
-    SCHEME_MOONSPAN_SCHEMA_V1,
+    SCHEME_RCLWEB_SCHEMA_V1,
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "pkg/msg/A",
     1,
@@ -112,7 +112,7 @@ fn missing_wire_profile_is_unavailable() {
   let key = SchemaKey::new(
     SCHEME_REP2011_RIHS,
     "RIHS01_db44c373c05fc055970958730d7cb835f816b091b68bfdf93d6ed50086092cea",
-    "moonspan_cdr_interfaces/msg/PrimitiveScalars",
+    "rclweb_cdr_interfaces/msg/PrimitiveScalars",
     1,
     1,
   )

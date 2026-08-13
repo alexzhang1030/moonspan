@@ -501,9 +501,9 @@ fn graph_snapshot_control_emits_app_event() {
 }
 
 #[test]
-fn h_ft_session_ready_subscribe_emits_moonspan_open_channel() {
+fn h_ft_session_ready_subscribe_emits_humble_open_channel() {
   use crate::protocol::frame::OPCODE_CONTROL_CBOR;
-  use crate::types::SCHEME_MOONSPAN_SCHEMA_V1;
+  use crate::types::SCHEME_RCLWEB_SCHEMA_V1;
 
   let mut engine = ClientEngine::new();
   let _ = engine.poll(vec![HostEvent::Command(AppCommand::Start {
@@ -526,7 +526,7 @@ fn h_ft_session_ready_subscribe_emits_moonspan_open_channel() {
   );
   assert_eq!(engine.support_row_id(), "H-FT");
 
-  let type_name = "moonspan_cdr_interfaces/msg/PrimitiveScalars";
+  let type_name = "rclweb_cdr_interfaces/msg/PrimitiveScalars";
   let sub = engine.poll(vec![HostEvent::Command(AppCommand::Subscribe {
     correlation: corr(0xB2),
     channel_id: 7,
@@ -558,5 +558,5 @@ fn h_ft_session_ready_subscribe_emits_moonspan_open_channel() {
     Some(CborValue::Text(t)) => t.as_ref(),
     other => panic!("expected scheme, got {other:?}"),
   };
-  assert_eq!(scheme, SCHEME_MOONSPAN_SCHEMA_V1);
+  assert_eq!(scheme, SCHEME_RCLWEB_SCHEMA_V1);
 }

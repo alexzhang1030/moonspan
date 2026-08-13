@@ -20,7 +20,7 @@ export const CORPUS_REL = "conformance/cdr";
 export const MANIFEST_REL = `${CORPUS_REL}/manifest.json`;
 export const ARTIFACT_REL = `${CORPUS_REL}/tail-slack.json`;
 export const FIXTURES_PREFIX = "fixtures/";
-export const CORPUS_ID = "moonspan-ros-cdr-v1";
+export const CORPUS_ID = "rclweb-ros-cdr-v1";
 export const SCHEMA_VERSION = 1;
 export const POLICY = "canonical-prefix-plus-zero-tail-v1";
 

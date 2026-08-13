@@ -64,14 +64,6 @@ fix-rust:
     cargo fmt --all
     cargo clippy --fix --locked --workspace --all-targets --allow-dirty --allow-staged
 
-# Optional prek hooks from `.pre-commit-config.yaml` (not a CI pin).
-[group('meta')]
-install-hooks:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    cargo install prek --version 0.4.9 --locked
-    prek install --hook-type pre-commit
-
 # Validate R2WP v0 registry JSON and control CDDL.
 [group('quality')]
 protocol-check: toolchain-check
@@ -86,11 +78,6 @@ protocol-fixtures-check: toolchain-check
 [group('quality')]
 protocol-fixtures-write: toolchain-check
     cd "{{root}}" && cargo run --locked -p protocol-fixtures -- --write
-
-# Deterministic decoder fuzz smoke (stable toolchain; see fuzz/README.md for nightly).
-[group('quality')]
-fuzz-smoke: toolchain-check
-    cd "{{root}}" && cargo test --locked -p rclweb --test decoder_fuzz_smoke
 
 # ROS CDR corpus check from committed artifacts.
 [group('quality')]
@@ -190,17 +177,17 @@ build: toolchain-check
     bun run scripts/build-wasm.ts
     bun run --filter @rclweb/sdk build
 
-# Measure wasm poll latency and refresh size evidence (R-D1 reopen inputs).
+# Measure wasm poll latency (R-D1). Prints to stdout; does not write into the repo.
 [group('quality')]
 poll-latency: toolchain-check
     cd "{{root}}" && bun run scripts/measure-poll-latency.ts
 
-# R2-02 large-message path evidence (both buffer strategies + encodeHostBatch).
+# R2-02 large-message path (both buffer strategies + encodeHostBatch). Prints to stdout.
 [group('quality')]
 large-message: toolchain-check
     cd "{{root}}" && bun run scripts/measure-large-message.ts
 
-# R2-04 performance baseline (host workloads + protocol-cost models).
+# R2-04 performance baseline (host workloads + protocol-cost models). Prints to stdout.
 [group('quality')]
 perf-baseline: toolchain-check
     cd "{{root}}" && bun run scripts/measure-perf-baseline.ts
@@ -217,7 +204,6 @@ perf-baseline-live: toolchain-check
     fi
     docker compose -f docker/compose.r2-04-perf.yml build
     docker compose -f docker/compose.r2-04-perf.yml run --rm perf
-    bun run scripts/measure-perf-baseline.ts
 
 # Live ROS talker → rclwebd → SDK subscribe via docker compose (R1-05 / J-FT).
 [group('quality')]

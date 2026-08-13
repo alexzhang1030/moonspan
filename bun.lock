@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "moonspan",
+      "name": "rclweb",
     },
     "examples/e2e-harness": {
       "name": "@rclweb/e2e-harness",

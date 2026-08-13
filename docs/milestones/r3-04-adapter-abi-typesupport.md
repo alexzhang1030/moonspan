@@ -51,7 +51,6 @@ Notable tests / artifacts:
 - `adapter::tests::*` (ABI probe + buffer ownership)
 - `ros_rcl`: `serialized_loopback_publish_take_and_graph`, `unknown_type_is_schema_unavailable`, `add_two_ints_typesupport_resolves_via_dlopen`, `live_service_add_two_ints_round_trip`, `fibonacci_action_typesupport_resolves_via_dlopen`, `live_action_fibonacci_round_trip`
 - MockBackend service/action suite (`ws_gateway`) unchanged
-- Evidence: [`r3-04-adapter-abi.json`](../evidence/r3-04-adapter-abi.json)
 
 ## Ownership after completion
 

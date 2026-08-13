@@ -1,12 +1,12 @@
-//! `moonspan_cdr_interfaces/action/MeasureSequence_{Goal,Result,Feedback}`.
+//! `rclweb_cdr_interfaces/action/MeasureSequence_{Goal,Result,Feedback}`.
 
 use super::collections::{Collections, decode_collections, encode_collections};
 use super::nested_sample::{NestedSample, decode_nested_sample, encode_nested_sample};
 use crate::cdr::{CdrEndian, CdrError, CdrReader, CdrWriter};
 
-pub const GOAL_TYPE_NAME: &str = "moonspan_cdr_interfaces/action/MeasureSequence_Goal";
-pub const RESULT_TYPE_NAME: &str = "moonspan_cdr_interfaces/action/MeasureSequence_Result";
-pub const FEEDBACK_TYPE_NAME: &str = "moonspan_cdr_interfaces/action/MeasureSequence_Feedback";
+pub const GOAL_TYPE_NAME: &str = "rclweb_cdr_interfaces/action/MeasureSequence_Goal";
+pub const RESULT_TYPE_NAME: &str = "rclweb_cdr_interfaces/action/MeasureSequence_Result";
+pub const FEEDBACK_TYPE_NAME: &str = "rclweb_cdr_interfaces/action/MeasureSequence_Feedback";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MeasureSequenceGoal {

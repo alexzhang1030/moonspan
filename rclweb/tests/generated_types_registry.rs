@@ -48,7 +48,7 @@ fn phase1_registry_counts() {
 #[test]
 fn schema_identity_helper_for_roots() {
   let id =
-    schema_identity_for_type("moonspan_cdr_interfaces/msg/PrimitiveScalars", SCHEME_REP2011_RIHS)
+    schema_identity_for_type("rclweb_cdr_interfaces/msg/PrimitiveScalars", SCHEME_REP2011_RIHS)
       .unwrap()
       .expect("root");
   assert_eq!(id.0, SCHEME_REP2011_RIHS);
@@ -156,7 +156,7 @@ fn lookup_primitive_scalars_j_ft() {
   let key = SchemaKey::new(
     SCHEME_REP2011_RIHS,
     "RIHS01_db44c373c05fc055970958730d7cb835f816b091b68bfdf93d6ed50086092cea",
-    "moonspan_cdr_interfaces/msg/PrimitiveScalars",
+    "rclweb_cdr_interfaces/msg/PrimitiveScalars",
     1,
     1,
   )

@@ -1,6 +1,6 @@
 # Validation and delivery gates
 
-rclweb turns design targets into release authority through reproducible conformance, performance, security, and operations evidence. Support rows begin as **Qualification targets** and become **Qualified** through reviewed reports.
+rclweb turns design targets into release authority through reproducible conformance, performance, security, and operations evidence. Support rows begin as **Qualification targets** and become **Qualified** when a human updates the [support matrix](./support-matrix.md).
 
 ## Native evidence levels
 
@@ -50,16 +50,16 @@ Each accepted claim records:
 - code, fixture, package, image, and environment identity;
 - support row, gateway, domain, and adapter provenance;
 - command, workload, budgets, duration, samples, warm-up, and variance;
-- raw machine-readable output and generated report;
+- stdout from the reproducing command (not committed);
 - timestamps, queues, resources, errors, and stable dispositions;
 - artifact location and integrity;
 - reviewer, gate, decision, and known limits.
 
-The machine-readable qualification-report contract from the pre-restructure evidence harness is parked at tag `pre-restructure` and returns in R4, when real gate reports exist to validate ([ADR 0010](./adr/0010-restructure-single-rust-core.md)).
+The live gates (`just e2e`, `just e2e-h-ft`, `just test`) are the delivery evidence. A row becomes **Qualified** only when a human updates the [support matrix](./support-matrix.md). There is no `evidence-check` job and no committed measurement JSON under `docs/evidence/` ([R4-03](./milestones/r4-03-support-matrix.md)).
 
 ## Foundation CI
 
-[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) installs the pinned toolchains with SHA-pinned setup actions (`oven-sh/setup-bun`, `extractions/setup-just` with one retry, `dtolnay/rust-toolchain`) and runs the root check, test, and build commands (`foundation` job), including the `rclweb` wasm32 build. The `e2e-ros-talker` job runs the digest-pinned Jazzy compose lane (`docker/compose.r1-e2e.yml`) against a real ROS 2 talker. The `e2e-ros-talker-h-ft` job runs the digest-pinned Humble H-FT lane (`docker/compose.r3-03-h-ft-e2e.yml`) with in-image FFI regeneration. Both upload [`docs/evidence/`](./evidence/) artifacts. E2e images copy Bun from digest-pinned `oven/bun` (must match `.bun-version`); they must not pipe `bun.sh/install`. R4-02 operations tests (`/livez`, `/readyz`, drain, `/metrics`) run in foundation via `just test`; the J-FT runtime image (`just image-rclwebd`) is a Docker artifact, not a foundation job.
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) installs the pinned toolchains with SHA-pinned setup actions (`oven-sh/setup-bun`, `extractions/setup-just` with one retry, `dtolnay/rust-toolchain`) and runs the root check, test, and build commands (`foundation` job), including the `rclweb` wasm32 build. The `e2e-ros-talker` job runs the digest-pinned Jazzy compose lane (`docker/compose.r1-e2e.yml`) against a real ROS 2 talker. The `e2e-ros-talker-h-ft` job runs the digest-pinned Humble H-FT lane (`docker/compose.r3-03-h-ft-e2e.yml`) with in-image FFI regeneration. Those jobs are the live gate; they do not upload or commit measurement JSON. E2e images copy Bun from digest-pinned `oven/bun` (must match `.bun-version`); they must not pipe `bun.sh/install`. R4-02 operations tests (`/livez`, `/readyz`, drain, `/metrics`) run in foundation via `just test`; the J-FT runtime image (`just image-rclwebd`) is a Docker artifact, not a foundation job.
 
 ## Delivery gates
 
@@ -69,7 +69,7 @@ The machine-readable qualification-report contract from the pre-restructure evid
 | R1 Walking skeleton | Live end-to-end subscribe in CI, corpus-passing CDR port, wasm size and poll latency, copy counters | Core architecture approval |
 | R2 Data-plane hardening | Publish, QoS subset, budgets, reconnect, adversarial fixtures, fuzzing, performance baseline | Data-plane approval |
 | R3 Semantics and breadth | N2 subset, generated types, second row, WebTransport, versioned adapter ABI | Semantic capability approval |
-| R4 Productionization | Identity, policy, SROS2, audit, compatibility, deployment, evidence harness, SDK, and release artifacts | Release approval |
+| R4 Productionization | Identity, policy, SROS2, audit, compatibility, deployment, reviewed evidence, SDK, and release artifacts | Release approval |
 | U0 Studio | Released SDK integration, workflows, rendering, media, accessibility, and command safety | Prototype acceptance |
 
 ## Qualification scenarios

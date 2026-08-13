@@ -1,9 +1,9 @@
-//! `moonspan_cdr_interfaces/msg/PrimitiveScalars`.
+//! `rclweb_cdr_interfaces/msg/PrimitiveScalars`.
 
 use crate::cdr::{CdrEndian, CdrError, CdrNesting, CdrReader, CdrWriter};
 
 /// Fully qualified ROS type name.
-pub const TYPE_NAME: &str = "moonspan_cdr_interfaces/msg/PrimitiveScalars";
+pub const TYPE_NAME: &str = "rclweb_cdr_interfaces/msg/PrimitiveScalars";
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PrimitiveScalars {

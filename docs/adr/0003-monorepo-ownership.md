@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-Moonspan spans Rust, MoonBit, TypeScript, shared protocol contracts, conformance fixtures, deployment assets, and documentation. Multi-language work needs one coordinated delivery surface while keeping language-specific dependency graphs and release units independent.
+rclweb spans Rust, MoonBit, TypeScript, shared protocol contracts, conformance fixtures, deployment assets, and documentation. Multi-language work needs one coordinated delivery surface while keeping language-specific dependency graphs and release units independent.
 
 ## Decision
 
@@ -20,7 +20,7 @@ Use one monorepo for Rust, MoonBit, TypeScript, R2WP contracts and fixtures, con
 - Mainline language workspaces for this phase:
   - `rclwebd/` — Cargo workspace member (Rust gateway library).
   - `rclmbt/` — `moon.work` member (MoonBit/Wasm runtime module).
-  - `sdk/typescript/` — Bun workspace package `@moonspan/sdk`.
+  - `sdk/typescript/` — Bun workspace package `@rclweb/sdk`.
   - `examples/*` — reserved Bun workspace glob for mainline examples.
 - Studio workspace enrollment begins at U0 after M3; M0–M3 keep `studio/` free of source and active workspace entries.
 - Each language workspace owns its dependencies and internal package layout.

@@ -90,7 +90,7 @@ impl MockBackend {
       "example_interfaces/",
       "rcl_interfaces/",
       "std_srvs/",
-      "moonspan_cdr_interfaces/",
+      "rclweb_cdr_interfaces/",
     ];
     if PREFIXES.iter().any(|p| spec.type_name.starts_with(p)) {
       Ok(())

@@ -60,7 +60,7 @@ sha256-hex = tstr .size 64
 
 schema-identity =
   { 1 => "rep2011-rihs", 2 => rihs01-value } /
-  { 1 => "moonspan-schema-v1", 2 => sha256-hex }
+  { 1 => "rclweb-schema-v1", 2 => sha256-hex }
 
 ; history_depth required+positive only for KEEP_LAST; absent for SYSTEM_DEFAULT/KEEP_ALL
 ; liveliness optional on requested/advertised maps (absent => SYSTEM_DEFAULT)

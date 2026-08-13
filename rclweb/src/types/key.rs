@@ -8,7 +8,7 @@ use super::limits::{
 };
 
 /// Humble bundle identity scheme (SHA-256 of canonical bundle bytes).
-pub const SCHEME_MOONSPAN_SCHEMA_V1: &str = "moonspan-schema-v1";
+pub const SCHEME_RCLWEB_SCHEMA_V1: &str = "rclweb-schema-v1";
 
 /// Jazzy REP-2011 RIHS identity scheme.
 pub const SCHEME_REP2011_RIHS: &str = "rep2011-rihs";
@@ -103,11 +103,11 @@ pub fn validate_scheme_value(scheme: &str, value: &str) -> Result<(), SchemaErro
   }
 
   match scheme {
-    SCHEME_MOONSPAN_SCHEMA_V1 => {
+    SCHEME_RCLWEB_SCHEMA_V1 => {
       if value.len() != 64 || !is_lowercase_hex(value) {
         return Err(
           SchemaError::invalid_schema_key(
-            "moonspan-schema-v1 value must be exactly 64 lowercase hex characters",
+            "rclweb-schema-v1 value must be exactly 64 lowercase hex characters",
           )
           .with_field("value"),
         );
@@ -142,11 +142,11 @@ mod tests {
   use super::*;
 
   #[test]
-  fn accepts_moonspan_and_rihs() {
+  fn accepts_bundle_and_rihs() {
     SchemaKey::new(
-      SCHEME_MOONSPAN_SCHEMA_V1,
-      "3aba18ec187625b72e035716e63d060ece2e68946990bf04f77c93802eb669fd",
-      "moonspan_cdr_interfaces/msg/PrimitiveScalars",
+      SCHEME_RCLWEB_SCHEMA_V1,
+      "d5d0a3d49f52d81a21b93f6d49e9f64f37de0057ef387189740d6510e9048280",
+      "rclweb_cdr_interfaces/msg/PrimitiveScalars",
       1,
       1,
     )
@@ -154,7 +154,7 @@ mod tests {
     SchemaKey::new(
       SCHEME_REP2011_RIHS,
       "RIHS01_db44c373c05fc055970958730d7cb835f816b091b68bfdf93d6ed50086092cea",
-      "moonspan_cdr_interfaces/msg/PrimitiveScalars",
+      "rclweb_cdr_interfaces/msg/PrimitiveScalars",
       1,
       1,
     )
@@ -165,7 +165,7 @@ mod tests {
   fn rejects_uppercase_and_wrong_encoding() {
     assert!(
       SchemaKey::new(
-        SCHEME_MOONSPAN_SCHEMA_V1,
+        SCHEME_RCLWEB_SCHEMA_V1,
         "3ABA18EC187625B72E035716E63D060ECE2E68946990BF04F77C93802EB669FD",
         "t",
         1,
@@ -175,8 +175,8 @@ mod tests {
     );
     assert!(
       SchemaKey::new(
-        SCHEME_MOONSPAN_SCHEMA_V1,
-        "3aba18ec187625b72e035716e63d060ece2e68946990bf04f77c93802eb669fd",
+        SCHEME_RCLWEB_SCHEMA_V1,
+        "d5d0a3d49f52d81a21b93f6d49e9f64f37de0057ef387189740d6510e9048280",
         "t",
         2,
         1,

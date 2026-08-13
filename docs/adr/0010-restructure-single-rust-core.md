@@ -22,7 +22,7 @@ MoonBit had been chosen for Wasm convenience. The accepted counter-argument: the
 - Phase 1 gates one support row (J-FT); all six rows of corpus data stay committed.
 - The project is renamed rclweb (`rcl<target>` convention, target = the web platform). The gateway keeps `rclwebd`; the SDK publishes as `@rclweb/sdk`.
 - Owner constraint: the project neither reinvents an rclrs nor depends on a third-party rcl binding. The browser core is an R2WP protocol client, not an rcl binding; the gateway attaches through a narrow serialized-only rcl FFI surface (ADR 0006 direction).
-- Frozen wire and corpus identifiers (`moonspan-schema-v1`, `moonspan-ros-cdr-v1`, conformance ROS package names) keep their historical names; committed hashes depend on them.
+- Wire, corpus, and conformance package identifiers follow the rclweb project name ([ADR 0012](./0012-rclweb-schema-identifiers.md)).
 
 ## Rationale
 
@@ -35,8 +35,8 @@ MoonBit had been chosen for Wasm convenience. The accepted counter-argument: the
 
 - The R-phase plan in [tasks/plan.md](../../tasks/plan.md) replaces the M-phase plan.
 - The CDR contract, the ROS CDR corpus, tail-slack evidence, and the frozen generated-types contract survive as the oracle the Rust port must pass (R1).
-- The evidence harness returns in R4 with real reports to validate.
-- ADRs 0001–0009 remain historical records; where they name MoonBit as the runtime language, this ADR supersedes that choice while preserving their boundaries (0004 host boundary, 0006 C ABI direction, 0007 schema identity).
+- The evidence harness does not return as a CI job in R4. Do not commit measurement JSON; promotion to Qualified is a human edit of the support matrix.
+- ADRs 0001–0009 remain historical records; where they name MoonBit as the runtime language, this ADR supersedes that choice while preserving their boundaries (0004 host boundary, 0006 C ABI direction, 0007 schema identity). [ADR 0012](./0012-rclweb-schema-identifiers.md) aligns the Humble scheme and corpus identifier strings with rclweb.
 
 ## Revisit triggers
 
@@ -45,4 +45,4 @@ MoonBit had been chosen for Wasm convenience. The accepted counter-argument: the
 
 ## Source
 
-Owner rulings R-D1 and R-D4 (2026-08-12) and standing recommendations R-D2/R-D3, recorded with rationale in the [restructure proposal](../proposals/architecture-restructure.md).
+Owner rulings R-D1 and R-D4 (2026-08-12) and standing recommendations R-D2/R-D3.

@@ -18,6 +18,8 @@ import {
   sortKeysDeep,
   stableJsonCompact,
   stableJsonPretty,
+  bundleFileName,
+  bundleRelPath,
 } from "./cdr-corpus.ts";
 
 describe("cdr-corpus helpers", () => {
@@ -64,14 +66,20 @@ describe("cdr-corpus helpers", () => {
     expect(sortKeysDeep({ b: [2, 1], a: 0 })).toEqual({ a: 0, b: [2, 1] });
     expect(normalizeSourceText("a  \r\nb\t\n\n")).toBe("a\nb\n");
     expect(asciiCompare("a", "b")).toBe(-1);
-    expect(sha256Hex("moonspan")).toHaveLength(64);
+    expect(sha256Hex("rclweb")).toHaveLength(64);
+    expect(bundleFileName("rclweb_cdr_interfaces/msg/PrimitiveScalars")).toBe(
+      "rclweb_cdr_interfaces.msg.PrimitiveScalars.json",
+    );
+    expect(bundleRelPath("sensor_msgs/msg/PointCloud2")).toBe(
+      "fixtures/bundles/sensor_msgs.msg.PointCloud2.json",
+    );
   });
 
   test("summary.tsv parser validates header and rows", () => {
     const text = [
       "fixture_id\ttype_name\tserializer\tendianness\ttype_hash\tbyte_length",
-      "primitive_scalars\tmoonspan_cdr_interfaces/msg/PrimitiveScalars\trmw_serialize_zero_padding_v1\tlittle\t\t48",
-      "primitive_scalars_big_endian\tmoonspan_cdr_interfaces/msg/PrimitiveScalars\trosidl_typesupport_fastrtps_cpp\tbig\tRIHS01_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\t48",
+      "primitive_scalars\trclweb_cdr_interfaces/msg/PrimitiveScalars\trmw_serialize_zero_padding_v1\tlittle\t\t48",
+      "primitive_scalars_big_endian\trclweb_cdr_interfaces/msg/PrimitiveScalars\trosidl_typesupport_fastrtps_cpp\tbig\tRIHS01_0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\t48",
       "",
     ].join("\n");
     const rows = parseSummaryTsv(text);
@@ -95,7 +103,7 @@ describe("cdr-corpus reproduce comparison scope", () => {
   });
 
   test("listGeneratedCorpusDigests ignores docs and source trees outside the artifact set", async () => {
-    const corpus = await mkdtemp(path.join(tmpdir(), "moonspan-cdr-scope-"));
+    const corpus = await mkdtemp(path.join(tmpdir(), "rclweb-cdr-scope-"));
     temps.push(corpus);
     await mkdir(path.join(corpus, "fixtures", "H-FT"), { recursive: true });
     await mkdir(path.join(corpus, "generate"), { recursive: true });
@@ -116,7 +124,7 @@ describe("cdr-corpus reproduce comparison scope", () => {
       false,
     );
 
-    const twin = await mkdtemp(path.join(tmpdir(), "moonspan-cdr-scope-twin-"));
+    const twin = await mkdtemp(path.join(tmpdir(), "rclweb-cdr-scope-twin-"));
     temps.push(twin);
     await mkdir(path.join(twin, "fixtures", "H-FT"), { recursive: true });
     await writeFile(path.join(twin, "manifest.json"), '{"corpus":"test"}\n');

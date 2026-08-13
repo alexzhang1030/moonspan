@@ -11,7 +11,6 @@ set -u
 export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-0}"
 export RCLWEBD_BIND="${RCLWEBD_BIND:-127.0.0.1:8794}"
 export RMW_IMPLEMENTATION="${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}"
-export RCLWEB_EVIDENCE_DIR="${RCLWEB_EVIDENCE_DIR:-/workspace/docs/evidence}"
 
 cleanup() {
   for pid in ${PIDS:-}; do

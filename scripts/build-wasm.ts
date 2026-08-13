@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 /**
  * Build the rclweb wasm artifact (fat LTO) and stage it into the SDK package.
- * Records size under docs/evidence/r1-04-wasm-size.json for R-D1 reopen inputs.
+ * Prints size to stdout (R-D1 reopen input). Does not write into the repo.
  */
-import { mkdir, copyFile, writeFile, stat } from "node:fs/promises";
+import { mkdir, copyFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 
@@ -33,22 +33,5 @@ const staged = path.join(sdkWasmDir, "rclweb.wasm");
 await copyFile(artifact, staged);
 
 const info = await stat(staged);
-const evidenceDir = path.join(root, "docs", "evidence");
-await mkdir(evidenceDir, { recursive: true });
-const record = {
-  task: "R1-04",
-  artifact: "sdk/typescript/wasm/rclweb.wasm",
-  profile,
-  target,
-  bytes: info.size,
-  kib: Math.round((info.size / 1024) * 10) / 10,
-  recordedAt: new Date().toISOString(),
-  note: "Hand-written poll ABI (no wasm-bindgen). release-wasm strips symbols. Poll latency evidence lands in R1-05.",
-};
-await writeFile(
-  path.join(evidenceDir, "r1-04-wasm-size.json"),
-  `${JSON.stringify(record, null, 2)}\n`,
-);
-console.log(
-  `staged ${staged} (${record.kib} KiB) → docs/evidence/r1-04-wasm-size.json`,
-);
+const kib = Math.round((info.size / 1024) * 10) / 10;
+console.log(`staged ${staged} (${kib} KiB)`);

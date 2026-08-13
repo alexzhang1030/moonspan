@@ -1,14 +1,14 @@
 # rclweb implementation plan
 
-This plan executes the [architecture restructure](../docs/adr/0010-restructure-single-rust-core.md): a single Rust core (`rclweb`) serving both the gateway and the browser, a walking skeleton before breadth, and process proportional to product. The full rationale, rulings, cut/keep lists, and performance plan live in the [restructure proposal](../docs/proposals/architecture-restructure.md). The pre-restructure M-phase plan is preserved at tag `pre-restructure`.
+Delivery sequence for a single Rust core (`rclweb`) serving both the gateway and the browser, a walking skeleton before breadth, and process proportional to product. Architecture: [docs/architecture.md](../docs/architecture.md). Decision: [ADR 0010](../docs/adr/0010-restructure-single-rust-core.md).
 
 ## Rulings
 
 | ID | State | Ruling |
 |---|---|---|
-| R-D1 | Ruled (owner, 2026-08-12) | Single Rust core, native for `rclwebd`, wasm32 for the browser; MoonBit and the TypeScript protocol implementation removed |
+| R-D1 | Ruled (owner, 2026-08-12) | Single Rust core, native for `rclwebd`, wasm32 for the browser |
 | R-D2 | Standing recommendation | Phase 1 gates one support row, J-FT (Jazzy + Fast DDS); all six rows of corpus data stay committed |
-| R-D3 | Standing recommendation | Protocol v0.1 normative subset per the [scope declaration](../protocol/r2wp-v0.md#normative-scope-after-the-restructure-v01-subset); the rest is parked |
+| R-D3 | Standing recommendation | Protocol v0.1 normative subset per the [scope declaration](../protocol/r2wp-v0.md#normative-scope-v01-subset); the rest is parked |
 | R-D4 | Ruled (owner, 2026-08-12) | Project name `rclweb`; core crate `rclweb`, gateway `rclwebd`, SDK `@rclweb/sdk` |
 
 ## Phases
@@ -28,12 +28,12 @@ Each phase closes on its gate evidence plus human approval.
 
 | ID | State | Deliverable |
 |---|---|---|
-| R0-01 | Complete | Tag `pre-restructure`; delete the agreement apparatus, fixture generators, MoonBit stack, TS protocol implementation, and evidence harness |
+| R0-01 | Complete | One implementation per side; baseline tagged |
 | R0-02 | Complete | Extract the `rclweb` core crate (protocol module + fixtures oracle), thin `rclwebd` over it, wasm32 build in the command surface |
 | R0-03 | Complete | Rename project to rclweb (packages, tooling, CI, docs); declare the protocol v0.1 normative scope |
 | R0-04 | Complete | Rewrite plan/checklist, add ADR 0010, refresh PCR records and docs tree |
 
-Gate: `just check`, `just test`, `just build` green on the shrunk repository. Frozen wire identifiers (`moonspan-schema-v1`, `moonspan-ros-cdr-v1`, conformance ROS package names) keep their historical names because committed corpus hashes and fixtures depend on them.
+Gate: `just check`, `just test`, `just build` green on the shrunk repository. Humble scheme `rclweb-schema-v1`, corpus id `rclweb-ros-cdr-v1`, and conformance ROS package `rclweb_cdr_interfaces` follow the project name ([ADR 0012](../docs/adr/0012-rclweb-schema-identifiers.md)).
 
 ### R1 — Walking skeleton
 
@@ -76,8 +76,8 @@ Gate: N2 subset demonstrated; conformance green on two rows and two transports.
 | ID | State | Deliverable |
 |---|---|---|
 | R4-01 | Active | OIDC identity, SROS2/ACL, audit — first slice: Authenticate off-by-default / opt-in `oidc` + audit JSON; tenant/keystore remain D-04 |
-| R4-02 | Active | Deployment packaging and observability — first slice: `/livez` `/readyz` `/configz` `/metrics` `POST /drain`, J-FT runtime image; PKI/H-FT image/orchestrators remain follow-ups |
-| R4-03 | Queued | Evidence harness returns (recycling the pre-restructure report contract) validating real gate reports; support matrix expansion to remaining rows |
+| R4-02 | Active | Deployment packaging and observability — first slice: `/livez` `/readyz` `/configz` `/metrics` `POST /drain`, J-FT and H-FT runtime images; PKI/remaining-row images/orchestrators remain follow-ups |
+| R4-03 | Active | Support matrix against live gates — no committed measurement JSON; remaining-row live e2e and human Qualified promotion remain follow-ups |
 | R4-04 | Queued | SDK stabilization, docs, examples, and release |
 
 Gate: release review. U0 (Studio) follows the release as before.

@@ -51,8 +51,7 @@ RUN bun install --frozen-lockfile \
   && . /opt/ros/humble/setup.sh \
   && ROS_PREFIX=/opt/ros/humble bash scripts/generate-rcl-bindings.sh \
   && cargo build --locked -p rclwebd --features ros --release \
-  && bun run scripts/build-wasm.ts \
-  && mkdir -p /opt/rclweb/evidence
+  && bun run scripts/build-wasm.ts
 
 COPY docker/r3-03-h-ft-e2e-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

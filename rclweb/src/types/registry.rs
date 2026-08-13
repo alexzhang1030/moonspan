@@ -7,9 +7,7 @@
 //! in the session SM; this registry is for local resolve before channel activation.
 
 use super::error::{SchemaError, SchemaErrorCode};
-use super::key::{
-  SCHEME_MOONSPAN_SCHEMA_V1, SCHEME_REP2011_RIHS, SchemaKey, validate_scheme_value,
-};
+use super::key::{SCHEME_RCLWEB_SCHEMA_V1, SCHEME_REP2011_RIHS, SchemaKey, validate_scheme_value};
 use super::limits::{
   ENCODING_CDR1, MAX_REGISTRY_ENTRIES, MAX_SUPPORT_ROW_ID_CHARS, MAX_TYPE_NAME_CHARS,
   PHASE1_SCHEMA_GENERATION,
@@ -222,7 +220,7 @@ impl SchemaRegistryBuilder {
     let bundle_sha256 = bundle_sha256.into();
     let type_name = type_name.into();
     validate_scheme_value(SCHEME_REP2011_RIHS, &rihs)?;
-    validate_scheme_value(SCHEME_MOONSPAN_SCHEMA_V1, &bundle_sha256)?;
+    validate_scheme_value(SCHEME_RCLWEB_SCHEMA_V1, &bundle_sha256)?;
     validate_type_name_len(&type_name)?;
     let row = ProvenanceRow {
       rihs: rihs.clone(),
@@ -544,9 +542,9 @@ pub fn lookup_phase1_root_for_open(
   if !registry.is_phase1_root(type_name) {
     return Ok(None);
   }
-  // Prefer RIHS on Jazzy rows; moonspan on Humble rows.
+  // Prefer RIHS on Jazzy rows; bundle digest on Humble rows.
   let scheme =
-    if support_row_id.starts_with('J') { SCHEME_REP2011_RIHS } else { SCHEME_MOONSPAN_SCHEMA_V1 };
+    if support_row_id.starts_with('J') { SCHEME_REP2011_RIHS } else { SCHEME_RCLWEB_SCHEMA_V1 };
   let value = registry.identity_value_for_type(type_name, scheme)?.to_owned();
   let key = SchemaKey::new(scheme, value, type_name, ENCODING_CDR1, PHASE1_SCHEMA_GENERATION)?;
   let result = registry.lookup(&key, support_row_id, cdr_representation)?;

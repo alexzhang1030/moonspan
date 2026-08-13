@@ -355,7 +355,7 @@ fn validate_schema_identity<'a>(value: &CborValue<'a>) -> Result<CborValue<'a>, 
     if hex.len() != 64 || !hex.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f')) {
       return Err(fail("schema_identity"));
     }
-  } else if scheme_s == "moonspan-schema-v1" {
+  } else if scheme_s == "rclweb-schema-v1" {
     if text_len(val_s) != 64
       || val_s.len() != 64
       || !val_s.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f'))
@@ -1259,9 +1259,9 @@ mod unit_tests {
     let err = reject("a4010502500101010101010101010101010101010103a20163626164026178046174");
     assert_eq!(err.reason, "schema_identity");
     assert_eq!(err.offset, 0);
-    // moonspan-schema-v1 value too short
+    // rclweb-schema-v1 value too short
     let err = reject(
-      "a4010502500101010101010101010101010101010103a201726d6f6f6e7370616e2d736368656d612d763102626161046174",
+      "a4010502500101010101010101010101010101010103a2017072636c7765622d736368656d612d763102626161046174",
     );
     assert_eq!(err.reason, "schema_identity");
   }
@@ -1270,7 +1270,7 @@ mod unit_tests {
   fn nested_qos_missing_depth_rejection() {
     // KEEP_LAST history with omitted required depth key 4
     let err = reject(
-      "ae010802500101010101010101010101010101010103a201726d6f6f6e7370616e2d736368656d612d763102784062626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262046174050106000864482d465409000ba30101020103010ca0181d01181e00181f622f63182002",
+      "ae010802500101010101010101010101010101010103a2017072636c7765622d736368656d612d763102784062626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262626262046174050106000864482d465409000ba30101020103010ca0181d01181e00181f622f63182002",
     );
     assert_eq!(err.reason, "missing_key");
     assert_eq!(err.offset, 0);

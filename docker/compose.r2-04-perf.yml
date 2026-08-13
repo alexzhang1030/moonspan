@@ -13,6 +13,3 @@ services:
       ROSBRIDGE_URL: "ws://127.0.0.1:9090"
       RCLWEB_PERF_SAMPLES: "50"
       RCLWEB_PERF_TIMEOUT_MS: "60000"
-      RCLWEB_EVIDENCE_DIR: "/workspace/docs/evidence"
-    volumes:
-      - ../docs/evidence:/workspace/docs/evidence

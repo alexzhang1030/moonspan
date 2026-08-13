@@ -10,7 +10,7 @@ Accepted
 
 ## Context
 
-First-stage support rows H-FT, H-CY, H-ZN, J-FT, J-CY, and J-ZN differ by ROS distro, RMW implementation, adapter binary, and image profile. Moonspan treats one adapter support row per gateway process as a deployment policy grounded in ROS runtime selection through `RMW_IMPLEMENTATION` and the usual process-local graph-cache model. Multi-domain gateway aggregation still needs clear provenance for evidence, audit, and SDK sessions.
+First-stage support rows H-FT, H-CY, H-ZN, J-FT, J-CY, and J-ZN differ by ROS distro, RMW implementation, adapter binary, and image profile. rclweb treats one adapter support row per gateway process as a deployment policy grounded in ROS runtime selection through `RMW_IMPLEMENTATION` and the usual process-local graph-cache model. Multi-domain gateway aggregation still needs clear provenance for evidence, audit, and SDK sessions.
 
 ## Decision
 
@@ -30,7 +30,7 @@ Bind each `rclwebd` process to exactly one ROS adapter support row.
 
 ## Rationale
 
-- `RMW_IMPLEMENTATION` selects the runtime implementation; Moonspan holds the selected support-row profile constant for the gateway process lifetime.
+- `RMW_IMPLEMENTATION` selects the runtime implementation; rclweb holds the selected support-row profile constant for the gateway process lifetime.
 - Process-local graph and type caches stay coherent under that constant distro/RMW profile.
 - Independent image variants give each support row its own qualification artifact and promotion path.
 - A stable `gateway_instance_id` distinguishes restart resume from replacement-instance clean sessions while `support_row_id` remains fixed for the running profile.

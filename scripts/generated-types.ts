@@ -20,28 +20,28 @@ import {
   type FileHandle,
 } from "node:fs/promises";
 import path from "node:path";
+import { bundleRelPath } from "./cdr-corpus.ts";
 
 export const CORPUS_REL = "conformance/cdr";
 export const MANIFEST_REL = `${CORPUS_REL}/manifest.json`;
 export const TAIL_SLACK_REL = `${CORPUS_REL}/tail-slack.json`;
 export const PROVENANCE_REL = `${CORPUS_REL}/fixtures/provenance/jazzy-rihs-to-bundle.json`;
-export const BUNDLES_REL = `${CORPUS_REL}/fixtures/bundles`;
 export const OUT_REL = "rclweb/generated/metadata";
 
 export const SCHEMA_VERSION = 1;
 export const SCHEMA_GENERATION = 1;
 export const ENCODING_CDR1 = 1;
-export const CORPUS_ID = "moonspan-ros-cdr-v1";
+export const CORPUS_ID = "rclweb-ros-cdr-v1";
 
 export const PHASE1_ROOTS = [
-  "moonspan_cdr_interfaces/msg/PrimitiveScalars",
-  "moonspan_cdr_interfaces/msg/NestedSample",
-  "moonspan_cdr_interfaces/msg/Collections",
-  "moonspan_cdr_interfaces/srv/EchoNested_Request",
-  "moonspan_cdr_interfaces/srv/EchoNested_Response",
-  "moonspan_cdr_interfaces/action/MeasureSequence_Goal",
-  "moonspan_cdr_interfaces/action/MeasureSequence_Result",
-  "moonspan_cdr_interfaces/action/MeasureSequence_Feedback",
+  "rclweb_cdr_interfaces/msg/PrimitiveScalars",
+  "rclweb_cdr_interfaces/msg/NestedSample",
+  "rclweb_cdr_interfaces/msg/Collections",
+  "rclweb_cdr_interfaces/srv/EchoNested_Request",
+  "rclweb_cdr_interfaces/srv/EchoNested_Response",
+  "rclweb_cdr_interfaces/action/MeasureSequence_Goal",
+  "rclweb_cdr_interfaces/action/MeasureSequence_Result",
+  "rclweb_cdr_interfaces/action/MeasureSequence_Feedback",
   "sensor_msgs/msg/PointCloud2",
 ] as const;
 
@@ -55,7 +55,7 @@ export type RootKind =
   | "action_result"
   | "action_feedback";
 
-export type Scheme = "moonspan-schema-v1" | "rep2011-rihs";
+export type Scheme = "rclweb-schema-v1" | "rep2011-rihs";
 export type CdrRepresentation = "CDR_LE" | "CDR_BE";
 export type Mode = "write" | "check";
 
@@ -472,17 +472,13 @@ export function buildArtifacts(input: {
     }
     const loaded = bundlesBySha.get(bundle_sha256);
     if (!loaded) {
-      return inputInvalid(`missing bundle file for ${bundle_sha256}`);
+      return inputInvalid(`missing bundle file for ${type_name}`);
     }
     const digest = sha256Hex(loaded.text);
     if (digest !== bundle_sha256) {
       return inputInvalid(
-        `bundle digest identity mismatch for ${bundle_sha256}: sha256(file)=${digest}`,
+        `bundle digest identity mismatch for ${type_name}: sha256(file)=${digest}`,
       );
-    }
-    const stemOk = bundlesBySha.has(bundle_sha256);
-    if (!stemOk) {
-      return inputInvalid(`bundle filename stem mismatch for ${bundle_sha256}`);
     }
 
     // Bounds: bundle bytes
@@ -600,13 +596,13 @@ export function buildArtifacts(input: {
       field_names: parsed.field_names,
     });
 
-    // Moonspan identity from bundle digest.
-    const moonspanValue = bundle_sha256;
-    const moonBound =
-      checkStringBound("moonspan-schema-v1", "max_scheme_chars") ??
-      checkStringBound(moonspanValue, "max_value_chars") ??
+    // rclweb identity from bundle digest.
+    const bundleValue = bundle_sha256;
+    const schemeBound =
+      checkStringBound("rclweb-schema-v1", "max_scheme_chars") ??
+      checkStringBound(bundleValue, "max_value_chars") ??
       checkStringBound(type_name, "max_type_name_chars");
-    if (moonBound) return moonBound;
+    if (schemeBound) return schemeBound;
 
     // RIHS from provenance, joined to bundle + Jazzy fixtures.
     const prov = provByType.get(type_name)!;
@@ -634,15 +630,15 @@ export function buildArtifacts(input: {
       }
     }
     const humbleFixtures = fixtures.filter(
-      (f) => f.schema_identity.scheme === "moonspan-schema-v1",
+      (f) => f.schema_identity.scheme === "rclweb-schema-v1",
     );
     if (humbleFixtures.length === 0) {
-      return inputInvalid(`missing Humble moonspan fixtures for ${type_name}`);
+      return inputInvalid(`missing Humble bundle-scheme fixtures for ${type_name}`);
     }
     for (const hf of humbleFixtures) {
-      if (hf.schema_identity.value !== moonspanValue) {
+      if (hf.schema_identity.value !== bundleValue) {
         return inputInvalid(
-          `Humble moonspan fixture ${hf.id} value != bundle digest for ${type_name}`,
+          `Humble bundle-scheme fixture ${hf.id} value != bundle digest for ${type_name}`,
         );
       }
     }
@@ -655,10 +651,7 @@ export function buildArtifacts(input: {
       if (f.schema_generation !== SCHEMA_GENERATION) {
         return inputInvalid(`${f.id}: schema_generation must be ${SCHEMA_GENERATION}`);
       }
-      if (
-        f.type_description.canonical_bundle_path !==
-        `fixtures/bundles/${bundle_sha256}.json`
-      ) {
+      if (f.type_description.canonical_bundle_path !== bundleRelPath(type_name)) {
         return inputInvalid(`${f.id}: canonical_bundle_path mismatch`);
       }
       const rowBound = checkStringBound(f.support_row_id, "max_support_row_id_chars");
@@ -666,8 +659,8 @@ export function buildArtifacts(input: {
     }
 
     identities.push({
-      scheme: "moonspan-schema-v1",
-      value: moonspanValue,
+      scheme: "rclweb-schema-v1",
+      value: bundleValue,
       type_name,
       encoding: ENCODING_CDR1,
       schema_generation: SCHEMA_GENERATION,
@@ -1010,24 +1003,24 @@ export async function loadAndBuild(root: string): Promise<BuildResult> {
   if (!mappings.ok) return inputInvalid(mappings.reason);
 
   // Load only bundles referenced by Phase 1 fixtures.
-  const needed = new Set<string>();
+  const needed = new Map<string, string>();
   for (const f of fixtures.fixtures) {
-    needed.add(f.type_description.canonical_bundle_sha256);
+    needed.set(
+      f.type_description.canonical_bundle_path,
+      f.type_description.canonical_bundle_sha256,
+    );
   }
   const bundlesBySha = new Map<string, { text: string; doc: BundleDoc }>();
-  for (const sha of needed) {
+  for (const [pathRel, sha] of needed) {
     if (!isLowerHexSha256(sha)) {
       return inputInvalid(`invalid referenced bundle sha ${sha}`);
     }
-    const rel = `${BUNDLES_REL}/${sha}.json`;
+    const rel = `${CORPUS_REL}/${pathRel}`;
     const file = await readTextFile(root, rel, BOUNDS.max_bundle_bytes);
     if (!file.ok) return inputInvalid(file.error);
-    // Preserve exact file bytes as text for digest identity (UTF-8).
     const text = file.text;
     if (sha256Hex(text) !== sha) {
-      return inputInvalid(
-        `bundle filename stem ${sha} != sha256 of file bytes`,
-      );
+      return inputInvalid(`bundle ${pathRel} sha256 does not match canonical_bundle_sha256`);
     }
     const parsed = parseBundle(text, sha);
     if (!parsed.ok) return inputInvalid(parsed.reason);

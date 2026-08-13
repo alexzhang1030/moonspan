@@ -9,10 +9,9 @@ Normative for wire version **0** (Accepted under [ADR 0009](../docs/adr/0009-r2w
 
 Overview: [docs/protocol/r2wp.md](../docs/protocol/r2wp.md). [ADR 0005](../docs/adr/0005-r2wp-wire-versioning.md). [ADR 0009](../docs/adr/0009-r2wp-v0-wire-encoding.md).
 
-## Normative scope after the restructure (v0.1 subset)
+## Normative scope (v0.1 subset)
 
-Per [ADR 0010](../docs/adr/0010-restructure-single-rust-core.md) and ruling R-D3 in the
-[restructure proposal](../docs/proposals/architecture-restructure.md), wire version 0
+Per [ADR 0010](../docs/adr/0010-restructure-single-rust-core.md), wire version 0
 remains the single version. The subset below is **normative** against the running
 implementation (walking skeleton plus the R3-01 re-freeze); later phases re-freeze
 additional parked sections without a wire-version bump.
@@ -37,7 +36,7 @@ additional parked sections without a wire-version bump.
 - The flat and embedded error models.
 - Parameter get/set/list as Service channels; parameter events as Topic subscribe
   (composition — no dedicated opcodes).
-- Dual-scheme `SchemaKey` identity (`moonspan-schema-v1`, `rep2011-rihs`) and the
+- Dual-scheme `SchemaKey` identity (`rclweb-schema-v1`, `rep2011-rihs`) and the
   frozen local Phase 1 schema registry used at channel activation (nine corpus
   roots, representation-aware zero-tail).
 
@@ -90,7 +89,7 @@ Phase-one support rows (exact triple match required on SessionReady):
 | J-CY | jazzy | rmw_cyclonedds_cpp |
 | J-ZN | jazzy | rmw_zenoh_cpp |
 
-Schema schemes: **`rep2011-rihs`** (71-byte `RIHS01_` + 64 lowercase hex) and **`moonspan-schema-v1`** (64 lowercase hex). Fast DDS is the reference row per distro; Cyclone DDS and Zenoh are peer first-class Phase 1 rows. Jazzy+ is later expansion only.
+Schema schemes: **`rep2011-rihs`** (71-byte `RIHS01_` + 64 lowercase hex) and **`rclweb-schema-v1`** (64 lowercase hex). Fast DDS is the reference row per distro; Cyclone DDS and Zenoh are peer first-class Phase 1 rows. Jazzy+ is later expansion only.
 
 ## Protocol state machine
 
@@ -448,7 +447,7 @@ Operation-scoped failures are **not** embedded; they use flat CONTROL Error only
 
 ## Validation order and error precedence
 
-`validation_order` lists **receiver/input checks only**. Implementations stop at the **first** failing check. Every Error row has exactly one error code. Disposition rows produce dispositions only. Multi-invalid inputs return exactly that one stable result so Rust, MoonBit, and TypeScript agree. Sender-local sequence exhaustion is specified under Sequence domains above, not in this list. Machine form: registry `validation_order`.
+`validation_order` lists **receiver/input checks only**. Implementations stop at the **first** failing check. Every Error row has exactly one error code. Disposition rows produce dispositions only. Multi-invalid inputs return exactly that one stable result. Sender-local sequence exhaustion is specified under Sequence domains above, not in this list. Machine form: registry `validation_order`.
 
 ### Bootstrap checks (ordered)
 
@@ -595,7 +594,7 @@ MEDIA_CHUNK, RECORDING_CHUNK, and ASSET_CHUNK application payloads are **RFC 894
 
 ## Source entry encodings
 
-Phase-one source bundle entry encodings: `ROS2_INTERFACE_TEXT`, `ROS2_IDL_TEXT`, `TYPE_DESCRIPTION_JSON`, `TYPE_DESCRIPTION_CBOR`, `OPAQUE_BYTES`. Distinct from CDR/media payload encodings. M0-04 owns canonical ordering, bytes, and hash for `moonspan-schema-v1`.
+Phase-one source bundle entry encodings: `ROS2_INTERFACE_TEXT`, `ROS2_IDL_TEXT`, `TYPE_DESCRIPTION_JSON`, `TYPE_DESCRIPTION_CBOR`, `OPAQUE_BYTES`. Distinct from CDR/media payload encodings. M0-04 owns canonical ordering, bytes, and hash for `rclweb-schema-v1`.
 
 Schema advertise/response payload encodings are CDR1 or XCDR2 only.
 

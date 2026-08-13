@@ -29,10 +29,6 @@ echo "r1-e2e: starting rclwebd on ${RCLWEBD_BIND}"
 ./target/release/rclwebd >/tmp/rclwebd.log 2>&1 &
 GATEWAY_PID=$!
 
-echo "r1-e2e: staging baked evidence"
-mkdir -p "${RCLWEB_EVIDENCE_DIR:-/workspace/docs/evidence}"
-cp -f /opt/rclweb/evidence/*.json "${RCLWEB_EVIDENCE_DIR:-/workspace/docs/evidence}/" 2>/dev/null || true
-
 echo "r1-e2e: running SDK harness"
 bun run --filter @rclweb/e2e-harness start
 

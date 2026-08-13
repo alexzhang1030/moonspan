@@ -1,6 +1,6 @@
 # R2WP protocol
 
-R2WP is rclweb's versioned binary transport for ROS 2 data and control. Wire version 0 has one implementation — the `rclweb` core crate, linked natively by the gateway and compiled to wasm32 for the browser. The [v0.1 normative-scope declaration](../../protocol/r2wp-v0.md#normative-scope-after-the-restructure-v01-subset) marks which sections are normative now (including the [R3-01](../milestones/r3-01-services-actions-graph.md) graph/service/action re-freeze) and which remain parked until their phases re-freeze them.
+R2WP is rclweb's versioned binary transport for ROS 2 data and control. Wire version 0 has one implementation — the `rclweb` core crate, linked natively by the gateway and compiled to wasm32 for the browser. The [v0.1 normative-scope declaration](../../protocol/r2wp-v0.md#normative-scope-v01-subset) marks which sections are normative now (including the [R3-01](../milestones/r3-01-services-actions-graph.md) graph/service/action re-freeze) and which remain parked until their phases re-freeze them.
 
 ## Sources of truth
 
@@ -12,8 +12,7 @@ R2WP is rclweb's versioned binary transport for ROS 2 data and control. Wire ver
 | Encoding decision | [ADR 0009](../adr/0009-r2wp-v0-wire-encoding.md) |
 | Versioning model | [ADR 0005](../adr/0005-r2wp-wire-versioning.md) |
 | Fixtures (single oracle) | [`protocol/testdata/`](../../protocol/testdata/README.md) |
-| Restructure decision | [ADR 0010](../adr/0010-restructure-single-rust-core.md) |
-| Historical completion note | [M0-03](../milestones/m0-03-r2wp-foundation.md) |
+| Single-core decision | [ADR 0010](../adr/0010-restructure-single-rust-core.md) |
 
 This page explains the design. The normative contract owns byte layout, limits, validation order, registries, error codes, and transport rules.
 
@@ -40,7 +39,7 @@ Schema identity is the pair `(scheme, value)` defined by [ADR 0007](../adr/0007-
 | ROS profile | Scheme |
 |---|---|
 | Jazzy | `rep2011-rihs` |
-| Humble | `moonspan-schema-v1` |
+| Humble | `rclweb-schema-v1` |
 
 Schema-bearing records also carry type name, encoding, and schema generation. Graph and channel records retain `gateway_instance_id`, `support_row_id`, and `domain_id` so applications can compose multiple sessions without losing origin.
 
@@ -88,7 +87,7 @@ R2WP runs over TLS-protected WebTransport or WebSocket endpoints. Application ch
 
 ## Implementation and checks
 
-The single implementation is the `rclweb` core crate ([`rclweb/src/protocol/`](../../rclweb/src/protocol/)). Frozen fixtures under [`protocol/testdata/`](../../protocol/testdata/README.md) are the conformance oracle, consumed directly by the crate's test suite. The pre-restructure TypeScript and MoonBit implementations and the three-language agreement apparatus live at tag `pre-restructure` ([ADR 0010](../adr/0010-restructure-single-rust-core.md)).
+The single implementation is the `rclweb` core crate ([`rclweb/src/protocol/`](../../rclweb/src/protocol/)). Frozen fixtures under [`protocol/testdata/`](../../protocol/testdata/README.md) are the conformance oracle, consumed directly by the crate's test suite.
 
 ```bash
 bun run protocol-check

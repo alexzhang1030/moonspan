@@ -21,7 +21,7 @@ ROS variation stays behind the versioned adapter ABI. R2WP, the `rclweb` core, a
 
 | ROS | Scheme | Acquisition |
 |---|---|---|
-| Humble | `moonspan-schema-v1` | Recursive deployment bundle and manifest |
+| Humble | `rclweb-schema-v1` | Recursive deployment bundle and manifest |
 | Jazzy | `rep2011-rihs` | Native `GetTypeDescription` |
 
 R2WP, the adapter, caches, fixtures, and recordings carry schema identity `(scheme, value)`, type name, encoding, and generation. [ADR 0007](./adr/0007-humble-jazzy-schema-identity.md) owns the decision.

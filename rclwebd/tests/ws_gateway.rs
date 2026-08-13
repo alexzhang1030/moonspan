@@ -6,7 +6,7 @@ mod common;
 use common::{TestClient, corr, start_gateway, start_gateway_with_config, start_gateway_with_row};
 use rclweb::{
   BootstrapRecord, CborValue, ChannelState, FrameHeader, FramePayload, OPCODE_ROS_SAMPLE,
-  SCHEME_MOONSPAN_SCHEMA_V1, encode_frame, parse_frame, schema_identity_for_type,
+  SCHEME_RCLWEB_SCHEMA_V1, encode_frame, parse_frame, schema_identity_for_type,
 };
 use std::collections::BTreeMap;
 
@@ -418,16 +418,16 @@ async fn service_client_round_trip_echoes_payload() {
 }
 
 #[tokio::test]
-async fn h_ft_session_ready_and_moonspan_subscribe() {
+async fn h_ft_session_ready_and_humble_subscribe() {
   let (addr, backend) = start_gateway_with_row(rclwebd::SUPPORT_ROW_H_FT).await;
   let mut client = TestClient::connect(&addr).await;
   ready_session_expecting(&mut client, "H-FT", "humble", "rmw_fastrtps_cpp").await;
 
-  let type_name = "moonspan_cdr_interfaces/msg/PrimitiveScalars";
-  let (scheme, value) = schema_identity_for_type(type_name, SCHEME_MOONSPAN_SCHEMA_V1)
+  let type_name = "rclweb_cdr_interfaces/msg/PrimitiveScalars";
+  let (scheme, value) = schema_identity_for_type(type_name, SCHEME_RCLWEB_SCHEMA_V1)
     .expect("lookup")
-    .expect("phase1 moonspan identity");
-  assert_eq!(scheme, SCHEME_MOONSPAN_SCHEMA_V1);
+    .expect("phase1 rclweb identity");
+  assert_eq!(scheme, SCHEME_RCLWEB_SCHEMA_V1);
 
   let open_corr = corr(0xB1);
   client

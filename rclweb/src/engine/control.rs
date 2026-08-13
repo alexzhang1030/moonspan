@@ -7,24 +7,24 @@
 //!
 //! Schema identity: Phase 1 corpus roots resolve through
 //! [`crate::types::schema_identity_for_type`]. Jazzy rows (`J-*`) use
-//! `rep2011-rihs`; Humble rows (`H-*`) use `moonspan-schema-v1`. Non-roots keep
+//! `rep2011-rihs`; Humble rows (`H-*`) use `rclweb-schema-v1`. Non-roots keep
 //! a demo identity until a broader registry lands. Schema *exchange*
 //! (SchemaRequest/Response) stays lightly parked; the registry is for local
 //! lookup before channel activation.
 
 use crate::protocol::cbor::CborValue;
-use crate::types::{SCHEME_MOONSPAN_SCHEMA_V1, SCHEME_REP2011_RIHS, schema_identity_for_type};
+use crate::types::{SCHEME_RCLWEB_SCHEMA_V1, SCHEME_REP2011_RIHS, schema_identity_for_type};
 use std::borrow::Cow;
 
 /// Demo schema hash for non-corpus types on Jazzy rows (e.g. `std_msgs/msg/String`).
 ///
-/// Corpus Phase 1 roots use real RIHS / moonspan identities from the embedded
+/// Corpus Phase 1 roots use real RIHS / rclweb identities from the embedded
 /// registry instead — see [`resolve_open_schema_identity`].
 pub const DEMO_SCHEMA_HASH: &str =
   "RIHS01_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
-/// Demo moonspan-schema-v1 value for non-corpus types on Humble rows.
-pub const DEMO_MOONSPAN_HASH: &str =
+/// Demo rclweb-schema-v1 value for non-corpus types on Humble rows.
+pub const DEMO_BUNDLE_HASH: &str =
   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 pub const ZERO_CORRELATION: [u8; 16] = [0u8; 16];
@@ -37,10 +37,10 @@ fn text_val(text: &str) -> CborValue<'static> {
   CborValue::Text(Cow::Owned(text.to_owned()))
 }
 
-/// OpenChannel schema scheme for a support row (`H-*` → moonspan, else RIHS).
+/// OpenChannel schema scheme for a support row (`H-*` → rclweb, else RIHS).
 #[must_use]
 pub fn schema_scheme_for_support_row(support_row_id: &str) -> &'static str {
-  if support_row_id.starts_with('H') { SCHEME_MOONSPAN_SCHEMA_V1 } else { SCHEME_REP2011_RIHS }
+  if support_row_id.starts_with('H') { SCHEME_RCLWEB_SCHEMA_V1 } else { SCHEME_REP2011_RIHS }
 }
 
 /// Scheme + value for OpenChannel on the given support row.
@@ -53,7 +53,7 @@ pub fn resolve_open_schema_identity(type_name: &str, support_row_id: &str) -> (S
   match schema_identity_for_type(type_name, scheme) {
     Ok(Some((scheme, value))) => (scheme, value),
     _ if support_row_id.starts_with('H') => {
-      (SCHEME_MOONSPAN_SCHEMA_V1.to_owned(), DEMO_MOONSPAN_HASH.to_owned())
+      (SCHEME_RCLWEB_SCHEMA_V1.to_owned(), DEMO_BUNDLE_HASH.to_owned())
     }
     _ => (SCHEME_REP2011_RIHS.to_owned(), DEMO_SCHEMA_HASH.to_owned()),
   }
@@ -78,7 +78,7 @@ pub const DEFAULT_QOS_DEPTH: u32 = 5;
 /// QoS subset for R2-01: `qos_reliability` (1 RELIABLE / 2 BEST_EFFORT) and
 /// `qos_depth` (KEEP_LAST depth). Other QoS members stay SYSTEM_DEFAULT.
 ///
-/// Schema identity follows `support_row_id` (RIHS on `J-*`, moonspan on `H-*`).
+/// Schema identity follows `support_row_id` (RIHS on `J-*`, rclweb on `H-*`).
 #[must_use]
 #[allow(clippy::too_many_arguments)]
 pub fn open_topic(

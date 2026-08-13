@@ -1,6 +1,6 @@
 # CDR core contract
 
-Authoritative behavioral contract for rclweb CDR. It was frozen and proven by the retired MoonBit implementation (`cdr_mbt`, tag `pre-restructure`); per [ADR 0010](../adr/0010-restructure-single-rust-core.md) the Rust port inside the [`rclweb` core](./core.md) must pass this contract against the committed corpus as its R1-01 gate. The Rust port lives at [`rclweb/src/cdr/`](../../rclweb/src/cdr/) with the corpus and adversarial gate under [`rclweb/tests/`](../../rclweb/tests/) (`cdr_corpus.rs`, `cdr_adversarial.rs`). Batch identifiers (M1-01x) are historical proof labels. Generated types and the schema registry ([generated types](./generated-types.md)) and the Wasm host poll boundary consume this surface.
+Authoritative behavioral contract for rclweb CDR. The [`rclweb` core](./core.md) implements it at [`rclweb/src/cdr/`](../../rclweb/src/cdr/) and proves it against the committed corpus under [`rclweb/tests/`](../../rclweb/tests/) (`cdr_corpus.rs`, `cdr_adversarial.rs`). Generated types and the schema registry ([generated types](./generated-types.md)) and the Wasm host poll boundary consume this surface.
 
 ## Purpose
 
@@ -16,7 +16,7 @@ The CDR core encodes and decodes ROS sample payloads on the R2WP data path. It o
 
 M1 qualifies **CDR1** (OMG DDS-XTypes 1.3 encoding version 1 / PLAIN_CDR rules for final types) against the committed ROS corpus. XCDR2 stream foundations are a follow-on surface for later schema identity work. M1-01 acceptance covers CDR1 little and big endian only.
 
-Corpus encoding identity is `CDR1` in [`conformance/cdr/manifest.json`](../../conformance/cdr/manifest.json) (`corpus` = `moonspan-ros-cdr-v1`; manifest `schema_version` = 1; runtime `schema_generation` = 1).
+Corpus encoding identity is `CDR1` in [`conformance/cdr/manifest.json`](../../conformance/cdr/manifest.json) (`corpus` = `rclweb-ros-cdr-v1`; manifest `schema_version` = 1; runtime `schema_generation` = 1).
 
 ## CDR1 framing and alignment
 
@@ -167,11 +167,11 @@ BytesView  ->  bounds-checked slice into parent storage the caller retains
 - Writers append into a bounded owned buffer and return a typed fault when growth would exceed capacity.
 - Readers advance an internal cursor. Padding is computed from origin and alignment. When padding would pass the stream end the fault is `alignment_overflow`. When a field ends past available bytes the fault is `truncated`.
 - Public codecs are deterministic: the same logical value, the same CDR1 endianness, and the same writer limits produce the same bytes.
-- Large binary fields return a bounds-checked `BytesView` into parent storage. The parent buffer remains retained by the caller for the view’s lifetime. Host lease tracking and buffer release live in M1-03.
+- Large binary fields return a bounds-checked `BytesView` into parent storage. The parent buffer remains retained by the caller for the view’s lifetime. Host lease tracking and buffer release live in the poll ABI ([`rclweb` core](./core.md)).
 
-### Reference implementation surface (retired `rclmbt/cdr`, tag `pre-restructure`)
+### Implementation surface (`rclweb::cdr`)
 
-The Rust port keeps these behaviors and API shapes; type names map to their Rust equivalents.
+Behaviors and API shapes live in [`rclweb/src/cdr/`](../../rclweb/src/cdr/).
 
 | Surface | Batch | Notes |
 |---|---|---|
@@ -182,9 +182,9 @@ The Rust port keeps these behaviors and API shapes; type names map to their Rust
 | Char8 string | M1-01c2a | `read_string` / `write_string` with optional `max_bytes` (UTF-8 payload bytes excluding NUL); owned `String` decode; direct writer emit after full-field preflight |
 | ROS legacy wstring | M1-01c2b | `read_wstring` / `write_wstring` with optional `max_scalars`; accepted Unicode scalar slots; `invalid_wstring_scalar`; canonical encode exact (count + `N * 4`) |
 | Declared zero tail | M1-01d0 | `ensure_complete_with_zero_tail(expected_tail_bytes)`; top-level completion independent of final member; Phase 1 declarations `0`/`4`/`12` |
-| Corpus fixture bridge | M1-01d1 | Deterministic Bun bridge of the 56-fixture ROS corpus into package-internal white-box tests; see the [corpus README](../../conformance/cdr/README.md) |
-| Corpus semantic proof | M1-01d2 | Hand-written white-box decode/re-encode of all 56 fixtures and 18 comparison groups (`rclmbt/cdr/corpus_semantics_wbtest.mbt`) |
-| Corpus adversarial gate | M1-01d3 | Strict vs declared completion, nonzero tail mutations, exact-end any-declaration success, wrong-declaration rejections on tail-bearing fixtures, stream bounds, PointCloud2 borrowed budget, framing bridge (`rclmbt/cdr/corpus_adversarial_wbtest.mbt`) |
+| Corpus fixture bridge | M1-01d1 | Deterministic load of the 56-fixture ROS corpus into package tests; see the [corpus README](../../conformance/cdr/README.md) |
+| Corpus semantic proof | M1-01d2 | Hand-written decode/re-encode of all 56 fixtures and 18 comparison groups ([`rclweb/tests/cdr_corpus.rs`](../../rclweb/tests/cdr_corpus.rs)) |
+| Corpus adversarial gate | M1-01d3 | Strict vs declared completion, nonzero tail mutations, exact-end any-declaration success, wrong-declaration rejections on tail-bearing fixtures, stream bounds, PointCloud2 borrowed budget, framing bridge ([`rclweb/tests/cdr_adversarial.rs`](../../rclweb/tests/cdr_adversarial.rs)) |
 | Fixed arrays | M1-01c3b | Schema-declared element count composed from existing element codecs; first-element body-origin alignment; optional fixed-width preflight via `checked_span_length` |
 | Sequences | M1-01c3b | `read_sequence_length` / `write_sequence_length`; `read_byte_sequence` / `write_byte_sequence` with optional `max_elements`; stream work ceiling; borrowed byte views |
 | Nesting | M1-01c3b | Immutable `CdrNesting` token; `root_nesting` / `enter_nested`; depth against `max_nesting_depth` |
@@ -193,7 +193,7 @@ The Rust port keeps these behaviors and API shapes; type names map to their Rust
 
 **Writer allocation:** default construction allocates header-sized backing storage (`size_hint = HEADER_LENGTH` / `WRITER_INITIAL_SIZE_HINT`) and grows lazily under the logical `capacity` hard ceiling (Phase 1 absolute cap remains 64 MiB via limits). Position and remaining capacity derive from `buf.length()` as the single stream-length source. `CdrWriter` fields are package-private; external packages construct only through `CdrWriter::new` / `new_default`.
 
-## Typed error taxonomy (`cdr_mbt`)
+## Typed error taxonomy
 
 Implementable codec faults with stable codes:
 
@@ -242,17 +242,17 @@ Crossing a limit returns a typed fault from the taxonomy above. On failed encode
 
 ## Borrowed views and host buffer lifecycle
 
-**Codec (`cdr_mbt`, this contract):**
+**Codec (`rclweb::cdr`, this contract):**
 
 - Decode may return a bounds-checked `BytesView` (or equivalent) into the input buffer.
 - The view is valid only while the parent storage remains retained by the caller.
 - Ownership and retention of parent storage are caller responsibilities at the codec boundary.
 
-**Host (`M1-03`, Wasm poll ABI):**
+**Host (Wasm poll ABI):**
 
 - Explicit host buffer leases, release, and transferred-buffer lifecycle live in the host poll contract ([`rclweb` core](./core.md), [ADR 0004](../adr/0004-browser-wasm-host-boundary.md)).
 - Applications that keep payload data past host release copy or extend the host lease through the host API.
-- Lease and transfer faults are host ABI concerns; `cdr_mbt` emits only the codec taxonomy above.
+- Lease and transfer faults are host ABI concerns; the CDR core emits only the codec taxonomy above.
 
 ## Deterministic encoder behavior
 
@@ -268,7 +268,7 @@ The authoritative corpus is [`conformance/cdr/`](../../conformance/cdr/README.md
 
 | Fact | Value |
 |---|---|
-| Corpus id | `moonspan-ros-cdr-v1` |
+| Corpus id | `rclweb-ros-cdr-v1` |
 | Encoding | `CDR1` |
 | Manifest schema version | `1` (`schema_version`) |
 | Runtime schema generation | `1` (`schema_generation`) |
@@ -286,9 +286,9 @@ Legal ROS encoders may emit distinct bytes for one logical value, including exac
 
 M1-01d proves:
 
-- **M1-01d1 complete (historical):** the 56-fixture ROS corpus bridged into package-internal white-box tests (`CdrReader::open_default`, zero-tail and multi-row identity proofs); see the [corpus README](../../conformance/cdr/README.md).
-- **M1-01d2 complete (historical):** hand-written package-internal codecs decoded every committed fixture field-by-field against manifest logical values, finished with `ensure_complete_with_zero_tail`, and re-encoded to the exact logical prefix (zero top-level tail). All 18 multi-row groups agree semantically; PointCloud2 `data` is a borrowed input-backed view.
-- **M1-01d3 complete:** corpus adversarial gate over all 56 fixtures — strict vs declared completion (24 exact / 32 tail-bearing), 288 nonzero tail-byte mutations, exact-end accepts declaration 4 (24), wrong declarations reject on 32 tail-bearing fixtures, appended-byte rejection on all 56, stream open at length and reject one-byte-below, PointCloud2 borrowed payload under a small owned-temporary budget, and a concise LE/BE framing bridge. Focused `*_wbtest.mbt` suites remain the typed source for field-level illegal inputs. Completion note: [M1-01 CDR core](../milestones/m1-01-cdr-core.md).
+- **M1-01d1:** the 56-fixture ROS corpus loaded into package tests (`CdrReader::open_default`, zero-tail and multi-row identity proofs); see the [corpus README](../../conformance/cdr/README.md).
+- **M1-01d2:** hand-written codecs decode every committed fixture field-by-field against manifest logical values, finish with `ensure_complete_with_zero_tail`, and re-encode to the exact logical prefix (zero top-level tail). All 18 multi-row groups agree semantically; PointCloud2 `data` is a borrowed input-backed view ([`rclweb/tests/cdr_corpus.rs`](../../rclweb/tests/cdr_corpus.rs)).
+- **M1-01d3:** corpus adversarial gate over all 56 fixtures — strict vs declared completion (24 exact / 32 tail-bearing), 288 nonzero tail-byte mutations, exact-end accepts declaration 4 (24), wrong declarations reject on 32 tail-bearing fixtures, appended-byte rejection on all 56, stream open at length and reject one-byte-below, PointCloud2 borrowed payload under a small owned-temporary budget, and a concise LE/BE framing bridge ([`rclweb/tests/cdr_adversarial.rs`](../../rclweb/tests/cdr_adversarial.rs)). Focused unit tests in [`rclweb/src/cdr/tests.rs`](../../rclweb/src/cdr/tests.rs) cover field-level illegal inputs.
 - exact and zero-tail fixtures for the same logical sample normalize to one semantic value;
 - encode under rclweb CDR1 uses exact form (zero top-level tail) and round-trips with semantic equality;
 - malformed truncation, illegal lengths, and alignment overflow return the typed error taxonomy above (focused suites + corpus gate);
@@ -305,7 +305,7 @@ Codec work runs inside declared budgets. Untrusted sample bytes are handled with
 - maximum-size strings, wide strings, sequences, and PointCloud2-scale payloads within the 64 MiB stream ceiling;
 - padding and trailing-byte handling at stream end under strict completion.
 
-These cases produce typed codec faults and appear in conformance and evidence reports.
+These cases produce typed codec faults and appear in conformance results.
 
 ## Batch acceptance
 
@@ -316,15 +316,15 @@ These cases produce typed codec faults and appear in conformance and evidence re
 | M1-01c | Primitives, strings/wstrings (legacy ROS profile, scalar-boundary tests), arrays, sequences, nested values, borrowed `BytesView` fields |
 | M1-01d | Authoritative corpus proof: d0–d3 complete (zero-tail API, fixture bridge, semantic decode/re-encode, adversarial gate) |
 
-M1-01 is complete. M1-02 and M1-03 consume this surface: M1-02 adds schema keys and per-type bounds; M1-03 adds host buffer leases and keeps CDR layout rules as defined here. See [M1-01 completion note](../milestones/m1-01-cdr-core.md).
+M1-01 is complete. Generated types add schema keys and per-type bounds; the host poll ABI owns buffer leases and keeps CDR layout rules as defined here.
 
 ## Dependency boundaries
 
 | Consumer | Expectation |
 |---|---|
-| M1-02 generated types | Call `cdr_mbt` for field layout; own schema identity, type registry keys, per-type bounds, and non-terminal member boundary metadata |
-| M2-01 dynamic projection | Reuse reader views and codec error taxonomy; map schema identity faults in the dynamic type layer |
-| M1-03 host ABI | Own buffer ownership transfer, leases, release, and poll batches; pass retained bytes into decode |
+| Generated types | Call `rclweb::cdr` for field layout; own schema identity, type registry keys, per-type bounds, and non-terminal member boundary metadata |
+| Dynamic projection | Reuse reader views and codec error taxonomy; map schema identity faults in the dynamic type layer |
+| Host ABI | Own buffer ownership transfer, leases, release, and poll batches; pass retained bytes into decode |
 | R2WP / gateway | Carry opaque CDR payloads and schema identity; leave codec work to the `rclweb` core |
 | Evidence / N1 gate | Record corpus revision, support rows, and agreement results per [validation](../validation.md) |
 

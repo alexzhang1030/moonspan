@@ -40,7 +40,7 @@ batches into `poll`. Sample payloads are borrowed views under an explicit
 | Poll batch layout | [`rclweb/src/host/batch.rs`](../../rclweb/src/host/batch.rs) |
 | Wasm ABI (`cfg(wasm32)`) | [`rclweb/src/host/abi.rs`](../../rclweb/src/host/abi.rs) |
 | Fat LTO ship profile | `[profile.release-wasm]` in root `Cargo.toml` |
-| Wasm stage + size record | [`scripts/build-wasm.ts`](../../scripts/build-wasm.ts), [`docs/evidence/r1-04-wasm-size.json`](../evidence/r1-04-wasm-size.json) |
+| Wasm stage | [`scripts/build-wasm.ts`](../../scripts/build-wasm.ts) (prints size; does not write JSON) |
 | SDK host + Worker | [`sdk/typescript/src/`](../../sdk/typescript/src/) |
 | Scripted peer fixtures | [`scripts/fixture-gen/`](../../scripts/fixture-gen/), [`sdk/typescript/test/fixtures/`](../../sdk/typescript/test/fixtures/) |
 | Engine ↔ gateway collision | [`rclwebd/tests/client_engine_collision.rs`](../../rclwebd/tests/client_engine_collision.rs) |
@@ -50,14 +50,16 @@ batches into `poll`. Sample payloads are borrowed views under an explicit
 ```bash
 cargo test --locked -p rclweb
 cargo test --locked -p rclwebd --test client_engine_collision
-bun run scripts/build-wasm.ts          # stages sdk/typescript/wasm/rclweb.wasm + size JSON
+bun run scripts/build-wasm.ts          # stages sdk/typescript/wasm/rclweb.wasm; prints size
 bun test sdk/typescript/test
 just check && just test && just build
 ```
 
 Recorded wasm size (release-wasm, fat LTO, `codegen-units=1`, `opt-level=z`, `strip=symbols`):
-see [`docs/evidence/r1-04-wasm-size.json`](../evidence/r1-04-wasm-size.json).
-Poll latency measurement is deferred to R1-05 with the docker-compose CI path.
+`just build` prints the staged byte count. Inheriting native `strip` without an
+explicit `release-wasm` override dropped the artifact from 593631 bytes to
+376519 ([gotcha](../../.agents/docs/gotchas.md#release-wasm-inherits-native-release-settings)).
+Poll latency measurement is `just poll-latency` (stdout).
 
 ## Ownership after completion
 
