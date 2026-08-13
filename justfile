@@ -133,7 +133,7 @@ npm-pack: toolchain-check
     bun run scripts/npm-pack.ts --stage
     bun pm pack --cwd typescript
 
-# Verify the npm tarball is rclweb@0.0.1 and includes LICENSE, NOTICE, and wasm.
+# Verify the npm tarball is rcl-web@0.0.1 and includes LICENSE, NOTICE, and wasm.
 [group('quality')]
 npm-pack-check: toolchain-check
     cd "{{root}}" && bun run scripts/npm-pack.ts --check
@@ -150,7 +150,7 @@ check: toolchain-check
     bun run scripts/npm-pack.ts --check
     just fmt-check
     just clippy
-    bun run --filter rclweb check
+    bun run --filter rcl-web check
 
 # Bun tests (root scripts and TypeScript package) and Cargo workspace tests.
 [group('quality')]
@@ -201,7 +201,7 @@ build: toolchain-check
     cd "{{root}}"
     cargo build --locked --workspace
     bun run scripts/build-wasm.ts
-    bun run --filter rclweb build
+    bun run --filter rcl-web build
 
 # Measure wasm poll latency (R-D1). Prints to stdout; does not write into the repo.
 [group('quality')]

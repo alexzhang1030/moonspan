@@ -9,18 +9,18 @@
       "name": "@rclweb/e2e-harness",
       "version": "0.0.0",
       "dependencies": {
-        "rclweb": "workspace:*",
+        "rcl-web": "workspace:*",
       },
     },
     "examples/subscribe-chatter": {
       "name": "@rclweb/subscribe-chatter",
       "version": "0.0.0",
       "dependencies": {
-        "rclweb": "workspace:*",
+        "rcl-web": "workspace:*",
       },
     },
     "typescript": {
-      "name": "rclweb",
+      "name": "rcl-web",
       "version": "0.0.1",
     },
   },
@@ -29,6 +29,6 @@
 
     "@rclweb/subscribe-chatter": ["@rclweb/subscribe-chatter@workspace:examples/subscribe-chatter"],
 
-    "rclweb": ["rclweb@workspace:typescript"],
+    "rcl-web": ["rcl-web@workspace:typescript"],
   }
 }

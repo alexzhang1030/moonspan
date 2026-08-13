@@ -1,6 +1,6 @@
 # Project intent
 
-rclweb gives browser applications typed, secure access to ROS 2 through a versioned protocol (R2WP), a single Rust core that runs natively at the edge and as Wasm in the browser, and a TypeScript package (`rclweb`).
+rclweb gives browser applications typed, secure access to ROS 2 through a versioned protocol (R2WP), a single Rust core that runs natively at the edge and as Wasm in the browser, and a TypeScript package (`rcl-web`).
 
 ## What this is trying to be
 
@@ -22,8 +22,8 @@ A production edge + browser path: one Rust core ([ADR 0010](../../docs/adr/0010-
 - R2WP carries CDR and control data over bounded, observable transports.
 - `rclwebd` owns ROS attachment, identity, policy, scheduling, schema, audit, and operations at the edge.
 - Supported profiles carry conformance, performance, security, and deployment evidence.
-- The TypeScript package `rclweb` exposes an rclcpp-shaped public application contract (`init` / `Node`).
-- The first published package version is `0.0.1`. The npm tarball must include the repository `LICENSE` and `NOTICE`. Rust crates stay off crates.io (`publish = false`).
+- The TypeScript package `rcl-web` exposes an rclcpp-shaped public application contract (`init` / `Node`).
+- The first published package version is `0.0.1`. The npm tarball must include the repository `LICENSE` and `NOTICE`. Rust crates stay off crates.io (`publish = false`). Unscoped `rclweb` is blocked on npm as too similar to `rrweb`; the publish name is `rcl-web` ([ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md)).
 - The repository is Apache-2.0; third-party crates on the published surface stay OSI-permissive ([licensing](../../docs/licensing.md)).
 
 ## Non-goals

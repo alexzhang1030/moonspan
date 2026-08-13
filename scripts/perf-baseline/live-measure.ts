@@ -10,7 +10,7 @@
  */
 
 import path from "node:path";
-import { init, Node, shutdown, std_msgs } from "rclweb";
+import { init, Node, shutdown, std_msgs } from "rcl-web";
 import { summarize } from "./stats.ts";
 
 const topic = process.env.RCLWEB_PERF_TOPIC ?? "/bench/stamp";

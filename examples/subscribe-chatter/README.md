@@ -2,11 +2,11 @@
 
 Browser page that connects to `rclwebd` over WebSocket, subscribes to
 `/chatter`, and can publish `std_msgs/msg/String` samples. This is the
-public `rclweb` demo ([docs/typescript.md](../../docs/typescript.md)).
+public `rcl-web` demo ([docs/typescript.md](../../docs/typescript.md)).
 
 ## Run
 
-1. Build the `rclweb` browser bundle (also stages wasm):
+1. Build the `rcl-web` browser bundle (also stages wasm):
 
    ```bash
    just build
@@ -15,7 +15,7 @@ public `rclweb` demo ([docs/typescript.md](../../docs/typescript.md)).
    Or, if the native/wasm tree is already current:
 
    ```bash
-   bun run --filter rclweb build
+   bun run --filter rcl-web build
    ```
 
 2. Start a gateway that can attach to ROS (or the mock-free live image):

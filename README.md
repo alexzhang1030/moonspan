@@ -1,6 +1,6 @@
 # rclweb
 
-rclweb connects browser applications to ROS 2 through a versioned wire protocol (R2WP), a single Rust core compiled natively for the edge gateway and to Wasm for the browser, and a TypeScript package (`rclweb`).
+rclweb connects browser applications to ROS 2 through a versioned wire protocol (R2WP), a single Rust core compiled natively for the edge gateway and to Wasm for the browser, and a TypeScript package (`rcl-web`).
 
 ## Scope
 
@@ -8,7 +8,7 @@ rclweb connects browser applications to ROS 2 through a versioned wire protocol 
 |---|---|
 | `rclweb/` | Rust core: R2WP protocol, CDR codecs, session/channel state, client engine + poll ABI (native + wasm32) |
 | `rclwebd/` | Rust edge gateway: transport endpoints, serialized rcl attachment, policy |
-| `typescript/` | TypeScript package `rclweb`: Worker host, buffers, public typed API around the core wasm artifact |
+| `typescript/` | TypeScript package `rcl-web`: Worker host, buffers, public typed API around the core wasm artifact |
 | `protocol/` | Normative R2WP contract, registry, schema, and frozen fixtures |
 | `conformance/` | Authoritative ROS CDR corpus (six support rows; live talker e2e covers each) |
 | `examples/` | Demo applications |
@@ -44,7 +44,7 @@ just build
 | `just test` | Bun and Cargo test suites |
 | `just build` | Native build, fat-LTO `rclweb` wasm staged into the TypeScript package, and package build |
 | `just npm-pack` | Copy `LICENSE`/`NOTICE` into `typescript/` and write the npm tarball |
-| `just npm-pack-check` | Verify the tarball is `rclweb@0.0.1` and includes `LICENSE`, `NOTICE`, and wasm |
+| `just npm-pack-check` | Verify the tarball is `rcl-web@0.0.1` and includes `LICENSE`, `NOTICE`, and wasm |
 | `just poll-latency` | Print wasm poll latency + size |
 | `just e2e` | Docker compose: Jazzy talker → rclwebd (J-FT) → SDK subscribe |
 | `just e2e-h-ft` | Docker compose: Humble talker → rclwebd (H-FT) → SDK subscribe |
@@ -63,9 +63,10 @@ just build
 
 A browser page can subscribe to a live ROS 2 talker in CI (`just e2e`,
 `just e2e-h-ft`, and the Cyclone/Zenoh row lanes). The TypeScript package
-is `rclweb@0.0.1` and public. A human publishes it from `typescript/`
-after `just build` (`npm publish`). Support-matrix **Qualified** remains
-a human matrix edit. Open work lives in [tasks/plan.md](./tasks/plan.md).
+is `rcl-web@0.0.1` (npm rejected unscoped `rclweb` as too similar to
+`rrweb`). A human publishes it from `typescript/` after `just build`
+(`npm publish`). Support-matrix **Qualified** remains a human matrix edit.
+Open work lives in [tasks/plan.md](./tasks/plan.md).
 
 ## Start here
 

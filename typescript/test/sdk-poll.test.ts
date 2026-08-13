@@ -23,7 +23,7 @@ test("sdk package identity and privacy", () => {
     type: string;
     exports: Record<string, string>;
   };
-  expect(pkg.name).toBe("rclweb");
+  expect(pkg.name).toBe("rcl-web");
   expect(pkg.version).toBe("0.0.1");
   expect(pkg.private).toBe(false);
   expect(pkg.type).toBe("module");
@@ -74,8 +74,8 @@ test("public runtime exports stay application-facing", async () => {
 });
 
 test("workspace export map resolves public and internal subpaths", async () => {
-  const pub = await import("rclweb");
-  const intern = await import("rclweb/internal");
+  const pub = await import("rcl-web");
+  const intern = await import("rcl-web/internal");
   expect(typeof pub.init).toBe("function");
   expect(typeof pub.Node).toBe("function");
   expect(pub.std_msgs.msg.String.typeName).toBe("std_msgs/msg/String");

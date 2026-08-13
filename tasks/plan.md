@@ -1,18 +1,19 @@
 # Open work
 
-The product is one Rust core (`rclweb`) for gateway and browser, `rclwebd` at the edge, and the TypeScript package `rclweb`. Architecture: [docs/architecture.md](../docs/architecture.md). This file lists what is still open. It is not a phase ledger.
+The product is one Rust core (`rclweb`) for gateway and browser, `rclwebd` at the edge, and the TypeScript package `rcl-web`. Architecture: [docs/architecture.md](../docs/architecture.md). This file lists what is still open. It is not a phase ledger.
 
 ## Settled
 
 | Topic | Ruling |
 |---|---|
 | Core language | One Rust core, native for `rclwebd`, wasm32 for the browser ([ADR 0010](../docs/adr/0010-restructure-single-rust-core.md)) |
-| Names | Core crate `rclweb`, gateway `rclwebd`, TypeScript package `rclweb` at `typescript/` ([ADR 0013](../docs/adr/0013-typescript-package-rclweb.md)) |
+| Names | Core crate `rclweb`, gateway `rclwebd`, TypeScript package `rcl-web` at `typescript/` ([ADR 0014](../docs/adr/0014-typescript-package-rcl-web.md)) |
 | Protocol subset | v0.1 normative subset per [r2wp-v0](../protocol/r2wp-v0.md#normative-scope-v01-subset) |
 | Support rows | Six rows of corpus data stay committed; live talker e2e covers all six; **Qualified** is a human matrix edit |
 | Bun | 1.3.14, workspace manifests, lockfile, root checks |
 | License | Apache-2.0; OSI-permissive third-party policy ([licensing](../docs/licensing.md)) |
-| First published version | TypeScript package `rclweb@0.0.1` is public; the npm tarball must include `LICENSE` and `NOTICE`. Crates stay `publish = false`. A human still runs `npm publish` from `typescript/` |
+| First published version | TypeScript package `rcl-web@0.0.1`; the npm tarball must include `LICENSE` and `NOTICE`. Crates stay `publish = false`. A human still runs `npm publish` from `typescript/` |
+| npm registry name | Unscoped `rclweb` is blocked as too similar to `rrweb`. Publish and import name is `rcl-web` ([ADR 0014](../docs/adr/0014-typescript-package-rcl-web.md)) |
 
 ## Open — needs a human ruling
 
