@@ -12,6 +12,7 @@
 
 import type { GeneratedMsg } from "../generated-value.ts";
 import type { PointCloud2 } from "../types.ts";
+import type { EngineTelemetrySnapshot } from "../wasm/abi.ts";
 
 export type MainToWorker =
   | { type: "init"; wasmUrl: string }
@@ -276,4 +277,5 @@ export type WorkerToMain =
     }
   | { type: "error"; requestId?: number; message: string }
   | { type: "ack"; requestId: number }
+  | { type: "telemetry"; snapshot: EngineTelemetrySnapshot }
   | { type: "closed"; requestId?: number };

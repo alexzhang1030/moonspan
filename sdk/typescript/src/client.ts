@@ -9,7 +9,7 @@
  */
 
 import { IoHost } from "./host.ts";
-import type { AppEvent } from "./wasm/abi.ts";
+import type { AppEvent, EngineTelemetrySnapshot } from "./wasm/abi.ts";
 import {
   Collections,
   NestedSample,
@@ -228,25 +228,130 @@ export type RclwebSession = {
 
 export type RclwebClient = {
   readonly session: RclwebSession;
-  /** Browser-engine copy/poll counters when running on the inline host. */
-  telemetry(): import("./wasm/abi.ts").EngineTelemetrySnapshot | null;
+  /** Browser-engine copy/poll counters (inline host, or last Worker poll). */
+  telemetry(): EngineTelemetrySnapshot | null;
   /**
-   * Fresh-session reconnect (inline host). Re-opens tracked subscribe/publish
-   * channels after SessionReady. No-op when reconnect was not configured and
-   * the transport is still up.
+   * Fresh-session reconnect. Re-opens tracked subscribe, publish, service,
+   * and action channels after SessionReady, keeping the same channel IDs so
+   * existing session objects keep working. SessionResume stays parked.
    */
   reconnect(): Promise<void>;
   close(): Promise<void>;
 };
 
+type ChannelKind =
+  | "subscribe"
+  | "publish"
+  | "serviceClient"
+  | "serviceServer"
+  | "actionClient"
+  | "actionServer";
+
 type ChannelRecord = {
-  kind: "subscribe" | "publish";
+  kind: ChannelKind;
   topic: string;
   typeName: string;
   qos: QosOptions;
   channelId: number;
   handler?: SubscriptionHandler;
+  serviceHandler?: ServiceServerHandler;
+  actionHandlers?: ActionServerHandlers;
 };
+
+async function reopenTrackedChannels(
+  records: readonly ChannelRecord[],
+  ops: {
+    subscribe(
+      topic: string,
+      typeName: string,
+      qos: QosOptions,
+      channelId: number,
+    ): Promise<Subscription>;
+    publish(
+      topic: string,
+      typeName: string,
+      qos: QosOptions,
+      channelId: number,
+    ): Promise<unknown>;
+    createServiceClient(
+      name: string,
+      typeName: string,
+      channelId: number,
+    ): Promise<unknown>;
+    createServiceServer(
+      name: string,
+      typeName: string,
+      handler: ServiceServerHandler,
+      channelId: number,
+    ): Promise<unknown>;
+    createActionClient(
+      name: string,
+      typeName: string,
+      channelId: number,
+    ): Promise<unknown>;
+    createActionServer(
+      name: string,
+      typeName: string,
+      handlers: ActionServerHandlers,
+      channelId: number,
+    ): Promise<unknown>;
+  },
+): Promise<void> {
+  for (const record of records) {
+    switch (record.kind) {
+      case "subscribe": {
+        const sub = await ops.subscribe(
+          record.topic,
+          record.typeName,
+          record.qos,
+          record.channelId,
+        );
+        if (record.handler) {
+          sub.onMessage(record.handler);
+        }
+        break;
+      }
+      case "publish":
+        await ops.publish(
+          record.topic,
+          record.typeName,
+          record.qos,
+          record.channelId,
+        );
+        break;
+      case "serviceClient":
+        await ops.createServiceClient(
+          record.topic,
+          record.typeName,
+          record.channelId,
+        );
+        break;
+      case "serviceServer":
+        await ops.createServiceServer(
+          record.topic,
+          record.typeName,
+          record.serviceHandler ?? (async () => new Uint8Array()),
+          record.channelId,
+        );
+        break;
+      case "actionClient":
+        await ops.createActionClient(
+          record.topic,
+          record.typeName,
+          record.channelId,
+        );
+        break;
+      case "actionServer":
+        await ops.createActionServer(
+          record.topic,
+          record.typeName,
+          record.actionHandlers ?? {},
+          record.channelId,
+        );
+        break;
+    }
+  }
+}
 
 class InlineClient implements RclwebClient {
   #host: IoHost;
@@ -315,6 +420,7 @@ class InlineClient implements RclwebClient {
   #graph: GraphView = { generation: 0, nodes: [], endpoints: [] };
   #connectWaiters: Array<() => void> = [];
   #reconnectAttempts = 0;
+  #reconnecting = false;
 
   private constructor(
     host: IoHost,
@@ -347,6 +453,7 @@ class InlineClient implements RclwebClient {
         client.#pendingPubs.clear();
       },
       onClosed() {
+        if (client.#reconnecting) return;
         if (client.#options.reconnect && client.#url) {
           void client.#autoReconnect();
         }
@@ -416,10 +523,16 @@ class InlineClient implements RclwebClient {
     if (!this.#url) {
       throw new Error("reconnect requires a live WebSocket url");
     }
-    this.#sessionReady = false;
-    await this.#host.reconnect(this.#url);
-    await this.#waitSessionReady();
-    await this.#reopenChannels();
+    this.#reconnecting = true;
+    try {
+      this.#sessionReady = false;
+      this.#rejectInflight("session reconnected");
+      await this.#host.reconnect(this.#url);
+      await this.#waitSessionReady();
+      await this.#reopenChannels();
+    } finally {
+      this.#reconnecting = false;
+    }
   }
 
   async close(): Promise<void> {
@@ -448,24 +561,51 @@ class InlineClient implements RclwebClient {
     });
   }
 
+  #rejectInflight(message: string): void {
+    const err = new Error(message);
+    for (const pending of this.#pendingCalls.values()) {
+      pending.reject(err);
+    }
+    this.#pendingCalls.clear();
+    for (const pending of this.#pendingActionResults.values()) {
+      pending.reject(err);
+    }
+    this.#pendingActionResults.clear();
+    for (const pending of this.#pendingSubs.values()) {
+      pending.reject(err);
+    }
+    this.#pendingSubs.clear();
+    for (const pending of this.#pendingPubs.values()) {
+      pending.reject(err);
+    }
+    this.#pendingPubs.clear();
+    for (const pending of this.#pendingServices.values()) {
+      pending.reject(err);
+    }
+    this.#pendingServices.clear();
+    for (const pending of this.#pendingActions.values()) {
+      pending.reject(err);
+    }
+    this.#pendingActions.clear();
+  }
+
   async #reopenChannels(): Promise<void> {
     const snapshot = [...this.#channels.values()];
     this.#channels.clear();
-    this.#handlers.clear();
-    for (const record of snapshot) {
-      if (record.kind === "subscribe") {
-        const sub = await this.#subscribe(
-          record.topic,
-          record.typeName,
-          record.qos,
-        );
-        if (record.handler) {
-          sub.onMessage(record.handler);
-        }
-      } else {
-        await this.#publish(record.topic, record.typeName, record.qos);
-      }
-    }
+    await reopenTrackedChannels(snapshot, {
+      subscribe: (topic, typeName, qos, channelId) =>
+        this.#subscribe(topic, typeName, qos, channelId),
+      publish: (topic, typeName, qos, channelId) =>
+        this.#publish(topic, typeName, qos, channelId),
+      createServiceClient: (name, typeName, channelId) =>
+        this.#createServiceClient(name, typeName, channelId),
+      createServiceServer: (name, typeName, handler, channelId) =>
+        this.#createServiceServer(name, typeName, handler, channelId),
+      createActionClient: (name, typeName, channelId) =>
+        this.#createActionClient(name, typeName, channelId),
+      createActionServer: (name, typeName, handlers, channelId) =>
+        this.#createActionServer(name, typeName, handlers, channelId),
+    });
   }
 
   #onEvent(event: AppEvent): void {
@@ -615,6 +755,14 @@ class InlineClient implements RclwebClient {
         this.#pendingServices.delete(event.channelId);
         const channelId = event.channelId;
         this.#channelTypes.set(channelId, event.typeName);
+        this.#channels.set(channelId, {
+          kind: pending.client ? "serviceClient" : "serviceServer",
+          topic: event.name,
+          typeName: event.typeName,
+          qos: {},
+          channelId,
+          serviceHandler: pending.handler,
+        });
         if (pending.client) {
           const client: ServiceClient = {
             name: event.name,
@@ -622,6 +770,7 @@ class InlineClient implements RclwebClient {
             channelId,
             call: (request) => this.#callService(channelId, request),
             close: async () => {
+              this.#channels.delete(channelId);
               this.#channelTypes.delete(channelId);
               this.#host.unsubscribe(corrTag(0xc5), channelId);
               this.#host.flushSync();
@@ -637,6 +786,7 @@ class InlineClient implements RclwebClient {
             typeName: event.typeName,
             channelId,
             close: async () => {
+              this.#channels.delete(channelId);
               this.#serviceHandlers.delete(channelId);
               this.#channelTypes.delete(channelId);
               this.#host.unsubscribe(corrTag(0xc6), channelId);
@@ -701,6 +851,14 @@ class InlineClient implements RclwebClient {
         this.#pendingActions.delete(event.channelId);
         const channelId = event.channelId;
         this.#channelTypes.set(channelId, event.typeName);
+        this.#channels.set(channelId, {
+          kind: pending.client ? "actionClient" : "actionServer",
+          topic: event.name,
+          typeName: event.typeName,
+          qos: {},
+          channelId,
+          actionHandlers: pending.handlers,
+        });
         if (pending.client) {
           const client: ActionClient = {
             name: event.name,
@@ -718,6 +876,7 @@ class InlineClient implements RclwebClient {
               this.#actionStatus.set(channelId, handler);
             },
             close: async () => {
+              this.#channels.delete(channelId);
               this.#actionFeedback.delete(channelId);
               this.#actionStatus.delete(channelId);
               this.#channelTypes.delete(channelId);
@@ -747,6 +906,7 @@ class InlineClient implements RclwebClient {
               this.#host.flushSync();
             },
             close: async () => {
+              this.#channels.delete(channelId);
               this.#actionServerHandlers.delete(channelId);
               this.#channelTypes.delete(channelId);
               this.#host.unsubscribe(corrTag(0xc8), channelId);
@@ -879,8 +1039,9 @@ class InlineClient implements RclwebClient {
     topic: string,
     typeName: string,
     qos: QosOptions,
+    reuseChannelId?: number,
   ): Promise<Subscription> {
-    const channelId = this.#nextChannel++;
+    const channelId = reuseChannelId ?? this.#nextChannel++;
     const depth = qos.depth ?? DEFAULT_QOS_DEPTH;
     return new Promise((resolve, reject) => {
       this.#pendingSubs.set(channelId, {
@@ -906,8 +1067,9 @@ class InlineClient implements RclwebClient {
     topic: string,
     typeName: string,
     qos: QosOptions,
+    reuseChannelId?: number,
   ): Promise<Publisher> {
-    const channelId = this.#nextChannel++;
+    const channelId = reuseChannelId ?? this.#nextChannel++;
     const depth = qos.depth ?? DEFAULT_QOS_DEPTH;
     return new Promise((resolve, reject) => {
       this.#pendingPubs.set(channelId, {
@@ -929,8 +1091,12 @@ class InlineClient implements RclwebClient {
     });
   }
 
-  #createServiceClient(name: string, typeName: string): Promise<ServiceClient> {
-    const channelId = this.#nextChannel++;
+  #createServiceClient(
+    name: string,
+    typeName: string,
+    reuseChannelId?: number,
+  ): Promise<ServiceClient> {
+    const channelId = reuseChannelId ?? this.#nextChannel++;
     return new Promise((resolve, reject) => {
       this.#pendingServices.set(channelId, {
         resolve: (v) => resolve(v as ServiceClient),
@@ -954,8 +1120,9 @@ class InlineClient implements RclwebClient {
     name: string,
     typeName: string,
     handler: ServiceServerHandler,
+    reuseChannelId?: number,
   ): Promise<ServiceServer> {
-    const channelId = this.#nextChannel++;
+    const channelId = reuseChannelId ?? this.#nextChannel++;
     return new Promise((resolve, reject) => {
       this.#pendingServices.set(channelId, {
         resolve: (v) => resolve(v as ServiceServer),
@@ -986,8 +1153,12 @@ class InlineClient implements RclwebClient {
     });
   }
 
-  #createActionClient(name: string, typeName: string): Promise<ActionClient> {
-    const channelId = this.#nextChannel++;
+  #createActionClient(
+    name: string,
+    typeName: string,
+    reuseChannelId?: number,
+  ): Promise<ActionClient> {
+    const channelId = reuseChannelId ?? this.#nextChannel++;
     return new Promise((resolve, reject) => {
       this.#pendingActions.set(channelId, {
         resolve: (v) => resolve(v as ActionClient),
@@ -1011,8 +1182,9 @@ class InlineClient implements RclwebClient {
     name: string,
     typeName: string,
     handlers: ActionServerHandlers,
+    reuseChannelId?: number,
   ): Promise<ActionServer> {
-    const channelId = this.#nextChannel++;
+    const channelId = reuseChannelId ?? this.#nextChannel++;
     return new Promise((resolve, reject) => {
       this.#pendingActions.set(channelId, {
         resolve: (v) => resolve(v as ActionServer),
@@ -1096,6 +1268,8 @@ function copyChannelOpPayload(
 
 class WorkerClient implements RclwebClient {
   #worker: Worker;
+  #url: string;
+  #options: ConnectOptions;
   #pending = new Map<number, Pending>();
   #nextRequest = 1;
   #nextChannel = 1;
@@ -1105,12 +1279,18 @@ class WorkerClient implements RclwebClient {
   #actionStatus = new Map<number, ActionStatusHandler>();
   #actionServerHandlers = new Map<number, ActionServerHandlers>();
   #inflightByChannel = new Map<number, Set<number>>();
+  #channels = new Map<number, ChannelRecord>();
+  #telemetry: EngineTelemetrySnapshot | null = null;
   #graphHandler: GraphHandler | null = null;
   #graph: GraphView = { generation: 0, nodes: [], endpoints: [] };
   #session: RclwebSession;
+  #reconnectAttempts = 0;
+  #reconnecting = false;
 
-  private constructor(worker: Worker) {
+  private constructor(worker: Worker, url: string, options: ConnectOptions) {
     this.#worker = worker;
+    this.#url = url;
+    this.#options = options;
     this.#session = {
       subscribe: ((topic, type: TypeNameLike = StdMsgsStringMsg, qos = {}) =>
         this.#subscribe(topic, typeNameOf(type), qos)) as RclwebSession["subscribe"],
@@ -1162,7 +1342,7 @@ class WorkerClient implements RclwebClient {
   ): Promise<WorkerClient> {
     const workerUrl = resolveIoWorkerUrl(import.meta.url, options.workerUrl);
     const worker = new Worker(workerUrl.href, { type: "module" });
-    const client = new WorkerClient(worker);
+    const client = new WorkerClient(worker, url, options);
     await client.#request({ type: "init", wasmUrl });
     await client.#request({
       type: "connect",
@@ -1195,16 +1375,66 @@ class WorkerClient implements RclwebClient {
   }
 
   telemetry() {
-    return null;
+    return this.#telemetry;
   }
 
   async reconnect(): Promise<void> {
-    await this.#request({ type: "reconnect", requestId: 0 });
+    this.#reconnecting = true;
+    try {
+      this.#rejectInflight("session reconnected");
+      await this.#request({ type: "reconnect", requestId: 0 });
+      await this.#reopenChannels();
+    } finally {
+      this.#reconnecting = false;
+    }
   }
 
   async close(): Promise<void> {
+    this.#options = { ...this.#options, reconnect: false };
     await this.#request({ type: "close", requestId: 0 });
     this.#worker.terminate();
+  }
+
+  async #autoReconnect(): Promise<void> {
+    const max = this.#options.reconnectAttempts ?? 3;
+    if (this.#reconnectAttempts >= max || !this.#url) {
+      return;
+    }
+    this.#reconnectAttempts += 1;
+    try {
+      await this.reconnect();
+      this.#reconnectAttempts = 0;
+    } catch {
+      // Leave channels closed; caller can invoke reconnect() manually.
+    }
+  }
+
+  #rejectInflight(message: string): void {
+    const err = new Error(message);
+    for (const pending of this.#pending.values()) {
+      pending.reject(err);
+    }
+    this.#pending.clear();
+    this.#inflightByChannel.clear();
+  }
+
+  async #reopenChannels(): Promise<void> {
+    const snapshot = [...this.#channels.values()];
+    this.#channels.clear();
+    await reopenTrackedChannels(snapshot, {
+      subscribe: (topic, typeName, qos, channelId) =>
+        this.#subscribe(topic, typeName, qos, channelId),
+      publish: (topic, typeName, qos, channelId) =>
+        this.#publish(topic, typeName, qos, channelId),
+      createServiceClient: (name, typeName, channelId) =>
+        this.#createServiceClient(name, typeName, channelId),
+      createServiceServer: (name, typeName, handler, channelId) =>
+        this.#createServiceServer(name, typeName, handler, channelId),
+      createActionClient: (name, typeName, channelId) =>
+        this.#createActionClient(name, typeName, channelId),
+      createActionServer: (name, typeName, handlers, channelId) =>
+        this.#createActionServer(name, typeName, handlers, channelId),
+    });
   }
 
   #request(msg: MainToWorker): Promise<unknown> {
@@ -1247,15 +1477,19 @@ class WorkerClient implements RclwebClient {
         const p = this.#pending.get(msg.requestId);
         if (!p) break;
         const channelId = msg.channelId;
+        const rec = this.#channels.get(channelId);
         const sub: Subscription = {
           topic: msg.topic,
           typeName: msg.typeName,
           channelId,
           onMessage: (handler) => {
             this.#handlers.set(channelId, handler);
+            const current = this.#channels.get(channelId);
+            if (current) current.handler = handler;
           },
           unsubscribe: async () => {
             this.#handlers.delete(channelId);
+            this.#channels.delete(channelId);
             await this.#request({
               type: "unsubscribe",
               requestId: 0,
@@ -1264,6 +1498,10 @@ class WorkerClient implements RclwebClient {
             });
           },
         };
+        if (rec) {
+          rec.topic = msg.topic;
+          rec.typeName = msg.typeName;
+        }
         p.resolve(sub);
         this.#pending.delete(msg.requestId);
         break;
@@ -1318,6 +1556,7 @@ class WorkerClient implements RclwebClient {
             });
           },
           unadvertise: async () => {
+            this.#channels.delete(channelId);
             await this.#request({
               type: "unsubscribe",
               requestId: 0,
@@ -1406,6 +1645,7 @@ class WorkerClient implements RclwebClient {
             channelId,
             call: (request) => this.#callService(channelId, request),
             close: async () => {
+              this.#channels.delete(channelId);
               await this.#request({
                 type: "unsubscribe",
                 requestId: 0,
@@ -1421,6 +1661,7 @@ class WorkerClient implements RclwebClient {
             typeName: msg.typeName,
             channelId,
             close: async () => {
+              this.#channels.delete(channelId);
               this.#serviceHandlers.delete(channelId);
               await this.#request({
                 type: "unsubscribe",
@@ -1493,6 +1734,7 @@ class WorkerClient implements RclwebClient {
               this.#actionStatus.set(channelId, handler);
             },
             close: async () => {
+              this.#channels.delete(channelId);
               this.#actionFeedback.delete(channelId);
               this.#actionStatus.delete(channelId);
               await this.#request({
@@ -1537,6 +1779,7 @@ class WorkerClient implements RclwebClient {
               });
             },
             close: async () => {
+              this.#channels.delete(channelId);
               this.#actionServerHandlers.delete(channelId);
               await this.#request({
                 type: "unsubscribe",
@@ -1652,6 +1895,10 @@ class WorkerClient implements RclwebClient {
         }
         break;
       }
+      case "telemetry": {
+        this.#telemetry = msg.snapshot;
+        break;
+      }
       case "closed": {
         if (msg.requestId != null) {
           const p = this.#pending.get(msg.requestId);
@@ -1659,6 +1906,12 @@ class WorkerClient implements RclwebClient {
             p.resolve(undefined);
             this.#pending.delete(msg.requestId);
           }
+        } else if (
+          !this.#reconnecting &&
+          this.#options.reconnect &&
+          this.#url
+        ) {
+          void this.#autoReconnect();
         }
         break;
       }
@@ -1669,13 +1922,24 @@ class WorkerClient implements RclwebClient {
     topic: string,
     typeName: string,
     qos: QosOptions,
+    reuseChannelId?: number,
   ): Promise<Subscription> {
-    const channelId = this.#nextChannel++;
+    const channelId = reuseChannelId ?? this.#nextChannel++;
     const requestId = this.#nextRequest++;
+    this.#channels.set(channelId, {
+      kind: "subscribe",
+      topic,
+      typeName,
+      qos,
+      channelId,
+    });
     return new Promise((resolve, reject) => {
       this.#pending.set(requestId, {
         resolve: (value) => resolve(value as Subscription),
-        reject,
+        reject: (err) => {
+          this.#channels.delete(channelId);
+          reject(err);
+        },
       });
       this.#worker.postMessage({
         type: "subscribe",
@@ -1694,13 +1958,24 @@ class WorkerClient implements RclwebClient {
     topic: string,
     typeName: string,
     qos: QosOptions,
+    reuseChannelId?: number,
   ): Promise<Publisher> {
-    const channelId = this.#nextChannel++;
+    const channelId = reuseChannelId ?? this.#nextChannel++;
     const requestId = this.#nextRequest++;
+    this.#channels.set(channelId, {
+      kind: "publish",
+      topic,
+      typeName,
+      qos,
+      channelId,
+    });
     return new Promise((resolve, reject) => {
       this.#pending.set(requestId, {
         resolve: (value) => resolve(value as Publisher),
-        reject,
+        reject: (err) => {
+          this.#channels.delete(channelId);
+          reject(err);
+        },
       });
       this.#worker.postMessage({
         type: "publish",
@@ -1715,13 +1990,27 @@ class WorkerClient implements RclwebClient {
     });
   }
 
-  #createServiceClient(name: string, typeName: string): Promise<ServiceClient> {
-    const channelId = this.#nextChannel++;
+  #createServiceClient(
+    name: string,
+    typeName: string,
+    reuseChannelId?: number,
+  ): Promise<ServiceClient> {
+    const channelId = reuseChannelId ?? this.#nextChannel++;
     const requestId = this.#nextRequest++;
+    this.#channels.set(channelId, {
+      kind: "serviceClient",
+      topic: name,
+      typeName,
+      qos: {},
+      channelId,
+    });
     return new Promise((resolve, reject) => {
       this.#pending.set(requestId, {
         resolve: (value) => resolve(value as ServiceClient),
-        reject,
+        reject: (err) => {
+          this.#channels.delete(channelId);
+          reject(err);
+        },
       });
       this.#worker.postMessage({
         type: "openService",
@@ -1739,14 +2028,27 @@ class WorkerClient implements RclwebClient {
     name: string,
     typeName: string,
     handler: ServiceServerHandler,
+    reuseChannelId?: number,
   ): Promise<ServiceServer> {
-    const channelId = this.#nextChannel++;
+    const channelId = reuseChannelId ?? this.#nextChannel++;
     const requestId = this.#nextRequest++;
     this.#serviceHandlers.set(channelId, handler);
+    this.#channels.set(channelId, {
+      kind: "serviceServer",
+      topic: name,
+      typeName,
+      qos: {},
+      channelId,
+      serviceHandler: handler,
+    });
     return new Promise((resolve, reject) => {
       this.#pending.set(requestId, {
         resolve: (value) => resolve(value as ServiceServer),
-        reject,
+        reject: (err) => {
+          this.#channels.delete(channelId);
+          this.#serviceHandlers.delete(channelId);
+          reject(err);
+        },
       });
       this.#worker.postMessage({
         type: "openService",
@@ -1779,13 +2081,27 @@ class WorkerClient implements RclwebClient {
     });
   }
 
-  #createActionClient(name: string, typeName: string): Promise<ActionClient> {
-    const channelId = this.#nextChannel++;
+  #createActionClient(
+    name: string,
+    typeName: string,
+    reuseChannelId?: number,
+  ): Promise<ActionClient> {
+    const channelId = reuseChannelId ?? this.#nextChannel++;
     const requestId = this.#nextRequest++;
+    this.#channels.set(channelId, {
+      kind: "actionClient",
+      topic: name,
+      typeName,
+      qos: {},
+      channelId,
+    });
     return new Promise((resolve, reject) => {
       this.#pending.set(requestId, {
         resolve: (value) => resolve(value as ActionClient),
-        reject,
+        reject: (err) => {
+          this.#channels.delete(channelId);
+          reject(err);
+        },
       });
       this.#worker.postMessage({
         type: "openAction",
@@ -1803,14 +2119,27 @@ class WorkerClient implements RclwebClient {
     name: string,
     typeName: string,
     handlers: ActionServerHandlers,
+    reuseChannelId?: number,
   ): Promise<ActionServer> {
-    const channelId = this.#nextChannel++;
+    const channelId = reuseChannelId ?? this.#nextChannel++;
     const requestId = this.#nextRequest++;
     this.#actionServerHandlers.set(channelId, handlers);
+    this.#channels.set(channelId, {
+      kind: "actionServer",
+      topic: name,
+      typeName,
+      qos: {},
+      channelId,
+      actionHandlers: handlers,
+    });
     return new Promise((resolve, reject) => {
       this.#pending.set(requestId, {
         resolve: (value) => resolve(value as ActionServer),
-        reject,
+        reject: (err) => {
+          this.#channels.delete(channelId);
+          this.#actionServerHandlers.delete(channelId);
+          reject(err);
+        },
       });
       this.#worker.postMessage({
         type: "openAction",

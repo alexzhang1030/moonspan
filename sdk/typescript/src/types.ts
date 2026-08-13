@@ -80,7 +80,9 @@ export type ConnectOptions = {
   workerUrl?: string | URL;
   /**
    * Fresh-session reconnect on transport close (R2-01). SessionResume stays
-   * parked in the v0.1 subset — this re-runs ClientHello → Auth → channel opens.
+   * parked in the v0.1 subset — this re-runs ClientHello → Auth → SessionReady
+   * and re-opens subscribe, publish, service, and action channels with the
+   * same client-assigned channel IDs so existing session objects keep working.
    */
   reconnect?: boolean;
   /** Max reconnect attempts (default 3). */

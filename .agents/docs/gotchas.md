@@ -52,7 +52,11 @@ Spread-pushing a byte array into a `number[]` (`out.push(...bytes)`) throws a Ra
 
 ## Reconnect is a fresh session, not SessionResume
 
-v0.1 parks SessionResume (capability 1). R2-01 reconnect means: close the transport, allocate a new client engine, re-run ClientHello → Authenticate → SessionReady, then re-open channels. The SDK `reconnect()` / `ConnectOptions.reconnect` path implements that; do not invent resume tokens or expect `gateway_instance_id` alone to restore channel state.
+v0.1 parks SessionResume (capability 1). R2-01 reconnect means: close the transport, allocate a new client engine, re-run ClientHello → Authenticate → SessionReady, then re-open channels **with the same client-assigned channel IDs**. Subscribe, publish, service, and action objects keep working; in-flight service calls and action results reject with `"session reconnected"`. The SDK `reconnect()` / `ConnectOptions.reconnect` path implements that on both the I/O Worker and the inline host. Do not invent resume tokens, allocate new channel IDs, or expect `gateway_instance_id` alone to restore channel state.
+
+## Worker telemetry is the last poll snapshot
+
+`WorkerClient.telemetry()` used to return `null` because engine counters lived only inside the Worker. `IoHost` now posts a telemetry message at the end of each poll, before sample/op events, and main caches the latest snapshot. The API stays synchronous. Do not block delivery on a telemetry round-trip, and do not read wasm counters from the main thread. [R4-04](../../docs/milestones/r4-04-sdk.md).
 
 ## GraphSnapshot follows SessionReady on the gateway
 

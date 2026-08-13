@@ -1,7 +1,7 @@
 /**
  * Worker-path (default `connect`, not `inline`) coverage for subscribe,
- * graph, services, actions, and PointCloud2 samples. Scripted peer bytes
- * come from fixture-gen.
+ * graph, services, actions, PointCloud2 samples, Worker telemetry, and
+ * reconnect that re-opens channels. Scripted peer bytes come from fixture-gen.
  */
 
 import { expect, test } from "bun:test";
@@ -36,6 +36,49 @@ function echoOpcode(frame: Uint8Array, opcode: number): Uint8Array {
 
 function isHello(bytes: Uint8Array): boolean {
   return bytes.length >= 4 && bytes[0] === 0x52 && bytes[1] === 0x32;
+}
+
+function asWsBytes(message: string | Buffer | ArrayBuffer | Uint8Array): Uint8Array {
+  if (message instanceof ArrayBuffer) return new Uint8Array(message);
+  if (typeof message === "string") return new TextEncoder().encode(message);
+  return new Uint8Array(message);
+}
+
+type HandshakeStep = "hello" | "ready" | "open" | "active";
+
+function advanceHandshake(
+  ws: { send(data: Uint8Array): void },
+  fixtures: ReturnType<typeof scriptedPeerFixtures>,
+  bytes: Uint8Array,
+  step: HandshakeStep,
+  channelReady: Uint8Array,
+): HandshakeStep {
+  if (step === "hello" && isHello(bytes)) {
+    ws.send(fixtures.serverHello);
+    return "ready";
+  }
+  if (step === "ready" && bytes[1] === OPCODE_CONTROL) {
+    ws.send(fixtures.sessionReady);
+    return "open";
+  }
+  if (step === "open" && bytes[1] === OPCODE_CONTROL) {
+    ws.send(channelReady);
+    return "active";
+  }
+  return step;
+}
+
+async function waitUntil(
+  predicate: () => boolean,
+  timeoutMs = 5000,
+): Promise<void> {
+  const start = Date.now();
+  while (!predicate()) {
+    if (Date.now() - start >= timeoutMs) {
+      throw new Error("waitUntil timeout");
+    }
+    await Bun.sleep(10);
+  }
 }
 
 test("Worker path: scripted subscribe reaches a typed String sample", async () => {
@@ -611,6 +654,210 @@ test("Worker path: publish PrimitiveScalars emits a ROS_SAMPLE frame", async () 
   }
   expect(sampleFrame).not.toBeNull();
   expect(sampleFrame!.length).toBeGreaterThan(4);
+  await client.close();
+  server.stop(true);
+});
+
+test("Worker path: telemetry() is non-null after a sample", async () => {
+  const fixtures = scriptedPeerFixtures();
+  const wasmUrl = pathToFileUrl(wasmPath);
+  let step: HandshakeStep = "hello";
+
+  const server = Bun.serve({
+    port: 0,
+    fetch(req, server) {
+      if (server.upgrade(req)) return undefined;
+      return new Response("expected websocket", { status: 400 });
+    },
+    websocket: {
+      message(ws, message) {
+        const bytes = asWsBytes(message);
+        const next = advanceHandshake(ws, fixtures, bytes, step, fixtures.channelReady);
+        if (next !== step) {
+          step = next;
+          if (step === "active") {
+            setTimeout(() => {
+              ws.send(fixtures.sample);
+            }, 10);
+          }
+        }
+      },
+    },
+  });
+
+  const client = await connect(`ws://127.0.0.1:${server.port}`, { wasmUrl });
+  const sub = await client.session.subscribe("/chatter", std_msgs.msg.String);
+  await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("sample timeout")), 5000);
+    sub.onMessage((_msg, lease) => {
+      clearTimeout(timer);
+      lease.release();
+      resolve();
+    });
+  });
+  await waitUntil(() => (client.telemetry()?.samplesEmitted ?? 0) > 0);
+  const telemetry = client.telemetry();
+  expect(telemetry).not.toBeNull();
+  expect(telemetry!.samplesEmitted).toBeGreaterThan(0);
+  expect(telemetry!.pollTurns).toBeGreaterThan(0);
+  await waitUntil(
+    () => (client.telemetry()?.leasesReleased ?? 0) >= telemetry!.samplesEmitted,
+  );
+  expect(client.telemetry()!.leasesReleased).toBeGreaterThan(0);
+  await client.close();
+  server.stop(true);
+});
+
+test("Worker path: reconnect reopens a subscription on the same channel id", async () => {
+  const fixtures = scriptedPeerFixtures();
+  const wasmUrl = pathToFileUrl(wasmPath);
+  let step: HandshakeStep = "hello";
+
+  const server = Bun.serve({
+    port: 0,
+    fetch(req, server) {
+      if (server.upgrade(req)) return undefined;
+      return new Response("expected websocket", { status: 400 });
+    },
+    websocket: {
+      open() {
+        step = "hello";
+      },
+      message(ws, message) {
+        const bytes = asWsBytes(message);
+        const next = advanceHandshake(ws, fixtures, bytes, step, fixtures.channelReady);
+        if (next !== step) {
+          step = next;
+          if (step === "active") {
+            setTimeout(() => {
+              ws.send(fixtures.sample);
+            }, 10);
+          }
+        }
+      },
+    },
+  });
+
+  const client = await connect(`ws://127.0.0.1:${server.port}`, { wasmUrl });
+  const sub = await client.session.subscribe("/chatter", std_msgs.msg.String);
+  expect(sub.channelId).toBe(1);
+  const received: string[] = [];
+  sub.onMessage((msg, lease) => {
+    lease.release();
+    received.push(msg.data);
+  });
+  await waitUntil(() => received.length >= 1);
+  expect(received[0]).toBe("hello-from-fixture");
+
+  await client.reconnect();
+  expect(sub.channelId).toBe(1);
+  await waitUntil(() => received.length >= 2);
+  expect(received[1]).toBe("hello-from-fixture");
+  await client.close();
+  server.stop(true);
+});
+
+test("Worker path: reconnect reopens a service client on the same channel id", async () => {
+  const fixtures = scriptedPeerFixtures();
+  const wasmUrl = pathToFileUrl(wasmPath);
+  const request = new TextEncoder().encode("req-bytes");
+  let step: HandshakeStep = "hello";
+
+  const server = Bun.serve({
+    port: 0,
+    fetch(req, server) {
+      if (server.upgrade(req)) return undefined;
+      return new Response("expected websocket", { status: 400 });
+    },
+    websocket: {
+      open() {
+        step = "hello";
+      },
+      message(ws, message) {
+        const bytes = asWsBytes(message);
+        const next = advanceHandshake(
+          ws,
+          fixtures,
+          bytes,
+          step,
+          fixtures.serviceChannelReady,
+        );
+        if (next !== step) {
+          step = next;
+          return;
+        }
+        if (step === "active" && bytes[1] === OPCODE_SERVICE_REQUEST) {
+          ws.send(echoOpcode(bytes, OPCODE_SERVICE_RESPONSE));
+        }
+      },
+    },
+  });
+
+  const client = await connect(`ws://127.0.0.1:${server.port}`, { wasmUrl });
+  const svc = await client.session.createServiceClient(
+    "/add_two_ints",
+    "example_interfaces/srv/AddTwoInts",
+  );
+  expect(svc.channelId).toBe(1);
+  const first = await svc.call(request);
+  expect([...first]).toEqual([...request]);
+
+  await client.reconnect();
+  expect(svc.channelId).toBe(1);
+  const second = await svc.call(request);
+  expect([...second]).toEqual([...request]);
+  await client.close();
+  server.stop(true);
+});
+
+test("inline host: reconnect reopens a subscription on the same channel id", async () => {
+  const fixtures = scriptedPeerFixtures();
+  const wasmUrl = pathToFileUrl(wasmPath);
+  let step: HandshakeStep = "hello";
+
+  const server = Bun.serve({
+    port: 0,
+    fetch(req, server) {
+      if (server.upgrade(req)) return undefined;
+      return new Response("expected websocket", { status: 400 });
+    },
+    websocket: {
+      open() {
+        step = "hello";
+      },
+      message(ws, message) {
+        const bytes = asWsBytes(message);
+        const next = advanceHandshake(ws, fixtures, bytes, step, fixtures.channelReady);
+        if (next !== step) {
+          step = next;
+          if (step === "active") {
+            setTimeout(() => {
+              ws.send(fixtures.sample);
+            }, 10);
+          }
+        }
+      },
+    },
+  });
+
+  const client = await connect(`ws://127.0.0.1:${server.port}`, {
+    wasmUrl,
+    inline: true,
+  });
+  const sub = await client.session.subscribe("/chatter", std_msgs.msg.String);
+  expect(sub.channelId).toBe(1);
+  const received: string[] = [];
+  sub.onMessage((msg, lease) => {
+    lease.release();
+    received.push(msg.data);
+  });
+  await waitUntil(() => received.length >= 1);
+  expect(received[0]).toBe("hello-from-fixture");
+
+  await client.reconnect();
+  expect(sub.channelId).toBe(1);
+  await waitUntil(() => received.length >= 2);
+  expect(received[1]).toBe("hello-from-fixture");
   await client.close();
   server.stop(true);
 });
