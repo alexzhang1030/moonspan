@@ -9,7 +9,8 @@
  */
 
 import { IoHost } from "./host.ts";
-import type { AppEvent, EngineTelemetrySnapshot } from "./wasm/abi.ts";
+import type { AppEvent, EngineTelemetrySnapshot, SampleAppEvent } from "./wasm/abi.ts";
+import { decodePointCloud2Cdr, decodeStdMsgsStringCdr } from "./cdr-le.ts";
 import {
   Collections,
   NestedSample,
@@ -355,13 +356,103 @@ async function reopenTrackedChannels(
   }
 }
 
+type SampleSink = (event: SampleAppEvent) => void;
+
+function sampleLease(host: IoHost, leaseId: number): SampleLease {
+  return {
+    leaseId,
+    release: () => {
+      host.releaseLease(leaseId);
+      host.flushSync();
+    },
+  };
+}
+
+/**
+ * Per-channel deliver function installed at `onMessage`. The sample hot
+ * path is Map.get + this sink (Foxglove-shaped), not the generic event switch.
+ */
+function bindSampleSink(
+  host: IoHost,
+  typeName: string,
+  handler: SubscriptionHandler,
+): SampleSink {
+  if (typeName === StdMsgsStringMsg.typeName) {
+    return (event) => {
+      let data: string | null = null;
+      if (event.hostPayload) {
+        data = decodeStdMsgsStringCdr(event.hostPayload);
+      } else {
+        host.fillStringSample(event, typeName);
+        data = event.stringData;
+      }
+      if (data == null) {
+        host.releaseLease(event.leaseId);
+        return;
+      }
+      handler({ data }, sampleLease(host, event.leaseId));
+    };
+  }
+  if (
+    typeName === PointCloud2Msg.typeName ||
+    typeName === "sensor_msgs/PointCloud2"
+  ) {
+    return (event) => {
+      const cloud = event.hostPayload
+        ? decodePointCloud2Cdr(event.hostPayload)
+        : host.decodePointCloud2(
+            event.payloadPtr,
+            event.payloadLen,
+            event.hostPayload,
+          );
+      if (!cloud) {
+        host.releaseLease(event.leaseId);
+        return;
+      }
+      handler(cloud, sampleLease(host, event.leaseId));
+    };
+  }
+  if (isGeneratedMsgType(typeName)) {
+    return (event) => {
+      const generated = host.decodeGenerated(
+        typeName,
+        event.payloadPtr,
+        event.payloadLen,
+        event.hostPayload,
+      );
+      if (!generated) {
+        host.releaseLease(event.leaseId);
+        return;
+      }
+      handler(generated, sampleLease(host, event.leaseId));
+    };
+  }
+  return (event) => {
+    host.fillStringSample(event, typeName);
+    if (event.stringData != null) {
+      handler({ data: event.stringData }, sampleLease(host, event.leaseId));
+      return;
+    }
+    const cloud = host.decodePointCloud2(
+      event.payloadPtr,
+      event.payloadLen,
+      event.hostPayload,
+    );
+    if (!cloud) {
+      host.releaseLease(event.leaseId);
+      return;
+    }
+    handler(cloud, sampleLease(host, event.leaseId));
+  };
+}
+
 class InlineClient implements RclwebClient {
   #host: IoHost;
   #url: string | null = null;
   #options: ConnectOptions;
   #sessionReady = false;
   #nextChannel = 1;
-  #handlers = new Map<number, SubscriptionHandler>();
+  #sampleSinks = new Map<number, SampleSink>();
   #channels = new Map<number, ChannelRecord>();
   #pendingSubs = new Map<
     number,
@@ -642,12 +733,15 @@ class InlineClient implements RclwebClient {
           typeName,
           channelId,
           onMessage: (handler) => {
-            this.#handlers.set(channelId, handler);
+            this.#sampleSinks.set(
+              channelId,
+              bindSampleSink(this.#host, typeName, handler),
+            );
             const rec = this.#channels.get(channelId);
             if (rec) rec.handler = handler;
           },
           unsubscribe: async () => {
-            this.#handlers.delete(channelId);
+            this.#sampleSinks.delete(channelId);
             this.#channels.delete(channelId);
             this.#host.unsubscribe(corrTag(0xc3), channelId);
             this.#host.flushSync();
@@ -716,49 +810,12 @@ class InlineClient implements RclwebClient {
         break;
       }
       case "sample": {
-        const handler = this.#handlers.get(event.channelId);
-        if (!handler) {
+        const sink = this.#sampleSinks.get(event.channelId);
+        if (!sink) {
           this.#host.releaseLease(event.leaseId);
           break;
         }
-        const typeName = this.#channels.get(event.channelId)?.typeName;
-        this.#host.fillStringSample(event, typeName);
-        const leaseId = event.leaseId;
-        const lease: SampleLease = {
-          leaseId,
-          release: () => {
-            this.#host.releaseLease(leaseId);
-            this.#host.flushSync();
-          },
-        };
-        if (event.stringData != null) {
-          handler({ data: event.stringData }, lease);
-          break;
-        }
-        if (typeName && isGeneratedMsgType(typeName)) {
-          const generated = this.#host.decodeGenerated(
-            typeName,
-            event.payloadPtr,
-            event.payloadLen,
-            event.hostPayload,
-          );
-          if (!generated) {
-            this.#host.releaseLease(event.leaseId);
-            break;
-          }
-          handler(generated, lease);
-          break;
-        }
-        const cloud = this.#host.decodePointCloud2(
-          event.payloadPtr,
-          event.payloadLen,
-          event.hostPayload,
-        );
-        if (!cloud) {
-          this.#host.releaseLease(event.leaseId);
-          break;
-        }
-        handler(cloud, lease);
+        sink(event);
         break;
       }
       case "serviceReady": {

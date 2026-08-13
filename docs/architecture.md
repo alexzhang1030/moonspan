@@ -43,7 +43,7 @@ Inbound samples follow this path:
 1. The serialized rcl surface receives CDR bytes with type, schema, QoS, time, and domain context.
 2. `rclwebd` applies policy, budgets, scheduling, and deployment provenance on headers only; it never parses or copies the CDR body (header-prefixed take buffer, in-place header fill, `Bytes` fan-out).
 3. R2WP carries the sample over binary WebSocket or WebTransport.
-4. The I/O Worker delivers ROS_SAMPLE from the host WebSocket buffer ([ADR 0017](./adr/0017-host-retain-inbound-sample-payload.md)). Other application frames copy the R2WP header+extension prefix into wasm. Control and bootstrap still copy the full frame.
+4. The I/O Worker delivers ROS_SAMPLE from the host WebSocket buffer ([ADR 0017](./adr/0017-host-retain-inbound-sample-payload.md)). When the host queue is idle, that frame is pinned and emitted without a poll batch. A sample that arrives while control is already queued stays ordered behind that flush. Other application frames copy the R2WP header+extension prefix into wasm. Control and bootstrap still copy the full frame.
 5. The host emits typed sample events from the retained WebSocket buffer (String / PointCloud2 JS CDR). The core still owns control, channels, service/action, and generated codecs. Bulk fields are borrowed views of that buffer (or of wasm memory for the full-copy control path) under the lease model. The public `Node` API copies those fields into an owned ROS message and releases the lease after the callback.
 
 Outbound operations follow the reverse path after validation in the core and policy at the gateway.
@@ -76,7 +76,7 @@ The 0-copy view holds on the thread that owns the WebSocket buffer (the I/O Work
 
 ## Execution and buffers
 
-The Rust/Wasm core owns synchronous state machines and CDR work. TypeScript Workers own browser scheduling, timers, network APIs, and buffer transfer. A bounded `poll` call joins those execution models ([ADR 0004](./adr/0004-browser-wasm-host-boundary.md)).
+The Rust/Wasm core owns synchronous state machines and CDR work. TypeScript Workers own browser scheduling, timers, network APIs, and buffer transfer. A bounded `poll` call joins those execution models for control, codecs, and service/action ([ADR 0004](./adr/0004-browser-wasm-host-boundary.md)). No-extension ROS_SAMPLE on an idle host queue does not enter that poll batch ([ADR 0017](./adr/0017-host-retain-inbound-sample-payload.md)).
 
 Cross-origin-isolated deployments may use a bounded `SharedArrayBuffer` ring. General deployments use transferable `ArrayBuffer` ownership. Both paths implement the same behavior and carry separate performance evidence.
 

@@ -48,7 +48,7 @@ The engine reclaims a retained inbound slab only when every lease on it is relea
 
 ## hostRetainPrefixLen peeks the R2WP header only
 
-`hostRetainPrefixLen` in `typescript/src/wasm/abi.ts` reads version, opcode, big-endian `payload_len`, and `extension_len` to decide whether a frame is a complete application payload. ROS_SAMPLE with no extension never enters wasm — the host pins the WebSocket buffer until `lease.release()` (high-bit lease ids). Do not grow this peek into a full JS R2WP codec. Control, bootstrap, experimental opcodes, and samples with extensions still go through wasm. Landed with [ADR 0017](../../docs/adr/0017-host-retain-inbound-sample-payload.md).
+`hostRetainPrefixLen` in `typescript/src/wasm/abi.ts` reads version, opcode, big-endian `payload_len`, and `extension_len` to decide whether a frame is a complete application payload. ROS_SAMPLE with no extension never enters wasm — the host pins the WebSocket buffer until `lease.release()` (high-bit lease ids). When the host queue is idle, that pin-and-emit skips enqueue / `pollEngine` / `PollResult`; a sample that arrives while control is already queued stays ordered behind that flush. Do not grow this peek into a full JS R2WP codec, and do not route idle-queue samples back through the generic poll batch. Control, bootstrap, experimental opcodes, and samples with extensions still go through wasm. Landed with [ADR 0017](../../docs/adr/0017-host-retain-inbound-sample-payload.md).
 
 ## parse_frame must not build default FrameOptions on the sample path
 

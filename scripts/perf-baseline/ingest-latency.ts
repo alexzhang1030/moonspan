@@ -6,6 +6,8 @@
  * - deliver: framed bytes → user callback (subscription lookup + decode)
  *
  * `rclweb.ingest` pairs with `foxglove.deliver`, not with a 13-byte skip.
+ * Idle-queue ROS_SAMPLE skips the poll batch; keep flushSync in the timed
+ * loop so the product call shape stays honest.
  * Not live e2e (`just perf-baseline-live`).
  */
 
@@ -453,7 +455,7 @@ export async function measureRclwebIngest(
       payloadBytes: spec.payloadBytes,
       latencyMs: summarize(latencies),
       resources: resourceDelta(cpuUs, memBefore, memAfter, sampleCount),
-      note: "product deliver: ingestBytes + flush + onMessage (pairs with foxglove.deliver)",
+      note: "product deliver: idle-queue ROS_SAMPLE skips poll; pairs with foxglove.deliver",
     };
   } finally {
     await session.client.close();

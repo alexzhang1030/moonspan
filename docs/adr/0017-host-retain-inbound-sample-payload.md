@@ -63,7 +63,9 @@ JavaScript already owned buffer lifetimes.
   take). Worker→wasm is 0 for sample bodies.
 - `just perf-baseline` splits decode hops (header skip + CDR, paired)
   from deliver hops (framed bytes → callback). `rclweb.ingest` pairs
-  with `foxglove.deliver`, not with a 13-byte MessageData skip.
+  with `foxglove.deliver`, not with a 13-byte MessageData skip. Idle-queue
+  ROS_SAMPLE skips the host poll batch (enqueue / flush / `PollResult`);
+  a sample behind queued control stays ordered.
 - The I/O Worker still copies PointCloud2 `data` (and service/action CDR)
   onto the main thread.
 - `hostRetainPrefixLen` peeks version, opcode, `payload_len`, and

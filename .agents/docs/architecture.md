@@ -37,7 +37,7 @@ One gateway process may expose multiple domain IDs within its support row. Fleet
 ## Design rules
 
 - CDR stays on the binary data path; the gateway never parses sample bodies.
-- Browser APIs remain in JavaScript Workers; the core crosses the boundary through bounded poll batches ([ADR 0004](../../docs/adr/0004-browser-wasm-host-boundary.md)).
+- Browser APIs remain in JavaScript Workers; the core crosses the boundary through bounded poll batches ([ADR 0004](../../docs/adr/0004-browser-wasm-host-boundary.md)). Idle-queue ROS_SAMPLE does not enter that batch ([ADR 0017](../../docs/adr/0017-host-retain-inbound-sample-payload.md)).
 - The copy budget is one controllable payload copy end to end (RMW take). ROS_SAMPLE stays in the host WebSocket buffer; wasm is not on that data plane ([ADR 0017](../../docs/adr/0017-host-retain-inbound-sample-payload.md), [performance contracts](../../docs/architecture.md#performance-contracts)). Wasm-thread views are 0 copies; the public `Node` API copies PointCloud2 `data`. Worker→main copies bulk fields. Foxglove / rosbridge: [performance](../../docs/performance.md).
 - Queue, buffer, timeout, retry, and memory budgets are explicit; best-effort channels drop at the edge with stable dispositions.
 - Large-message / PointCloud2 delivery keeps O(1) borrowed CDR views and measures both host buffer strategies.

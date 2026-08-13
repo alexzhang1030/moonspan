@@ -171,6 +171,19 @@ export type HostEventInput =
   | { type: "command"; command: HostCommand }
   | { type: "releaseLease"; leaseId: number };
 
+export type SampleAppEvent = {
+  type: "sample";
+  channelId: number;
+  leaseId: number;
+  sequence: bigint;
+  sourceTimeNs: bigint;
+  payloadPtr: number;
+  payloadLen: number;
+  stringData: string | null;
+  /** CDR body in the host WebSocket buffer when wasm kept only the R2WP prefix. */
+  hostPayload?: Uint8Array;
+};
+
 export type AppEvent =
   | { type: "bootstrapComplete"; selectedWireVersion: number }
   | {
@@ -199,18 +212,7 @@ export type AppEvent =
       code: number;
       message: string;
     }
-  | {
-      type: "sample";
-      channelId: number;
-      leaseId: number;
-      sequence: bigint;
-      sourceTimeNs: bigint;
-      payloadPtr: number;
-      payloadLen: number;
-      stringData: string | null;
-      /** CDR body in the host WebSocket buffer when wasm kept only the R2WP prefix. */
-      hostPayload?: Uint8Array;
-    }
+  | SampleAppEvent
   | { type: "heartbeat"; counter: bigint }
   | { type: "error"; code: number; message: string }
   | { type: "closed"; phase: number }
@@ -1024,30 +1026,51 @@ function emptyPollResult(): PollResult {
   return { outbound: [], events: [], released: [], nextDeadlineMs: null };
 }
 
-/** ROS_SAMPLE with no extension: pin the WS buffer, skip wasm (ADR 0017). */
+/** Pin a no-extension ROS_SAMPLE in the host lease table. */
+function pinHostSample(
+  handle: number,
+  frame: Uint8Array,
+  prefixLen: number,
+): SampleAppEvent {
+  const leaseId = (HOST_LEASE_FLAG | (hostLeaseSeq++ & 0x7fffffff)) >>> 0;
+  hostLeases.set(leaseId, { frame, handle });
+  hostCounters(handle).samplesEmitted += 1;
+  return {
+    type: "sample",
+    channelId: readU32BE(frame, 4),
+    leaseId,
+    sequence: readU64BE(frame, 8),
+    sourceTimeNs: readI64BE(frame, 16),
+    payloadPtr: 0,
+    payloadLen: frame.length - prefixLen,
+    stringData: null,
+    hostPayload: frame.subarray(prefixLen),
+  };
+}
+
+/**
+ * Idle-queue ROS_SAMPLE: pin the WS buffer without a poll batch.
+ * Returns null when the frame is not a complete no-extension ROS_SAMPLE.
+ */
+export function tryPinHostSample(
+  handle: number,
+  bytes: Uint8Array,
+): SampleAppEvent | null {
+  const prefixLen = hostRetainPrefixLen(bytes);
+  if (prefixLen !== R2WP_HEADER_LEN || bytes[1] !== OPCODE_ROS_SAMPLE) {
+    return null;
+  }
+  return pinHostSample(handle, bytes, prefixLen);
+}
+
 function pollSampleHostRetain(
   handle: number,
   frame: Uint8Array,
   prefixLen: number,
 ): PollResult {
-  const leaseId = (HOST_LEASE_FLAG | (hostLeaseSeq++ & 0x7fffffff)) >>> 0;
-  hostLeases.set(leaseId, { frame, handle });
-  hostCounters(handle).samplesEmitted += 1;
   return {
     outbound: [],
-    events: [
-      {
-        type: "sample",
-        channelId: readU32BE(frame, 4),
-        leaseId,
-        sequence: readU64BE(frame, 8),
-        sourceTimeNs: readI64BE(frame, 16),
-        payloadPtr: 0,
-        payloadLen: frame.length - prefixLen,
-        stringData: null,
-        hostPayload: frame.subarray(prefixLen),
-      },
-    ],
+    events: [pinHostSample(handle, frame, prefixLen)],
     released: [],
     nextDeadlineMs: null,
   };
@@ -1706,8 +1729,9 @@ function takePollResult(wasm: WasmExports, handle: number): PollResult {
 
 /**
  * Poll the engine. ROS_SAMPLE frames with no extension stay on the host
- * (ADR 0017): wasm is not on that data plane. Other application frames copy
- * the R2WP prefix into wasm. Control/bootstrap still copy the full frame.
+ * (ADR 0017): wasm is not on that data plane. IoHost delivers those frames
+ * without a poll batch when the host queue is idle. Other application frames
+ * copy the R2WP prefix into wasm. Control/bootstrap still copy the full frame.
  */
 export function pollEngine(
   wasm: WasmExports,

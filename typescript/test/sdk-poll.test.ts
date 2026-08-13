@@ -219,6 +219,51 @@ test("scripted peer: connect → subscribe → String sample + lease release", a
   await client.close();
 });
 
+test("scripted peer: idle-queue ROS_SAMPLE delivers without flushSync", async () => {
+  const { client, host, fixtures } = await offlineReady();
+  const subPromise = client.session.subscribe("/chatter", std_msgs.msg.String);
+  host.ingestBytes(fixtures.channelReady);
+  host.flushSync();
+  const sub = await subPromise;
+
+  let saw: string | null = null;
+  sub.onMessage((msg, lease) => {
+    saw = msg.data;
+    lease.release();
+  });
+
+  host.ingestBytes(fixtures.sample);
+  expect(saw).toBe("hello-from-fixture");
+
+  host.flushSync();
+  const telemetry = client.telemetry();
+  expect(telemetry!.leasesReleased).toBe(telemetry!.samplesEmitted);
+
+  await client.close();
+});
+
+test("scripted peer: ROS_SAMPLE behind a queued control frame waits for flush", async () => {
+  const { client, host, fixtures } = await offlineReady();
+  const subPromise = client.session.subscribe("/chatter", std_msgs.msg.String);
+  host.ingestBytes(fixtures.channelReady);
+  host.flushSync();
+  const sub = await subPromise;
+
+  let saw: string | null = null;
+  sub.onMessage((msg, lease) => {
+    saw = msg.data;
+    lease.release();
+  });
+
+  host.ingestBytes(fixtures.graphSnapshot);
+  host.ingestBytes(fixtures.sample);
+  expect(saw).toBeNull();
+  host.flushSync();
+  expect(saw).toBe("hello-from-fixture");
+
+  await client.close();
+});
+
 test("scripted peer: sample with no handler still releases its lease", async () => {
   const fixtures = scriptedPeerFixtures();
   const wasmBytes = readFileSync(wasmPath);

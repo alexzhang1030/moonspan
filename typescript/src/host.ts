@@ -1,6 +1,7 @@
 /**
  * Shared I/O + wasm poll host used by the Worker and the inline (test) path.
  * Owns the transport (WebSocket or WebTransport) and transferable ingest.
+ * Idle-queue ROS_SAMPLE does not enter a poll batch (ADR 0017).
  */
 
 import {
@@ -16,6 +17,7 @@ import {
   pointCloud2DataView,
   pollEngine,
   readTelemetryAt,
+  tryPinHostSample,
 } from "./wasm/abi.ts";
 import { decodePointCloud2Cdr, decodeStdMsgsStringCdr } from "./cdr-le.ts";
 import {
@@ -147,11 +149,7 @@ export class IoHost {
         this.#callbacks.onTransportError("non-binary websocket message");
         return;
       }
-      this.#enqueue({
-        type: "wsBytes",
-        bufferId: 0,
-        bytes: new Uint8Array(data),
-      });
+      this.#ingestWsBytes(new Uint8Array(data));
     });
     ws.addEventListener("error", () => {
       this.#callbacks.onTransportError("websocket error");
@@ -264,11 +262,7 @@ export class IoHost {
           if (pending.length < 4 + len) break;
           const frame = pending.slice(4, 4 + len);
           pending = pending.slice(4 + len);
-          this.#enqueue({
-            type: "wsBytes",
-            bufferId: 0,
-            bytes: frame,
-          });
+          this.#ingestWsBytes(frame);
         }
       }
     } catch (err) {
@@ -280,7 +274,7 @@ export class IoHost {
 
   /** Feed scripted bytes (tests) as if they arrived on the WebSocket. */
   ingestBytes(bytes: Uint8Array): void {
-    this.#enqueue({ type: "wsBytes", bufferId: 0, bytes });
+    this.#ingestWsBytes(bytes);
   }
 
   /** Start bootstrap without a live socket (scripted-peer tests). */
@@ -741,6 +735,23 @@ export class IoHost {
     if (this.#disposed) return;
     this.#pending.push(event);
     this.#scheduleFlush();
+  }
+
+  /**
+   * No-extension ROS_SAMPLE on an idle queue skips the poll batch: pin the
+   * WS buffer and emit the sample. A sample that arrives while control is
+   * already queued stays ordered behind that flush (ADR 0017).
+   */
+  #ingestWsBytes(bytes: Uint8Array): void {
+    if (this.#disposed || this.#handle === 0) return;
+    if (this.#pending.length === 0) {
+      const event = tryPinHostSample(this.#handle, bytes);
+      if (event) {
+        this.#callbacks.onEvent(event);
+        return;
+      }
+    }
+    this.#enqueue({ type: "wsBytes", bufferId: 0, bytes });
   }
 
   #scheduleFlush(): void {
