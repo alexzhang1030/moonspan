@@ -9,12 +9,17 @@ import {
   type HostEventInput,
   type PointCloud2Meta,
   type WasmExports,
+  decodeGeneratedBytes,
   decodePointCloud2Meta,
   loadWasm,
   pointCloud2DataView,
   pollEngine,
   readTelemetry,
 } from "./wasm/abi.ts";
+import {
+  decodeGeneratedHostValue,
+  type GeneratedMsg,
+} from "./generated-value.ts";
 import type { PointCloud2, ServerCertificateHash } from "./types.ts";
 import {
   decodeCertificateHashValue,
@@ -367,6 +372,13 @@ export class IoHost {
     });
   }
 
+  sendGenerated(channelId: number, typeName: string, value: Uint8Array): void {
+    this.#enqueue({
+      type: "command",
+      command: { type: "sendGenerated", channelId, typeName, value },
+    });
+  }
+
   openService(args: {
     correlation: Uint8Array;
     channelId: number;
@@ -538,6 +550,28 @@ export class IoHost {
       const meta = decodePointCloud2Meta(this.#wasm, payloadPtr, payloadLen);
       const view = pointCloud2DataView(this.#wasm, payloadPtr, meta);
       return assemblePointCloud2(meta, view.slice());
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Owned generated message. These types are small; the whole host-value is
+   * copied out of wasm (no borrowed `data` view like PointCloud2).
+   */
+  decodeGenerated(
+    typeName: string,
+    payloadPtr: number,
+    payloadLen: number,
+  ): GeneratedMsg | null {
+    try {
+      const bytes = decodeGeneratedBytes(
+        this.#wasm,
+        typeName,
+        payloadPtr,
+        payloadLen,
+      );
+      return decodeGeneratedHostValue(typeName, bytes);
     } catch {
       return null;
     }

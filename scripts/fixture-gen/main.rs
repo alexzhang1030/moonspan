@@ -9,6 +9,9 @@ use rclweb::protocol::encode::{
   FrameHeader, encode_control_frame, encode_server_hello, write_frame_header,
 };
 use rclweb::protocol::frame::{FRAME_HEADER_LENGTH, OPCODE_ROS_SAMPLE};
+use rclweb::types::{
+  GeneratedMessage, encode_generated_cdr, sample_nested_sample, sample_primitive_scalars,
+};
 use rclweb::{ClientEngine, STD_MSGS_STRING};
 use serde_json::json;
 use std::borrow::Cow;
@@ -135,45 +138,21 @@ fn main() {
   .expect("graph snapshot");
 
   let payload = ClientEngine::encode_std_msgs_string("hello-from-fixture").unwrap();
-  let mut sample = vec![0u8; FRAME_HEADER_LENGTH + payload.len()];
-  write_frame_header(
-    &FrameHeader {
-      version: 0,
-      opcode: OPCODE_ROS_SAMPLE,
-      flags: 0,
-      channel_id: 1,
-      sequence: 0,
-      source_time_ns: 0,
-      priority: 2,
-      clock_id: 0,
-    },
-    payload.len() as u32,
-    0,
-    &mut sample,
-  )
-  .expect("header");
-  sample[FRAME_HEADER_LENGTH..].copy_from_slice(&payload);
+  let sample = ros_sample(1, &payload);
 
   // Four XYZ points (48-byte payload) so SDK tests stay small.
   let pc2_payload = build_synthetic_xyz_cdr(4).expect("pc2 cdr");
-  let mut point_cloud2_sample = vec![0u8; FRAME_HEADER_LENGTH + pc2_payload.len()];
-  write_frame_header(
-    &FrameHeader {
-      version: 0,
-      opcode: OPCODE_ROS_SAMPLE,
-      flags: 0,
-      channel_id: 1,
-      sequence: 0,
-      source_time_ns: 0,
-      priority: 2,
-      clock_id: 0,
-    },
-    pc2_payload.len() as u32,
-    0,
-    &mut point_cloud2_sample,
-  )
-  .expect("pc2 header");
-  point_cloud2_sample[FRAME_HEADER_LENGTH..].copy_from_slice(&pc2_payload);
+  let point_cloud2_sample = ros_sample(1, &pc2_payload);
+
+  let primitive_payload =
+    encode_generated_cdr(&GeneratedMessage::PrimitiveScalars(sample_primitive_scalars()))
+      .expect("primitive cdr");
+  let primitive_scalars_sample = ros_sample(1, &primitive_payload);
+
+  let nested_payload =
+    encode_generated_cdr(&GeneratedMessage::NestedSample(sample_nested_sample()))
+      .expect("nested cdr");
+  let nested_sample = ros_sample(1, &nested_payload);
 
   let _ = STD_MSGS_STRING;
   println!(
@@ -187,6 +166,8 @@ fn main() {
         "graphSnapshot": hex(&graph_snapshot),
         "sample": hex(&sample),
         "pointCloud2Sample": hex(&point_cloud2_sample),
+        "primitiveScalarsSample": hex(&primitive_scalars_sample),
+        "nestedSample": hex(&nested_sample),
         "authCorrelationHex": hex(&auth_corr),
         "subCorrelationHex": hex(&sub_corr),
         "serviceCorrelationHex": hex(&service_corr),
@@ -194,4 +175,26 @@ fn main() {
     }))
     .expect("json"),
   );
+}
+
+fn ros_sample(channel_id: u32, payload: &[u8]) -> Vec<u8> {
+  let mut sample = vec![0u8; FRAME_HEADER_LENGTH + payload.len()];
+  write_frame_header(
+    &FrameHeader {
+      version: 0,
+      opcode: OPCODE_ROS_SAMPLE,
+      flags: 0,
+      channel_id,
+      sequence: 0,
+      source_time_ns: 0,
+      priority: 2,
+      clock_id: 0,
+    },
+    payload.len() as u32,
+    0,
+    &mut sample,
+  )
+  .expect("header");
+  sample[FRAME_HEADER_LENGTH..].copy_from_slice(payload);
+  sample
 }

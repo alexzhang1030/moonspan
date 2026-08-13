@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { sensor_msgs, std_msgs } from "../src/index.ts";
+import { sensor_msgs, std_msgs, rclweb_cdr_interfaces } from "../src/index.ts";
 import {
   connectOfflineForTests,
   decodePollResult,
@@ -35,11 +35,14 @@ test("public runtime exports stay application-facing", async () => {
   const sdk = await import("../src/index.ts");
   expect(Object.keys(sdk).sort()).toEqual([
     "Client",
+    "Collections",
     "Header",
     "KeepLast",
+    "NestedSample",
     "Node",
     "PointCloud2",
     "PointField",
+    "PrimitiveScalars",
     "Publisher",
     "QoS",
     "Service",
@@ -53,6 +56,7 @@ test("public runtime exports stay application-facing", async () => {
     "httpOriginFromWebTransportUrl",
     "init",
     "ok",
+    "rclweb_cdr_interfaces",
     "sensor_msgs",
     "shutdown",
     "spin",
@@ -73,6 +77,9 @@ test("workspace export map resolves public and internal subpaths", async () => {
   expect(typeof pub.init).toBe("function");
   expect(typeof pub.Node).toBe("function");
   expect(pub.std_msgs.msg.String.typeName).toBe("std_msgs/msg/String");
+  expect(pub.rclweb_cdr_interfaces.msg.PrimitiveScalars.typeName).toBe(
+    "rclweb_cdr_interfaces/msg/PrimitiveScalars",
+  );
   expect(typeof intern.resolveIoWorkerUrl).toBe("function");
   expect(typeof intern.connect).toBe("function");
   expect(intern).not.toHaveProperty("init");
@@ -117,6 +124,7 @@ test("wasm artifact loads and exports the poll ABI", async () => {
   ]);
   expect(result.outbound.length).toBe(1);
   expect(result.outbound[0]!.bytes.length).toBeGreaterThan(12);
+  expect(typeof wasm.rclweb_decode_generated).toBe("function");
   // Result codec round-trip
   const reencoded = encodeHostBatch([]);
   expect(reencoded[0]).toBeDefined();
@@ -432,6 +440,143 @@ test("scripted peer: PointCloud2 sample with no handler still releases its lease
   expect(telemetry).not.toBeNull();
   expect(telemetry!.samplesEmitted).toBeGreaterThan(0);
   expect(telemetry!.leasesReleased).toBe(telemetry!.samplesEmitted);
+
+  await client.close();
+});
+
+async function offlineReady() {
+  const fixtures = scriptedPeerFixtures();
+  const wasmBytes = readFileSync(wasmPath);
+  const client = await connectOfflineForTests(
+    wasmBytes.buffer.slice(
+      wasmBytes.byteOffset,
+      wasmBytes.byteOffset + wasmBytes.byteLength,
+    ),
+  );
+  const host = client.host;
+  host.startOffline();
+  host.flushSync();
+  host.ingestBytes(fixtures.serverHello);
+  host.flushSync();
+  host.flushSync();
+  host.ingestBytes(fixtures.sessionReady);
+  host.flushSync();
+  return { client, host, fixtures };
+}
+
+test("sendGenerated host-batch size matches CMD 18 layout", () => {
+  const typeName = "rclweb_cdr_interfaces/msg/PrimitiveScalars";
+  const value = new Uint8Array([1, 2, 3]);
+  const batch = encodeHostBatch([
+    {
+      type: "command",
+      command: { type: "sendGenerated", channelId: 1, typeName, value },
+    },
+  ]);
+  // batch header(12) + event kind(4) + cmd(4) + channel(4) + type_len(2) + type + value_len(4) + value
+  expect(batch.length).toBe(12 + 4 + 4 + 4 + 2 + typeName.length + 4 + value.length);
+});
+
+test("scripted peer: PrimitiveScalars sample round-trips host fields", async () => {
+  const { client, host, fixtures } = await offlineReady();
+  const subPromise = client.session.subscribe(
+    "/scalars",
+    rclweb_cdr_interfaces.msg.PrimitiveScalars,
+  );
+  host.ingestBytes(fixtures.channelReady);
+  host.flushSync();
+  const sub = await subPromise;
+  expect(sub.typeName).toBe(rclweb_cdr_interfaces.msg.PrimitiveScalars.typeName);
+
+  let saw: {
+    string_value: string;
+    int64_value: bigint;
+    bool_value: boolean;
+    float32_value: number;
+  } | null = null;
+  sub.onMessage((msg, lease) => {
+    saw = {
+      string_value: msg.string_value,
+      int64_value: msg.int64_value,
+      bool_value: msg.bool_value,
+      float32_value: msg.float32_value,
+    };
+    lease.release();
+  });
+
+  host.ingestBytes(fixtures.primitiveScalarsSample);
+  host.flushSync();
+
+  expect(saw).not.toBeNull();
+  expect(saw!.string_value).toBe("hello-scalars");
+  expect(saw!.int64_value).toBe(-70_000n);
+  expect(saw!.bool_value).toBe(true);
+  expect(saw!.float32_value).toBeCloseTo(1.5);
+
+  const telemetry = client.telemetry();
+  expect(telemetry).not.toBeNull();
+  expect(telemetry!.leasesReleased).toBe(telemetry!.samplesEmitted);
+
+  await client.close();
+});
+
+test("scripted peer: NestedSample delivers nested collections", async () => {
+  const { client, host, fixtures } = await offlineReady();
+  const subPromise = client.session.subscribe(
+    "/nested",
+    rclweb_cdr_interfaces.msg.NestedSample,
+  );
+  host.ingestBytes(fixtures.channelReady);
+  host.flushSync();
+  const sub = await subPromise;
+
+  let saw: {
+    sec: number;
+    bounded_string: string;
+    bytes: number[];
+    int64_value: bigint;
+  } | null = null;
+  sub.onMessage((msg, lease) => {
+    saw = {
+      sec: msg.stamp.sec,
+      bounded_string: msg.collections.bounded_string,
+      bytes: [...msg.collections.bytes_value],
+      int64_value: msg.scalars.int64_value,
+    };
+    lease.release();
+  });
+
+  host.ingestBytes(fixtures.nestedSample);
+  host.flushSync();
+
+  expect(saw).not.toBeNull();
+  expect(saw!.sec).toBe(11);
+  expect(saw!.bounded_string).toBe("abc");
+  expect(saw!.bytes).toEqual([10, 20, 30]);
+  expect(saw!.int64_value).toBe(-70_000n);
+
+  await client.close();
+});
+
+test("scripted peer: publish PrimitiveScalars increments samplesSent", async () => {
+  const { client, host, fixtures } = await offlineReady();
+  const { samplePrimitiveScalars } = await import("../src/generated-value.ts");
+  const pubPromise = client.session.publish(
+    "/scalars",
+    rclweb_cdr_interfaces.msg.PrimitiveScalars,
+  );
+  host.flushSync();
+  host.ingestBytes(fixtures.channelReady);
+  host.flushSync();
+  const publisher = await pubPromise;
+  expect(publisher.typeName).toBe(
+    rclweb_cdr_interfaces.msg.PrimitiveScalars.typeName,
+  );
+
+  await publisher.publish(samplePrimitiveScalars());
+  const telemetry = client.telemetry();
+  expect(telemetry).not.toBeNull();
+  expect(telemetry!.samplesSent).toBe(1);
 
   await client.close();
 });

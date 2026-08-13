@@ -36,11 +36,11 @@ R3-04 dropped the R1 static link of `std_msgs` / `sensor_msgs` typesupport from 
 
 ## Every sample lease has exactly one owner
 
-The engine reclaims a retained inbound slab only when every lease on it is released (`sweep_released` in `rclweb/src/engine/mod.rs` frees a buffer once ingest is done and its lease refcount hits zero). Any host or SDK code path that drops a sample without delivering it MUST release the lease at the drop site — otherwise the slab is pinned forever. The original R1-04 SDK leaked on three drop paths: the Worker's non-String sample branch and the no-handler branch in both `InlineClient` and `WorkerClient`. The no-handler race is reachable in normal operation because `subscribed` and the first samples can arrive in the same poll flush, before the application has called `onMessage`. Fixed in this change, with regression coverage in `sdk/typescript/test/sdk-poll.test.ts` (no-handler sample: `leasesReleased` must equal `samplesEmitted`). PointCloud2 delivery on the Worker copies `data` and releases at that copy site (unknown non-String types still drop-and-release). The public `Node` API releases after the user callback ([Public Node releases leases](#public-node-releases-leases)); `@rclweb/sdk/internal` `connect` still requires an explicit `lease.release()`.
+The engine reclaims a retained inbound slab only when every lease on it is released (`sweep_released` in `rclweb/src/engine/mod.rs` frees a buffer once ingest is done and its lease refcount hits zero). Any host or SDK code path that drops a sample without delivering it MUST release the lease at the drop site — otherwise the slab is pinned forever. The original R1-04 SDK leaked on three drop paths: the Worker's non-String sample branch and the no-handler branch in both `InlineClient` and `WorkerClient`. The no-handler race is reachable in normal operation because `subscribed` and the first samples can arrive in the same poll flush, before the application has called `onMessage`. Fixed in this change, with regression coverage in `sdk/typescript/test/sdk-poll.test.ts` (no-handler sample: `leasesReleased` must equal `samplesEmitted`). PointCloud2 delivery on the Worker copies `data` and releases at that copy site. Generated corpus messages are copied as host-value objects and released the same way. Unknown non-String types still drop-and-release. The public `Node` API releases after the user callback ([Public Node releases leases](#public-node-releases-leases)); `@rclweb/sdk/internal` `connect` still requires an explicit `lease.release()`.
 
 ## Public Node releases leases
 
-`@rclweb/sdk` is rclcpp-shaped (`init` / `Node` / `createSubscription`). Message types are `std_msgs.msg.String` / `sensor_msgs.msg.PointCloud2`, not all-caps constants. The callback receives an owned message; `Node` copies PointCloud2 `data` and calls `lease.release()` after the callback returns. Applications must not import `@rclweb/sdk/internal` `connect` unless they are hosting the poll ABI — that path still requires an explicit release. [R4-04](../../docs/milestones/r4-04-sdk.md).
+`@rclweb/sdk` is rclcpp-shaped (`init` / `Node` / `createSubscription`). Message types are `std_msgs.msg.String` / `sensor_msgs.msg.PointCloud2` / `rclweb_cdr_interfaces.msg.*`, not all-caps constants. The callback receives an owned message; `Node` copies PointCloud2 `data` and calls `lease.release()` after the callback returns. Applications must not import `@rclweb/sdk/internal` `connect` unless they are hosting the poll ABI — that path still requires an explicit release. [R4-04](../../docs/milestones/r4-04-sdk.md).
 
 ## encodeHostBatch large-frame encoder
 
@@ -73,6 +73,10 @@ App events 13–14 and 17–20 include `lease_id` plus `payload_ptr`/`payload_le
 ## PointCloud2 header and fields travel on the host command
 
 `CMD_SEND_POINT_CLOUD2` carries stamp, `frame_id`, and the PointField list with the point `data`. Do not reintroduce XYZ synthesis from `field_count == 3` — that dropped `frame_id` and made republish lie. Inbound `rclweb_point_cloud2_meta` writes the same header/fields after the numeric prefix; point `data` stays an offset/len view. [R4-04](../../docs/milestones/r4-04-sdk.md).
+
+## Generated corpus messages use a packed host layout
+
+Phase 1 msg roots (`PrimitiveScalars`, `Collections`, `NestedSample`) cross the poll ABI as packed little-endian host-value bytes (`CMD_SEND_GENERATED` / `rclweb_decode_generated`), not CDR and not JSON. The engine converts with the generated codecs. Do not put that layout, CMD 18, or `rclweb_decode_generated` on `@rclweb/sdk`. Applications use `rclweb_cdr_interfaces.msg.*`. `int64` / `uint64` are `bigint`. The I/O Worker must key inbound samples by channel `typeName` — guessing PointCloud2 for every non-String sample drops generated CDR. [R4-04](../../docs/milestones/r4-04-sdk.md).
 
 ## Phase 1 schema metadata JSON shape
 

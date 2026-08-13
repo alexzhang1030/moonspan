@@ -4,10 +4,12 @@
  * opaque binary frames the Worker already owns.
  *
  * Service/action CDR bytes are copied out of wasm in the Worker and the lease
- * is released there. PointCloud2 `data` is copied the same way. Main never
- * sees payload pointers.
+ * is released there. PointCloud2 `data` is copied the same way. Generated
+ * corpus messages are copied as host-value objects. Main never sees payload
+ * pointers.
  */
 
+import type { GeneratedMsg } from "../generated-value.ts";
 import type { PointCloud2 } from "../types.ts";
 
 export type MainToWorker =
@@ -56,6 +58,13 @@ export type MainToWorker =
       requestId: number;
       channelId: number;
       message: PointCloud2;
+    }
+  | {
+      type: "sendGenerated";
+      requestId: number;
+      channelId: number;
+      typeName: string;
+      value: Uint8Array;
     }
   | {
       type: "unsubscribe";
@@ -175,6 +184,13 @@ export type WorkerToMain =
       channelId: number;
       leaseId: number;
       message: PointCloud2;
+    }
+  | {
+      type: "sampleGenerated";
+      channelId: number;
+      leaseId: number;
+      typeName: string;
+      message: GeneratedMsg;
     }
   | {
       type: "serviceReady";

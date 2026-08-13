@@ -86,7 +86,10 @@ pub enum AppCommand {
     is_dense: bool,
     data: Vec<u8>,
   },
-  /// Open a SERVICE_CLIENT or SERVICE_SERVER channel.
+  /// Send one generated Phase 1 message (`rclweb_cdr_interfaces` msg types).
+  ///
+  /// `value` is the packed host layout ([`crate::types::host_value`]), not CDR.
+  SendGenerated { channel_id: u32, type_name: String, value: Vec<u8> },
   OpenService {
     correlation: [u8; 16],
     channel_id: u32,

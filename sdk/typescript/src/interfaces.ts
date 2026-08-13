@@ -66,6 +66,41 @@ export class PointCloud2 {
   is_dense = true;
 }
 
+export class PrimitiveScalars {
+  static readonly typeName = "rclweb_cdr_interfaces/msg/PrimitiveScalars" as const;
+  bool_value = false;
+  byte_value = 0;
+  char_value = 0;
+  float32_value = 0;
+  float64_value = 0;
+  int8_value = 0;
+  uint8_value = 0;
+  int16_value = 0;
+  uint16_value = 0;
+  int32_value = 0;
+  uint32_value = 0;
+  int64_value = 0n;
+  uint64_value = 0n;
+  string_value = "";
+  wstring_value = "";
+}
+
+export class Collections {
+  static readonly typeName = "rclweb_cdr_interfaces/msg/Collections" as const;
+  fixed_i32: [number, number, number] = [0, 0, 0];
+  bounded_f64: number[] = [];
+  bytes_value = new Uint8Array();
+  bounded_string = "";
+  bounded_wstring = "";
+}
+
+export class NestedSample {
+  static readonly typeName = "rclweb_cdr_interfaces/msg/NestedSample" as const;
+  stamp = new Time();
+  scalars = new PrimitiveScalars();
+  collections = new Collections();
+}
+
 export const builtin_interfaces = {
   msg: { Time },
 };
@@ -77,3 +112,15 @@ export const std_msgs = {
 export const sensor_msgs = {
   msg: { PointCloud2, PointField },
 };
+
+export const rclweb_cdr_interfaces = {
+  msg: { PrimitiveScalars, NestedSample, Collections },
+};
+
+export function isGeneratedMsgType(typeName: string): boolean {
+  return (
+    typeName === PrimitiveScalars.typeName ||
+    typeName === NestedSample.typeName ||
+    typeName === Collections.typeName
+  );
+}

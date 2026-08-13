@@ -332,6 +332,57 @@ fn scripted_peer_publish_sends_point_cloud2() {
 }
 
 #[test]
+fn scripted_peer_publish_sends_primitive_scalars() {
+  use crate::types::{
+    GeneratedMessage, PRIMITIVE_SCALARS_TYPE_NAME, decode_generated_cdr, encode_host_value,
+    sample_primitive_scalars,
+  };
+
+  let mut engine = ClientEngine::new();
+  let _ = engine.poll(vec![HostEvent::Command(AppCommand::Start {
+    transferable_arraybuffer: true,
+    webtransport: false,
+  })]);
+  let _ = feed(&mut engine, server_hello_bytes());
+  let auth_corr = corr(0xA1);
+  let _ = engine.poll(vec![HostEvent::Command(AppCommand::Authenticate {
+    correlation: auth_corr,
+    scheme: "token".into(),
+    token: b"anonymous".to_vec(),
+  })]);
+  let _ = feed(&mut engine, session_ready_bytes(0, &auth_corr));
+
+  let pub_corr = corr(0xC5);
+  let opened = engine.poll(vec![HostEvent::Command(AppCommand::Publish {
+    correlation: pub_corr,
+    channel_id: 5,
+    topic: "/scalars".into(),
+    type_name: PRIMITIVE_SCALARS_TYPE_NAME.into(),
+    qos_reliability: 1,
+    qos_depth: 5,
+    domain_id: 0,
+  })]);
+  assert_eq!(opened.outbound.len(), 1);
+  let _ = feed(&mut engine, channel_ready_allow_bytes(1, &pub_corr, 5));
+
+  let original = sample_primitive_scalars();
+  let value = encode_host_value(&GeneratedMessage::PrimitiveScalars(original.clone()));
+  let sent = engine.poll(vec![HostEvent::Command(AppCommand::SendGenerated {
+    channel_id: 5,
+    type_name: PRIMITIVE_SCALARS_TYPE_NAME.into(),
+    value,
+  })]);
+  assert_eq!(sent.outbound.len(), 1);
+  let frame = parse_frame(&sent.outbound[0].bytes, None).expect("sample frame");
+  assert_eq!(frame.opcode, OPCODE_ROS_SAMPLE);
+  let FramePayload::Application(payload) = &frame.payload else {
+    panic!("expected application payload");
+  };
+  let round = decode_generated_cdr(PRIMITIVE_SCALARS_TYPE_NAME, payload).expect("outbound");
+  assert_eq!(round, GeneratedMessage::PrimitiveScalars(original));
+}
+
+#[test]
 fn close_command_terminates() {
   let mut engine = ClientEngine::new();
   let _ = engine.poll(vec![HostEvent::Command(AppCommand::Start {

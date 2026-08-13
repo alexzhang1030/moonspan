@@ -44,6 +44,7 @@
 //!     stamp_nanosec:u32, frame_id_len:u16, frame_id..., field_count:u32,
 //!     fields: [ name_len:u16, name..., offset:u32, datatype:u8, count:u32 ]...,
 //!     data_len:u32, data... }`
+//! - `18` SendGenerated `{ channel_id:u32, type_len:u16, type..., value_len:u32, value... }`
 //!
 //! ## Outbound result (engine → host)
 //!
@@ -116,6 +117,7 @@ pub const CMD_SEND_ACTION_FEEDBACK: u8 = 14;
 pub const CMD_SEND_ACTION_RESULT: u8 = 15;
 pub const CMD_SEND_ACTION_STATUS: u8 = 16;
 pub const CMD_SEND_POINT_CLOUD2: u8 = 17;
+pub const CMD_SEND_GENERATED: u8 = 18;
 
 pub const APP_BOOTSTRAP_COMPLETE: u8 = 1;
 pub const APP_SESSION_READY: u8 = 2;
@@ -520,6 +522,25 @@ fn decode_command(bytes: &[u8], offset: &mut usize, cmd: u8) -> Result<AppComman
         is_dense,
         data,
       })
+    }
+    CMD_SEND_GENERATED => {
+      if *offset + 4 + 2 > bytes.len() {
+        return Err(BatchError::Truncated);
+      }
+      let channel_id = read_u32(bytes, *offset);
+      *offset += 4;
+      let type_name = read_u16_string(bytes, offset)?;
+      if *offset + 4 > bytes.len() {
+        return Err(BatchError::Truncated);
+      }
+      let value_len = read_u32(bytes, *offset) as usize;
+      *offset += 4;
+      if *offset + value_len > bytes.len() {
+        return Err(BatchError::Truncated);
+      }
+      let value = bytes[*offset..*offset + value_len].to_vec();
+      *offset += value_len;
+      Ok(AppCommand::SendGenerated { channel_id, type_name, value })
     }
     _ => Err(BatchError::BadKind),
   }
@@ -994,6 +1015,14 @@ fn encode_command(out: &mut Vec<u8>, cmd: &AppCommand) {
       write_u32(out, data.len() as u32);
       out.extend_from_slice(data);
     }
+    AppCommand::SendGenerated { channel_id, type_name, value } => {
+      out.extend_from_slice(&[CMD_SEND_GENERATED, 0, 0, 0]);
+      write_u32(out, *channel_id);
+      write_u16(out, type_name.len() as u16);
+      out.extend_from_slice(type_name.as_bytes());
+      write_u32(out, value.len() as u32);
+      out.extend_from_slice(value);
+    }
     AppCommand::Unsubscribe { correlation, channel_id } => {
       out.extend_from_slice(&[CMD_UNSUBSCRIBE, 0, 0, 0]);
       out.extend_from_slice(correlation);
@@ -1228,6 +1257,26 @@ mod tests {
         assert_eq!(got, &data);
       }
       _ => panic!("expected SendPointCloud2"),
+    }
+  }
+
+  #[test]
+  fn send_generated_command_round_trip() {
+    let value = vec![1u8, 2, 3, 4];
+    let events = vec![HostEvent::Command(AppCommand::SendGenerated {
+      channel_id: 5,
+      type_name: "rclweb_cdr_interfaces/msg/PrimitiveScalars".into(),
+      value: value.clone(),
+    })];
+    let encoded = encode_host_batch_inline(&events);
+    let decoded = decode_host_batch(&encoded, |_, _, _| Err(BatchError::BadKind)).unwrap();
+    match &decoded[0] {
+      HostEvent::Command(AppCommand::SendGenerated { channel_id, type_name, value: got }) => {
+        assert_eq!(*channel_id, 5);
+        assert_eq!(type_name, "rclweb_cdr_interfaces/msg/PrimitiveScalars");
+        assert_eq!(got, &value);
+      }
+      _ => panic!("expected SendGenerated"),
     }
   }
 }

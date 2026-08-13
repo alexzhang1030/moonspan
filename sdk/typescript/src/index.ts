@@ -22,11 +22,15 @@ export {
   builtin_interfaces,
   std_msgs,
   sensor_msgs,
+  rclweb_cdr_interfaces,
   Time,
   Header,
   String,
   PointCloud2,
   PointField,
+  PrimitiveScalars,
+  NestedSample,
+  Collections,
   type MessageType,
 } from "./interfaces.ts";
 

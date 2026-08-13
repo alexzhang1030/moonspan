@@ -6,7 +6,7 @@
 
 import { expect, test } from "bun:test";
 import path from "node:path";
-import { sensor_msgs, std_msgs } from "../src/index.ts";
+import { sensor_msgs, std_msgs, rclweb_cdr_interfaces } from "../src/index.ts";
 import { connect } from "../src/internal.ts";
 import { scriptedPeerFixtures } from "./scripted-peer.ts";
 
@@ -411,6 +411,137 @@ test("Worker path: publish PointCloud2 emits a ROS_SAMPLE frame", async () => {
   }
   expect(sampleFrame).not.toBeNull();
   expect(sampleFrame!.length).toBeGreaterThan(48);
+  await client.close();
+  server.stop(true);
+});
+
+test("Worker path: PrimitiveScalars sample copies across the boundary", async () => {
+  const fixtures = scriptedPeerFixtures();
+  const wasmUrl = pathToFileUrl(wasmPath);
+  let step: "hello" | "ready" | "channel" | "sample" | "done" = "hello";
+
+  const server = Bun.serve({
+    port: 0,
+    fetch(req, server) {
+      if (server.upgrade(req)) return undefined;
+      return new Response("expected websocket", { status: 400 });
+    },
+    websocket: {
+      message(ws, message) {
+        const bytes =
+          message instanceof ArrayBuffer
+            ? new Uint8Array(message)
+            : typeof message === "string"
+              ? new TextEncoder().encode(message)
+              : new Uint8Array(message);
+        if (step === "hello" && isHello(bytes)) {
+          step = "ready";
+          ws.send(fixtures.serverHello);
+          return;
+        }
+        if (step === "ready" && bytes[1] === OPCODE_CONTROL) {
+          step = "channel";
+          ws.send(fixtures.sessionReady);
+          return;
+        }
+        if (step === "channel" && bytes[1] === OPCODE_CONTROL) {
+          step = "sample";
+          ws.send(fixtures.channelReady);
+          setTimeout(() => {
+            if (step === "sample") {
+              ws.send(fixtures.primitiveScalarsSample);
+              step = "done";
+            }
+          }, 10);
+        }
+      },
+    },
+  });
+
+  const client = await connect(`ws://127.0.0.1:${server.port}`, { wasmUrl });
+  const sub = await client.session.subscribe(
+    "/scalars",
+    rclweb_cdr_interfaces.msg.PrimitiveScalars,
+  );
+  const sample = await new Promise<{
+    string_value: string;
+    int64_value: bigint;
+  }>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("scalars timeout")), 5000);
+    sub.onMessage((msg, lease) => {
+      clearTimeout(timer);
+      lease.release();
+      resolve({
+        string_value: msg.string_value,
+        int64_value: msg.int64_value,
+      });
+    });
+  });
+  expect(sample.string_value).toBe("hello-scalars");
+  expect(sample.int64_value).toBe(-70_000n);
+  await client.close();
+  server.stop(true);
+});
+
+test("Worker path: publish PrimitiveScalars emits a ROS_SAMPLE frame", async () => {
+  const fixtures = scriptedPeerFixtures();
+  const wasmUrl = pathToFileUrl(wasmPath);
+  let step: "hello" | "ready" | "channel" | "sample" | "done" = "hello";
+  let sampleFrame: Uint8Array | null = null;
+
+  const server = Bun.serve({
+    port: 0,
+    fetch(req, server) {
+      if (server.upgrade(req)) return undefined;
+      return new Response("expected websocket", { status: 400 });
+    },
+    websocket: {
+      message(ws, message) {
+        const bytes =
+          message instanceof ArrayBuffer
+            ? new Uint8Array(message)
+            : typeof message === "string"
+              ? new TextEncoder().encode(message)
+              : new Uint8Array(message);
+        if (step === "hello" && isHello(bytes)) {
+          step = "ready";
+          ws.send(fixtures.serverHello);
+          return;
+        }
+        if (step === "ready" && bytes[1] === OPCODE_CONTROL) {
+          step = "channel";
+          ws.send(fixtures.sessionReady);
+          return;
+        }
+        if (step === "channel" && bytes[1] === OPCODE_CONTROL) {
+          step = "sample";
+          ws.send(fixtures.channelReady);
+          return;
+        }
+        if (step === "sample" && bytes[1] === OPCODE_ROS_SAMPLE) {
+          sampleFrame = bytes;
+          step = "done";
+        }
+      },
+    },
+  });
+
+  const client = await connect(`ws://127.0.0.1:${server.port}`, { wasmUrl });
+  const pub = await client.session.publish(
+    "/scalars",
+    rclweb_cdr_interfaces.msg.PrimitiveScalars,
+  );
+  const message = new rclweb_cdr_interfaces.msg.PrimitiveScalars();
+  message.string_value = "hello-scalars";
+  message.int64_value = -70_000n;
+  message.uint64_value = 80_000n;
+  await pub.publish(message);
+  const deadline = Date.now() + 5000;
+  while (sampleFrame == null && Date.now() < deadline) {
+    await Bun.sleep(10);
+  }
+  expect(sampleFrame).not.toBeNull();
+  expect(sampleFrame!.length).toBeGreaterThan(4);
   await client.close();
   server.stop(true);
 });

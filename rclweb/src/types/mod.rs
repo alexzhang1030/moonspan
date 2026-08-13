@@ -8,6 +8,7 @@
 
 pub mod error;
 pub mod generated;
+pub mod host_value;
 pub mod key;
 pub mod limits;
 pub mod registry;
@@ -23,6 +24,11 @@ pub use generated::{
   MEASURE_SEQUENCE_RESULT_TYPE_NAME, MeasureSequenceFeedback, MeasureSequenceGoal,
   MeasureSequenceResult, NESTED_SAMPLE_TYPE_NAME, NestedSample, PHASE1_ROOT_TYPE_NAMES,
   POINT_CLOUD2_TYPE_NAME, PRIMITIVE_SCALARS_TYPE_NAME, PointCloud2, PrimitiveScalars, Time,
+};
+pub use host_value::{
+  GeneratedMessage, GeneratedValueError, decode_generated_cdr, decode_host_value,
+  encode_generated_cdr, encode_host_value, is_generated_msg_type, sample_nested_sample,
+  sample_primitive_scalars,
 };
 pub use key::{SCHEME_RCLWEB_SCHEMA_V1, SCHEME_REP2011_RIHS, SchemaKey};
 pub use limits::{ENCODING_CDR1, PHASE1_SCHEMA_GENERATION};
