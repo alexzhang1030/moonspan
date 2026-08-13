@@ -8,13 +8,13 @@ The CDR core encodes and decodes ROS sample payloads on the R2WP data path. It o
 
 ## Supported representations
 
-| Surface | M1 target | Role |
+| Surface | Status | Role |
 |---|---|---|
 | CDR1 little endian | Required | Default ROS sample encoding for the authoritative corpus |
 | CDR1 big endian | Required | Explicit big-endian primitive coverage in the corpus |
 | XCDR2 stream foundations | Follow-on | Stream headers and representation identifiers for later schema work |
 
-M1 qualifies **CDR1** (OMG DDS-XTypes 1.3 encoding version 1 / PLAIN_CDR rules for final types) against the committed ROS corpus. XCDR2 stream foundations are a follow-on surface for later schema identity work. M1-01 acceptance covers CDR1 little and big endian only.
+The corpus qualifies **CDR1** (OMG DDS-XTypes 1.3 encoding version 1 / PLAIN_CDR rules for final types). XCDR2 stream foundations are a follow-on surface for later schema identity work. Acceptance covers CDR1 little and big endian only.
 
 Corpus encoding identity is `CDR1` in [`conformance/cdr/manifest.json`](../../conformance/cdr/manifest.json) (`corpus` = `rclweb-ros-cdr-v1`; manifest `schema_version` = 1; runtime `schema_generation` = 1).
 
@@ -25,10 +25,10 @@ Frozen framing for top-level sample streams (DDS-XTypes 1.3 Clause **7.4.1** PLA
 1. **Encapsulation header (absolute offsets 0–3)**
    - Bytes 0–1: representation identifier (`ENC_HEADER` / RTPS encapsulation identifier), interpreted as network-order `UInt16`: `(byte0 << 8) | byte1`.
    - Bytes 2–3: options field, captured as network-order `UInt16` metadata: `(byte2 << 8) | byte3`.
-   - Accepted representation identifiers for M1:
+   - Accepted representation identifiers:
      - `0x0001` (`CDR_LE`) — CDR1 little endian
      - `0x0000` (`CDR_BE`) — CDR1 big endian
-   - **Options handling (M1 freeze):** the decoder accepts every two-byte options value and stores that network-order `UInt16`. Field alignment and body layout ignore options contents. The canonical writer emits options `0x0000`.
+   - **Options handling:** the decoder accepts every two-byte options value and stores that network-order `UInt16`. Field alignment and body layout ignore options contents. The canonical writer emits options `0x0000`.
 
 2. **Body alignment origin**
    The codec body origin is **absolute byte offset 4**, immediately after the identifier and options. All subsequent alignment uses:
@@ -72,9 +72,9 @@ Grounded in DDS-XTypes 1.3 Clause **7.4.1.1.2 Character Data** for `String<Char8
 
 When the declared Char8 span ends on a nonzero byte, or the length is zero, the fault is `missing_string_terminator`. Invalid UTF-8 surfaces `invalid_utf8`. Boolean values outside the set `{0, 1}` surface `invalid_boolean` (Table 31: `0` false, `1` true).
 
-### ROS 2 legacy `wstring` wire profile (authoritative for M1)
+### ROS 2 legacy `wstring` wire profile
 
-DDS-XTypes 1.3 Clause **7.4.1.1.2** also defines generic `String<Char16>` as UTF-16 code units whose value boundary follows its **byte** length. That generic Char16 / UTF-16 surface is reserved for a follow-on representation. **Phase 1 ROS fixtures use the ROS 2 / Fast-CDR legacy wide-string form** produced by generated typesupport.
+DDS-XTypes 1.3 Clause **7.4.1.1.2** also defines generic `String<Char16>` as UTF-16 code units whose value boundary follows its **byte** length. That generic Char16 / UTF-16 surface is reserved for a follow-on representation. **Corpus ROS fixtures use the ROS 2 / Fast-CDR legacy wide-string form** produced by generated typesupport.
 
 Pinned **Fast-CDR v1.0.29** (`Cdr::serialize(const wchar_t*)` / `Cdr::deserialize(wchar_t*&)` in [Cdr.cpp](https://raw.githubusercontent.com/eProsima/Fast-CDR/v1.0.29/src/cpp/Cdr.cpp)) writes a `uint32` element count (`wstrlen`), then `wstrlen * 4` payload bytes. The Fast-CDR value ends after those `N` slots. `readWString` / deserialize consume `length * 4` after the count. That is the core wstring value.
 
@@ -83,7 +83,7 @@ Pinned **Fast-CDR v1.0.29** (`Cdr::serialize(const wchar_t*)` / `Cdr::deserializ
 | Length field | `UInt32` **element count** `N` (number of 32-bit character / code-unit slots) |
 | Character payload | Exactly **`N * 4` bytes**: `N` endian-aware 32-bit slots (little: `08 67 00 00` for U+6708; big: `00 00 67 08`) |
 | Core decode value boundary | Count field plus **`N * 4`** payload bytes |
-| Accepted slot values | Unicode scalar values produced by the ROS `u16string_to_wstring` conversion; M1-01c tests the scalar boundary |
+| Accepted slot values | Unicode scalar values produced by the ROS `u16string_to_wstring` conversion; corpus tests cover the scalar boundary |
 | Endianness | Follows the CDR1 encapsulation identifier |
 | Canonical rclweb encode | Exact form only: count + `N * 4` payload |
 
@@ -98,13 +98,13 @@ Machine-checkable evidence: [`conformance/cdr/tail-slack.json`](../../conformanc
 | **Strict** (`ensure_complete`) | Fully consumed stream; every remaining tail surfaces as `trailing_data` |
 | **Declared zero tail** (`ensure_complete_with_zero_tail`) | Exact end, or remaining length equals the declared all-zero byte count |
 
-M1-02 supplies the declared expected tail from `SchemaKey` plus wire-profile metadata (`support_row_id` and CDR representation), with committed [`tail-slack.json`](../../conformance/cdr/tail-slack.json) as authority (Phase 1 values `0`, `4`, or `12`). Resolution includes representation because H-FT and J-FT `PrimitiveScalars` each carry little-endian tail 4 and big-endian tail 0. Canonical rclweb encode remains exact (zero top-level tail). Cross-row semantic agreement compares decoded logical values; M1-01d proves agreement across exact and zero-tail fixtures.
+The generated-types registry supplies the declared expected tail from `SchemaKey` plus wire-profile metadata (`support_row_id` and CDR representation), with committed [`tail-slack.json`](../../conformance/cdr/tail-slack.json) as authority (values `0`, `4`, or `12`). Resolution includes representation because H-FT and J-FT `PrimitiveScalars` each carry little-endian tail 4 and big-endian tail 0. Canonical rclweb encode remains exact (zero top-level tail). Cross-row semantic agreement compares decoded logical values; corpus tests prove agreement across exact and zero-tail fixtures.
 
 `invalid_wstring_scalar` covers a 32-bit character slot outside the accepted Unicode scalar values for this ROS profile. When a Char8 declared span ends on a nonzero byte, the fault is `missing_string_terminator`.
 
-## Arrays, sequences, and nesting (M1-01c3)
+## Arrays, sequences, and nesting
 
-Implementable container surface for Phase 1 CDR1. Generated codecs (M1-02) compose these primitives with schema-declared counts and types.
+Implementable container surface for corpus CDR1. Generated codecs compose these primitives with schema-declared counts and types.
 
 ### Fixed arrays
 
@@ -133,7 +133,7 @@ CdrWriter::write_byte_sequence(value : BytesView, max_elements? : UInt) -> Resul
 | `read_sequence_length` | Applies `max_stream_bytes` as the absolute element-work ceiling before host `Int` conversion and returns a bounded `Int` suitable for element loops |
 | `read_byte_sequence` | One complete field preflight; returns a borrowed zero-copy `BytesView`. `max_temporary_allocation` remains for owned allocations only |
 | `write_byte_sequence` | One complete field preflight, then direct emission into the owned writer buffer |
-| Large `UInt` bounds | Values above the host `Int` domain stay open relative to Phase 1 absolute ceilings (same rule as Char8 / wstring bounds) |
+| Large `UInt` bounds | Values above the host `Int` domain stay open relative to the absolute ceilings (same rule as Char8 / wstring bounds) |
 | Fault atomicity | Count, arithmetic, ceiling, truncation, and capacity faults restore the count-field cursor on the reader and leave writer position and bytes unchanged |
 
 ### Nested values
@@ -152,9 +152,7 @@ CdrReader::enter_nested(parent) / CdrWriter::enter_nested(parent)  // child at d
 | Token model | Tokens carry depth by value, so sibling branches keep independent state. `enter_nested` leaves cursor and bytes unchanged |
 | Generated use | Generated codecs pass the token through nested aggregate encode/decode calls |
 
-### M1-01c3 acceptance focus
-
-LE/BE sequence counts; exact and over element bounds; high-bit counts; borrowed-view physical identity; temporary-cap independence from borrowed spans; writer atomicity; fixed-array composition; nested structure composition; depth 64 accept / 65 reject and custom depth limits; cross-package public API compile-and-run coverage.
+Acceptance focus: LE/BE sequence counts; exact and over element bounds; high-bit counts; borrowed-view physical identity; temporary-cap independence from borrowed spans; writer atomicity; fixed-array composition; nested structure composition; depth 64 accept / 65 reject and custom depth limits; cross-package public API compile-and-run coverage.
 
 ## Reader and writer API direction
 
@@ -173,25 +171,25 @@ BytesView  ->  bounds-checked slice into parent storage the caller retains
 
 Behaviors and API shapes live in [`rclweb/src/cdr/`](../../rclweb/src/cdr/).
 
-| Surface | Batch | Notes |
-|---|---|---|
-| `CdrReader` | M1-01b1 | Encapsulation parse, origin-4 alignment, zero-copy `read_bytes`, strict completion |
-| `CdrWriter` | M1-01b2 | Canonical header on construct, deterministic zero padding, owned `to_bytes` snapshots |
-| Raw integers | b1/b2 | Width-exact APIs: `read_u8`/`write_u8` → `Byte`; `read_u16`/`write_u16` → `UInt16`; `read_u32`/`write_u32` → `UInt`; `read_u64`/`write_u64` → `UInt64`. Reader assembly uses `Byte::to_uint16` / `Byte::to_uint` so shifts stay unsigned through `0x80000000..0xffffffff` |
-| Semantic primitives | M1-01c1 | `bool`; signed `i8`/`i16`/`i32`/`i64` (`Int`/`Int64`); `Float`/`Double` IEEE bit patterns; `Char8`/`Char16`. Built on raw read/write. `i8`/`i16` writers validate representable ranges. Boolean accepts `0`/`1` only (`invalid_boolean`) |
-| Char8 string | M1-01c2a | `read_string` / `write_string` with optional `max_bytes` (UTF-8 payload bytes excluding NUL); owned `String` decode; direct writer emit after full-field preflight |
-| ROS legacy wstring | M1-01c2b | `read_wstring` / `write_wstring` with optional `max_scalars`; accepted Unicode scalar slots; `invalid_wstring_scalar`; canonical encode exact (count + `N * 4`) |
-| Declared zero tail | M1-01d0 | `ensure_complete_with_zero_tail(expected_tail_bytes)`; top-level completion independent of final member; Phase 1 declarations `0`/`4`/`12` |
-| Corpus fixture bridge | M1-01d1 | Deterministic load of the 56-fixture ROS corpus into package tests; see the [corpus README](../../conformance/cdr/README.md) |
-| Corpus semantic proof | M1-01d2 | Hand-written decode/re-encode of all 56 fixtures and 18 comparison groups ([`rclweb/tests/cdr_corpus.rs`](../../rclweb/tests/cdr_corpus.rs)) |
-| Corpus adversarial gate | M1-01d3 | Strict vs declared completion, nonzero tail mutations, exact-end any-declaration success, wrong-declaration rejections on tail-bearing fixtures, stream bounds, PointCloud2 borrowed budget, framing bridge ([`rclweb/tests/cdr_adversarial.rs`](../../rclweb/tests/cdr_adversarial.rs)) |
-| Fixed arrays | M1-01c3b | Schema-declared element count composed from existing element codecs; first-element body-origin alignment; optional fixed-width preflight via `checked_span_length` |
-| Sequences | M1-01c3b | `read_sequence_length` / `write_sequence_length`; `read_byte_sequence` / `write_byte_sequence` with optional `max_elements`; stream work ceiling; borrowed byte views |
-| Nesting | M1-01c3b | Immutable `CdrNesting` token; `root_nesting` / `enter_nested`; depth against `max_nesting_depth` |
+| Surface | Notes |
+|---|---|
+| `CdrReader` | Encapsulation parse, origin-4 alignment, zero-copy `read_bytes`, strict completion |
+| `CdrWriter` | Canonical header on construct, deterministic zero padding, owned `to_bytes` snapshots |
+| Raw integers | Width-exact APIs: `read_u8`/`write_u8` → `Byte`; `read_u16`/`write_u16` → `UInt16`; `read_u32`/`write_u32` → `UInt`; `read_u64`/`write_u64` → `UInt64`. Reader assembly uses `Byte::to_uint16` / `Byte::to_uint` so shifts stay unsigned through `0x80000000..0xffffffff` |
+| Semantic primitives | `bool`; signed `i8`/`i16`/`i32`/`i64` (`Int`/`Int64`); `Float`/`Double` IEEE bit patterns; `Char8`/`Char16`. Built on raw read/write. `i8`/`i16` writers validate representable ranges. Boolean accepts `0`/`1` only (`invalid_boolean`) |
+| Char8 string | `read_string` / `write_string` with optional `max_bytes` (UTF-8 payload bytes excluding NUL); owned `String` decode; direct writer emit after full-field preflight |
+| ROS legacy wstring | `read_wstring` / `write_wstring` with optional `max_scalars`; accepted Unicode scalar slots; `invalid_wstring_scalar`; canonical encode exact (count + `N * 4`) |
+| Declared zero tail | `ensure_complete_with_zero_tail(expected_tail_bytes)`; top-level completion independent of final member; corpus declarations `0`/`4`/`12` |
+| Corpus fixture bridge | Deterministic load of the 56-fixture ROS corpus into package tests; see the [corpus README](../../conformance/cdr/README.md) |
+| Corpus semantic proof | Hand-written decode/re-encode of all 56 fixtures and 18 comparison groups ([`rclweb/tests/cdr_corpus.rs`](../../rclweb/tests/cdr_corpus.rs)) |
+| Corpus adversarial gate | Strict vs declared completion, nonzero tail mutations, exact-end any-declaration success, wrong-declaration rejections on tail-bearing fixtures, stream bounds, PointCloud2 borrowed budget, framing bridge ([`rclweb/tests/cdr_adversarial.rs`](../../rclweb/tests/cdr_adversarial.rs)) |
+| Fixed arrays | Schema-declared element count composed from existing element codecs; first-element body-origin alignment; optional fixed-width preflight via `checked_span_length` |
+| Sequences | `read_sequence_length` / `write_sequence_length`; `read_byte_sequence` / `write_byte_sequence` with optional `max_elements`; stream work ceiling; borrowed byte views |
+| Nesting | Immutable `CdrNesting` token; `root_nesting` / `enter_nested`; depth against `max_nesting_depth` |
 
 **Writer capacity:** `capacity = min(max_stream_bytes, max_temporary_allocation)`, counted over the **complete stream including the 4-byte header**. Construction emits the full canonical header immediately (`LE = 00 01 00 00`, `BE = 00 00 00 00`; options always `0x0000`). When temporary capacity is below 4, construction returns `bounds_exceeded` with `needed = 4` and `remaining =` temporary capacity. Each field preflights `pad + size` arithmetic and full capacity before mutating the buffer; faults leave position and bytes byte-identical. `to_bytes` returns an owned snapshot isolated from later writes.
 
-**Writer allocation:** default construction allocates header-sized backing storage (`size_hint = HEADER_LENGTH` / `WRITER_INITIAL_SIZE_HINT`) and grows lazily under the logical `capacity` hard ceiling (Phase 1 absolute cap remains 64 MiB via limits). Position and remaining capacity derive from `buf.length()` as the single stream-length source. `CdrWriter` fields are package-private; external packages construct only through `CdrWriter::new` / `new_default`.
+**Writer allocation:** default construction allocates header-sized backing storage (`size_hint = HEADER_LENGTH` / `WRITER_INITIAL_SIZE_HINT`) and grows lazily under the logical `capacity` hard ceiling (absolute cap remains 64 MiB via limits). Position and remaining capacity derive from `buf.length()` as the single stream-length source. `CdrWriter` fields are package-private; external packages construct only through `CdrWriter::new` / `new_default`.
 
 ## Typed error taxonomy
 
@@ -201,7 +199,7 @@ Implementable codec faults with stable codes:
 |---|---|
 | `invalid_encapsulation` | The 4-byte header is truncated or structurally unavailable |
 | `unsupported_representation` | Representation identifier is outside `{0x0000, 0x0001}` |
-| `invalid_limits` | `CdrLimits` construction is outside absolute Phase 1 ranges |
+| `invalid_limits` | `CdrLimits` construction is outside absolute ranges |
 | `truncated` | Input ends before a required field completes |
 | `invalid_boolean` | Boolean byte is outside `{0, 1}` |
 | `invalid_utf8` | Char8 string payload fails UTF-8 well-formedness |
@@ -223,18 +221,18 @@ Implementable codec faults with stable codes:
 `CdrLimits` values are re-validated at every reader/writer trust boundary (`CdrLimits::validate`, used by `CdrLimits::new`, `CdrReader::open`, and `CdrWriter::new`). Revalidation enforces the factory ranges for all received limit objects.
 
 `checked_span_length` order: multiply → span above `max_stream_bytes` → `length_overflow` → span above remaining → `truncated`.
-`schema_mismatch` and related identity faults belong to M1-02 generated types and M2-01 dynamic projection. Host buffer lease and transfer faults belong to M1-03.
+`schema_mismatch` and related identity faults belong to generated types and later dynamic projection. Host buffer lease and transfer faults belong to the poll ABI.
 
 ## Overflow and allocation limits
 
-| Limit | Absolute Phase 1 range | Default |
+| Limit | Absolute range | Default |
 |---|---|---|
 | `max_stream_bytes` | `4..=67 108 864` | **67 108 864** (R2WP `frame_payload_max_bytes`) |
 | `max_nesting_depth` | `1..=64` | **64** |
 | `max_temporary_allocation` | `0..=max_stream_bytes` | **67 108 864** |
-| Field and type bounds | M1-02 generated-schema inputs | — |
+| Field and type bounds | Generated-schema inputs | — |
 
-Rationale: defaults are the absolute Phase 1 ceilings. Stream and temporary defaults match the R2WP payload ceiling; depth 64 bounds nested decode under a fixed stack budget with headroom for generated ROS schemas. Construction or open outside these ranges yields `invalid_limits`.
+Rationale: defaults are the absolute ceilings. Stream and temporary defaults match the R2WP payload ceiling; depth 64 bounds nested decode under a fixed stack budget with headroom for generated ROS schemas. Construction or open outside these ranges yields `invalid_limits`.
 
 Borrowed `BytesView` spans (`read_bytes`, `checked_span_length`) are governed by remaining input and `max_stream_bytes`. `max_temporary_allocation` applies only to owned temporary allocations (`checked_alloc_length` and later owned buffers).
 
@@ -284,39 +282,28 @@ Legal ROS encoders may emit distinct bytes for one logical value, including exac
 
 ### Round trip and malformed input
 
-M1-01d proves:
+Corpus proof:
 
-- **M1-01d1:** the 56-fixture ROS corpus loaded into package tests (`CdrReader::open_default`, zero-tail and multi-row identity proofs); see the [corpus README](../../conformance/cdr/README.md).
-- **M1-01d2:** hand-written codecs decode every committed fixture field-by-field against manifest logical values, finish with `ensure_complete_with_zero_tail`, and re-encode to the exact logical prefix (zero top-level tail). All 18 multi-row groups agree semantically; PointCloud2 `data` is a borrowed input-backed view ([`rclweb/tests/cdr_corpus.rs`](../../rclweb/tests/cdr_corpus.rs)).
-- **M1-01d3:** corpus adversarial gate over all 56 fixtures — strict vs declared completion (24 exact / 32 tail-bearing), 288 nonzero tail-byte mutations, exact-end accepts declaration 4 (24), wrong declarations reject on 32 tail-bearing fixtures, appended-byte rejection on all 56, stream open at length and reject one-byte-below, PointCloud2 borrowed payload under a small owned-temporary budget, and a concise LE/BE framing bridge ([`rclweb/tests/cdr_adversarial.rs`](../../rclweb/tests/cdr_adversarial.rs)). Focused unit tests in [`rclweb/src/cdr/tests.rs`](../../rclweb/src/cdr/tests.rs) cover field-level illegal inputs.
+- the 56-fixture ROS corpus loaded into package tests (`CdrReader::open_default`, zero-tail and multi-row identity proofs); see the [corpus README](../../conformance/cdr/README.md);
+- hand-written codecs decode every committed fixture field-by-field against manifest logical values, finish with `ensure_complete_with_zero_tail`, and re-encode to the exact logical prefix (zero top-level tail). All 18 multi-row groups agree semantically; PointCloud2 `data` is a borrowed input-backed view ([`rclweb/tests/cdr_corpus.rs`](../../rclweb/tests/cdr_corpus.rs));
+- corpus adversarial gate over all 56 fixtures — strict vs declared completion (24 exact / 32 tail-bearing), 288 nonzero tail-byte mutations, exact-end accepts declaration 4 (24), wrong declarations reject on 32 tail-bearing fixtures, appended-byte rejection on all 56, stream open at length and reject one-byte-below, PointCloud2 borrowed payload under a small owned-temporary budget, and a concise LE/BE framing bridge ([`rclweb/tests/cdr_adversarial.rs`](../../rclweb/tests/cdr_adversarial.rs)). Focused unit tests in [`rclweb/src/cdr/tests.rs`](../../rclweb/src/cdr/tests.rs) cover field-level illegal inputs;
 - exact and zero-tail fixtures for the same logical sample normalize to one semantic value;
 - encode under rclweb CDR1 uses exact form (zero top-level tail) and round-trips with semantic equality;
 - malformed truncation, illegal lengths, and alignment overflow return the typed error taxonomy above (focused suites + corpus gate);
 - resource bounds reject oversized streams with stable codes;
 - strict completion reports `trailing_data` on zero-tail samples; declared completion accepts exact end or the declared all-zero length;
-- M1-01c exercises `invalid_wstring_scalar` at the Unicode scalar boundary for legacy wstring slots.
+- `invalid_wstring_scalar` is exercised at the Unicode scalar boundary for legacy wstring slots.
 
 ## Security and resource cases
 
 Codec work runs inside declared budgets. Untrusted sample bytes are handled with typed faults and finite work:
 
 - truncated and oversize length fields;
-- nesting depth at and beyond the M1-01b ceiling;
+- nesting depth at and beyond the `max_nesting_depth` ceiling;
 - maximum-size strings, wide strings, sequences, and PointCloud2-scale payloads within the 64 MiB stream ceiling;
 - padding and trailing-byte handling at stream end under strict completion.
 
 These cases produce typed codec faults and appear in conformance results.
-
-## Batch acceptance
-
-| Batch | Outcome |
-|---|---|
-| M1-01a | This contract, plan split, PCR and doc routes (documentation freeze) |
-| M1-01b | Bounded stream reader/writer, encapsulation, endian, alignment, limits (including nesting and temporary-allocation defaults), typed errors |
-| M1-01c | Primitives, strings/wstrings (legacy ROS profile, scalar-boundary tests), arrays, sequences, nested values, borrowed `BytesView` fields |
-| M1-01d | Authoritative corpus proof: d0–d3 complete (zero-tail API, fixture bridge, semantic decode/re-encode, adversarial gate) |
-
-M1-01 is complete. Generated types add schema keys and per-type bounds; the host poll ABI owns buffer leases and keeps CDR layout rules as defined here.
 
 ## Dependency boundaries
 
@@ -326,7 +313,7 @@ M1-01 is complete. Generated types add schema keys and per-type bounds; the host
 | Dynamic projection | Reuse reader views and codec error taxonomy; map schema identity faults in the dynamic type layer |
 | Host ABI | Own buffer ownership transfer, leases, release, and poll batches; pass retained bytes into decode |
 | R2WP / gateway | Carry opaque CDR payloads and schema identity; leave codec work to the `rclweb` core |
-| Evidence / N1 gate | Record corpus revision, support rows, and agreement results per [validation](../validation.md) |
+| Evidence | Record corpus revision, support rows, and agreement results per [validation](../validation.md) |
 
 ## Sources
 
@@ -335,10 +322,10 @@ Official references that ground this contract:
 | Source | Stable URL | Relevant material |
 |---|---|---|
 | OMG DDS-XTypes 1.3 About | https://www.omg.org/spec/DDS-XTypes/1.3/About-DDS-XTypes/ | Specification overview and document set |
-| OMG DDS-XTypes 1.3 PDF | https://www.omg.org/spec/DDS-XTypes/1.3/PDF | Clause **7.4.1** PLAIN_CDR (encoding version 1); Clause **7.4.1.1.2** character data (generic Char8 / Char16 rules; Phase 1 ROS `wstring` uses the legacy Fast-CDR profile above); **Table 31** primitive size and alignment; Clause **7.4.3** XCDR stream model and TOP_LEVEL encapsulation; **Table 60** RTPS encapsulation identifiers; XCDR2 as encoding version 2 follow-on |
+| OMG DDS-XTypes 1.3 PDF | https://www.omg.org/spec/DDS-XTypes/1.3/PDF | Clause **7.4.1** PLAIN_CDR (encoding version 1); Clause **7.4.1.1.2** character data (generic Char8 / Char16 rules; corpus ROS `wstring` uses the legacy Fast-CDR profile above); **Table 31** primitive size and alignment; Clause **7.4.3** XCDR stream model and TOP_LEVEL encapsulation; **Table 60** RTPS encapsulation identifiers; XCDR2 as encoding version 2 follow-on |
 | ROS 2 Creating an RMW Implementation | https://docs.ros.org/en/ros2_documentation/jazzy/Tutorials/Advanced/Creating-An-RMW-Implementation.html | RMW serialization boundary, typesupport expectations, and distribution-facing encode/decode responsibilities |
 | eProsima Fast-CDR v1.0.29 `Cdr.cpp` | https://raw.githubusercontent.com/eProsima/Fast-CDR/v1.0.29/src/cpp/Cdr.cpp | Upstream `serialize(const wchar_t*)` / wide-string deserialize: `uint32` count then `count * 4` payload; Fast-CDR value ends after `N` slots |
 | ROS 2 Humble `rosidl_typesupport_fastrtps_cpp` template | https://raw.githubusercontent.com/ros2/rosidl_typesupport_fastrtps/humble/rosidl_typesupport_fastrtps_cpp/resource/msg__type_support.cpp.em | AbstractWString serialize: `u16string_to_wstring` then Fast-CDR `<<`; size budgeting contributes to top-level serialized-buffer zero tail (see `tail-slack.json`) |
 | Rust slices and borrowing | https://doc.rust-lang.org/book/ch04-03-slices.html | Owned buffers versus borrowed views in the Rust port |
 
-Committed fixtures under [`conformance/cdr/`](../../conformance/cdr/README.md) are the binding Phase 1 wire contract for this profile. Fast-CDR v1.0.29 is the upstream reference for the core value layout. The Humble fastrtps typesupport template is the source reference for size budgeting associated with the observed top-level zero tail; actual 0/4/12 tail lengths are proven by [`tail-slack.json`](../../conformance/cdr/tail-slack.json). Generator provenance and row pins live in the corpus README. Schema identity across Humble and Jazzy is fixed by [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md).
+Committed fixtures under [`conformance/cdr/`](../../conformance/cdr/README.md) are the binding wire contract for this profile. Fast-CDR v1.0.29 is the upstream reference for the core value layout. The Humble fastrtps typesupport template is the source reference for size budgeting associated with the observed top-level zero tail; actual 0/4/12 tail lengths are proven by [`tail-slack.json`](../../conformance/cdr/tail-slack.json). Generator provenance and row pins live in the corpus README. Schema identity across Humble and Jazzy is fixed by [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md).

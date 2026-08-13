@@ -9,12 +9,11 @@ conformance oracle: the `rclweb` core consumes them directly in its Rust test su
 | Valid and boundary cases | [`manifest.json`](./manifest.json) with payloads under `valid/` |
 | Malformed receiver cases | [`malformed/manifest.json`](./malformed/manifest.json) with payloads under `malformed/` |
 
-R2-03 reintroduced a single small regenerator targeted at the v0.1 normative
-subset: [`scripts/protocol-fixtures`](../../scripts/protocol-fixtures/). It
+A single small regenerator targets the v0.1 normative subset:
+[`scripts/protocol-fixtures`](../../scripts/protocol-fixtures/). It
 materializes all malformed (`hex` / `mutate`) recipes and the three valid
 bootstrap records via `rclweb` encoders; parked valid frame binaries stay
-frozen with sha256 integrity checks. See
-[R2-03 milestone](../../docs/milestones/r2-03-fixtures-fuzzing.md).
+frozen with sha256 integrity checks.
 
 ```bash
 just protocol-fixtures-check   # or: cargo run -p protocol-fixtures -- --check

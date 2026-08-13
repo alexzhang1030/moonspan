@@ -6,7 +6,7 @@ rclweb places ROS application semantics in the browser and robot trust at the ed
 
 ```text
 Browser application or conformance harness
-  TypeScript SDK
+  TypeScript package
   rclweb core (Rust -> wasm32) in a Worker for protocol, CDR, and ROS state
   I/O Worker for transport and buffers
                  |
@@ -20,7 +20,7 @@ Robot edge
 ROS 2 domains for that support row
 ```
 
-All six Phase 1 rows (H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN) are delivery-gated with live talker e2e lanes and committed corpus data; promotion to **Qualified** is a human edit of the [support matrix](./support-matrix.md). One gateway process binds one row and may expose multiple domain IDs. Applications combine independent SDK sessions across rows.
+All six support rows (H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN) have live talker e2e lanes and committed corpus data; promotion to **Qualified** is a human edit of the [support matrix](./support-matrix.md). One gateway process binds one row and may expose multiple domain IDs. Applications combine independent sessions across rows.
 
 `gateway_instance_id` identifies a logical gateway deployment. `support_row_id` identifies the immutable ROS distribution and RMW profile of its artifact. `domain_id` identifies a ROS domain within that row. These values remain attached to graph, schema, channel, policy, audit, telemetry, and evidence records.
 
@@ -32,9 +32,9 @@ All six Phase 1 rows (H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN) are delivery-gated wit
 | I/O Worker | Transport, reconnect, and buffer transfer | Byte batches to and from the core |
 | `rclweb` core | R2WP codecs, CDR, session/channel state, graph, QoS, clocks, and ROS operations | Host poll ABI (wasm) and Rust API (native) |
 | `rclwebd` | ROS attachment, sessions, schema cache, scheduling, policy, audit, and operations | R2WP and the serialized rcl surface |
-| ROS adapter | Versioned serialized C ABI (`serialized-adapter-v1`) + dlopen typesupport for one support row | Narrow serialized C surface ([R3-04](./milestones/r3-04-adapter-abi-typesupport.md)) |
+| ROS adapter | Versioned serialized C ABI (`serialized-adapter-v1`) + dlopen typesupport for one support row | Narrow serialized C surface ([ADR 0006](./adr/0006-edge-ros-c-abi-boundary.md)) |
 | Conformance system | Fixtures, corpus, workloads, and the support matrix | Live gates and human qualification |
-| Studio | Post-release workspace and visual application behavior | Released SDK and capability schema |
+| Studio | Post-release workspace and visual application behavior | Released TypeScript package and capability schema |
 
 ## Data paths
 
@@ -68,7 +68,7 @@ The 0-copy view holds on the thread that owns wasm (the I/O Worker, or the calli
 
 **Drop at the edge.** Best-effort channels enforce latest-wins admission and byte budgets at the gateway with stable dispositions. Data channels never use permessage-deflate.
 
-**Transports.** Binary WebSocket is one TCP stream: a stalled reliable channel head-of-line blocks the connection. WebTransport (independent streams and datagrams) is the second transport ([R3-03](./milestones/r3-03-h-ft-webtransport.md)). Channel semantics are transport-neutral.
+**Transports.** Binary WebSocket is one TCP stream: a stalled reliable channel head-of-line blocks the connection. WebTransport (independent streams and datagrams) is the second transport. Channel semantics are transport-neutral.
 
 **Wasm.** Fat LTO, `codegen-units = 1`, `panic = abort`. Transferable `ArrayBuffer` is the general path; the `SharedArrayBuffer` ring is measured and stays COOP/COEP-gated ([ADR 0004](./adr/0004-browser-wasm-host-boundary.md)). `just build` prints staged wasm size; `just poll-latency` prints p50/p99 — the [ADR 0010](./adr/0010-restructure-single-rust-core.md) reopen inputs.
 

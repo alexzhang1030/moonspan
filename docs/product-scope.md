@@ -1,20 +1,18 @@
 # Product scope
 
-rclweb gives browser applications typed, secure, and measurable access to ROS 2. The mainline serves robotics developers, integration engineers, operators, fleet teams, and application teams through a stable SDK.
+rclweb gives browser applications typed, secure access to ROS 2. Robotics developers, integration engineers, operators, fleet teams, and application teams consume it through a TypeScript package that matches rclcpp shape.
 
-## Mainline outcome
+## What ships
 
-| Deliverable | Role |
+| Piece | Role |
 |---|---|
 | R2WP | Versioned binary protocol for ROS data and control over WebTransport and binary WebSocket |
 | `rclweb` core | Rust core for protocol, CDR, ROS state, types, QoS, and operations — native in the gateway, wasm32 in the browser |
 | `rclwebd` | Rust edge gateway for ROS attachment, scheduling, identity, policy, audit, and operations |
-| TypeScript package | TypeScript APIs, Worker hosts, typed data, sessions, telemetry, and examples ([`rclweb`](./typescript.md)) |
-| Qualification package | Fixtures, conformance, benchmarks, security evidence, deployment assets, and release records |
+| TypeScript package `rclweb` | Application API (`init` / `Node`), Worker host, typed samples, sessions, telemetry ([`rclweb`](./typescript.md)) |
+| Corpus and gates | Committed CDR fixtures, live talker e2e, support-matrix rows |
 
-Delivery follows a dependency chain: contracts and fixtures, core data path, ROS semantics, production qualification, and release.
-
-## User needs
+## Users
 
 | User | Need |
 |---|---|
@@ -22,28 +20,24 @@ Delivery follows a dependency chain: contracts and fixtures, core data path, ROS
 | Integration engineer | Reproducible interoperability and traceable failures |
 | Robot operator | Scoped commands, connection health, audit identity, and recovery |
 | Fleet team | A controlled edge boundary across robot domains and networks |
-| Application team | A stable SDK for custom operational interfaces |
+| Application team | A stable package for custom operational interfaces |
 
-## Product contracts
+## Contracts
 
 - ROS semantics execute in browser Wasm through the `rclweb` core.
-- CDR stays on the binary data path.
+- CDR stays on the binary data path. There is no JSON transcoding on the sample path.
 - Every queue and resource-sensitive operation has visible budgets and telemetry.
 - Identity, SROS2 policy, operation ACLs, resource control, and audit meet at `rclwebd`.
 - WebTransport and binary WebSocket share one R2WP semantic contract.
 - Generated and dynamic types share a schema-identity registry.
-- Support claims require a reviewed **Qualified** row in the [support matrix](./support-matrix.md).
+- A support row is **Qualified** only when a human updates the [support matrix](./support-matrix.md).
 
-## Native levels
+## What this is not
 
-| Level | Meaning | Role |
-|---|---|---|
-| N1 Wire-native | CDR, schemas, graph, QoS, and ROS time agree across the wire | Mainline foundation |
-| N2 Runtime-native | Browser Wasm provides the planned ROS runtime semantics | Mainline runtime |
-| N3 Package-native | Selected upstream ROS packages run in Wasm | Post-release experiment |
+- Not a second ROS client library. The browser core is an R2WP protocol client with rcl-shaped semantics; the gateway binds the serialized rcl surface ([ADR 0010](./adr/0010-restructure-single-rust-core.md)).
+- Not a visual robotics IDE. [Studio](./prototypes/studio-ui.md) is an optional post-release UI that consumes the released package.
+- Not a sandbox for running arbitrary upstream ROS packages in Wasm. That remains a later experiment.
 
-## Common Studio prototype
+## Wire and runtime agreement
 
-Studio is a post-mainline side project. It demonstrates the released SDK through a generic robotics workspace with graph inspection, visual panels, replay, and command workflows. Its scope lives in [Common Studio prototype](./prototypes/studio-ui.md).
-
-Mainline work improves ROS semantics, bounded data flow, secure edge attachment, compatibility, evidence, SDK quality, operations, or release quality. Studio consumes those released contracts as an application.
+The mainline requires wire agreement (CDR, schemas, graph, QoS, ROS time) and a browser runtime that performs the planned ROS operations against a live gateway. Support claims need a reviewed **Qualified** row, not only a green CI job.

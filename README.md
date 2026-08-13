@@ -10,8 +10,8 @@ rclweb connects browser applications to ROS 2 through a versioned wire protocol 
 | `rclwebd/` | Rust edge gateway: transport endpoints, serialized rcl attachment, policy |
 | `typescript/` | TypeScript package `rclweb`: Worker host, buffers, public typed API around the core wasm artifact |
 | `protocol/` | Normative R2WP contract, registry, schema, and frozen fixtures |
-| `conformance/` | Authoritative ROS CDR corpus (six rows of data; J-FT and H-FT delivery-gated) |
-| `examples/` | Demo applications (from R1) |
+| `conformance/` | Authoritative ROS CDR corpus (six support rows; live talker e2e covers each) |
+| `examples/` | Demo applications |
 
 ## Requirements
 
@@ -43,7 +43,7 @@ just build
 | `just check` | Docs, protocol, corpus, and license inventory; Rust fmt/clippy; SDK typecheck |
 | `just test` | Bun and Cargo test suites |
 | `just build` | Native build, fat-LTO `rclweb` wasm staged into the SDK, and SDK build |
-| `just poll-latency` | Print wasm poll latency + size (R-D1) |
+| `just poll-latency` | Print wasm poll latency + size |
 | `just e2e` | Docker compose: Jazzy talker → rclwebd (J-FT) → SDK subscribe |
 | `just e2e-h-ft` | Docker compose: Humble talker → rclwebd (H-FT) → SDK subscribe |
 | `just image-rclwebd` | Docker: J-FT runtime image (`rclwebd:j-ft`) |
@@ -59,17 +59,10 @@ just build
 
 ## Status
 
-R0–R3 are complete through R3-04. R4-01 first slice (Authenticate off by
-default, opt-in `oidc`), R4-02 first slice (operations endpoints + J-FT /
-H-FT runtime images), R4-03 first slice (support matrix against live
-gates; no committed measurement JSON), and R4-04 first slice (SDK public
-surface, docs, and examples; package stays private `0.0.0`) are in
-progress. The walking skeleton reaches a live ROS talker in CI (`just e2e` /
-`e2e-ros-talker`, and Humble via `just e2e-h-ft` /
-`e2e-ros-talker-h-ft`) with a committed demo under
-`examples/subscribe-chatter`. Phases and gates live in the
-[plan](./tasks/plan.md); current state lives in the
-[checklist](./tasks/todo.md).
+A browser page can subscribe to a live ROS 2 talker in CI (`just e2e`,
+`just e2e-h-ft`, and the Cyclone/Zenoh row lanes). The TypeScript package
+stays `"private": true` / `"version": "0.0.0"` until a human publish.
+Open work lives in [tasks/plan.md](./tasks/plan.md).
 
 ## Start here
 
@@ -81,7 +74,7 @@ progress. The walking skeleton reaches a live ROS talker in CI (`just e2e` /
 | Product scope | [docs/product-scope.md](./docs/product-scope.md) |
 | Architecture | [docs/architecture.md](./docs/architecture.md) |
 | Decisions | [docs/adr/README.md](./docs/adr/README.md) |
-| Plan and checklist | [tasks/plan.md](./tasks/plan.md), [tasks/todo.md](./tasks/todo.md) |
+| Open work | [tasks/plan.md](./tasks/plan.md), [tasks/todo.md](./tasks/todo.md) |
 
 ## Documentation discipline
 

@@ -1,7 +1,7 @@
 # R2WP v0 malformed fixtures
 
 This corpus verifies receiver rejection behavior and validation precedence. The
-`rclweb` core test suite consumes the bins as the single oracle. R2-03's
+`rclweb` core test suite consumes the bins as the single oracle.
 [`scripts/protocol-fixtures`](../../../scripts/protocol-fixtures/) regenerates
 every entry from its `hex` / `mutate` source recipe (`just protocol-fixtures-check`
 / `just protocol-fixtures-write`).

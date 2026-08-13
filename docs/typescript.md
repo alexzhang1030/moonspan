@@ -37,7 +37,7 @@ const node = new Node("minimal_publisher");
 
 `spin` waits until `shutdown()`. The browser event loop already delivers callbacks; you do not need to spin for messages to arrive.
 
-`init` currently authenticates as scheme `token` / `anonymous`. The gateway default is Authenticate `off` ([R4-01](./milestones/r4-01-oidc-sros2-audit.md)). Optional `InitOptions` (`inline`, `wasmUrl`, `transport`, WebTransport hashes) are for tests and local-dev TLS — applications leave them unset.
+`init` currently authenticates as scheme `token` / `anonymous`. The gateway default is Authenticate `off` ([security](./security.md)). Optional `InitOptions` (`inline`, `wasmUrl`, `transport`, WebTransport hashes) are for tests and local-dev TLS — applications leave them unset.
 
 `InitOptions.reconnect` (default off) is a fresh session: ClientHello → Authenticate → SessionReady, then the package re-opens topics, services, and actions with the same channel IDs so existing `Node` objects keep working. In-flight service calls and action results reject with `"session reconnected"`. SessionResume stays parked. This applies on both the default I/O Worker path and `inline: true`.
 
@@ -88,7 +88,7 @@ TypeScript cannot write `create_publisher<std_msgs::msg::String>(topic, qos)`, s
 
 Message field names follow the ROS IDL (`data`, `point_step`, `is_bigendian`, `frame_id`). Callbacks receive an owned message; there is no lease to release. `createWallTimer(periodMs, callback)` matches `create_wall_timer`. Relative names (`"chatter"`) resolve under the node namespace like rclcpp.
 
-Typed samples are `std_msgs/msg/String`, `sensor_msgs/msg/PointCloud2`, and the Phase 1 message roots `rclweb_cdr_interfaces/msg/PrimitiveScalars`, `Collections`, and `NestedSample`. Other inbound topic types are dropped. PointCloud2 encode lives in the wasm core and round-trips header stamp/`frame_id` and the PointField list. Generated messages use a packed host layout; wasm converts to and from CDR. `int64` / `uint64` are `bigint`. Phase 1 service and action roots use the same host layout on `createClient` / `createActionClient`.
+Typed samples are `std_msgs/msg/String`, `sensor_msgs/msg/PointCloud2`, and the generated message roots `rclweb_cdr_interfaces/msg/PrimitiveScalars`, `Collections`, and `NestedSample`. Other inbound topic types are dropped. PointCloud2 encode lives in the wasm core and round-trips header stamp/`frame_id` and the PointField list. Generated messages use a packed host layout; wasm converts to and from CDR. `int64` / `uint64` are `bigint`. Generated service and action roots use the same host layout on `createClient` / `createActionClient`.
 
 ## Services
 
@@ -112,7 +112,7 @@ await add.waitForService();
 const responseCdr = await add.sendRequest(requestCdr);
 ```
 
-`createClient` / `createService` match rclcpp names. Phase 1 generated roots (`rclweb_cdr_interfaces.srv.EchoNested`) use ROS classes. Other service types stay CDR `Uint8Array`.
+`createClient` / `createService` match rclcpp names. Generated roots (`rclweb_cdr_interfaces.srv.EchoNested`) use ROS classes. Other service types stay CDR `Uint8Array`.
 
 ## Actions
 
@@ -128,7 +128,7 @@ const done = await result;
 console.log(done.result.stamp.sec);
 ```
 
-`createActionClient` / `createActionServer` match rclcpp names. Phase 1 generated roots (`rclweb_cdr_interfaces.action.MeasureSequence`) use ROS classes (`Goal` / `Result` / `Feedback`). Other action types stay CDR `Uint8Array`. `ACTION_STATUS` stays CDR.
+`createActionClient` / `createActionServer` match rclcpp names. Generated roots (`rclweb_cdr_interfaces.action.MeasureSequence`) use ROS classes (`Goal` / `Result` / `Feedback`). Other action types stay CDR `Uint8Array`. `ACTION_STATUS` stays CDR.
 
 ## Graph
 
@@ -163,11 +163,10 @@ See [examples/README.md](../examples/README.md).
 
 ## Version and release
 
-Independent package versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). R2WP wire version is a separate identity ([ADR 0005](./adr/0005-r2wp-wire-versioning.md)). This package does not bump to `1.0.0`, set `"private": false`, or publish. Remaining R4-04 work: npm publish after a human release review. An npm tarball must include the repository `LICENSE` and `NOTICE`.
+Independent package versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). R2WP wire version is a separate identity ([ADR 0005](./adr/0005-r2wp-wire-versioning.md)). This package does not bump to `1.0.0`, set `"private": false`, or publish. npm publish waits on a human release review. An npm tarball must include the repository `LICENSE` and `NOTICE`.
 
 ## Related
 
-- [R4-04 milestone](./milestones/r4-04-sdk.md)
-- [R1-04 wasm host](./milestones/r1-04-wasm-host-sdk.md)
 - [R2WP](./protocol/r2wp.md)
 - [`rclweb` core](./runtime/core.md)
+- [Security](./security.md)

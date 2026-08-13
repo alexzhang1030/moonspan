@@ -1,33 +1,10 @@
 # Generated types and schema registry
 
-Authoritative runtime contract for rclweb generated types and the schema-identity registry. The [`rclweb` core](./core.md) implements it in Rust (`rclweb/src/types/`) from Bun-generated metadata under `rclweb/generated/metadata/` ([R3-02](../milestones/r3-02-generated-types.md)). Consumes the [CDR core contract](./cdr.md). Schema identity strategy remains [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md). Payload encoding values follow the R2WP v0 `payload-encoding-cdr` domain ([registry](../../protocol/registry/r2wp-v0.json), [CDDL](../../protocol/schema/control-v0.cddl)).
+Authoritative runtime contract for rclweb generated types and the schema-identity registry. The [`rclweb` core](./core.md) implements it in Rust (`rclweb/src/types/`) from Bun-generated metadata under `rclweb/generated/metadata/`. Consumes the [CDR core contract](./cdr.md). Schema identity strategy remains [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md). Payload encoding values follow the R2WP v0 `payload-encoding-cdr` domain ([registry](../../protocol/registry/r2wp-v0.json), [CDDL](../../protocol/schema/control-v0.cddl)).
 
 ## Purpose
 
 The generator turns the committed authoritative ROS corpus into production Rust models, CDR1 codecs, and a dual-scheme schema registry. The browser runtime resolves schema material by identity before channel activation, encodes and decodes sample payloads with `rclweb::cdr`, and applies the committed top-level zero-tail declaration from wire-profile resolution metadata. Dynamic type description and lazy field projection remain later work.
-
-## Delivery batches
-
-| ID | Scope |
-|---|---|
-| **M1-02a** | Contract freeze (this document) and task routing |
-| **M1-02b** | Deterministic Bun generator (`--write` / `--check`); validated normalized descriptors and static metadata artifacts |
-| **M1-02c** | Production Rust models and CDR1 codecs for the nine authoritative corpus roots plus shared dependencies |
-| **M1-02d** | Dual-scheme registry builder, freeze into an immutable M1 registry, Jazzy RIHS provenance, lookup with support-row and CDR representation zero-tail |
-| **M1-02e** | Corpus, adversarial, and public completion gate |
-
-M1-02b starts only after M1-02a is accepted.
-
-### Batch ownership
-
-| Batch | Owns | Leaves to later batches |
-|---|---|---|
-| **M1-02b** | Parse and validate authoritative inputs; emit **validated normalized descriptors** and **static metadata artifacts** (codec descriptor tables, identity rows, wire-profile tail tables, provenance rows) under `--write` / `--check` byte identity | Production encode/decode model and codec bodies |
-| **M1-02c** | Extend generation to **production Rust models and CDR1 codecs** that implement those descriptors against `rclweb::cdr` | Registry builder freeze and runtime lookup wiring |
-| **M1-02d** | Bounded registry **builder**, freeze into an **immutable** M1 registry, dual-scheme resolve, provenance, representation-aware tail lookup | Public/adversarial completion gate |
-| **M1-02e** | Corpus, adversarial, and public completion evidence | — |
-
-M1-02b and M1-02c are sequential and non-overlapping: b freezes the normalized descriptor and metadata surface; c implements production models and codecs for that surface.
 
 ## Authoritative inputs
 
@@ -40,11 +17,11 @@ Generation and registry construction read committed corpus material under [`conf
 | Tail-slack evidence (`tail-slack.json`) | Committed expected top-level zero-tail length per fixture, support row, and CDR representation |
 | Jazzy RIHS mapping (`fixtures/provenance/jazzy-rihs-to-bundle.json`) | Provenance from `rep2011-rihs` values to bundle digests |
 
-The generator derives schema text, identities, and tail lengths exclusively from these inputs. Bundle layout, ordering, and hashing stay as frozen by M0-04 and ADR 0007. **Committed tail-slack evidence is the sole authority** for expected top-level zero-tail lengths.
+The generator derives schema text, identities, and tail lengths exclusively from these inputs. Bundle layout, ordering, and hashing stay as frozen by [ADR 0007](../adr/0007-humble-jazzy-schema-identity.md) and the [corpus README](../../conformance/cdr/README.md). **Committed tail-slack evidence is the sole authority** for expected top-level zero-tail lengths.
 
 ### Authoritative-input joins and validation
 
-The generator validates every M1 generated root against closed joins. Failure yields `schema_input_invalid` (or `schema_bounds_exceeded` when a ceiling is crossed).
+The generator validates every generated root against closed joins. Failure yields `schema_input_invalid` (or `schema_bounds_exceeded` when a ceiling is crossed).
 
 | Rule | Contract |
 |---|---|
@@ -52,15 +29,15 @@ The generator validates every M1 generated root against closed joins. Failure yi
 | Source type names | Source `type_name` values inside one bundle are unique |
 | Root present | Bundle `root_type_name` equals the generated root, and a source entry for that root (or its parent `.srv` / `.action` type for sectioned roots) is present |
 | Dependency endpoints | Every `from` and `to` in `dependency_graph` names a source `type_name` present in the same bundle |
-| Acyclic graph | The dependency graph for the M1 generated subset is a directed acyclic graph |
-| Manifest join | Every Phase 1 fixture row joins to its type, scheme/value, encoding, schema generation, support row, and serialized artifact consistently with the bundle and scheme rules |
+| Acyclic graph | The dependency graph for the generated subset is a directed acyclic graph |
+| Manifest join | Every corpus fixture row joins to its type, scheme/value, encoding, schema generation, support row, and serialized artifact consistently with the bundle and scheme rules |
 | Tail-slack join | Every fixture used for zero-tail resolution joins to a unique tail-slack row for its fixture identity, support row, and CDR representation |
 | Provenance join | Every Jazzy `rep2011-rihs` identity for the nine roots joins to exactly one RIHS-to-bundle provenance record whose `bundle_sha256` matches the corresponding `rclweb-schema-v1` digest and `type_name` |
 | Deterministic ordering | Sources, dependency edges, identity rows, wire-profile rows, and emitted artifact members use a single stable sort (type name ascending, then scheme, then value, then support row, then representation) so regeneration is byte-identical |
 
-## Phase 1 generated surface
+## Generated surface
 
-The Phase 1 generated surface is the **nine authoritative corpus roots** represented by the 56-fixture corpus:
+The generated surface is the **nine authoritative corpus roots** represented by the 56-fixture corpus:
 
 | Root type name |
 |---|
@@ -74,15 +51,15 @@ The Phase 1 generated surface is the **nine authoritative corpus roots** represe
 | `rclweb_cdr_interfaces/action/MeasureSequence_Feedback` |
 | `sensor_msgs/msg/PointCloud2` |
 
-Shared dependencies (for example `builtin_interfaces/msg/Time`, `std_msgs/msg/Header`, `sensor_msgs/msg/PointField`, nested corpus members) generate as supporting models and codecs referenced by those roots. Phase 1 registry roots remain exactly the nine rows above.
+Shared dependencies (for example `builtin_interfaces/msg/Time`, `std_msgs/msg/Header`, `sensor_msgs/msg/PointField`, nested corpus members) generate as supporting models and codecs referenced by those roots. Registry roots remain exactly the nine rows above.
 
-**Payload encoding for M1 is CDR1.** `SchemaKey.encoding` is the R2WP payload-encoding enum value **`1`** (wire name `CDR1`). CDR1 little-endian and big-endian are wire representations of that encoding (see [Lookup](#lookup)). XCDR2 (`2`) remains a follow-on surface with the CDR core.
+**Payload encoding is CDR1.** `SchemaKey.encoding` is the R2WP payload-encoding enum value **`1`** (wire name `CDR1`). CDR1 little-endian and big-endian are wire representations of that encoding (see [Lookup](#lookup)). XCDR2 (`2`) remains a follow-on surface with the CDR core.
 
-## Source generation (M1)
+## Source generation
 
 ### Accepted source encoding
 
-M1 generation accepts **`ROS2_INTERFACE_TEXT`** source entries. Bundle source encodings outside that domain fail generation with `schema_input_invalid`.
+Generation accepts **`ROS2_INTERFACE_TEXT`** source entries. Bundle source encodings outside that domain fail generation with `schema_input_invalid`.
 
 ### Interface section selection
 
@@ -90,7 +67,7 @@ Canonical bundles may store the full parent `.srv` or `.action` text under the p
 
 | Root kind | Source text | Selected section |
 |---|---|---|
-| `.msg` root (`…/msg/Name`) | Whole `.msg` body | Entire content (comments and blanks follow ROS interface rules already frozen in M0-04) |
+| `.msg` root (`…/msg/Name`) | Whole `.msg` body | Entire content (comments and blanks follow ROS interface rules frozen with the corpus) |
 | `.srv` request (`…/srv/Name_Request`) | Parent `…/srv/Name` `.srv` text | Fields **before** the first `---` separator line |
 | `.srv` response (`…/srv/Name_Response`) | Parent `…/srv/Name` `.srv` text | Fields **after** the first `---` separator line |
 | `.action` goal (`…/action/Name_Goal`) | Parent `…/action/Name` `.action` text | Fields **before** the first `---` |
@@ -99,16 +76,16 @@ Canonical bundles may store the full parent `.srv` or `.action` text under the p
 
 Separator lines are a single line whose trimmed content is exactly `---`, matching ROS `.srv` / `.action` layout. Missing separators, surplus separators for the root kind, or an empty required section after selection fail with `schema_input_invalid`. Shared dependency `.msg` sources use the whole-body rule.
 
-Phase 1 examples: `EchoNested_Request` / `EchoNested_Response` from `EchoNested.srv`; `MeasureSequence_Goal` / `_Result` / `_Feedback` from `MeasureSequence.action`.
+Examples: `EchoNested_Request` / `EchoNested_Response` from `EchoNested.srv`; `MeasureSequence_Goal` / `_Result` / `_Feedback` from `MeasureSequence.action`.
 
-Root `bun run check` includes the generator check once M1-02b lands. Exact script and package paths land with that batch.
+Root `bun run check` includes the generator check after `cdr-tail-slack:check`.
 
-## Generator contract (M1-02b)
+## Generator contract
 
 | Rule | Contract |
 |---|---|
 | Tooling | Bun script with `--write` and `--check` (`scripts/generated-types.ts`; `bun run generated-types:write` / `generated-types:check`) |
-| `--write` | Regenerates committed normalized-descriptor and static-metadata artifacts from the authoritative inputs into `rclweb/generated/metadata/` |
+| `--write` | Regenerates committed normalized-descriptor and static metadata artifacts from the authoritative inputs into `rclweb/generated/metadata/` |
 | `--check` | Rebuilds in memory (or to a temp path) and requires **byte identity** with the committed output; drift exits non-zero with `schema_generation_drift` |
 | Determinism | Same committed inputs produce identical output bytes |
 | Sources | `ROS2_INTERFACE_TEXT` only; section selection as above |
@@ -116,11 +93,9 @@ Root `bun run check` includes the generator check once M1-02b lands. Exact scrip
 | Output | Checked-in validated normalized descriptors and static metadata (identity rows, descriptor handles, wire-profile tail tables, provenance rows). Check runs from committed tree inputs only |
 | Failure | Non-zero exit and a stable diagnostic when inputs are missing, malformed, out of bounds, or output drifts |
 
-Root `bun run check` includes `generated-types:check` after `cdr-tail-slack:check`.
+## Codec contract
 
-## Codec contract (M1-02c)
-
-M1-02c extends the M1-02b descriptor surface into production models and codecs:
+Production models and codecs:
 
 - call only the public `rclweb::cdr` surface ([CDR core](./cdr.md));
 - enforce schema-declared field bounds (string/wstring payload maxima, sequence element maxima, fixed-array counts);
@@ -140,10 +115,10 @@ Unified **registry identity key** (exactly these five fields):
 | `scheme` | string | Identity scheme name |
 | `value` | string | Scheme-specific identity string |
 | `type_name` | string | Fully qualified ROS type name |
-| `encoding` | R2WP `payload-encoding-cdr` **u8** enum | Payload encoding. Assigned domain: `1` = CDR1, `2` = XCDR2 ([R2WP registry](../../protocol/registry/r2wp-v0.json)). **M1 requires `1` (CDR1)** |
-| `schema_generation` | **u32** | Generation counter. Absolute range `0..=4_294_967_295`. **Phase 1 corpus value is `1`** |
+| `encoding` | R2WP `payload-encoding-cdr` **u8** enum | Payload encoding. Assigned domain: `1` = CDR1, `2` = XCDR2 ([R2WP registry](../../protocol/registry/r2wp-v0.json)). **The generated surface requires `1` (CDR1)** |
+| `schema_generation` | **u32** | Generation counter. Absolute range `0..=4_294_967_295`. **Corpus value is `1`** |
 
-This matches ADR 0007: identity is the pair `(scheme, value)`; full cache identity also carries type name, encoding, and generation. Encoding is the R2WP payload-encoding enum (wire integer), matching control and channel records. Corpus fixtures may display the name `CDR1`; generators and runtimes map that display name to wire value `1` and validate the assigned domain (accept `1` in M1; reject every other u8, including `2` until a later phase opens XCDR2).
+This matches ADR 0007: identity is the pair `(scheme, value)`; full cache identity also carries type name, encoding, and generation. Encoding is the R2WP payload-encoding enum (wire integer), matching control and channel records. Corpus fixtures may display the name `CDR1`; generators and runtimes map that display name to wire value `1` and validate the assigned domain (accept `1` for the generated surface; reject every other u8, including `2` until a later surface opens XCDR2).
 
 **CDR representation** (endian / encapsulation identifier) lives in wire-profile resolution metadata with `support_row_id` when resolving the expected top-level zero-tail (see [Lookup](#lookup)). The five-field `SchemaKey` stays scheme, value, type name, encoding, and schema generation.
 
@@ -160,7 +135,7 @@ Accepted schemes and value forms pass exact validation. Rejected schemes, wrong 
 
 The committed corpus exposes **18** schema identities (nine roots × two schemes). Both scheme-side keys for a root resolve to the **same** codec descriptor (same models and CDR1 codecs). Scheme values remain independent: each scheme keeps its own value space and validation rules under ADR 0007.
 
-## Provenance (M1-02d)
+## Provenance
 
 Jazzy RIHS-to-bundle records are **provenance**. They preserve independent identity meaning for cross-version and cross-distro lookup aids. Each scheme keeps its own key space and validation rules; provenance links RIHS values to bundle digests for those aids.
 
@@ -173,16 +148,16 @@ Registration runs in a **bounded builder** during load or generation:
 1. The builder accepts descriptor rows, identity rows, wire-profile tail rows, and provenance rows under the absolute limits below.
 2. Identical re-registration of the same material is **idempotent success**.
 3. Conflicting material for the same key or wire-profile triple is **`schema_conflict`**.
-4. On successful completion the builder **freezes** into an **immutable M1 registry**.
+4. On successful completion the builder **freezes** into an **immutable registry**.
 5. **Runtime lookup reads that frozen registry.** Channel activation uses only the frozen registry.
 
 ### Wire-profile resolution metadata
 
 Zero-tail resolution uses metadata outside the registry identity key:
 
-| Field | Meaning | M1 domain |
+| Field | Meaning | Domain |
 |---|---|---|
-| `support_row_id` | Phase 1 support row | `H-FT`, `H-CY`, `H-ZN`, `J-FT`, `J-CY`, `J-ZN` |
+| `support_row_id` | Support row | `H-FT`, `H-CY`, `H-ZN`, `J-FT`, `J-CY`, `J-ZN` |
 | `cdr_representation` | CDR1 encapsulation / endian on the wire | `CDR_LE` (`0x0001`, little) or `CDR_BE` (`0x0000`, big), matching [CDR core](./cdr.md) |
 
 `SchemaKey.encoding` remains R2WP payload-encoding value `1` (CDR1) for both representations.
@@ -193,8 +168,8 @@ Lookup takes a full `SchemaKey`, **`support_row_id`**, and **`cdr_representation
 
 On success the registry returns:
 
-- the codec descriptor for the root type (from `SchemaKey`; M1 maps both representations of a root to the same descriptor);
-- the **committed expected top-level zero-tail** length for that type on that support row **and** CDR representation, taken from committed [`tail-slack.json`](../../conformance/cdr/tail-slack.json) evidence (Phase 1 values `0`, `4`, or `12`).
+- the codec descriptor for the root type (from `SchemaKey`; both representations of a root map to the same descriptor);
+- the **committed expected top-level zero-tail** length for that type on that support row **and** CDR representation, taken from committed [`tail-slack.json`](../../conformance/cdr/tail-slack.json) evidence (values `0`, `4`, or `12`).
 
 **Why representation is required:** support row plus type is ambiguous. On `H-FT` and `J-FT`, `PrimitiveScalars` has a little-endian sample with zero-tail **4** and a big-endian singleton with zero-tail **0**. The frozen resolution key for tail length is:
 
@@ -218,15 +193,15 @@ When required schema material is missing—including a missing tail-slack row fo
 | Same wire-profile triple with a conflicting expected tail | **`schema_conflict`** |
 | Invalid key, encoding outside the assigned domain, or unknown representation | **`invalid_schema_key`** |
 
-### Static M1 and dynamic M2
+### Static registry and later dynamic projection
 
-The M1 generated registry is **static and finite**: built from the committed Phase 1 surface, loaded through the bounded builder, and frozen before activation. **M2 owns dynamic projection** (runtime type descriptions, lazy field plans, and open-ended registration of custom types).
+The generated registry is **static and finite**: built from the committed corpus surface, loaded through the bounded builder, and frozen before activation. Dynamic projection (runtime type descriptions, lazy field plans, and open-ended registration of custom types) remains later work.
 
 ## Bounded limits
 
-Generator and registry builder enforce explicit absolute Phase 1 ceilings. Construction or load outside a ceiling yields a typed bounds fault; the builder commits only fully validated state.
+Generator and registry builder enforce explicit absolute ceilings. Construction or load outside a ceiling yields a typed bounds fault; the builder commits only fully validated state.
 
-| Limit | Absolute Phase 1 range | Role |
+| Limit | Absolute range | Role |
 |---|---|---|
 | `max_registry_entries` | `1..=256` | Distinct `SchemaKey` rows |
 | `max_sources_per_bundle` | `1..=64` | Source entries in one recursive bundle |
@@ -237,10 +212,10 @@ Generator and registry builder enforce explicit absolute Phase 1 ceilings. Const
 | `max_value_chars` | `1..=128` | `SchemaKey.value` length |
 | `max_type_name_chars` | `1..=256` | `SchemaKey.type_name` length |
 | `max_support_row_id_chars` | `1..=16` | Lookup `support_row_id` length |
-| `encoding` domain | R2WP `payload-encoding-cdr` u8: `1` \| `2`; **M1 accepts `1` only** | Assigned enum validation (replaces a free-form encoding string length limit) |
-| `schema_generation` | u32 `0..=4_294_967_295`; **Phase 1 value `1`** | Generation counter domain |
+| `encoding` domain | R2WP `payload-encoding-cdr` u8: `1` \| `2`; **the generated surface accepts `1` only** | Assigned enum validation (replaces a free-form encoding string length limit) |
+| `schema_generation` | u32 `0..=4_294_967_295`; **corpus value `1`** | Generation counter domain |
 
-The Phase 1 generated surface sits inside these ceilings. Raising a ceiling is a contract revision.
+The generated surface sits inside these ceilings. Raising a ceiling is a contract revision.
 
 ## Typed errors
 
@@ -248,7 +223,7 @@ Public schema and generation faults (stable codes). Codec field faults remain [`
 
 | Code | When it surfaces |
 |---|---|
-| `invalid_schema_key` | Scheme outside the accepted set; value fails exact form/lowercase hex rules; encoding outside the assigned R2WP domain or outside the M1-accepted subset; `schema_generation` outside u32; a string key field exceeds its length ceiling; unknown `cdr_representation` |
+| `invalid_schema_key` | Scheme outside the accepted set; value fails exact form/lowercase hex rules; encoding outside the assigned R2WP domain or outside the generated-surface subset; `schema_generation` outside u32; a string key field exceeds its length ceiling; unknown `cdr_representation` |
 | `schema_unavailable` | Required descriptor, bundle, provenance, or tail material for the requested support row and CDR representation is missing at lookup or channel setup |
 | `schema_conflict` | Builder registration of an existing key or wire-profile triple with non-identical material |
 | `schema_bounds_exceeded` | Generator or builder would exceed an absolute limit (entries, sources, edges, source bytes, bundle bytes, or input lengths) |
@@ -257,21 +232,21 @@ Public schema and generation faults (stable codes). Codec field faults remain [`
 
 Error payloads carry the fault code and stable diagnostic context (offending field name, limit name, and sizes when applicable). Diagnostics keep schema source text out of the error payload.
 
-## Acceptance evidence (M1-02e)
+## Acceptance evidence
 
 | Gate | Evidence |
 |---|---|
-| Generator identity | `bun run <generator>:check` (name lands in M1-02b) is byte-stable on a clean tree |
-| Normalized descriptors | M1-02b artifacts include validated descriptors and static metadata with exact input joins |
-| Nine-root codecs | M1-02c Rust tests decode and exact-encode every corpus fixture for the nine roots |
+| Generator identity | `bun run generated-types:check` is byte-stable on a clean tree |
+| Normalized descriptors | Artifacts include validated descriptors and static metadata with exact input joins |
+| Nine-root codecs | Rust tests decode and exact-encode every corpus fixture for the nine roots |
 | Dual-scheme resolve | All 18 identities resolve to the nine descriptors; invalid keys and missing material fault correctly |
 | Provenance | Jazzy RIHS map loads as provenance; schemes keep independent meaning |
 | Zero-tail | Lookup with each support row **and** CDR representation returns the committed expected tail (including H-FT/J-FT `PrimitiveScalars` LE tail 4 vs BE tail 0); declared completion matches corpus evidence |
-| Builder freeze | Builder accepts the finite Phase 1 set, freezes an immutable registry, and runtime lookup reads that registry |
+| Builder freeze | Builder accepts the finite corpus set, freezes an immutable registry, and runtime lookup reads that registry |
 | Registration | Identical re-registration succeeds; conflicting registration returns `schema_conflict` |
 | Bounds | Over-limit entries, sources, edges, source bytes, bundle bytes, and lookup strings return `schema_bounds_exceeded` or `invalid_schema_key`; encoding domain rejects free-form and out-of-domain values |
 | Adversarial | Malformed keys, missing material before activation, and codec bound violations stay typed |
-| Public surface | Focused package tests plus root `just check`, `just test`, and `just build` when implementation completes |
+| Public surface | Focused package tests plus root `just check`, `just test`, and `just build` |
 
 ## Ownership
 
@@ -283,13 +258,13 @@ Error payloads carry the fault code and stable diagnostic context (offending fie
 | Payload encoding enum | [R2WP v0](../../protocol/r2wp-v0.md), [registry](../../protocol/registry/r2wp-v0.json) |
 | Corpus layout and bridge commands | [Corpus README](../../conformance/cdr/README.md) |
 | Runtime package placement | [`rclweb` core](./core.md) |
-| Phase evidence | [Validation](../validation.md) |
-| Task state | [Implementation plan](../../tasks/plan.md), [execution checklist](../../tasks/todo.md) |
+| Evidence | [Validation](../validation.md) |
+| Open work | [Open work](../../tasks/plan.md), [checklist](../../tasks/todo.md) |
 
-## Out of scope for M1-02
+## Out of scope
 
-- Dynamic type descriptions and lazy field projection (M2-01)
-- Wasm host buffer leases and poll ABI (M1-03)
+- Dynamic type descriptions and lazy field projection
+- Wasm host buffer leases and poll ABI (see [`rclweb` core](./core.md))
 - Gateway schema cache implementation details beyond shared `SchemaKey` identity
 - XCDR2 payload codecs (R2WP encoding value `2`)
 - Studio or application-level type browsers

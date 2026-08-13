@@ -1,4 +1,4 @@
-# Phase 1 schema metadata (embedded)
+# Schema metadata (embedded)
 
 Frozen dual-scheme registry inputs for `rclweb::types::SchemaRegistry::phase1()`.
 Produced by `bun run scripts/generated-types.ts --write` (and checked with `--check`).

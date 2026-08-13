@@ -1,8 +1,8 @@
 # Deploying `rclwebd`
 
-Operator profile for the runtime images (all six Phase 1 rows) and process
+Operator profile for the runtime images (all six support rows) and process
 operations. The gateway remains the trust boundary ([security](./security.md));
-this page covers how to run it. Milestone evidence: [R4-02](./milestones/r4-02-deployment-observability.md).
+this page covers how to run it.
 
 ## Artifact
 
@@ -65,17 +65,17 @@ prefix (`J-*` ↔ `/opt/ros/jazzy`, `H-*` ↔ `/opt/ros/humble`) and keep
 `RMW_IMPLEMENTATION` on the row's RMW — the adapter probe fails start-up on a
 mismatch. `ROS_DOMAIN_ID` selects the domain.
 
-Authenticate stays **off** unless `RCLWEBD_AUTH_MODE=oidc` ([R4-01](./milestones/r4-01-oidc-sros2-audit.md)).
+Authenticate stays **off** unless `RCLWEBD_AUTH_MODE=oidc` ([security](./security.md)).
 
 ## Operations endpoints
 
 | Method | Path | Role |
 |---|---|---|
-| GET | `/healthz` | Liveness. Plain `ok` when local-dev TLS is off (R1-05 harness). 200 during drain. |
+| GET | `/healthz` | Liveness. Plain `ok` when local-dev TLS is off. 200 during drain. The e2e harness treats that exact body as “gateway is up”. |
 | GET | `/livez` | Liveness JSON. 200 during drain. |
 | GET | `/readyz` | Readiness JSON. 503 after drain. Use this for load balancers. |
 | GET | `/configz` | Non-secret config (row, domain, auth mode, budgets). No OIDC secrets. |
-| GET | `/telemetryz` | JSON copy/disposition counters (unchanged). |
+| GET | `/telemetryz` | JSON copy/disposition counters. |
 | GET | `/metrics` | Prometheus text 0.0.4 of those counters plus session gauges. |
 | POST | `/drain` | Mark not-ready; reject new `/ws`. Existing sessions continue. |
 | GET | `/ws` | R2WP binary WebSocket. 503 while draining. |
@@ -102,7 +102,7 @@ headers.
 `network_mode: host` so the RMW can see the robot domain. That is a local /
 robot-edge shape, not a cloud overlay network.
 
-## Not in this slice
+## Follow-ups
 
 Production PKI, remote metrics/trace export, Kubernetes or systemd units,
-upgrade/rollback playbooks, SROS2 keystore (D-04).
+upgrade/rollback playbooks, and the SROS2 keystore remain [open work](../tasks/plan.md).

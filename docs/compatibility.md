@@ -2,7 +2,7 @@
 
 rclweb publishes support as reviewed matrix rows across ROS, RMW, CPU architecture, browser capability, transport, buffer path, network profile, and compatibility endpoint. Exact pins and row state live in the [support matrix](./support-matrix.md).
 
-## Phase 1 ROS profile
+## Support rows
 
 | Row | ROS | RMW | Host |
 |---|---|---|---|
@@ -15,7 +15,7 @@ rclweb publishes support as reviewed matrix rows across ROS, RMW, CPU architectu
 
 Each row qualifies independently on `amd64` and `arm64`. One gateway process binds one row and may host multiple ROS domain IDs. Applications combine independent sessions across rows. Startup validates the row and adapter profile before readiness.
 
-ROS variation stays behind the versioned adapter ABI. R2WP, the `rclweb` core, and the SDK remain shared.
+ROS variation stays behind the versioned adapter ABI. R2WP, the `rclweb` core, and the TypeScript package remain shared.
 
 ## Schema identity
 
@@ -32,9 +32,9 @@ R2WP, the adapter, caches, fixtures, and recordings carry schema identity `(sche
 |---|---|---|
 | A | Worker, Wasm, WebTransport, transferable buffers, optional isolated fast path | WebTransport with WebSocket recovery |
 | B | Worker, Wasm, binary WebSocket, transferable buffers | Binary WebSocket |
-| C | Declared reduced SDK capability set | Binary WebSocket |
+| C | Declared reduced package capability set | Binary WebSocket |
 
-The support matrix pins the Phase 1 browser reference. M3 assigns broader browser tiers from automated and manual evidence. Studio publishes separate graphics and media tiers at U0.
+The support matrix pins the browser reference. Broader browser tiers come from automated and manual evidence. Studio publishes separate graphics and media tiers with the [Studio prototype](./prototypes/studio-ui.md).
 
 ## Transport and network
 
@@ -51,12 +51,12 @@ Foxglove WSS/CDR and rosbridge JSON or CBOR-RAW are explicit compatibility capab
 
 Generated bindings cover pinned interfaces. Dynamic descriptions cover custom interfaces through recursive schemas and lazy projection. Conformance includes core ROS containers, PointCloud2, Service, and Action types.
 
-MCAP uses the same schema and channel identity model as live sessions. The SDK presents live and replay samples through one event contract.
+MCAP uses the same schema and channel identity model as live sessions. The TypeScript package presents live and replay samples through one event contract.
 
-R2WP negotiates wire versions, the adapter ABI uses versioned structures, the SDK follows semantic versioning, and release artifacts pin their qualified environments.
+R2WP negotiates wire versions, the adapter ABI uses versioned structures, the TypeScript package follows semantic versioning, and release artifacts pin their qualified environments.
 
 ## Qualification and expansion
 
 A support row records its code and environment identity, adapter profile, gateway and domain provenance, browser and buffer path, transport and network profile, semantic results, performance summary, raw evidence, limits, and reviewer. A row becomes **Qualified** after its evidence passes [validation](./validation.md) and human review.
 
-Phase 1 already includes Fast DDS, Cyclone DDS, and Zenoh (`rmw_zenoh_cpp`) as first-class rows. Later expansion covers Kilted, Lyrical, Rolling, broader browser tiers, Zenoh router topologies beyond the Phase 1 rows, and additional transport or process topologies. Each candidate receives an independent matrix revision and qualification cycle.
+The six support rows already include Fast DDS, Cyclone DDS, and Zenoh (`rmw_zenoh_cpp`) as first-class rows. Later expansion covers Kilted, Lyrical, Rolling, broader browser tiers, Zenoh router topologies beyond those rows, and additional transport or process topologies. Each candidate receives an independent matrix revision and qualification cycle.

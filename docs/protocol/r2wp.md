@@ -1,6 +1,6 @@
 # R2WP protocol
 
-R2WP is rclweb's versioned binary transport for ROS 2 data and control. Wire version 0 has one implementation — the `rclweb` core crate, linked natively by the gateway and compiled to wasm32 for the browser. The [v0.1 normative-scope declaration](../../protocol/r2wp-v0.md#normative-scope-v01-subset) marks which sections are normative now (including the [R3-01](../milestones/r3-01-services-actions-graph.md) graph/service/action re-freeze) and which remain parked until their phases re-freeze them.
+R2WP is rclweb's versioned binary transport for ROS 2 data and control. Wire version 0 has one implementation — the `rclweb` core crate, linked natively by the gateway and compiled to wasm32 for the browser. The [v0.1 normative-scope declaration](../../protocol/r2wp-v0.md#normative-scope-v01-subset) marks which sections are normative now (including graph, service, and action) and which remain parked.
 
 ## Sources of truth
 
@@ -95,4 +95,4 @@ cargo test --locked -p rclweb
 cargo build --locked -p rclweb --target wasm32-unknown-unknown
 ```
 
-The ROS-generated CDR corpus extends coverage on the sample path. Later phases add live transport, semantic, compatibility, security, and performance qualification.
+The ROS-generated CDR corpus extends coverage on the sample path. Live transport, semantic, compatibility, security, and performance qualification follow [validation](../validation.md).

@@ -1,14 +1,10 @@
 # Project intent
 
-rclweb gives browser applications typed, secure access to ROS 2 through a versioned protocol (R2WP), a single Rust core that runs natively at the edge and as Wasm in the browser, and a TypeScript SDK.
+rclweb gives browser applications typed, secure access to ROS 2 through a versioned protocol (R2WP), a single Rust core that runs natively at the edge and as Wasm in the browser, and a TypeScript package (`rclweb`).
 
-## Mainline
+## What this is trying to be
 
-The mainline is one Rust core for gateway and browser ([ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md)). Delivery follows the [implementation plan](../../tasks/plan.md):
-
-1. R0–R3 complete: one implementation per side, walking skeleton, data-plane hardening, ROS semantics, H-FT, WebTransport.
-2. R4 in progress: identity, policy, deployment, support-matrix qualification, and a stable SDK release.
-3. U0 after release: Studio prototype.
+A production edge + browser path: one Rust core ([ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md)), R2WP over WebSocket and WebTransport, `rclwebd` as the trust boundary, and an rclcpp-shaped TypeScript API ([`rclweb`](../../docs/typescript.md)).
 
 ## Users
 
@@ -18,7 +14,7 @@ The mainline is one Rust core for gateway and browser ([ADR 0010](../../docs/adr
 | Integration engineer | Reproducible conformance, diagnostics, and traceable failures |
 | Robot operator | Scoped commands, clear capabilities, audit identity, and recovery |
 | Fleet team | A controlled edge boundary across domains and network topologies |
-| Application team | A stable SDK for purpose-built interfaces |
+| Application team | A stable package for purpose-built interfaces |
 
 ## Product contracts
 
@@ -26,15 +22,12 @@ The mainline is one Rust core for gateway and browser ([ADR 0010](../../docs/adr
 - R2WP carries CDR and control data over bounded, observable transports.
 - `rclwebd` owns ROS attachment, identity, policy, scheduling, schema, audit, and operations at the edge.
 - Supported profiles carry conformance, performance, security, and deployment evidence.
-- The TypeScript package `rclweb` exposes an rclcpp-shaped public application contract (`init` / `Node`) ([`rclweb`](../../docs/typescript.md)).
+- The TypeScript package `rclweb` exposes an rclcpp-shaped public application contract (`init` / `Node`).
 - The repository is Apache-2.0; third-party crates on the published surface stay OSI-permissive ([licensing](../../docs/licensing.md)).
 
-## Non-goals and posture
+## Non-goals
 
 - No JSON transcoding on the sample path; CDR stays end to end.
-- No client library reinvention: the browser core is an R2WP protocol client with rcl-shaped semantics, and the gateway binds the serialized-only rcl surface directly (owner constraint in ADR 0010).
+- No client library reinvention: the browser core is an R2WP protocol client with rcl-shaped semantics, and the gateway binds the serialized-only rcl surface (owner constraint in ADR 0010).
+- Not a visual IDE. Studio is an optional post-release UI ([studio-ui](../../docs/prototypes/studio-ui.md)).
 - Contracts harden after they carry traffic; platform expansion enters through the [support matrix](../../docs/support-matrix.md).
-
-## Post-release work
-
-The common Studio prototype starts at U0 after the mainline release and exercises the public SDK through a reusable robotics UI. The N3 sandbox is a separate experiment that measures selected upstream ROS packages in Wasm.

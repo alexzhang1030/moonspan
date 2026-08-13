@@ -1,4 +1,4 @@
-# Optional libFuzzer targets (R2-03)
+# Optional libFuzzer targets
 
 The foundation CI lane runs on the pinned **stable** toolchain
 (`rust-toolchain.toml`). Continuous decoder hardening therefore lives in:

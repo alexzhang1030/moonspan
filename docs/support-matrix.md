@@ -1,6 +1,6 @@
 # Reference support profile
 
-This document owns the exact Phase 1 support rows and reproducibility pins. [Compatibility](./compatibility.md) owns strategy and tier language. [ADR 0007](./adr/0007-humble-jazzy-schema-identity.md) owns schema identity. [ADR 0008](./adr/0008-one-adapter-row-per-gateway-process.md) owns process topology.
+This document owns the six support rows and their reproducibility pins. [Compatibility](./compatibility.md) owns strategy and tier language. [ADR 0007](./adr/0007-humble-jazzy-schema-identity.md) owns schema identity. [ADR 0008](./adr/0008-one-adapter-row-per-gateway-process.md) owns process topology.
 
 Status: design baseline. Every row remains a **Qualification target** until its report passes review.
 
@@ -13,33 +13,33 @@ Status: design baseline. Every row remains a **Qualification target** until its 
 | **Experimental** | Opt-in row with published limits |
 | **Retired** | Former row withdrawn from active support |
 
-## Phase 1 ROS rows
+## Support rows
 
 | Row | ROS | RMW | Host | CPU | Status |
 |---|---|---|---|---|---|
-| H-FT | Humble Hawksbill | `rmw_fastrtps_cpp` | Ubuntu 22.04 | `amd64`, `arm64` | Delivery-gated (protocol + corpus + live Humble talker e2e); Qualification pending review |
-| H-CY | Humble Hawksbill | `rmw_cyclonedds_cpp` | Ubuntu 22.04 | `amd64`, `arm64` | Delivery-gated (corpus + live Humble Cyclone talker e2e); Qualification pending review |
-| H-ZN | Humble Hawksbill | `rmw_zenoh_cpp` | Ubuntu 22.04 | `amd64`, `arm64` | Delivery-gated (corpus + live Humble Zenoh talker e2e); Qualification pending review |
-| J-FT | Jazzy Jalisco | `rmw_fastrtps_cpp` | Ubuntu 24.04 | `amd64`, `arm64` | Delivery-gated (protocol + corpus + live Jazzy talker e2e); Qualification pending review |
-| J-CY | Jazzy Jalisco | `rmw_cyclonedds_cpp` | Ubuntu 24.04 | `amd64`, `arm64` | Delivery-gated (corpus + live Jazzy Cyclone talker e2e); Qualification pending review |
-| J-ZN | Jazzy Jalisco | `rmw_zenoh_cpp` | Ubuntu 24.04 | `amd64`, `arm64` | Delivery-gated (corpus + live Jazzy Zenoh talker e2e); Qualification pending review |
+| H-FT | Humble Hawksbill | `rmw_fastrtps_cpp` | Ubuntu 22.04 | `amd64`, `arm64` | Live Humble talker e2e; Qualification pending review |
+| H-CY | Humble Hawksbill | `rmw_cyclonedds_cpp` | Ubuntu 22.04 | `amd64`, `arm64` | Live Humble Cyclone talker e2e; Qualification pending review |
+| H-ZN | Humble Hawksbill | `rmw_zenoh_cpp` | Ubuntu 22.04 | `amd64`, `arm64` | Live Humble Zenoh talker e2e; Qualification pending review |
+| J-FT | Jazzy Jalisco | `rmw_fastrtps_cpp` | Ubuntu 24.04 | `amd64`, `arm64` | Live Jazzy talker e2e; Qualification pending review |
+| J-CY | Jazzy Jalisco | `rmw_cyclonedds_cpp` | Ubuntu 24.04 | `amd64`, `arm64` | Live Jazzy Cyclone talker e2e; Qualification pending review |
+| J-ZN | Jazzy Jalisco | `rmw_zenoh_cpp` | Ubuntu 24.04 | `amd64`, `arm64` | Live Jazzy Zenoh talker e2e; Qualification pending review |
 
-Fast DDS (`rmw_fastrtps_cpp`) is the reference and default row for each ROS distribution. Cyclone DDS (`rmw_cyclonedds_cpp`) and Zenoh (`rmw_zenoh_cpp`) are peer first-class Phase 1 rows. All three RMW implementations share the same support level.
+Fast DDS (`rmw_fastrtps_cpp`) is the reference and default row for each ROS distribution. Cyclone DDS (`rmw_cyclonedds_cpp`) and Zenoh (`rmw_zenoh_cpp`) are peer first-class rows. All three RMW implementations share the same support level.
 
 One gateway process binds one row and may host multiple domain IDs. `support_row_id` is fixed for the running artifact. `gateway_instance_id` identifies the deployment across eligible restart and upgrade paths. Applications use independent sessions across rows.
 
-**H-FT delivery gate (R3-03):** SessionReady / OpenChannel row identity and `rclweb-schema-v1` OpenChannel are proven on the mock gateway in `just test` and the corpus. Live Humble rcl attachment is proven by the digest-pinned compose lane ([compose](../docker/compose.r3-03-h-ft-e2e.yml), CI `e2e-ros-talker-h-ft`, [milestone](./milestones/r3-03-h-ft-webtransport.md)): the image regenerates FFI against Humble headers, links `--features ros` with `ROS_PREFIX=/opt/ros/humble`, sets `RCLWEBD_SUPPORT_ROW=H-FT`, and runs talker → gateway → SDK. Default committed bindings remain Jazzy for host `just ros-test`.
+SessionReady / OpenChannel row identity and Humble `rclweb-schema-v1` OpenChannel are proven on the mock gateway in `just test` and the corpus. Live Humble rcl attachment is proven by the digest-pinned compose lane ([compose](../docker/compose.r3-03-h-ft-e2e.yml), CI `e2e-ros-talker-h-ft`): the image regenerates FFI against Humble headers, links `--features ros` with `ROS_PREFIX=/opt/ros/humble`, sets `RCLWEBD_SUPPORT_ROW=H-FT`, and runs talker → gateway → TypeScript subscribe. Default committed bindings remain Jazzy for host `just ros-test`.
 
 ## Qualification
 
-Live gates are the delivery evidence. A row becomes **Qualified** only after a human updates this matrix. There is no evidence-check job and no committed measurement JSON ([R4-03](./milestones/r4-03-support-matrix.md)).
+Live gates are the engineering evidence. A row becomes **Qualified** only after a human updates this matrix. There is no evidence-check job and no committed measurement JSON.
 
-| Row | Delivery evidence | Status |
+| Row | Live evidence | Status |
 |---|---|---|
-| J-FT | Live Jazzy talker e2e (`just e2e` / CI `e2e-ros-talker`); `just check` / `just test` / `just build` | Delivery-gated; Qualification pending review |
-| H-FT | Live Humble talker e2e (`just e2e-h-ft` / CI `e2e-ros-talker-h-ft`); H-FT protocol tests in `just test` | Delivery-gated; Qualification pending review |
-| J-CY, J-ZN | Live Jazzy Cyclone/Zenoh talker e2e (`just e2e-row j-cy` / `just e2e-row j-zn`, CI `e2e-ros-talker-jazzy-rmw`) | Delivery-gated; Qualification pending review |
-| H-CY, H-ZN | Live Humble Cyclone/Zenoh talker e2e (`just e2e-row h-cy` / `just e2e-row h-zn`, CI `e2e-ros-talker-humble-rmw`) | Delivery-gated; Qualification pending review |
+| J-FT | Live Jazzy talker e2e (`just e2e` / CI `e2e-ros-talker`); `just check` / `just test` / `just build` | Qualification pending review |
+| H-FT | Live Humble talker e2e (`just e2e-h-ft` / CI `e2e-ros-talker-h-ft`); H-FT protocol tests in `just test` | Qualification pending review |
+| J-CY, J-ZN | Live Jazzy Cyclone/Zenoh talker e2e (`just e2e-row j-cy` / `just e2e-row j-zn`, CI `e2e-ros-talker-jazzy-rmw`) | Qualification pending review |
+| H-CY, H-ZN | Live Humble Cyclone/Zenoh talker e2e (`just e2e-row h-cy` / `just e2e-row h-zn`, CI `e2e-ros-talker-humble-rmw`) | Qualification pending review |
 
 The remaining-row lanes share one image per distro ([compose](../docker/compose.r4-03-remaining-rows-e2e.yml)) and run one gateway process per row (ADR 0008). Zenoh lanes start `rmw_zenohd` before the nodes. Each lane's harness asserts the gateway `/configz` support row, and the gateway adapter probe fails start-up when `RMW_IMPLEMENTATION` does not name the row's RMW. Do not treat a green corpus or a green e2e job as **Qualified**.
 
@@ -61,7 +61,7 @@ The CDR generator installs exact official binary package versions for Fast DDS, 
 | Humble | `ros-humble-rmw-zenoh-cpp` | `0.1.9-1jammy.20260725.135946` |
 | Jazzy | `ros-jazzy-rmw-zenoh-cpp` | `0.2.9-1noble.20260612.051449` |
 
-Zenoh is a Phase 1 first-class RMW through those official binaries ([rmw_zenoh binaries announcement](https://discourse.openrobotics.org/t/rmw-zenoh-binaries-for-rolling-jazzy-and-humble/41395), [ROS index](https://index.ros.org/r/rmw_zenoh/)). Current corpus evidence is **arm64**. **amd64** remains a future qualification evidence lane on the same support rows.
+Zenoh is a first-class RMW through those official binaries ([rmw_zenoh binaries announcement](https://discourse.openrobotics.org/t/rmw-zenoh-binaries-for-rolling-jazzy-and-humble/41395), [ROS index](https://index.ros.org/r/rmw_zenoh/)). Current corpus evidence is **arm64**. **amd64** remains a future qualification evidence lane on the same support rows.
 
 ## Schema identity
 
@@ -87,7 +87,7 @@ The full schema key includes identity, type name, encoding, and generation. Miss
 | Mainline graphics | CPU-only headless profile | Qualification target |
 | Reference network | Isolated full-duplex 1 GbE LAN | Qualification target |
 
-Studio graphics and media profiles begin at U0.
+Studio graphics and media profiles start with the [Studio prototype](./prototypes/studio-ui.md).
 
 ## Promotion
 
@@ -97,7 +97,7 @@ A row becomes **Qualified** when its reports pass [validation](./validation.md) 
 
 ## Later candidates
 
-Jazzy+ expansion includes Kilted, Lyrical, Rolling, broader browser tiers, and separately reviewed process or buffer experiments. Zenoh router topologies beyond the Phase 1 `rmw_zenoh_cpp` support rows remain later topology work.
+Jazzy+ expansion includes Kilted, Lyrical, Rolling, broader browser tiers, and separately reviewed process or buffer experiments. Zenoh router topologies beyond the six `rmw_zenoh_cpp` support rows remain later topology work.
 
 Changes to images, browsers, schema schemes, or row membership require a matrix revision and fresh evidence for affected rows.
 

@@ -13,15 +13,15 @@
 
 Robot private keys stay in the edge enclave.
 
-Authenticate is evaluated at the gateway ([R4-01](./milestones/r4-01-oidc-sros2-audit.md)). Default `off` accepts any credential and keeps SessionReady field 21 as `anonymous` (no audit). `oidc` mode verifies JWT issuer, audience, expiry, and signature (HS256 secret or JWKS) and fails with wire code 26. The named OIDC tenant and SROS2 keystore are D-04; this process does not embed a vendor.
+Authenticate is evaluated at the gateway. Default `off` accepts any credential and keeps SessionReady field 21 as `anonymous` (no audit). `oidc` mode verifies JWT issuer, audience, expiry, and signature (HS256 secret or JWKS) and fails with wire code 26. The named OIDC tenant and SROS2 keystore remain open work; this process does not embed a vendor.
 
 ## Authorization
 
 Policy can scope access by subject, tenant, robot, gateway, support row, ROS domain, operation kind, ROS name, type, schema identity, QoS, resource budget, and diagnostic visibility.
 
-Channel ACLs are enforced at OpenChannel ([R4-01](./milestones/r4-01-oidc-sros2-audit.md)). Default `off` admits every channel (R1–R3). `RCLWEBD_ACL_MODE=enforce` is default-deny over `{subjects, operations, names}` allow rules (`RCLWEBD_ACL` / `RCLWEBD_ACL_PATH`); denials fail the channel with wire code 12 (`permission_denied`) and emit an audit line. The rule content — the reviewed policy matrix — is a human input.
+Channel ACLs are enforced at OpenChannel. Default `off` admits every channel. `RCLWEBD_ACL_MODE=enforce` is default-deny over `{subjects, operations, names}` allow rules (`RCLWEBD_ACL` / `RCLWEBD_ACL_PATH`); denials fail the channel with wire code 12 (`permission_denied`) and emit an audit line. The rule content — the reviewed policy matrix — is a human input.
 
-The gateway derives `gateway_instance_id` and `support_row_id`; the active channel supplies `domain_id`. The SDK receives the effective capability set and policy revision so applications can present authorized operations and stable denial reasons.
+The gateway derives `gateway_instance_id` and `support_row_id`; the active channel supplies `domain_id`. The TypeScript package receives the effective capability set and policy revision so applications can present authorized operations and stable denial reasons.
 
 ## Commands and resources
 
@@ -34,8 +34,8 @@ Sessions and channels receive hard ceilings for connections, streams, channels, 
 - TLS protects WebTransport and WebSocket endpoints.
 - Certificate lifecycle and trust configuration receive deployment tests.
 - **Local-dev WebTransport** (opt-in) auto-mints short-lived ECDSA P-256 certificates and trusts them via `serverCertificateHashes`, with rotation before the browser's 14-day validity ceiling — see [ADR 0011](./adr/0011-local-dev-webtransport-tls.md). Production keeps normal PKI.
-- Cross-origin isolation enables the shared-buffer path through the required browser headers. `rclwebd` adds COOP/COEP/CORP only when `RCLWEBD_ISOLATION_HEADERS` is on ([R4-02](./milestones/r4-02-deployment-observability.md)).
-- Transferable buffers provide the general deployment path under the same SDK behavior.
+- Cross-origin isolation enables the shared-buffer path through the required browser headers. `rclwebd` adds COOP/COEP/CORP only when `RCLWEBD_ISOLATION_HEADERS` is on.
+- Transferable buffers provide the general deployment path under the same package behavior.
 - Origin, CORS, content security, iframe, asset, and credential storage rules are explicit deployment inputs.
 - WebGPU needs a secure context: `http://localhost` / `http://127.0.0.1` already qualify; LAN IP page origins need HTTPS (local-dev TLS or proxy).
 
@@ -49,10 +49,10 @@ The design follows ROS 2 [access-control policy](https://design.ros2.org/article
 
 Audit records identify time and clock, subject, session, robot, gateway, support row, domain, target, operation, type, schema, policy revision, decision, resource envelope, correlation, result, latency, and trace reference. Payload capture follows an explicit field and retention policy.
 
-Audit sinks define integrity, availability, buffering, redaction, retention, export, and recovery. Sink health is visible, and outages follow a configured operation policy.
+Audit sinks define integrity, availability, buffering, redaction, retention, export, and recovery. Sink health is visible, and outages follow a configured operation policy. The current sink is stderr JSON lines; a file sink with integrity and export remains [open work](../tasks/plan.md).
 
 ## Qualification
 
 Security tests cover credential misuse, graph and schema disclosure, malformed or high-rate traffic, unauthorized operations, stale policy, session resume, deployment provenance, profile mismatch, parser and media pressure, dependency outages, restart behavior, browser isolation, and configuration drift.
 
-M3 requires a threat model, reviewed policy matrix, automated authorization tests, protocol and schema fuzzing, dependency and secret scans, SROS2 deployment evidence, audit integrity tests, incident procedures, and human security approval.
+A release review needs a threat model, reviewed policy matrix, automated authorization tests, protocol and schema fuzzing, dependency and secret scans, SROS2 deployment evidence, audit integrity tests, incident procedures, and human security approval.

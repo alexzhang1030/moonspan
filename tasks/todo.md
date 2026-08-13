@@ -1,58 +1,21 @@
-# rclweb execution checklist
+# Open checklist
 
-Status values: `[ ]` queued, `[~]` active, `[x]` verified. Phase details live in the [plan](./plan.md).
+Authoritative detail lives in the [open-work list](./plan.md) and the topic documents under [`docs/`](../docs/README.md).
 
-## R0: Stop-loss and renames
+## Ready for a human
 
-- [x] R0-01 One implementation per side; baseline tagged.
-- [x] R0-02 Extract the `rclweb` core crate; thin `rclwebd`; wasm32 build in the command surface.
-- [x] R0-03 Rename project to rclweb; declare the protocol v0.1 normative scope.
-- [x] R0-04 Rewrite plan/checklist, add ADR 0010, refresh PCR records and docs tree.
+- [ ] Promote support-matrix rows from live e2e to **Qualified**
+- [ ] Choose an npm version and publish `rclweb` (`"private": false`; include `LICENSE` and `NOTICE`)
+- [ ] Name the OIDC tenant and SROS2 reference environment
+- [ ] Supply the reviewed ACL policy matrix
+- [ ] Confirm or correct the `NOTICE` copyright line
+- [ ] Name qualification environment, owners, and benchmark-retention policy
 
-### R0 gate
+## Engineering follow-ups
 
-- [x] `just check`, `just test`, `just build` green on the shrunk repository.
-
-## R1: Walking skeleton
-
-- [x] R1-01 Port the CDR core to Rust against the frozen contract; pass the committed corpus.
-- [x] R1-02 Session/channel state machine for the v0.1 subset.
-- [x] R1-03 Gateway WebSocket endpoint and serialized-only rcl FFI attachment.
-- [x] R1-04 Wasm host boundary, I/O Worker, SDK subscribe path.
-- [x] R1-05 End-to-end CI evidence, demo, wasm size and poll latency, copy counters.
-
-### R1 gate
-
-- [~] Live sample flows in CI; demo ready for human review; copy budget counters recorded.
-
-## R2: Data-plane hardening
-
-- [x] R2-01 Publish direction, QoS subset, budgets, reconnect.
-- [x] R2-02 Large-message path on both buffer strategies.
-- [x] R2-03 Fixtures regenerated for the v0.1 subset; fuzzing.
-- [x] R2-04 Performance baseline versus Foxglove bridge and rosbridge.
-
-## R3: Semantics and breadth
-
-- [x] R3-01 Services, actions, parameters, graph; re-freeze parked sections.
-- [x] R3-02 Generated types and dual-scheme schema registry.
-- [x] R3-03 Second row (H-FT); WebTransport.
-- [x] R3-04 Versioned adapter ABI; dynamic typesupport.
-
-## R4: Productionization
-
-- [~] R4-01 OIDC, SROS2/ACL, audit (Authenticate off-by-default / opt-in `oidc` + audit; channel ACLs off-by-default / opt-in `enforce` default-deny; SROS2 enclave and the reviewed matrix content still open).
-- [~] R4-02 Deployment and observability (ops endpoints + runtime images for all six rows; PKI/orchestrators/remote export still open).
-- [~] R4-03 Support matrix against live gates (no committed measurement JSON; live lanes cover all six rows — J-CY/J-ZN/H-CY/H-ZN landed; human Qualified promotion still open).
-- [~] R4-04 TypeScript package stabilization and release (`rclweb` at `typescript/`, rclcpp-shaped `init`/`Node`, docs, Worker URL, subscribe-chatter on `dist/`, Worker session ops, PointCloud2 and Phase 1 corpus msg/srv/action types, reconnect reopens service/action, Worker telemetry, public Node graph; npm publish still open).
-
-## Kickoff decisions
-
-The [decision register](./plan.md#kickoff-decision-register) owns details and closure artifacts.
-
-- [ ] D-01 Reference qualification environment.
-- [ ] D-02 Named workstream and review owners.
-- [x] D-03 Bun version and workspace convention.
-- [ ] D-04 OIDC provider and SROS2 environment.
-- [ ] D-05 Benchmark artifact retention and publication.
-- [x] D-06 Repository and third-party licensing policy.
+- [ ] Audit file sink (integrity, retention, export)
+- [ ] SROS2 enclave wiring once the keystore is named
+- [ ] Production TLS / reverse-proxy profile
+- [ ] Remote metrics/trace export
+- [ ] Kubernetes / systemd units beyond compose
+- [ ] Studio prototype after a release review

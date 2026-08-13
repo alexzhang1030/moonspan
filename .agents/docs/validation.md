@@ -1,19 +1,8 @@
 # Validation rationale
 
-rclweb advances through reproducible evidence and human gate review. Targets guide implementation. Raw measurements and conformance results establish the accepted state.
+rclweb advances through reproducible evidence and human review. Targets guide implementation. Raw measurements and conformance results establish the accepted state.
 
-Detailed workloads and evidence requirements live in [validation](../../docs/validation.md). The [implementation plan](../../tasks/plan.md) owns sequence, and the [execution checklist](../../tasks/todo.md) owns status.
-
-## Evidence order
-
-1. R0 proves the shrunk repository stays green on the root command surface.
-2. R1 proves the walking skeleton: corpus-passing Rust CDR port, live end-to-end subscribe in CI, wasm artifact size and poll latency, copy counters.
-3. R2 proves the hardened data plane: publish, QoS subset, budgets, reconnect ([R2-01](../../docs/milestones/r2-01-data-plane-hardening.md)), large-message path on both buffer strategies ([R2-02](../../docs/milestones/r2-02-large-message-path.md)), adversarial fixtures + fuzzing ([R2-03](../../docs/milestones/r2-03-fixtures-fuzzing.md)), and the performance baseline against Foxglove bridge and rosbridge ([R2-04](../../docs/milestones/r2-04-perf-baseline.md)).
-4. R3 proves ROS semantics, generated types, the second row, and the second transport.
-5. R4 proves identity, policy, security, compatibility, deployment, operations, and release reproducibility. R4-01 is Authenticate off-by-default / opt-in `oidc`, plus channel ACLs off-by-default / opt-in `enforce` (default-deny at OpenChannel). R4-02 is operations endpoints plus runtime images for all six rows ([deploy](../../docs/deploy.md)). R4-03 is the support matrix against live gates ([R4-03](../../docs/milestones/r4-03-support-matrix.md)); there is no evidence-check CI job and no committed measurement JSON. Live lanes cover all six rows; promotion to **Qualified** stays a human matrix edit. R4-04 is the candidate `rclweb` TypeScript public surface, Worker session ops, docs, and examples ([`rclweb`](../../docs/typescript.md), [R4-04](../../docs/milestones/r4-04-sdk.md)); npm publish remains a follow-up.
-6. U0 proves the Studio integration on the released SDK.
-
-Phase 1 gates row J-FT. Breadth returns through the support matrix (H-FT in R3, remaining rows in R4). Studio begins after R4.
+Detailed workloads live in [validation](../../docs/validation.md). What is still open lives in [open work](../../tasks/plan.md).
 
 ## Single oracle
 
@@ -34,9 +23,9 @@ Historical evidence stays in git history. Promotion to **Qualified** is a human 
 ## Review triggers
 
 - CDR differences reopen codec and type-system review.
-- Timing, copies, allocations, memory growth, or toolchain drift reopen runtime-boundary review; the copy budget (two controllable payload copies) is a standing contract from R1.
+- Timing, copies, allocations, memory growth, or toolchain drift reopen runtime-boundary review; the copy budget (two controllable payload copies) is a standing contract.
 - Transport, proxy, reconnect, or roaming gaps reopen channel and compatibility review.
 - QoS or semantic differences reopen runtime and RMW review.
-- Security, deployment, soak, fault, or recovery findings reopen the affected release gate.
-- Rendering, media, accessibility, or command findings reopen U0 review.
-- Rust wasm artifact size or poll latency outside an accepted envelope reopens ruling R-D1 (the only reopen path for the language decision).
+- Security, deployment, soak, fault, or recovery findings reopen release review.
+- Rendering, media, accessibility, or command findings reopen Studio review.
+- Rust wasm artifact size or poll latency outside an accepted envelope reopens the single-core language decision ([ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md)).
