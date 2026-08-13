@@ -11,7 +11,7 @@
 
 Foxglove views PointCloud2 `data` on the WS buffer. rclweb does the same: ROS_SAMPLE stays in JS, and PointCloud2 `data` is a view of those bytes ([ADR 0017](./adr/0017-host-retain-inbound-sample-payload.md)). Engineering p99 targets are e2e, in [validation](./validation.md#engineering-targets), and are not CI fails.
 
-**Ceiling on this hop.** ROS_SAMPLE never enters wasm ([ADR 0017](./adr/0017-host-retain-inbound-sample-payload.md)). Remaining work versus Foxglove is the 32-byte R2WP header peek versus a 13-byte MessageData skip, plus session setup outside this hop. Wasm linear memory still cannot alias a WebSocket `ArrayBuffer` ([Wasm design #1162](https://github.com/WebAssembly/design/issues/1162)). RMW loans stay under [ADR 0006](./adr/0006-edge-ros-c-abi-boundary.md). `opt-level = 3` would reopen [ADR 0010](./adr/0010-restructure-single-rust-core.md) (`just build` size vs `just poll-latency`).
+**Copy ceiling on this hop.** ROS_SAMPLE never enters wasm ([ADR 0017](./adr/0017-host-retain-inbound-sample-payload.md)). The 1 MiB memcpy and the 32-byte wasm header poll are closed. Wasm linear memory still cannot alias a WebSocket `ArrayBuffer` ([Wasm design #1162](https://github.com/WebAssembly/design/issues/1162)). Remaining *latency* versus Foxglove on `just perf-baseline` is JS subscribe/lease dispatch versus Foxglove’s bare decoder — not the 19 extra header bytes. Worker→main copies, generated-type wasm decode, and live bridge e2e are other hops. RMW loans stay under [ADR 0006](./adr/0006-edge-ros-c-abi-boundary.md). `opt-level = 3` would reopen [ADR 0010](./adr/0010-restructure-single-rust-core.md) (`just build` size vs `just poll-latency`).
 
 | Command | Measures |
 |---|---|
