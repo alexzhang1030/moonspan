@@ -9,7 +9,7 @@ The package lives at [`sdk/typescript/`](../sdk/typescript/) and is consumed fro
 Root `package.json` already lists `sdk/*` as a workspace. Examples depend on `"@rclweb/sdk": "workspace:*"`. After `just setup`:
 
 ```ts
-import { connect, STD_MSGS_STRING } from "@rclweb/sdk";
+import { connect, SENSOR_MSGS_POINT_CLOUD2, STD_MSGS_STRING } from "@rclweb/sdk";
 ```
 
 `just build` stages `sdk/typescript/wasm/rclweb.wasm` and emits `sdk/typescript/dist/` (gitignored). The workspace export map points at TypeScript source so Bun tests and scripts do not need `dist/`. Browser pages should load the built `dist/index.js` (see [subscribe-chatter](../examples/subscribe-chatter/README.md)).
@@ -47,13 +47,24 @@ sub.onMessage((msg, lease) => {
   lease.release();
 });
 
+const points = await client.session.subscribe("/points", SENSOR_MSGS_POINT_CLOUD2);
+points.onMessage((cloud, lease) => {
+  // cloud.data is Uint8Array. Borrowed on the inline host; copied on the Worker path.
+  console.log(cloud.width, cloud.data.byteLength);
+  lease.release();
+});
+
 const pub = await client.session.publish("/chatter", STD_MSGS_STRING);
 await pub.publish({ data: "hello from the browser" });
 ```
 
-Typed sample events are `std_msgs/msg/String` (`{ data: string }`). QoS on OpenChannel is reliability (`1` RELIABLE default, `2` BEST_EFFORT) plus KEEP_LAST depth (default `5`).
+Typed inbound samples are `std_msgs/msg/String` (`{ data: string }`) and `sensor_msgs/msg/PointCloud2` (metadata plus `data: Uint8Array`). Other message types are dropped and their leases released. Publish stays String-only. QoS on OpenChannel is reliability (`1` RELIABLE default, `2` BEST_EFFORT) plus KEEP_LAST depth (default `5`).
 
-**Release every lease.** The engine reclaims a retained inbound slab only when every lease on it is released. Dropping a sample without `lease.release()` pins wasm memory ([gotcha](../.agents/docs/gotchas.md#every-sample-lease-has-exactly-one-owner)). String samples still use the lease protocol across the Worker. Service and action CDR bytes are copied in the Worker and the lease is released there before the payload reaches main.
+**Release every lease.** The engine reclaims a retained inbound slab only when every lease on it is released. Dropping a sample without `lease.release()` pins wasm memory ([gotcha](../.agents/docs/gotchas.md#every-sample-lease-has-exactly-one-owner)).
+
+- **Inline host:** PointCloud2 `data` is a TypedArray view into wasm memory (0 copies, copy-budget slot). The view is valid until `lease.release()`.
+- **I/O Worker:** wasm memory is not shared with main. The Worker copies the PointCloud2 `data` field (not the whole CDR), releases the lease, and `postMessage`s the owned bytes — same pattern as service/action CDR. `lease.release()` on main is then a no-op. String samples still hold the lease until main releases.
+- Shared wasm memory (SAB) remains the parked path to 0-copy PointCloud2 on the Worker ([ADR 0004](./adr/0004-browser-wasm-host-boundary.md)).
 
 | Method | Notes |
 |---|---|
@@ -70,7 +81,7 @@ Typed sample events are `std_msgs/msg/String` (`{ data: string }`). QoS on OpenC
 
 | Import | Stability | Contents |
 |---|---|---|
-| `@rclweb/sdk` | Candidate application contract | `connect`, session types, String constants, local-dev TLS helpers |
+| `@rclweb/sdk` | Candidate application contract | `connect`, session types, String and PointCloud2 constants, sample type guards, local-dev TLS helpers |
 | `@rclweb/sdk/internal` | Repository only | `IoHost`, wasm poll ABI, buffer strategies, `connectOfflineForTests` |
 
 Do not import the internal submodule from application code. A test asserts the public runtime export list; adding a host or ABI symbol to `@rclweb/sdk` is a contract change.
@@ -86,7 +97,7 @@ See [examples/README.md](../examples/README.md).
 
 ## Version and release
 
-Independent SDK versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). R2WP wire version is a separate identity ([ADR 0005](./adr/0005-r2wp-wire-versioning.md)). The candidate public export list stays frozen; this package does not bump to `1.0.0`, set `"private": false`, or publish. Remaining R4-04 work: typed sample events beyond String, npm publish after D-06, and a human release review.
+Independent SDK versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). R2WP wire version is a separate identity ([ADR 0005](./adr/0005-r2wp-wire-versioning.md)). The candidate public export list stays frozen; this package does not bump to `1.0.0`, set `"private": false`, or publish. Remaining R4-04 work: npm publish after D-06, and a human release review. Typed samples beyond String and PointCloud2 are still open.
 
 ## Related
 

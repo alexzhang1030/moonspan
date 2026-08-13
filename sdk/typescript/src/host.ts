@@ -7,12 +7,15 @@ import {
   type AppEvent,
   type EngineTelemetrySnapshot,
   type HostEventInput,
+  type PointCloud2Meta,
   type WasmExports,
+  decodePointCloud2Meta,
   loadWasm,
+  pointCloud2DataView,
   pollEngine,
   readTelemetry,
 } from "./wasm/abi.ts";
-import type { ServerCertificateHash } from "./types.ts";
+import type { PointCloud2, ServerCertificateHash } from "./types.ts";
 import {
   decodeCertificateHashValue,
   fetchLocalDevTlsHashes,
@@ -478,6 +481,47 @@ export class IoHost {
     ).slice();
   }
 
+  /** Current wasm linear memory (tests: borrowed PointCloud2 views share this buffer). */
+  engineMemory(): ArrayBufferLike {
+    return this.#wasm.memory.buffer;
+  }
+
+  /**
+   * Borrowed PointCloud2 view into wasm memory. Valid while the sample lease
+   * is outstanding. Returns null when the payload is not PointCloud2 CDR.
+   */
+  decodePointCloud2(
+    payloadPtr: number,
+    payloadLen: number,
+  ): PointCloud2 | null {
+    try {
+      const meta = decodePointCloud2Meta(this.#wasm, payloadPtr, payloadLen);
+      return assemblePointCloud2(
+        meta,
+        pointCloud2DataView(this.#wasm, payloadPtr, meta),
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Owned copy of PointCloud2 metadata plus the `data` field only.
+   * Used on the I/O Worker path so main never holds a wasm pointer.
+   */
+  copyPointCloud2(
+    payloadPtr: number,
+    payloadLen: number,
+  ): PointCloud2 | null {
+    try {
+      const meta = decodePointCloud2Meta(this.#wasm, payloadPtr, payloadLen);
+      const view = pointCloud2DataView(this.#wasm, payloadPtr, meta);
+      return assemblePointCloud2(meta, view.slice());
+    } catch {
+      return null;
+    }
+  }
+
   unsubscribe(correlation: Uint8Array, channelId: number): void {
     this.#enqueue({
       type: "command",
@@ -611,4 +655,17 @@ export class IoHost {
     }
     return this.#lastTelemetry;
   }
+}
+
+function assemblePointCloud2(meta: PointCloud2Meta, data: Uint8Array): PointCloud2 {
+  return {
+    height: meta.height,
+    width: meta.width,
+    pointStep: meta.pointStep,
+    rowStep: meta.rowStep,
+    isBigendian: meta.isBigendian,
+    isDense: meta.isDense,
+    fieldCount: meta.fieldCount,
+    data,
+  };
 }

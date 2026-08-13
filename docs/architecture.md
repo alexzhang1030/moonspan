@@ -62,6 +62,8 @@ The sample path is copy discipline and drop discipline, with counters in telemet
 | Worker → wasm linear memory | 1 (inherent) | One whole-payload copy in; Wasm cannot view external `ArrayBuffer`s |
 | Wasm → application | 0 | TypedArray views into wasm memory under the lease model |
 
+The 0-copy view holds on the thread that owns wasm (the I/O Worker, or the calling thread when `options.inline: true`). Bulk fields that cross to the main thread are copied at that boundary: PointCloud2 `data` and service/action CDR. Shared wasm memory remains the parked path to 0-copy on the Worker ([ADR 0004](./adr/0004-browser-wasm-host-boundary.md)).
+
 **CDR is O(1) for blob-heavy types.** Decoding PointCloud2 is metadata reads plus an (offset, length) for `data`. Codecs keep the borrowed-view contract; they do not materialize `Vec<u8>` for bulk payloads.
 
 **Drop at the edge.** Best-effort channels enforce latest-wins admission and byte budgets at the gateway with stable dispositions. Data channels never use permessage-deflate.

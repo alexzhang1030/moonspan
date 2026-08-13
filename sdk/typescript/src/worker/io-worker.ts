@@ -4,7 +4,8 @@
  * application messages (ADR 0004).
  *
  * Service/action payloads are copied out of wasm here and the lease is
- * released before the message crosses to main.
+ * released before the message crosses to main. PointCloud2 `data` is copied
+ * the same way; String samples keep the lease until main calls release().
  */
 
 import { IoHost } from "../host.ts";
@@ -34,8 +35,12 @@ const pendingAction = new Map<
 const pendingCalls = new Map<string, number>();
 const pendingActionResults = new Map<string, number>();
 
-function post(msg: WorkerToMain): void {
-  self.postMessage(msg);
+function post(msg: WorkerToMain, transfer: Transferable[] = []): void {
+  if (transfer.length > 0) {
+    self.postMessage(msg, transfer);
+  } else {
+    self.postMessage(msg);
+  }
 }
 
 function opidKey(channelId: number, operationId: Uint8Array): string {
@@ -139,7 +144,23 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
                     data: event.stringData,
                   });
                 } else {
+                  const copied = host?.copyPointCloud2(
+                    event.payloadPtr,
+                    event.payloadLen,
+                  );
                   host?.releaseLease(event.leaseId);
+                  host?.flushSync();
+                  if (copied) {
+                    post(
+                      {
+                        type: "samplePointCloud2",
+                        channelId: event.channelId,
+                        leaseId: event.leaseId,
+                        message: copied,
+                      },
+                      [copied.data.buffer],
+                    );
+                  }
                 }
                 break;
               case "serviceReady": {
