@@ -17,11 +17,18 @@ type FixtureSet = {
   pointCloud2Sample: string;
   primitiveScalarsSample: string;
   nestedSample: string;
+  echoNestedRequestCdr: string;
+  echoNestedResponseCdr: string;
+  measureSequenceGoalCdr: string;
+  measureSequenceResultCdr: string;
+  measureSequenceFeedbackCdr: string;
   authCorrelationHex: string;
   subCorrelationHex: string;
   serviceCorrelationHex: string;
   actionCorrelationHex: string;
 };
+
+const FRAME_HEADER_LENGTH = 32;
 
 function hexToBytes(hex: string): Uint8Array {
   const out = new Uint8Array(hex.length / 2);
@@ -46,9 +53,29 @@ export function scriptedPeerFixtures() {
     pointCloud2Sample: hexToBytes(cached.pointCloud2Sample),
     primitiveScalarsSample: hexToBytes(cached.primitiveScalarsSample),
     nestedSample: hexToBytes(cached.nestedSample),
+    echoNestedRequestCdr: hexToBytes(cached.echoNestedRequestCdr),
+    echoNestedResponseCdr: hexToBytes(cached.echoNestedResponseCdr),
+    measureSequenceGoalCdr: hexToBytes(cached.measureSequenceGoalCdr),
+    measureSequenceResultCdr: hexToBytes(cached.measureSequenceResultCdr),
+    measureSequenceFeedbackCdr: hexToBytes(cached.measureSequenceFeedbackCdr),
     authCorrelation: hexToBytes(cached.authCorrelationHex),
     subCorrelation: hexToBytes(cached.subCorrelationHex),
     serviceCorrelation: hexToBytes(cached.serviceCorrelationHex),
     actionCorrelation: hexToBytes(cached.actionCorrelationHex),
   };
+}
+
+/** Keep header + OPERATION_ID extension; replace the application payload. Test-only. */
+export function replaceFramePayload(
+  frame: Uint8Array,
+  payload: Uint8Array,
+): Uint8Array {
+  const view = new DataView(frame.buffer, frame.byteOffset, frame.byteLength);
+  const extLen = view.getUint16(28, false);
+  const prefixLen = FRAME_HEADER_LENGTH + extLen;
+  const out = new Uint8Array(prefixLen + payload.length);
+  out.set(frame.subarray(0, prefixLen));
+  new DataView(out.buffer).setUint32(24, payload.length, false);
+  out.set(payload, prefixLen);
+  return out;
 }

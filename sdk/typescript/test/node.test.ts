@@ -14,11 +14,15 @@ import {
   shutdown,
   std_msgs,
 } from "../src/index.ts";
-import { scriptedPeerFixtures } from "./scripted-peer.ts";
+import { scriptedPeerFixtures, replaceFramePayload } from "./scripted-peer.ts";
 
 const wasmPath = path.join(import.meta.dir, "..", "wasm", "rclweb.wasm");
 const OPCODE_CONTROL = 1;
 const OPCODE_ROS_SAMPLE = 2;
+const OPCODE_SERVICE_REQUEST = 3;
+const OPCODE_SERVICE_RESPONSE = 4;
+const OPCODE_ACTION_GOAL = 5;
+const OPCODE_ACTION_RESULT = 7;
 
 function pathToFileUrl(p: string): string {
   return `file://${path.resolve(p)}`;
@@ -374,5 +378,187 @@ test("Node subscribe delivers NestedSample collections", async () => {
   expect(sample.scalars.string_value).toBe("hello-scalars");
   expect(sample.collections.bounded_string).toBe("abc");
   expect([...sample.collections.bytes_value]).toEqual([10, 20, 30]);
+  server.stop(true);
+});
+
+test("Node createClient EchoNested round-trips typed request and response", async () => {
+  const fixtures = scriptedPeerFixtures();
+  let step: "hello" | "ready" | "open" | "call" = "hello";
+  const server = Bun.serve({
+    port: 0,
+    fetch(req, server) {
+      if (server.upgrade(req)) return undefined;
+      return new Response("expected websocket", { status: 400 });
+    },
+    websocket: {
+      message(ws, message) {
+        const bytes =
+          message instanceof ArrayBuffer
+            ? new Uint8Array(message)
+            : typeof message === "string"
+              ? new TextEncoder().encode(message)
+              : new Uint8Array(message);
+        if (step === "hello" && isHello(bytes)) {
+          step = "ready";
+          ws.send(fixtures.serverHello);
+          return;
+        }
+        if (step === "ready" && bytes[1] === OPCODE_CONTROL) {
+          step = "open";
+          ws.send(fixtures.sessionReady);
+          return;
+        }
+        if (step === "open" && bytes[1] === OPCODE_CONTROL) {
+          step = "call";
+          ws.send(fixtures.serviceChannelReady);
+          return;
+        }
+        if (step === "call" && bytes[1] === OPCODE_SERVICE_REQUEST) {
+          const response = replaceFramePayload(bytes, fixtures.echoNestedResponseCdr);
+          response[1] = OPCODE_SERVICE_RESPONSE;
+          ws.send(response);
+        }
+      },
+    },
+  });
+
+  await init(`ws://127.0.0.1:${server.port}`, {
+    wasmUrl: pathToFileUrl(wasmPath),
+  });
+  const node = new Node("echo_client");
+  const client = node.createClient(rclweb_cdr_interfaces.srv.EchoNested, "echo");
+  expect(await client.waitForService()).toBe(true);
+  const req = new rclweb_cdr_interfaces.srv.EchoNested.Request();
+  req.input.stamp.sec = 11;
+  req.input.stamp.nanosec = 22;
+  req.input.scalars.string_value = "hello-scalars";
+  req.input.scalars.int64_value = -70_000n;
+  req.input.collections.fixed_i32 = [1, 2, 3];
+  req.input.collections.bounded_string = "abc";
+  req.input.collections.bytes_value = new Uint8Array([10, 20, 30]);
+  const res = await client.sendRequest(req);
+  expect(res.accepted).toBe(true);
+  expect(res.output.stamp.sec).toBe(11);
+  expect(res.output.scalars.string_value).toBe("hello-scalars");
+  expect(res.output.scalars.int64_value).toBe(-70_000n);
+  expect(res.output.collections.bounded_string).toBe("abc");
+  server.stop(true);
+});
+
+test("Node createClient still sends untyped CDR for AddTwoInts", async () => {
+  const fixtures = scriptedPeerFixtures();
+  const request = new TextEncoder().encode("req-bytes");
+  let step: "hello" | "ready" | "open" | "call" = "hello";
+  const server = Bun.serve({
+    port: 0,
+    fetch(req, server) {
+      if (server.upgrade(req)) return undefined;
+      return new Response("expected websocket", { status: 400 });
+    },
+    websocket: {
+      message(ws, message) {
+        const bytes =
+          message instanceof ArrayBuffer
+            ? new Uint8Array(message)
+            : typeof message === "string"
+              ? new TextEncoder().encode(message)
+              : new Uint8Array(message);
+        if (step === "hello" && isHello(bytes)) {
+          step = "ready";
+          ws.send(fixtures.serverHello);
+          return;
+        }
+        if (step === "ready" && bytes[1] === OPCODE_CONTROL) {
+          step = "open";
+          ws.send(fixtures.sessionReady);
+          return;
+        }
+        if (step === "open" && bytes[1] === OPCODE_CONTROL) {
+          step = "call";
+          ws.send(fixtures.serviceChannelReady);
+          return;
+        }
+        if (step === "call" && bytes[1] === OPCODE_SERVICE_REQUEST) {
+          const response = bytes.slice();
+          response[1] = OPCODE_SERVICE_RESPONSE;
+          ws.send(response);
+        }
+      },
+    },
+  });
+
+  await init(`ws://127.0.0.1:${server.port}`, {
+    wasmUrl: pathToFileUrl(wasmPath),
+  });
+  const node = new Node("add_client");
+  const client = node.createClient(
+    { typeName: "example_interfaces/srv/AddTwoInts" },
+    "add_two_ints",
+  );
+  const response = await client.sendRequest(request);
+  expect([...response]).toEqual([...request]);
+  server.stop(true);
+});
+
+test("Node createActionClient MeasureSequence round-trips typed goal and result", async () => {
+  const fixtures = scriptedPeerFixtures();
+  let step: "hello" | "ready" | "open" | "goal" = "hello";
+  const server = Bun.serve({
+    port: 0,
+    fetch(req, server) {
+      if (server.upgrade(req)) return undefined;
+      return new Response("expected websocket", { status: 400 });
+    },
+    websocket: {
+      message(ws, message) {
+        const bytes =
+          message instanceof ArrayBuffer
+            ? new Uint8Array(message)
+            : typeof message === "string"
+              ? new TextEncoder().encode(message)
+              : new Uint8Array(message);
+        if (step === "hello" && isHello(bytes)) {
+          step = "ready";
+          ws.send(fixtures.serverHello);
+          return;
+        }
+        if (step === "ready" && bytes[1] === OPCODE_CONTROL) {
+          step = "open";
+          ws.send(fixtures.sessionReady);
+          return;
+        }
+        if (step === "open" && bytes[1] === OPCODE_CONTROL) {
+          step = "goal";
+          ws.send(fixtures.actionChannelReady);
+          return;
+        }
+        if (step === "goal" && bytes[1] === OPCODE_ACTION_GOAL) {
+          const response = replaceFramePayload(bytes, fixtures.measureSequenceResultCdr);
+          response[1] = OPCODE_ACTION_RESULT;
+          ws.send(response);
+        }
+      },
+    },
+  });
+
+  await init(`ws://127.0.0.1:${server.port}`, {
+    wasmUrl: pathToFileUrl(wasmPath),
+  });
+  const node = new Node("seq_client");
+  const client = node.createActionClient(
+    rclweb_cdr_interfaces.action.MeasureSequence,
+    "seq",
+  );
+  expect(await client.waitForAction()).toBe(true);
+  const goal = new rclweb_cdr_interfaces.action.MeasureSequence.Goal();
+  goal.target.fixed_i32 = [1, 2, 3];
+  goal.target.bounded_f64 = [1.0, 2.0];
+  goal.target.bounded_string = "abc";
+  goal.target.bytes_value = new Uint8Array([10, 20, 30]);
+  const { result } = client.sendGoal(goal);
+  const res = await result;
+  expect(res.result.stamp.sec).toBe(11);
+  expect(res.result.scalars.string_value).toBe("hello-scalars");
+  expect(res.result.collections.bounded_string).toBe("abc");
   server.stop(true);
 });

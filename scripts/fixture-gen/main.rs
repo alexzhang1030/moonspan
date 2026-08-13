@@ -10,7 +10,9 @@ use rclweb::protocol::encode::{
 };
 use rclweb::protocol::frame::{FRAME_HEADER_LENGTH, OPCODE_ROS_SAMPLE};
 use rclweb::types::{
-  GeneratedMessage, encode_generated_cdr, sample_nested_sample, sample_primitive_scalars,
+  GeneratedMessage, encode_generated_cdr, sample_echo_nested_request, sample_echo_nested_response,
+  sample_measure_sequence_feedback, sample_measure_sequence_goal, sample_measure_sequence_result,
+  sample_nested_sample, sample_primitive_scalars,
 };
 use rclweb::{ClientEngine, STD_MSGS_STRING};
 use serde_json::json;
@@ -154,6 +156,24 @@ fn main() {
       .expect("nested cdr");
   let nested_sample = ros_sample(1, &nested_payload);
 
+  let echo_nested_request_cdr =
+    encode_generated_cdr(&GeneratedMessage::EchoNestedRequest(sample_echo_nested_request()))
+      .expect("echo request cdr");
+  let echo_nested_response_cdr =
+    encode_generated_cdr(&GeneratedMessage::EchoNestedResponse(sample_echo_nested_response()))
+      .expect("echo response cdr");
+  let measure_sequence_goal_cdr =
+    encode_generated_cdr(&GeneratedMessage::MeasureSequenceGoal(sample_measure_sequence_goal()))
+      .expect("measure goal cdr");
+  let measure_sequence_result_cdr = encode_generated_cdr(&GeneratedMessage::MeasureSequenceResult(
+    sample_measure_sequence_result(),
+  ))
+  .expect("measure result cdr");
+  let measure_sequence_feedback_cdr = encode_generated_cdr(
+    &GeneratedMessage::MeasureSequenceFeedback(sample_measure_sequence_feedback()),
+  )
+  .expect("measure feedback cdr");
+
   let _ = STD_MSGS_STRING;
   println!(
     "{}",
@@ -168,6 +188,11 @@ fn main() {
         "pointCloud2Sample": hex(&point_cloud2_sample),
         "primitiveScalarsSample": hex(&primitive_scalars_sample),
         "nestedSample": hex(&nested_sample),
+        "echoNestedRequestCdr": hex(&echo_nested_request_cdr),
+        "echoNestedResponseCdr": hex(&echo_nested_response_cdr),
+        "measureSequenceGoalCdr": hex(&measure_sequence_goal_cdr),
+        "measureSequenceResultCdr": hex(&measure_sequence_result_cdr),
+        "measureSequenceFeedbackCdr": hex(&measure_sequence_feedback_cdr),
         "authCorrelationHex": hex(&auth_corr),
         "subCorrelationHex": hex(&sub_corr),
         "serviceCorrelationHex": hex(&service_corr),

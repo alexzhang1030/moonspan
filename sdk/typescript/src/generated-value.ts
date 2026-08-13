@@ -5,15 +5,30 @@
 
 import {
   Collections,
+  EchoNested_Request,
+  EchoNested_Response,
+  MeasureSequence_Feedback,
+  MeasureSequence_Goal,
+  MeasureSequence_Result,
   NestedSample,
   PrimitiveScalars,
   Time,
+  generatedOpTypeName,
+  type GeneratedOpKind,
 } from "./interfaces.ts";
 
 const te = new TextEncoder();
 const td = new TextDecoder();
 
 export type GeneratedMsg = PrimitiveScalars | NestedSample | Collections;
+
+export type GeneratedValue =
+  | GeneratedMsg
+  | EchoNested_Request
+  | EchoNested_Response
+  | MeasureSequence_Goal
+  | MeasureSequence_Result
+  | MeasureSequence_Feedback;
 
 export function encodeGeneratedHostValue(
   typeName: string,
@@ -28,10 +43,48 @@ export function encodeGeneratedHostValue(
   if (typeName === NestedSample.typeName) {
     return encodeNestedSample(asNested(message));
   }
+  if (typeName === EchoNested_Request.typeName) {
+    return encodeNestedSample(asEchoRequest(message).input);
+  }
+  if (typeName === EchoNested_Response.typeName) {
+    return encodeEchoResponse(asEchoResponse(message));
+  }
+  if (typeName === MeasureSequence_Goal.typeName) {
+    return encodeCollections(asMeasureGoal(message).target);
+  }
+  if (typeName === MeasureSequence_Result.typeName) {
+    return encodeNestedSample(asMeasureResult(message).result);
+  }
+  if (typeName === MeasureSequence_Feedback.typeName) {
+    return encodeMeasureFeedback(asMeasureFeedback(message));
+  }
   throw new Error(`unsupported generated type ${typeName}`);
 }
 
-export function reviveGenerated(typeName: string, value: unknown): GeneratedMsg {
+export function encodeOpPayload(
+  channelType: string,
+  op: GeneratedOpKind,
+  value: unknown,
+): Uint8Array {
+  const section = generatedOpTypeName(channelType, op);
+  if (!section) {
+    if (value instanceof Uint8Array) return value;
+    throw new Error(`untyped ${op} must be Uint8Array`);
+  }
+  return encodeGeneratedHostValue(section, value);
+}
+
+export function decodeOpPayload(
+  channelType: string,
+  op: GeneratedOpKind,
+  bytes: Uint8Array,
+): unknown {
+  const section = generatedOpTypeName(channelType, op);
+  if (!section) return bytes;
+  return decodeGeneratedHostValue(section, bytes);
+}
+
+export function reviveGenerated(typeName: string, value: unknown): GeneratedValue {
   if (typeName === PrimitiveScalars.typeName) {
     return Object.assign(new PrimitiveScalars(), value);
   }
@@ -39,14 +92,47 @@ export function reviveGenerated(typeName: string, value: unknown): GeneratedMsg 
     return Object.assign(new Collections(), value);
   }
   if (typeName === NestedSample.typeName) {
-    const src = value as NestedSample;
-    const msg = new NestedSample();
-    Object.assign(msg.stamp, src?.stamp);
-    Object.assign(msg.scalars, src?.scalars);
-    Object.assign(msg.collections, src?.collections);
+    return reviveNested(value);
+  }
+  if (typeName === EchoNested_Request.typeName) {
+    const msg = new EchoNested_Request();
+    msg.input = reviveNested((value as EchoNested_Request)?.input);
+    return msg;
+  }
+  if (typeName === EchoNested_Response.typeName) {
+    const src = value as EchoNested_Response;
+    const msg = new EchoNested_Response();
+    msg.output = reviveNested(src?.output);
+    msg.accepted = Boolean(src?.accepted);
+    return msg;
+  }
+  if (typeName === MeasureSequence_Goal.typeName) {
+    const msg = new MeasureSequence_Goal();
+    Object.assign(msg.target, (value as MeasureSequence_Goal)?.target);
+    return msg;
+  }
+  if (typeName === MeasureSequence_Result.typeName) {
+    const msg = new MeasureSequence_Result();
+    msg.result = reviveNested((value as MeasureSequence_Result)?.result);
+    return msg;
+  }
+  if (typeName === MeasureSequence_Feedback.typeName) {
+    const src = value as MeasureSequence_Feedback;
+    const msg = new MeasureSequence_Feedback();
+    msg.progress = Number(src?.progress ?? 0);
+    msg.sample = reviveNested(src?.sample);
     return msg;
   }
   throw new Error(`unsupported generated type ${typeName}`);
+}
+
+function reviveNested(value: unknown): NestedSample {
+  const src = value as NestedSample;
+  const msg = new NestedSample();
+  Object.assign(msg.stamp, src?.stamp);
+  Object.assign(msg.scalars, src?.scalars);
+  Object.assign(msg.collections, src?.collections);
+  return msg;
 }
 
 export function samplePrimitiveScalars(): PrimitiveScalars {
@@ -82,18 +168,57 @@ export function sampleNestedSample(): NestedSample {
   return msg;
 }
 
+export function sampleEchoNestedRequest(): EchoNested_Request {
+  const msg = new EchoNested_Request();
+  msg.input = sampleNestedSample();
+  return msg;
+}
+
+export function sampleEchoNestedResponse(): EchoNested_Response {
+  const msg = new EchoNested_Response();
+  msg.output = sampleNestedSample();
+  msg.accepted = true;
+  return msg;
+}
+
+export function sampleMeasureSequenceGoal(): MeasureSequence_Goal {
+  const msg = new MeasureSequence_Goal();
+  msg.target.fixed_i32 = [1, 2, 3];
+  msg.target.bounded_f64 = [1.0, 2.0];
+  msg.target.bytes_value = new Uint8Array([10, 20, 30]);
+  msg.target.bounded_string = "abc";
+  msg.target.bounded_wstring = "xyz";
+  return msg;
+}
+
 export function decodeGeneratedHostValue(
   typeName: string,
   bytes: Uint8Array,
-): GeneratedMsg {
+): GeneratedValue {
   const cur = { o: 0, bytes };
-  let msg: GeneratedMsg;
+  let msg: GeneratedValue;
   if (typeName === PrimitiveScalars.typeName) {
     msg = readPrimitiveScalars(cur);
   } else if (typeName === Collections.typeName) {
     msg = readCollections(cur);
   } else if (typeName === NestedSample.typeName) {
     msg = readNestedSample(cur);
+  } else if (typeName === EchoNested_Request.typeName) {
+    const req = new EchoNested_Request();
+    req.input = readNestedSample(cur);
+    msg = req;
+  } else if (typeName === EchoNested_Response.typeName) {
+    msg = readEchoResponse(cur);
+  } else if (typeName === MeasureSequence_Goal.typeName) {
+    const goal = new MeasureSequence_Goal();
+    goal.target = readCollections(cur);
+    msg = goal;
+  } else if (typeName === MeasureSequence_Result.typeName) {
+    const result = new MeasureSequence_Result();
+    result.result = readNestedSample(cur);
+    msg = result;
+  } else if (typeName === MeasureSequence_Feedback.typeName) {
+    msg = readMeasureFeedback(cur);
   } else {
     throw new Error(`unsupported generated type ${typeName}`);
   }
@@ -127,6 +252,81 @@ function asNested(message: unknown): NestedSample {
     throw new Error("NestedSample publish requires ROS field names");
   }
   return m;
+}
+
+function asEchoRequest(message: unknown): EchoNested_Request {
+  const m = message as EchoNested_Request;
+  if (m == null || m.input == null) {
+    throw new Error("EchoNested.Request requires .input");
+  }
+  return m;
+}
+
+function asEchoResponse(message: unknown): EchoNested_Response {
+  const m = message as EchoNested_Response;
+  if (m == null || m.output == null) {
+    throw new Error("EchoNested.Response requires .output");
+  }
+  return m;
+}
+
+function asMeasureGoal(message: unknown): MeasureSequence_Goal {
+  const m = message as MeasureSequence_Goal;
+  if (m == null || m.target == null) {
+    throw new Error("MeasureSequence.Goal requires .target");
+  }
+  return m;
+}
+
+function asMeasureResult(message: unknown): MeasureSequence_Result {
+  const m = message as MeasureSequence_Result;
+  if (m == null || m.result == null) {
+    throw new Error("MeasureSequence.Result requires .result");
+  }
+  return m;
+}
+
+function asMeasureFeedback(message: unknown): MeasureSequence_Feedback {
+  const m = message as MeasureSequence_Feedback;
+  if (m == null || m.sample == null) {
+    throw new Error("MeasureSequence.Feedback requires .sample");
+  }
+  return m;
+}
+
+function encodeEchoResponse(v: EchoNested_Response): Uint8Array {
+  const nested = encodeNestedSample(v.output ?? new NestedSample());
+  const out = new Uint8Array(nested.length + 1);
+  out.set(nested);
+  out[nested.length] = v.accepted ? 1 : 0;
+  return out;
+}
+
+function readEchoResponse(cur: Cursor): EchoNested_Response {
+  const msg = new EchoNested_Response();
+  msg.output = readNestedSample(cur);
+  need(cur, 1);
+  msg.accepted = cur.bytes[cur.o]! !== 0;
+  cur.o += 1;
+  return msg;
+}
+
+function encodeMeasureFeedback(v: MeasureSequence_Feedback): Uint8Array {
+  const nested = encodeNestedSample(v.sample ?? new NestedSample());
+  const out = new Uint8Array(4 + nested.length);
+  new DataView(out.buffer).setFloat32(0, Number(v.progress ?? 0), true);
+  out.set(nested, 4);
+  return out;
+}
+
+function readMeasureFeedback(cur: Cursor): MeasureSequence_Feedback {
+  const msg = new MeasureSequence_Feedback();
+  const view = new DataView(cur.bytes.buffer, cur.bytes.byteOffset, cur.bytes.byteLength);
+  need(cur, 4);
+  msg.progress = view.getFloat32(cur.o, true);
+  cur.o += 4;
+  msg.sample = readNestedSample(cur);
+  return msg;
 }
 
 function encodePrimitiveScalars(v: PrimitiveScalars): Uint8Array {

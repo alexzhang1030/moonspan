@@ -8,7 +8,13 @@ import { expect, test } from "bun:test";
 import path from "node:path";
 import { sensor_msgs, std_msgs, rclweb_cdr_interfaces } from "../src/index.ts";
 import { connect } from "../src/internal.ts";
-import { scriptedPeerFixtures } from "./scripted-peer.ts";
+import {
+  decodeGeneratedHostValue,
+  encodeGeneratedHostValue,
+  sampleEchoNestedRequest,
+} from "../src/generated-value.ts";
+import { EchoNested_Request, EchoNested_Response } from "../src/interfaces.ts";
+import { scriptedPeerFixtures, replaceFramePayload } from "./scripted-peer.ts";
 
 const wasmPath = path.join(import.meta.dir, "..", "wasm", "rclweb.wasm");
 const OPCODE_CONTROL = 1;
@@ -243,6 +249,69 @@ test("Worker path: action client sendGoal echoes result CDR", async () => {
   const { result } = action.sendGoal(goal);
   const payload = await result;
   expect([...payload]).toEqual([...goal]);
+  await client.close();
+  server.stop(true);
+});
+
+test("Worker path: EchoNested service call delivers host-value bytes", async () => {
+  const fixtures = scriptedPeerFixtures();
+  const wasmUrl = pathToFileUrl(wasmPath);
+  let step: "hello" | "ready" | "open" | "call" = "hello";
+
+  const server = Bun.serve({
+    port: 0,
+    fetch(req, server) {
+      if (server.upgrade(req)) return undefined;
+      return new Response("expected websocket", { status: 400 });
+    },
+    websocket: {
+      message(ws, message) {
+        const bytes =
+          message instanceof ArrayBuffer
+            ? new Uint8Array(message)
+            : typeof message === "string"
+              ? new TextEncoder().encode(message)
+              : new Uint8Array(message);
+        if (step === "hello" && isHello(bytes)) {
+          step = "ready";
+          ws.send(fixtures.serverHello);
+          return;
+        }
+        if (step === "ready" && bytes[1] === OPCODE_CONTROL) {
+          step = "open";
+          ws.send(fixtures.sessionReady);
+          return;
+        }
+        if (step === "open" && bytes[1] === OPCODE_CONTROL) {
+          step = "call";
+          ws.send(fixtures.serviceChannelReady);
+          return;
+        }
+        if (step === "call" && bytes[1] === OPCODE_SERVICE_REQUEST) {
+          const response = replaceFramePayload(bytes, fixtures.echoNestedResponseCdr);
+          response[1] = OPCODE_SERVICE_RESPONSE;
+          ws.send(response);
+        }
+      },
+    },
+  });
+
+  const client = await connect(`ws://127.0.0.1:${server.port}`, { wasmUrl });
+  const svc = await client.session.createServiceClient(
+    "/echo",
+    rclweb_cdr_interfaces.srv.EchoNested.typeName,
+  );
+  const request = encodeGeneratedHostValue(
+    EchoNested_Request.typeName,
+    sampleEchoNestedRequest(),
+  );
+  const response = await svc.call(request);
+  const decoded = decodeGeneratedHostValue(
+    EchoNested_Response.typeName,
+    response,
+  ) as EchoNested_Response;
+  expect(decoded.accepted).toBe(true);
+  expect(decoded.output.scalars.string_value).toBe("hello-scalars");
   await client.close();
   server.stop(true);
 });

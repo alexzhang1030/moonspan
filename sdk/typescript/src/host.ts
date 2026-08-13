@@ -571,7 +571,28 @@ export class IoHost {
         payloadPtr,
         payloadLen,
       );
-      return decodeGeneratedHostValue(typeName, bytes);
+      return decodeGeneratedHostValue(typeName, bytes) as GeneratedMsg;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Packed host-value bytes for a generated CDR payload (service/action ops).
+   * Returns null when the payload is not that generated type.
+   */
+  copyGeneratedBytes(
+    typeName: string,
+    payloadPtr: number,
+    payloadLen: number,
+  ): Uint8Array | null {
+    try {
+      return decodeGeneratedBytes(
+        this.#wasm,
+        typeName,
+        payloadPtr,
+        payloadLen,
+      );
     } catch {
       return null;
     }

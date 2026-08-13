@@ -5,17 +5,57 @@
 //! payloads stay on the PointCloud2 command; these types are small.
 
 use super::generated::{
-  COLLECTIONS_TYPE_NAME, Collections, NESTED_SAMPLE_TYPE_NAME, NestedSample,
-  PRIMITIVE_SCALARS_TYPE_NAME, PrimitiveScalars, Time, collections, nested_sample,
+  COLLECTIONS_TYPE_NAME, Collections, ECHO_NESTED_REQUEST_TYPE_NAME,
+  ECHO_NESTED_RESPONSE_TYPE_NAME, EchoNestedRequest, EchoNestedResponse,
+  MEASURE_SEQUENCE_FEEDBACK_TYPE_NAME, MEASURE_SEQUENCE_GOAL_TYPE_NAME,
+  MEASURE_SEQUENCE_RESULT_TYPE_NAME, MeasureSequenceFeedback, MeasureSequenceGoal,
+  MeasureSequenceResult, NESTED_SAMPLE_TYPE_NAME, NestedSample, PRIMITIVE_SCALARS_TYPE_NAME,
+  PrimitiveScalars, Time, collections, echo_nested, measure_sequence, nested_sample,
   primitive_scalars,
 };
 use crate::cdr::{CdrEndian, CdrError, CdrNesting, CdrReader};
+
+/// Parent service type used on OpenChannel (`rclcpp` `EchoNested`, not `_Request`).
+pub const ECHO_NESTED_TYPE_NAME: &str = "rclweb_cdr_interfaces/srv/EchoNested";
+/// Parent action type used on OpenChannel.
+pub const MEASURE_SEQUENCE_TYPE_NAME: &str = "rclweb_cdr_interfaces/action/MeasureSequence";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GeneratedOpKind {
+  Request,
+  Response,
+  Goal,
+  Result,
+  Feedback,
+}
+
+/// Sectioned ROS type for a service/action payload on `channel_type`.
+#[must_use]
+pub fn generated_op_type_name(channel_type: &str, op: GeneratedOpKind) -> Option<&'static str> {
+  match (channel_type, op) {
+    (ECHO_NESTED_TYPE_NAME, GeneratedOpKind::Request) => Some(ECHO_NESTED_REQUEST_TYPE_NAME),
+    (ECHO_NESTED_TYPE_NAME, GeneratedOpKind::Response) => Some(ECHO_NESTED_RESPONSE_TYPE_NAME),
+    (MEASURE_SEQUENCE_TYPE_NAME, GeneratedOpKind::Goal) => Some(MEASURE_SEQUENCE_GOAL_TYPE_NAME),
+    (MEASURE_SEQUENCE_TYPE_NAME, GeneratedOpKind::Result) => {
+      Some(MEASURE_SEQUENCE_RESULT_TYPE_NAME)
+    }
+    (MEASURE_SEQUENCE_TYPE_NAME, GeneratedOpKind::Feedback) => {
+      Some(MEASURE_SEQUENCE_FEEDBACK_TYPE_NAME)
+    }
+    _ => None,
+  }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum GeneratedMessage {
   PrimitiveScalars(PrimitiveScalars),
   Collections(Collections),
   NestedSample(NestedSample),
+  EchoNestedRequest(EchoNestedRequest),
+  EchoNestedResponse(EchoNestedResponse),
+  MeasureSequenceGoal(MeasureSequenceGoal),
+  MeasureSequenceResult(MeasureSequenceResult),
+  MeasureSequenceFeedback(MeasureSequenceFeedback),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -31,6 +71,11 @@ impl GeneratedMessage {
       Self::PrimitiveScalars(_) => PRIMITIVE_SCALARS_TYPE_NAME,
       Self::Collections(_) => COLLECTIONS_TYPE_NAME,
       Self::NestedSample(_) => NESTED_SAMPLE_TYPE_NAME,
+      Self::EchoNestedRequest(_) => ECHO_NESTED_REQUEST_TYPE_NAME,
+      Self::EchoNestedResponse(_) => ECHO_NESTED_RESPONSE_TYPE_NAME,
+      Self::MeasureSequenceGoal(_) => MEASURE_SEQUENCE_GOAL_TYPE_NAME,
+      Self::MeasureSequenceResult(_) => MEASURE_SEQUENCE_RESULT_TYPE_NAME,
+      Self::MeasureSequenceFeedback(_) => MEASURE_SEQUENCE_FEEDBACK_TYPE_NAME,
     }
   }
 }
@@ -55,6 +100,43 @@ pub fn decode_generated_cdr(
     NESTED_SAMPLE_TYPE_NAME => {
       Ok(GeneratedMessage::NestedSample(decode_live(bytes, nested_sample::decode_nested_sample)?))
     }
+    ECHO_NESTED_REQUEST_TYPE_NAME => {
+      Ok(GeneratedMessage::EchoNestedRequest(decode_live(bytes, |r, root| {
+        let n = r.enter_nested(root)?;
+        let input = nested_sample::decode_nested_sample(r, n)?;
+        Ok(EchoNestedRequest { input })
+      })?))
+    }
+    ECHO_NESTED_RESPONSE_TYPE_NAME => {
+      Ok(GeneratedMessage::EchoNestedResponse(decode_live(bytes, |r, root| {
+        let n = r.enter_nested(root)?;
+        let output = nested_sample::decode_nested_sample(r, n)?;
+        let accepted = r.read_bool()?;
+        Ok(EchoNestedResponse { output, accepted })
+      })?))
+    }
+    MEASURE_SEQUENCE_GOAL_TYPE_NAME => {
+      Ok(GeneratedMessage::MeasureSequenceGoal(decode_live(bytes, |r, root| {
+        let n = r.enter_nested(root)?;
+        let target = collections::decode_collections(r, n)?;
+        Ok(MeasureSequenceGoal { target })
+      })?))
+    }
+    MEASURE_SEQUENCE_RESULT_TYPE_NAME => {
+      Ok(GeneratedMessage::MeasureSequenceResult(decode_live(bytes, |r, root| {
+        let n = r.enter_nested(root)?;
+        let result = nested_sample::decode_nested_sample(r, n)?;
+        Ok(MeasureSequenceResult { result })
+      })?))
+    }
+    MEASURE_SEQUENCE_FEEDBACK_TYPE_NAME => {
+      Ok(GeneratedMessage::MeasureSequenceFeedback(decode_live(bytes, |r, root| {
+        let progress = r.read_f32()?;
+        let n = r.enter_nested(root)?;
+        let sample = nested_sample::decode_nested_sample(r, n)?;
+        Ok(MeasureSequenceFeedback { progress, sample })
+      })?))
+    }
     _ => Err(GeneratedValueError::UnknownType),
   }
 }
@@ -65,6 +147,15 @@ pub fn encode_generated_cdr(msg: &GeneratedMessage) -> Result<Vec<u8>, CdrError>
     GeneratedMessage::PrimitiveScalars(v) => primitive_scalars::encode(v, CdrEndian::Little),
     GeneratedMessage::Collections(v) => collections::encode(v, CdrEndian::Little),
     GeneratedMessage::NestedSample(v) => nested_sample::encode(v, CdrEndian::Little),
+    GeneratedMessage::EchoNestedRequest(v) => echo_nested::encode_request(v, CdrEndian::Little),
+    GeneratedMessage::EchoNestedResponse(v) => echo_nested::encode_response(v, CdrEndian::Little),
+    GeneratedMessage::MeasureSequenceGoal(v) => measure_sequence::encode_goal(v, CdrEndian::Little),
+    GeneratedMessage::MeasureSequenceResult(v) => {
+      measure_sequence::encode_result(v, CdrEndian::Little)
+    }
+    GeneratedMessage::MeasureSequenceFeedback(v) => {
+      measure_sequence::encode_feedback(v, CdrEndian::Little)
+    }
   }
 }
 
@@ -74,6 +165,11 @@ pub fn encode_host_value(msg: &GeneratedMessage) -> Vec<u8> {
     GeneratedMessage::PrimitiveScalars(v) => write_primitive_scalars(&mut out, v),
     GeneratedMessage::Collections(v) => write_collections(&mut out, v),
     GeneratedMessage::NestedSample(v) => write_nested_sample(&mut out, v),
+    GeneratedMessage::EchoNestedRequest(v) => write_nested_sample(&mut out, &v.input),
+    GeneratedMessage::EchoNestedResponse(v) => write_echo_nested_response(&mut out, v),
+    GeneratedMessage::MeasureSequenceGoal(v) => write_collections(&mut out, &v.target),
+    GeneratedMessage::MeasureSequenceResult(v) => write_nested_sample(&mut out, &v.result),
+    GeneratedMessage::MeasureSequenceFeedback(v) => write_measure_sequence_feedback(&mut out, v),
   }
   out
 }
@@ -90,6 +186,23 @@ pub fn decode_host_value(
     COLLECTIONS_TYPE_NAME => GeneratedMessage::Collections(read_collections(bytes, &mut offset)?),
     NESTED_SAMPLE_TYPE_NAME => {
       GeneratedMessage::NestedSample(read_nested_sample(bytes, &mut offset)?)
+    }
+    ECHO_NESTED_REQUEST_TYPE_NAME => GeneratedMessage::EchoNestedRequest(EchoNestedRequest {
+      input: read_nested_sample(bytes, &mut offset)?,
+    }),
+    ECHO_NESTED_RESPONSE_TYPE_NAME => {
+      GeneratedMessage::EchoNestedResponse(read_echo_nested_response(bytes, &mut offset)?)
+    }
+    MEASURE_SEQUENCE_GOAL_TYPE_NAME => GeneratedMessage::MeasureSequenceGoal(MeasureSequenceGoal {
+      target: read_collections(bytes, &mut offset)?,
+    }),
+    MEASURE_SEQUENCE_RESULT_TYPE_NAME => {
+      GeneratedMessage::MeasureSequenceResult(MeasureSequenceResult {
+        result: read_nested_sample(bytes, &mut offset)?,
+      })
+    }
+    MEASURE_SEQUENCE_FEEDBACK_TYPE_NAME => {
+      GeneratedMessage::MeasureSequenceFeedback(read_measure_sequence_feedback(bytes, &mut offset)?)
     }
     _ => return Err(GeneratedValueError::UnknownType),
   };
@@ -250,6 +363,42 @@ fn read_nested_sample(
   Ok(NestedSample { stamp: Time { sec, nanosec }, scalars, collections })
 }
 
+fn write_echo_nested_response(out: &mut Vec<u8>, v: &EchoNestedResponse) {
+  write_nested_sample(out, &v.output);
+  out.push(u8::from(v.accepted));
+}
+
+fn read_echo_nested_response(
+  bytes: &[u8],
+  offset: &mut usize,
+) -> Result<EchoNestedResponse, GeneratedValueError> {
+  let output = read_nested_sample(bytes, offset)?;
+  if *offset >= bytes.len() {
+    return Err(GeneratedValueError::Truncated);
+  }
+  let accepted = bytes[*offset] != 0;
+  *offset += 1;
+  Ok(EchoNestedResponse { output, accepted })
+}
+
+fn write_measure_sequence_feedback(out: &mut Vec<u8>, v: &MeasureSequenceFeedback) {
+  out.extend_from_slice(&v.progress.to_le_bytes());
+  write_nested_sample(out, &v.sample);
+}
+
+fn read_measure_sequence_feedback(
+  bytes: &[u8],
+  offset: &mut usize,
+) -> Result<MeasureSequenceFeedback, GeneratedValueError> {
+  if *offset + 4 > bytes.len() {
+    return Err(GeneratedValueError::Truncated);
+  }
+  let progress = f32::from_le_bytes(bytes[*offset..*offset + 4].try_into().unwrap());
+  *offset += 4;
+  let sample = read_nested_sample(bytes, offset)?;
+  Ok(MeasureSequenceFeedback { progress, sample })
+}
+
 fn write_u16_str(out: &mut Vec<u8>, value: &str) {
   let bytes = value.as_bytes();
   write_u16(out, bytes.len() as u16);
@@ -335,6 +484,26 @@ pub fn sample_nested_sample() -> NestedSample {
   }
 }
 
+pub fn sample_echo_nested_request() -> EchoNestedRequest {
+  EchoNestedRequest { input: sample_nested_sample() }
+}
+
+pub fn sample_echo_nested_response() -> EchoNestedResponse {
+  EchoNestedResponse { output: sample_nested_sample(), accepted: true }
+}
+
+pub fn sample_measure_sequence_goal() -> MeasureSequenceGoal {
+  MeasureSequenceGoal { target: sample_collections() }
+}
+
+pub fn sample_measure_sequence_result() -> MeasureSequenceResult {
+  MeasureSequenceResult { result: sample_nested_sample() }
+}
+
+pub fn sample_measure_sequence_feedback() -> MeasureSequenceFeedback {
+  MeasureSequenceFeedback { progress: 0.5, sample: sample_nested_sample() }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -360,6 +529,42 @@ mod tests {
   }
 
   #[test]
+  fn host_value_round_trips_echo_nested_response() {
+    let msg = GeneratedMessage::EchoNestedResponse(sample_echo_nested_response());
+    let bytes = encode_host_value(&msg);
+    let round = decode_host_value(ECHO_NESTED_RESPONSE_TYPE_NAME, &bytes).unwrap();
+    assert_eq!(round, msg);
+  }
+
+  #[test]
+  fn host_value_round_trips_measure_sequence_feedback() {
+    let msg = GeneratedMessage::MeasureSequenceFeedback(sample_measure_sequence_feedback());
+    let bytes = encode_host_value(&msg);
+    let round = decode_host_value(MEASURE_SEQUENCE_FEEDBACK_TYPE_NAME, &bytes).unwrap();
+    assert_eq!(round, msg);
+  }
+
+  #[test]
+  fn generated_op_type_name_maps_parent_sections() {
+    assert_eq!(
+      generated_op_type_name(ECHO_NESTED_TYPE_NAME, GeneratedOpKind::Request),
+      Some(ECHO_NESTED_REQUEST_TYPE_NAME)
+    );
+    assert_eq!(
+      generated_op_type_name(ECHO_NESTED_TYPE_NAME, GeneratedOpKind::Response),
+      Some(ECHO_NESTED_RESPONSE_TYPE_NAME)
+    );
+    assert_eq!(
+      generated_op_type_name(MEASURE_SEQUENCE_TYPE_NAME, GeneratedOpKind::Goal),
+      Some(MEASURE_SEQUENCE_GOAL_TYPE_NAME)
+    );
+    assert_eq!(
+      generated_op_type_name("example_interfaces/srv/AddTwoInts", GeneratedOpKind::Request),
+      None
+    );
+  }
+
+  #[test]
   fn cdr_and_host_value_agree() {
     let original = sample_scalars();
     let cdr = primitive_scalars::encode(&original, CdrEndian::Little).unwrap();
@@ -368,5 +573,17 @@ mod tests {
     assert_eq!(got, original);
     let again = encode_generated_cdr(&GeneratedMessage::PrimitiveScalars(got.clone())).unwrap();
     assert_eq!(again, cdr);
+  }
+
+  #[test]
+  fn cdr_and_host_value_agree_echo_nested_request() {
+    let original = sample_echo_nested_request();
+    let cdr = echo_nested::encode_request(&original, CdrEndian::Little).unwrap();
+    let decoded = decode_generated_cdr(ECHO_NESTED_REQUEST_TYPE_NAME, &cdr).unwrap();
+    let GeneratedMessage::EchoNestedRequest(got) = decoded else { panic!("kind") };
+    assert_eq!(got, original);
+    let host = encode_host_value(&GeneratedMessage::EchoNestedRequest(got.clone()));
+    let round = decode_host_value(ECHO_NESTED_REQUEST_TYPE_NAME, &host).unwrap();
+    assert_eq!(round, GeneratedMessage::EchoNestedRequest(original));
   }
 }

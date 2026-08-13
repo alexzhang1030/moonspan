@@ -85,21 +85,47 @@ TypeScript cannot write `create_publisher<std_msgs::msg::String>(topic, qos)`, s
 
 Message field names follow the ROS IDL (`data`, `point_step`, `is_bigendian`, `frame_id`). Callbacks receive an owned message; there is no lease to release. `createWallTimer(periodMs, callback)` matches `create_wall_timer`. Relative names (`"chatter"`) resolve under the node namespace like rclcpp.
 
-Typed samples are `std_msgs/msg/String`, `sensor_msgs/msg/PointCloud2`, and the Phase 1 message roots `rclweb_cdr_interfaces/msg/PrimitiveScalars`, `Collections`, and `NestedSample`. Other inbound types are dropped. PointCloud2 encode lives in the wasm core and round-trips header stamp/`frame_id` and the PointField list. Generated messages use a packed host layout; wasm converts to and from CDR. `int64` / `uint64` are `bigint`.
+Typed samples are `std_msgs/msg/String`, `sensor_msgs/msg/PointCloud2`, and the Phase 1 message roots `rclweb_cdr_interfaces/msg/PrimitiveScalars`, `Collections`, and `NestedSample`. Other inbound topic types are dropped. PointCloud2 encode lives in the wasm core and round-trips header stamp/`frame_id` and the PointField list. Generated messages use a packed host layout; wasm converts to and from CDR. `int64` / `uint64` are `bigint`. Phase 1 service and action roots use the same host layout on `createClient` / `createActionClient`.
 
 ## Services
 
 ```ts
-const client = node.createClient({ typeName: "example_interfaces/srv/AddTwoInts" }, "add_two_ints");
-await client.waitForService();
-const response = await client.sendRequest(requestCdr);
+const echo = node.createClient(rclweb_cdr_interfaces.srv.EchoNested, "echo");
+await echo.waitForService();
+const req = new rclweb_cdr_interfaces.srv.EchoNested.Request();
+req.input.scalars.string_value = "ping";
+const res = await echo.sendRequest(req);
+console.log(res.accepted, res.output.scalars.string_value);
 
-node.createService({ typeName: "example_interfaces/srv/AddTwoInts" }, "add_two_ints", (request) => {
-  return responseCdr;
+node.createService(rclweb_cdr_interfaces.srv.EchoNested, "echo", (request) => {
+  const response = new rclweb_cdr_interfaces.srv.EchoNested.Response();
+  response.output = request.input;
+  response.accepted = true;
+  return response;
 });
+
+const add = node.createClient({ typeName: "example_interfaces/srv/AddTwoInts" }, "add_two_ints");
+await add.waitForService();
+const responseCdr = await add.sendRequest(requestCdr);
 ```
 
-`createClient` / `createService` match rclcpp names. Request and response stay CDR bytes until generated TypeScript service types exist.
+`createClient` / `createService` match rclcpp names. Phase 1 generated roots (`rclweb_cdr_interfaces.srv.EchoNested`) use ROS classes. Other service types stay CDR `Uint8Array`.
+
+## Actions
+
+```ts
+const seq = node.createActionClient(rclweb_cdr_interfaces.action.MeasureSequence, "seq");
+await seq.waitForAction();
+const goal = new rclweb_cdr_interfaces.action.MeasureSequence.Goal();
+seq.onFeedback((fb) => {
+  console.log(fb.progress);
+});
+const { result } = seq.sendGoal(goal);
+const done = await result;
+console.log(done.result.stamp.sec);
+```
+
+`createActionClient` / `createActionServer` match rclcpp names. Phase 1 generated roots (`rclweb_cdr_interfaces.action.MeasureSequence`) use ROS classes (`Goal` / `Result` / `Feedback`). Other action types stay CDR `Uint8Array`. `ACTION_STATUS` stays CDR.
 
 ## Public vs internal
 
@@ -121,7 +147,7 @@ See [examples/README.md](../examples/README.md).
 
 ## Version and release
 
-Independent SDK versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). R2WP wire version is a separate identity ([ADR 0005](./adr/0005-r2wp-wire-versioning.md)). This package does not bump to `1.0.0`, set `"private": false`, or publish. Remaining R4-04 work: npm publish after D-06, generated TypeScript service/action request types, and a human release review.
+Independent SDK versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). R2WP wire version is a separate identity ([ADR 0005](./adr/0005-r2wp-wire-versioning.md)). This package does not bump to `1.0.0`, set `"private": false`, or publish. Remaining R4-04 work: npm publish after D-06, and a human release review.
 
 ## Related
 

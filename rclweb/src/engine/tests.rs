@@ -572,6 +572,106 @@ fn service_client_call_emits_request_and_response_event() {
 }
 
 #[test]
+fn generated_service_call_encodes_host_value_to_cdr() {
+  use crate::protocol::frame::OPCODE_SERVICE_REQUEST;
+  use crate::types::{
+    ECHO_NESTED_REQUEST_TYPE_NAME, ECHO_NESTED_TYPE_NAME, GeneratedMessage, decode_generated_cdr,
+    encode_host_value, sample_echo_nested_request,
+  };
+
+  let mut engine = ClientEngine::new();
+  let mut ctrl_seq = through_ready(&mut engine);
+
+  let open_corr = corr(0xB2);
+  let opened = engine.poll(vec![HostEvent::Command(AppCommand::OpenService {
+    correlation: open_corr,
+    channel_id: 7,
+    name: "/echo".into(),
+    type_name: ECHO_NESTED_TYPE_NAME.into(),
+    domain_id: 0,
+    client: true,
+  })]);
+  assert_eq!(opened.outbound.len(), 1);
+
+  let ready = feed(&mut engine, channel_ready_allow_bytes(ctrl_seq, &open_corr, 7));
+  ctrl_seq += 1;
+  assert!(
+    ready
+      .events
+      .iter()
+      .any(|e| matches!(e, AppEvent::ServiceReady { channel_id: 7, client: true, .. }))
+  );
+
+  let original = sample_echo_nested_request();
+  let request = encode_host_value(&GeneratedMessage::EchoNestedRequest(original.clone()));
+  let opid = [0x22u8; 16];
+  let sent = engine.poll(vec![HostEvent::Command(AppCommand::CallService {
+    channel_id: 7,
+    operation_id: opid,
+    request,
+  })]);
+  assert_eq!(sent.outbound.len(), 1);
+  let frame = parse_frame(&sent.outbound[0].bytes, None).expect("request frame");
+  assert_eq!(frame.opcode, OPCODE_SERVICE_REQUEST);
+  let FramePayload::Application(payload) = &frame.payload else {
+    panic!("expected application payload");
+  };
+  let round = decode_generated_cdr(ECHO_NESTED_REQUEST_TYPE_NAME, payload).expect("outbound");
+  assert_eq!(round, GeneratedMessage::EchoNestedRequest(original));
+  let _ = ctrl_seq;
+}
+
+#[test]
+fn generated_action_goal_encodes_host_value_to_cdr() {
+  use crate::protocol::frame::OPCODE_ACTION_GOAL;
+  use crate::types::{
+    GeneratedMessage, MEASURE_SEQUENCE_GOAL_TYPE_NAME, MEASURE_SEQUENCE_TYPE_NAME,
+    decode_generated_cdr, encode_host_value, sample_measure_sequence_goal,
+  };
+
+  let mut engine = ClientEngine::new();
+  let mut ctrl_seq = through_ready(&mut engine);
+
+  let open_corr = corr(0xB3);
+  let opened = engine.poll(vec![HostEvent::Command(AppCommand::OpenAction {
+    correlation: open_corr,
+    channel_id: 8,
+    name: "/seq".into(),
+    type_name: MEASURE_SEQUENCE_TYPE_NAME.into(),
+    domain_id: 0,
+    client: true,
+  })]);
+  assert_eq!(opened.outbound.len(), 1);
+
+  let ready = feed(&mut engine, channel_ready_allow_bytes(ctrl_seq, &open_corr, 8));
+  ctrl_seq += 1;
+  assert!(
+    ready
+      .events
+      .iter()
+      .any(|e| matches!(e, AppEvent::ActionReady { channel_id: 8, client: true, .. }))
+  );
+
+  let original = sample_measure_sequence_goal();
+  let goal = encode_host_value(&GeneratedMessage::MeasureSequenceGoal(original.clone()));
+  let opid = [0x33u8; 16];
+  let sent = engine.poll(vec![HostEvent::Command(AppCommand::SendActionGoal {
+    channel_id: 8,
+    operation_id: opid,
+    goal,
+  })]);
+  assert_eq!(sent.outbound.len(), 1);
+  let frame = parse_frame(&sent.outbound[0].bytes, None).expect("goal frame");
+  assert_eq!(frame.opcode, OPCODE_ACTION_GOAL);
+  let FramePayload::Application(payload) = &frame.payload else {
+    panic!("expected application payload");
+  };
+  let round = decode_generated_cdr(MEASURE_SEQUENCE_GOAL_TYPE_NAME, payload).expect("outbound");
+  assert_eq!(round, GeneratedMessage::MeasureSequenceGoal(original));
+  let _ = ctrl_seq;
+}
+
+#[test]
 fn graph_snapshot_control_emits_app_event() {
   use crate::protocol::control::CONTROL_KIND_GRAPH_SNAPSHOT;
 

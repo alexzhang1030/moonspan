@@ -113,8 +113,50 @@ export const sensor_msgs = {
   msg: { PointCloud2, PointField },
 };
 
+export class EchoNested_Request {
+  static readonly typeName = "rclweb_cdr_interfaces/srv/EchoNested_Request" as const;
+  input = new NestedSample();
+}
+
+export class EchoNested_Response {
+  static readonly typeName = "rclweb_cdr_interfaces/srv/EchoNested_Response" as const;
+  output = new NestedSample();
+  accepted = false;
+}
+
+export const EchoNested = {
+  typeName: "rclweb_cdr_interfaces/srv/EchoNested" as const,
+  Request: EchoNested_Request,
+  Response: EchoNested_Response,
+};
+
+export class MeasureSequence_Goal {
+  static readonly typeName = "rclweb_cdr_interfaces/action/MeasureSequence_Goal" as const;
+  target = new Collections();
+}
+
+export class MeasureSequence_Result {
+  static readonly typeName = "rclweb_cdr_interfaces/action/MeasureSequence_Result" as const;
+  result = new NestedSample();
+}
+
+export class MeasureSequence_Feedback {
+  static readonly typeName = "rclweb_cdr_interfaces/action/MeasureSequence_Feedback" as const;
+  progress = 0;
+  sample = new NestedSample();
+}
+
+export const MeasureSequence = {
+  typeName: "rclweb_cdr_interfaces/action/MeasureSequence" as const,
+  Goal: MeasureSequence_Goal,
+  Result: MeasureSequence_Result,
+  Feedback: MeasureSequence_Feedback,
+};
+
 export const rclweb_cdr_interfaces = {
   msg: { PrimitiveScalars, NestedSample, Collections },
+  srv: { EchoNested },
+  action: { MeasureSequence },
 };
 
 export function isGeneratedMsgType(typeName: string): boolean {
@@ -123,4 +165,24 @@ export function isGeneratedMsgType(typeName: string): boolean {
     typeName === NestedSample.typeName ||
     typeName === Collections.typeName
   );
+}
+
+export type GeneratedOpKind = "Request" | "Response" | "Goal" | "Result" | "Feedback";
+
+/** Sectioned ROS type for a service/action payload on the OpenChannel parent name. */
+export function generatedOpTypeName(
+  channelType: string,
+  op: GeneratedOpKind,
+): string | undefined {
+  if (channelType === EchoNested.typeName) {
+    if (op === "Request") return EchoNested_Request.typeName;
+    if (op === "Response") return EchoNested_Response.typeName;
+    return undefined;
+  }
+  if (channelType === MeasureSequence.typeName) {
+    if (op === "Goal") return MeasureSequence_Goal.typeName;
+    if (op === "Result") return MeasureSequence_Result.typeName;
+    if (op === "Feedback") return MeasureSequence_Feedback.typeName;
+  }
+  return undefined;
 }
