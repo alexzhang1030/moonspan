@@ -95,6 +95,7 @@ Cross-origin-isolated deployments may use a bounded `SharedArrayBuffer` ring. Ge
 | Protocol | [R2WP](./protocol/r2wp.md) |
 | Core | [`rclweb` core](./runtime/core.md), [CDR contract](./runtime/cdr.md), [generated types](./runtime/generated-types.md) |
 | Gateway | [`rclwebd`](./gateway/rclwebd.md) |
+| Browser SDK | [SDK](./sdk.md) |
 | Security | [Security](./security.md) |
 | Platforms | [Compatibility](./compatibility.md), [support matrix](./support-matrix.md) |
 | Evidence | [Validation](./validation.md) |

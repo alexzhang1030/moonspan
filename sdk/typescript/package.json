@@ -2,10 +2,17 @@
   "name": "@rclweb/sdk",
   "version": "0.0.0",
   "private": true,
+  "description": "Browser TypeScript SDK for rclweb (R2WP client around the rclweb wasm core)",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./internal": "./src/internal.ts"
   },
+  "files": [
+    "src",
+    "wasm",
+    "README.md"
+  ],
   "scripts": {
     "check": "bun build ./src/index.ts --target=browser --outdir=./dist",
     "test": "bun test",

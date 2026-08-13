@@ -15,6 +15,7 @@ rclweb is one Rust core (`rclweb`) serving the gateway natively and the browser 
 | Traps already paid for | [Gotchas](./gotchas.md) |
 | Evidence, single oracle, and gate authority | [Validation](./validation.md) |
 | Support matrix vs live gates | [Validation](./validation.md#evidence-contract), [R4-03](../../docs/milestones/r4-03-support-matrix.md) |
+| Browser SDK public surface | [SDK](../../docs/sdk.md), [R4-04](../../docs/milestones/r4-04-sdk.md) |
 | Studio visual system | [DESIGN.md](./DESIGN.md) |
 
 ## Project records
@@ -27,6 +28,7 @@ rclweb is one Rust core (`rclweb`) serving the gateway natively and the browser 
 | Local WebTransport TLS (cert-hash, 14-day rotate) | [ADR 0011](../../docs/adr/0011-local-dev-webtransport-tls.md) |
 | J-FT runtime image and operations endpoints | [Deploy](../../docs/deploy.md), [R4-02](../../docs/milestones/r4-02-deployment-observability.md) |
 | Support-matrix status | [R4-03](../../docs/milestones/r4-03-support-matrix.md) |
+| SDK public surface | [SDK](../../docs/sdk.md), [R4-04](../../docs/milestones/r4-04-sdk.md) |
 | Delivery sequence | [Implementation plan](../../tasks/plan.md) |
 | Current execution state | [Execution checklist](../../tasks/todo.md) |
 
@@ -49,8 +51,9 @@ rclweb is one Rust core (`rclweb`) serving the gateway natively and the browser 
 | `docker/Dockerfile.rclwebd`, `docker/compose.r4-02-gateway.yml` | J-FT runtime image + host-network compose ([deploy](../../docs/deploy.md)) |
 | `docker/Dockerfile.rclwebd-h-ft`, `docker/compose.r4-02-gateway-h-ft.yml` | H-FT runtime image (regenerates FFI) + host-network compose ([deploy](../../docs/deploy.md)) |
 | `rclwebd/src/adapter/**`, `rclwebd/adapter/include/**` | Versioned serialized adapter ABI v1 ([ADR 0006](../../docs/adr/0006-edge-ros-c-abi-boundary.md), [R3-04](../../docs/milestones/r3-04-adapter-abi-typesupport.md)) |
-| `sdk/**` | [Intent](./intent.md), [architecture](../../docs/architecture.md), [R1-04 SDK host](../../docs/milestones/r1-04-wasm-host-sdk.md), [R1-05 e2e](../../docs/milestones/r1-05-e2e-evidence.md), [R2-01 publish/reconnect](../../docs/milestones/r2-01-data-plane-hardening.md), [R2-02 buffer strategies + large batch](../../docs/milestones/r2-02-large-message-path.md), [R2-04 perf baseline](../../docs/milestones/r2-04-perf-baseline.md), [R3-01 service/action/graph/parameters](../../docs/milestones/r3-01-services-actions-graph.md), [R3-03 WT ConnectOptions](../../docs/milestones/r3-03-h-ft-webtransport.md#outcome-webtransport) |
-| `examples/**` | [R1-05 e2e + demo](../../docs/milestones/r1-05-e2e-evidence.md) |
+| `sdk/**` | [SDK](../../docs/sdk.md), [intent](./intent.md), [architecture](../../docs/architecture.md), [R1-04 SDK host](../../docs/milestones/r1-04-wasm-host-sdk.md), [R1-05 e2e](../../docs/milestones/r1-05-e2e-evidence.md), [R2-01 publish/reconnect](../../docs/milestones/r2-01-data-plane-hardening.md), [R2-02 buffer strategies + large batch](../../docs/milestones/r2-02-large-message-path.md), [R2-04 perf baseline](../../docs/milestones/r2-04-perf-baseline.md), [R3-01 service/action/graph/parameters](../../docs/milestones/r3-01-services-actions-graph.md), [R3-03 WT ConnectOptions](../../docs/milestones/r3-03-h-ft-webtransport.md#outcome-webtransport), [R4-04 public vs internal](../../docs/milestones/r4-04-sdk.md) |
+| `sdk/typescript/src/index.ts`, `internal.ts` | Public application contract vs host/ABI/test helpers ([SDK](../../docs/sdk.md#public-vs-internal)) |
+| `examples/**` | [SDK](../../docs/sdk.md), [examples README](../../examples/README.md), [R1-05 e2e + demo](../../docs/milestones/r1-05-e2e-evidence.md), [R4-04](../../docs/milestones/r4-04-sdk.md) |
 | `docker/**` | [R1-05 compose lane](../../docs/milestones/r1-05-e2e-evidence.md), [R2-04 live perf compose](../../docs/milestones/r2-04-perf-baseline.md), [R3-03 H-FT live Humble](../../docs/milestones/r3-03-h-ft-webtransport.md), [R4-02 J-FT / H-FT runtime images](../../docs/milestones/r4-02-deployment-observability.md), digest-pinned `oven/bun` ([gotchas](./gotchas.md#github-releases-downloads-need-retries)) |
 | `.github/workflows/ci.yml` | Foundation: `setup-bun` / `setup-just` (one retry) / `rust-toolchain`; e2e images copy Bun from `oven/bun` ([gotchas](./gotchas.md#github-releases-downloads-need-retries)); do not wrap cargo tests in Docker ([gotchas](./gotchas.md#do-not-wrap-cargo-tests-in-a-docker-mock-lane)) |
 | `scripts/cloud-agent-install.sh`, `scripts/install-pinned-bun.sh`, `scripts/github-release-curl.sh` | Non-Actions toolchain install (cloud-agent VM) ([gotchas](./gotchas.md#github-releases-downloads-need-retries)) |
@@ -58,6 +61,7 @@ rclweb is one Rust core (`rclweb`) serving the gateway natively and the browser 
 | `rustfmt.toml`, `clippy.toml`, root `Cargo.toml` `[workspace.lints]` / `[workspace.dependencies]` | [Rust workspace infrastructure](./technology-stack.md#rust-workspace-infrastructure) |
 | `justfile` (`fmt`, `clippy`, `lint-rust`, `doctor`, `setup`) | Same; `just check` remains the foundation gate. No git-hook installer |
 | `scripts/build-wasm.ts`, `sdk/typescript/wasm/rclweb.wasm` | Fat-LTO wasm ship; `release-wasm` inherits native release ([gotchas](./gotchas.md#release-wasm-inherits-native-release-settings)) |
+| SDK I/O Worker URL | Source `.ts` vs bundle `.js` ([gotchas](./gotchas.md#sdk-worker-url-follows-the-script-extension)) |
 | `scripts/perf-baseline/**`, `scripts/measure-perf-baseline.ts` | [R2-04 Foxglove/rosbridge baseline](../../docs/milestones/r2-04-perf-baseline.md) |
 | Support matrix / qualification | Human matrix edit; no committed measurement JSON ([R4-03](../../docs/milestones/r4-03-support-matrix.md), [gotchas](./gotchas.md#do-not-commit-measurement-json)) |
 | `conformance/**` | [Validation](./validation.md), [corpus README](../../conformance/cdr/README.md), [support matrix](../../docs/support-matrix.md) |

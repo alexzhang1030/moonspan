@@ -11,7 +11,7 @@ import {
   pollEngine,
   readTelemetry,
   sharedArrayBufferConstructible,
-} from "../src/index.ts";
+} from "../src/internal.ts";
 
 const wasmPath = path.join(import.meta.dir, "..", "wasm", "rclweb.wasm");
 

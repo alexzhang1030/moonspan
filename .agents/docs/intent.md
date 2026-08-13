@@ -26,7 +26,7 @@ The mainline is one Rust core for gateway and browser ([ADR 0010](../../docs/adr
 - R2WP carries CDR and control data over bounded, observable transports.
 - `rclwebd` owns ROS attachment, identity, policy, scheduling, schema, audit, and operations at the edge.
 - Supported profiles carry conformance, performance, security, and deployment evidence.
-- The SDK exposes the reusable public application contract.
+- The SDK exposes the reusable public application contract ([SDK](../../docs/sdk.md)).
 
 ## Non-goals and posture
 

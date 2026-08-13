@@ -1,14 +1,15 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
+import { STD_MSGS_STRING } from "../src/index.ts";
 import {
   connectOfflineForTests,
   decodePollResult,
   encodeHostBatch,
   loadWasm,
   pollEngine,
-  STD_MSGS_STRING,
-} from "../src/index.ts";
+  resolveIoWorkerUrl,
+} from "../src/internal.ts";
 import { scriptedPeerFixtures } from "./scripted-peer.ts";
 
 const wasmPath = path.join(import.meta.dir, "..", "wasm", "rclweb.wasm");
@@ -20,11 +21,54 @@ test("sdk package identity and privacy", () => {
     version: string;
     private: boolean;
     type: string;
+    exports: Record<string, string>;
   };
   expect(pkg.name).toBe("@rclweb/sdk");
   expect(pkg.version).toBe("0.0.0");
   expect(pkg.private).toBe(true);
   expect(pkg.type).toBe("module");
+  expect(pkg.exports["."]).toBe("./src/index.ts");
+  expect(pkg.exports["./internal"]).toBe("./src/internal.ts");
+});
+
+test("public runtime exports stay application-facing", async () => {
+  const sdk = await import("../src/index.ts");
+  expect(Object.keys(sdk).sort()).toEqual([
+    "DEFAULT_QOS_DEPTH",
+    "STD_MSGS_STRING",
+    "connect",
+    "decodeCertificateHashValue",
+    "fetchLocalDevTlsHashes",
+    "httpOriginFromWebTransportUrl",
+  ]);
+  expect(sdk).not.toHaveProperty("loadWasm");
+  expect(sdk).not.toHaveProperty("IoHost");
+  expect(sdk).not.toHaveProperty("connectOfflineForTests");
+  expect(sdk).not.toHaveProperty("encodeHostBatch");
+  expect(sdk).not.toHaveProperty("SENSOR_MSGS_POINT_CLOUD2");
+});
+
+test("workspace export map resolves public and internal subpaths", async () => {
+  const pub = await import("@rclweb/sdk");
+  const intern = await import("@rclweb/sdk/internal");
+  expect(typeof pub.connect).toBe("function");
+  expect(typeof intern.resolveIoWorkerUrl).toBe("function");
+  expect(intern).not.toHaveProperty("connect");
+});
+
+test("I/O Worker URL follows the loading script extension", () => {
+  expect(
+    resolveIoWorkerUrl("file:///pkg/dist/index.js").href,
+  ).toBe("file:///pkg/dist/worker/io-worker.js");
+  expect(
+    resolveIoWorkerUrl("file:///pkg/src/client.ts").href,
+  ).toBe("file:///pkg/src/worker/io-worker.ts");
+  expect(
+    resolveIoWorkerUrl(
+      "file:///pkg/dist/index.js",
+      "https://example.test/io-worker.js",
+    ).href,
+  ).toBe("https://example.test/io-worker.js");
 });
 
 test("wasm artifact loads and exports the poll ABI", async () => {

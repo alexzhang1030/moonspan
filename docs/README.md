@@ -18,6 +18,7 @@ R0–R3 are complete. R4 (identity, deployment, support-matrix qualification, SD
 | Security and compatibility | [Security](./security.md), [compatibility](./compatibility.md) |
 | Supported ROS profiles | [Support matrix](./support-matrix.md) |
 | Evidence and release gates | [Validation](./validation.md), [support matrix](./support-matrix.md) |
+| Browser SDK | [SDK](./sdk.md) |
 | Architecture decisions | [ADR register](./adr/README.md) |
 | R1-01 Rust CDR | [Completion note](./milestones/r1-01-cdr-rust-port.md) |
 | R1-02 session/channel state machine | [Completion note](./milestones/r1-02-session-channel-state.md) |
@@ -35,6 +36,7 @@ R0–R3 are complete. R4 (identity, deployment, support-matrix qualification, SD
 | R4-01 OIDC / SROS2 / audit (in progress) | [Milestone note](./milestones/r4-01-oidc-sros2-audit.md) |
 | R4-02 deployment + observability (in progress) | [Milestone note](./milestones/r4-02-deployment-observability.md), [deploy](./deploy.md) |
 | R4-03 support matrix vs live gates (in progress) | [Milestone note](./milestones/r4-03-support-matrix.md) |
+| R4-04 SDK surface, docs, examples (in progress) | [Milestone note](./milestones/r4-04-sdk.md), [SDK](./sdk.md) |
 | Plan and current work | [Implementation plan](../tasks/plan.md), [execution checklist](../tasks/todo.md) |
 | Post-mainline Studio work | [Studio prototype](./prototypes/studio-ui.md), [design system](../.agents/docs/DESIGN.md) |
 
@@ -46,7 +48,8 @@ R0–R3 are complete. R4 (identity, deployment, support-matrix qualification, SD
 | `protocol/**` | [R2WP](./protocol/r2wp.md), [normative contract](../protocol/r2wp-v0.md), [fixtures](../protocol/testdata/README.md) |
 | `rclweb/**` | [`rclweb` core](./runtime/core.md), [CDR contract](./runtime/cdr.md), [architecture](./architecture.md) |
 | `rclwebd/**` | [`rclwebd`](./gateway/rclwebd.md), [security](./security.md), [deploy](./deploy.md) |
-| `sdk/**` | [Architecture](./architecture.md), [R2WP](./protocol/r2wp.md) |
+| `sdk/**` | [SDK](./sdk.md), [architecture](./architecture.md), [R2WP](./protocol/r2wp.md) |
+| `examples/**` | [SDK](./sdk.md), [examples README](../examples/README.md), [R1-05 e2e + demo](./milestones/r1-05-e2e-evidence.md) |
 | `conformance/**` | [Validation](./validation.md), [support matrix](./support-matrix.md), [corpus README](../conformance/cdr/README.md) |
 | `studio/` (reserved until U0; not in the tree) | [Studio prototype](./prototypes/studio-ui.md), [design system](../.agents/docs/DESIGN.md) |
 

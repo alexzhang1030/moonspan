@@ -61,7 +61,7 @@ Committed rustfmt/clippy knobs, workspace lints, shared crate versions, and name
 |---|---|
 | `rclweb/` | Cargo crate: the core (native + wasm32); `cdylib` exports the hand-written poll ABI |
 | `rclwebd/` | Cargo crate: the gateway |
-| `sdk/typescript/` | Bun workspace and browser SDK (I/O Worker + public API around the wasm artifact) |
+| `sdk/typescript/` | Bun workspace and browser SDK. `@rclweb/sdk` is the public application contract; `@rclweb/sdk/internal` is host/ABI/test helpers ([SDK](../../docs/sdk.md)) |
 | `sdk/typescript/wasm/` | Staged `rclweb.wasm` from `scripts/build-wasm.ts` (fat LTO) |
 | `protocol/` | Normative contracts, registries, schemas, and frozen fixtures |
 | `conformance/` | CDR corpus and qualification workloads |
