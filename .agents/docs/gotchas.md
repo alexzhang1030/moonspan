@@ -40,11 +40,11 @@ Traps already paid for in this repository, each with its why.
 
 ## Every sample lease has exactly one owner
 
-The engine reclaims a retained inbound slab only when every lease on it is released (`sweep_released` in `rclweb/src/engine/mod.rs` frees a buffer once ingest is done and its lease refcount hits zero). Any host or package code path that drops a sample without delivering it MUST release the lease at the drop site — otherwise the slab is pinned forever. An earlier host leaked on three drop paths: the Worker's non-String sample branch and the no-handler branch in both `InlineClient` and `WorkerClient`. The no-handler race is reachable in normal operation because `subscribed` and the first samples can arrive in the same poll flush, before the application has called `onMessage`. Fixed, with regression coverage in `typescript/test/sdk-poll.test.ts` (no-handler sample: `leasesReleased` must equal `samplesEmitted`). PointCloud2 delivery on the Worker copies `data` and releases at that copy site. Generated corpus messages are copied as host-value objects and released the same way. Unknown non-String types still drop-and-release. The public `Node` API releases after the user callback ([Public Node releases leases](#public-node-releases-leases)); `rclweb/internal` `connect` still requires an explicit `lease.release()`.
+The engine reclaims a retained inbound slab only when every lease on it is released (`sweep_released` in `rclweb/src/engine/mod.rs` frees a buffer once ingest is done and its lease refcount hits zero). Any host or package code path that drops a sample without delivering it MUST release the lease at the drop site — otherwise the slab is pinned forever. An earlier host leaked on three drop paths: the Worker's non-String sample branch and the no-handler branch in both `InlineClient` and `WorkerClient`. The no-handler race is reachable in normal operation because `subscribed` and the first samples can arrive in the same poll flush, before the application has called `onMessage`. Fixed, with regression coverage in `typescript/test/sdk-poll.test.ts` (no-handler sample: `leasesReleased` must equal `samplesEmitted`). PointCloud2 delivery on the Worker copies `data` and releases at that copy site. Generated corpus messages are copied as host-value objects and released the same way. Unknown non-String types still drop-and-release. The public `Node` API releases after the user callback ([Public Node releases leases](#public-node-releases-leases)); `rcl-web/internal` `connect` still requires an explicit `lease.release()`.
 
 ## Public Node releases leases
 
-`rclweb` is rclcpp-shaped (`init` / `Node` / `createSubscription`). Message types are `std_msgs.msg.String` / `sensor_msgs.msg.PointCloud2` / `rclweb_cdr_interfaces.msg.*`, not all-caps constants. The callback receives an owned message; `Node` copies PointCloud2 `data` and calls `lease.release()` after the callback returns. Applications must not import `rclweb/internal` `connect` unless they are hosting the poll ABI — that path still requires an explicit release. [`rclweb`](../../docs/typescript.md).
+`rcl-web` is rclcpp-shaped (`init` / `Node` / `createSubscription`). Message types are `std_msgs.msg.String` / `sensor_msgs.msg.PointCloud2` / `rclweb_cdr_interfaces.msg.*`, not all-caps constants. The callback receives an owned message; `Node` copies PointCloud2 `data` and calls `lease.release()` after the callback returns. Applications must not import `rcl-web/internal` `connect` unless they are hosting the poll ABI — that path still requires an explicit release. [`rcl-web`](../../docs/typescript.md).
 
 ## encodeHostBatch large-frame encoder
 
@@ -68,7 +68,7 @@ After Authenticate succeeds, `rclwebd` pushes SessionReady and then GraphSnapsho
 
 ## Public Node graph hides GraphSnapshot JSON
 
-`GraphView` (`generation`, `domain_id`, numeric endpoint `kind`) is `rclweb/internal`. Applications use rclcpp names on `Node`: `getNodeNames`, `getTopicNamesAndTypes`, `getServiceNamesAndTypes`, `getActionNamesAndTypes`, `countPublishers`, `countSubscribers`, and `onGraphChange`. Do not export GraphSnapshot field numbers or `session.onGraph` on `rclweb`.
+`GraphView` (`generation`, `domain_id`, numeric endpoint `kind`) is `rcl-web/internal`. Applications use rclcpp names on `Node`: `getNodeNames`, `getTopicNamesAndTypes`, `getServiceNamesAndTypes`, `getActionNamesAndTypes`, `countPublishers`, `countSubscribers`, and `onGraphChange`. Do not export GraphSnapshot field numbers or `session.onGraph` on `rcl-web`.
 
 ## Scripted GraphSnapshot endpoints must be complete control maps
 
@@ -92,7 +92,7 @@ App events 13–14 and 17–20 include `lease_id` plus `payload_ptr`/`payload_le
 
 ## Generated corpus messages use a packed host layout
 
-Generated msg roots (`PrimitiveScalars`, `Collections`, `NestedSample`) and the sectioned service/action types (`EchoNested_{Request,Response}`, `MeasureSequence_{Goal,Result,Feedback}`) cross the poll ABI as packed little-endian host-value bytes, not CDR and not JSON. Topics use `CMD_SEND_GENERATED` / `rclweb_decode_generated`. Service and action poll cmds stay opaque payload bytes: if the OpenChannel parent is generated, the engine converts host-value ↔ CDR with the generated codecs; otherwise the payload stays CDR (`AddTwoInts`, Fibonacci). Do not put that layout, CMD 18, or `rclweb_decode_generated` on `rclweb`. Applications use `rclweb_cdr_interfaces.msg.*` / `.srv.EchoNested` / `.action.MeasureSequence`. `int64` / `uint64` are `bigint`. The I/O Worker must key inbound samples **and** service/action channels by `typeName` — guessing PointCloud2 for every non-String sample drops generated CDR, and guessing CDR for EchoNested breaks `Node` decode.
+Generated msg roots (`PrimitiveScalars`, `Collections`, `NestedSample`) and the sectioned service/action types (`EchoNested_{Request,Response}`, `MeasureSequence_{Goal,Result,Feedback}`) cross the poll ABI as packed little-endian host-value bytes, not CDR and not JSON. Topics use `CMD_SEND_GENERATED` / `rclweb_decode_generated`. Service and action poll cmds stay opaque payload bytes: if the OpenChannel parent is generated, the engine converts host-value ↔ CDR with the generated codecs; otherwise the payload stays CDR (`AddTwoInts`, Fibonacci). Do not put that layout, CMD 18, or `rclweb_decode_generated` on `rcl-web`. Applications use `rclweb_cdr_interfaces.msg.*` / `.srv.EchoNested` / `.action.MeasureSequence`. `int64` / `uint64` are `bigint`. The I/O Worker must key inbound samples **and** service/action channels by `typeName` — guessing PointCloud2 for every non-String sample drops generated CDR, and guessing CDR for EchoNested breaks `Node` decode.
 
 ## Schema metadata JSON shape
 
@@ -125,9 +125,13 @@ Foundation CI installs Bun with SHA-pinned `oven-sh/setup-bun` (`.bun-version`) 
 
 Canonical bundles live at `conformance/cdr/fixtures/bundles/<type with / → .>.json` (for example `rclweb_cdr_interfaces.msg.PrimitiveScalars.json`). Humble `SchemaKey.value` is still the SHA-256 of those bytes — that digest is a wire field, not a filename. Renaming scheme/package strings inside the JSON changes the digest; do not Docker `--write` the corpus for a name change. [ADR 0012](../../docs/adr/0012-rclweb-schema-identifiers.md).
 
+## Unscoped `rclweb` is blocked on npm as too similar to `rrweb`
+
+The exact name `rclweb` is unpublished (`GET https://registry.npmjs.org/rclweb` → 404; search total 0). A logged-in `npm publish` still returns **403**: npm's confusion / typo-squatting rule rejects it as too similar to [`rrweb`](https://www.npmjs.com/package/rrweb) (session replay; ~2.7M weekly downloads). The first attempt looked like a 404 because npm hides unauthorized PUTs; after `npm login` the real reason is the similarity check. Do not retry unscoped `rclweb`. The publish and import name is `rcl-web` ([ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md)). `GET https://registry.npmjs.org/rcl-web` is 404; only a human `npm publish` can prove the similarity check accepts it.
+
 ## npm pack copies LICENSE and NOTICE; do not commit them
 
-npm `files` cannot include `../LICENSE`. `scripts/npm-pack.ts --stage` (also the package `prepack` script) copies the repository `LICENSE` and `NOTICE` into `typescript/`. Those copies are gitignored. `just npm-pack-check` requires them in the tarball for `rclweb@0.0.1`. Do not commit `typescript/LICENSE` or `typescript/NOTICE`.
+npm `files` cannot include `../LICENSE`. `scripts/npm-pack.ts --stage` (also the package `prepack` script) copies the repository `LICENSE` and `NOTICE` into `typescript/`. Those copies are gitignored. `just npm-pack-check` requires them in the tarball for `rcl-web@0.0.1`. Do not commit `typescript/LICENSE` or `typescript/NOTICE`.
 
 ## Do not commit measurement JSON
 

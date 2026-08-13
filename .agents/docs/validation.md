@@ -18,7 +18,7 @@ Each accepted claim records:
 - stdout from the reproducing command (not committed);
 - errors, variance, reviewer, and gate disposition.
 
-Historical evidence stays in git history. Promotion to **Qualified** is a human edit of the [support matrix](../../docs/support-matrix.md), not a CI stamp and not a committed JSON pile. The first published TypeScript package version is `0.0.1`; a human still runs `npm publish`.
+Historical evidence stays in git history. Promotion to **Qualified** is a human edit of the [support matrix](../../docs/support-matrix.md), not a CI stamp and not a committed JSON pile. The first published TypeScript package is `rcl-web@0.0.1`; a human still runs `npm publish`.
 
 ## Review triggers
 

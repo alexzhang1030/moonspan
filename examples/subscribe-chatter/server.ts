@@ -1,6 +1,6 @@
 /**
  * Demo server: serves the built `rclweb` bundle and a page that connects to rclwebd.
- * Build first (`just build` or `bun run --filter rclweb build`), then:
+ * Build first (`just build` or `bun run --filter rcl-web build`), then:
  * `RCLWEB_GATEWAY_URL=ws://127.0.0.1:8794/ws bun run start`
  */
 import { serve } from "bun";
@@ -17,7 +17,7 @@ const sdkIndex = path.join(sdkDist, "index.js");
 if (!(await Bun.file(sdkIndex).exists())) {
   console.error(
     "subscribe-chatter needs the rclweb browser bundle at typescript/dist/index.js.\n" +
-      "Run `just build` (or `bun run --filter rclweb build`) first.",
+      "Run `just build` (or `bun run --filter rcl-web build`) first.",
   );
   process.exit(1);
 }

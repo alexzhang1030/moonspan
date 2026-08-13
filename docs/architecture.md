@@ -60,7 +60,7 @@ The sample path is copy discipline and drop discipline, with counters in telemet
 | Gateway framing | 0 | Header and payload as separate chunks; `bytes::Bytes` + vectored writes; the gateway never parses or moves the CDR body |
 | Gateway fan-out | 0 | Per-client policy on headers; one framed payload shared via `Bytes::clone` |
 | Worker → wasm linear memory | 1 (inherent) | One whole-payload copy in; Wasm cannot view external `ArrayBuffer`s |
-| Wasm → application | 0 | TypedArray views into wasm memory under the lease model (`rclweb/internal`) |
+| Wasm → application | 0 | TypedArray views into wasm memory under the lease model (`rcl-web/internal`) |
 
 The 0-copy view holds on the thread that owns wasm (the I/O Worker, or the calling thread when `options.inline: true`). The public `Node` callback copies PointCloud2 `data` so the application never holds a lease (rclcpp-owned message). Bulk fields that cross to the main thread on the Worker path are copied at that boundary: PointCloud2 `data` and service/action CDR. Shared wasm memory remains the parked path to 0-copy on the Worker ([ADR 0004](./adr/0004-browser-wasm-host-boundary.md)).
 
@@ -97,7 +97,7 @@ Cross-origin-isolated deployments may use a bounded `SharedArrayBuffer` ring. Ge
 | Protocol | [R2WP](./protocol/r2wp.md) |
 | Core | [`rclweb` core](./runtime/core.md), [CDR contract](./runtime/cdr.md), [generated types](./runtime/generated-types.md) |
 | Gateway | [`rclwebd`](./gateway/rclwebd.md) |
-| TypeScript package | [`rclweb`](./typescript.md) |
+| TypeScript package | [`rcl-web`](./typescript.md) |
 | Security | [Security](./security.md) |
 | Platforms | [Compatibility](./compatibility.md), [support matrix](./support-matrix.md) |
 | Evidence | [Validation](./validation.md) |

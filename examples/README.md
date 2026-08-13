@@ -7,4 +7,4 @@ Runnable consumers of `rclweb`. Application API: [`rclweb`](../docs/typescript.m
 | [`subscribe-chatter`](./subscribe-chatter/) | Browser demo: `init` → `Node` subscribe and publish `/chatter` |
 | [`e2e-harness`](./e2e-harness/) | Headless inline-host subscribe. Gate for `just e2e` and `just e2e-h-ft`; not a human demo |
 
-Both packages depend on `"rclweb": "workspace:*"`. Run `just setup` from the repository root before either example.
+Both packages depend on `"rcl-web": "workspace:*"`. Run `just setup` from the repository root before either example.

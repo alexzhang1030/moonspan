@@ -4,7 +4,7 @@
  * Public surface follows rclcpp: `init(url)` → `new Node(name)` →
  * `createPublisher` / `createSubscription` with ROS message types
  * (`std_msgs.msg.String`). Wasm, the I/O Worker, and sample leases stay
- * on `rclweb/internal`.
+ * on `rcl-web/internal`.
  */
 
 export { init, ok, shutdown, spin, type InitOptions } from "./context.ts";

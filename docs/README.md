@@ -12,7 +12,7 @@ These documents describe the product as it is: protocol, core, gateway, TypeScri
 | Wire protocol | [R2WP](./protocol/r2wp.md) |
 | Core, CDR, generated types | [`rclweb` core](./runtime/core.md), [CDR](./runtime/cdr.md), [generated types](./runtime/generated-types.md) |
 | Gateway | [`rclwebd`](./gateway/rclwebd.md), [security](./security.md), [deploy](./deploy.md) |
-| TypeScript package | [`rclweb`](./typescript.md) |
+| TypeScript package | [`rcl-web`](./typescript.md) |
 | Supported ROS profiles | [Support matrix](./support-matrix.md), [compatibility](./compatibility.md) |
 | How claims are proven | [Validation](./validation.md) |
 | License | [Licensing](./licensing.md), [third-party inventory](./third-party.md) |
@@ -28,8 +28,8 @@ These documents describe the product as it is: protocol, core, gateway, TypeScri
 | `protocol/**` | [R2WP](./protocol/r2wp.md), [normative contract](../protocol/r2wp-v0.md), [fixtures](../protocol/testdata/README.md) |
 | `rclweb/**` | [`rclweb` core](./runtime/core.md), [CDR](./runtime/cdr.md), [architecture](./architecture.md) |
 | `rclwebd/**` | [`rclwebd`](./gateway/rclwebd.md), [security](./security.md), [deploy](./deploy.md) |
-| `typescript/**` | [`rclweb`](./typescript.md), [architecture](./architecture.md), [R2WP](./protocol/r2wp.md), [ADR 0013](./adr/0013-typescript-package-rclweb.md) |
-| `examples/**` | [`rclweb`](./typescript.md), [examples README](../examples/README.md) |
+| `typescript/**` | [`rcl-web`](./typescript.md), [architecture](./architecture.md), [R2WP](./protocol/r2wp.md), [ADR 0014](./adr/0014-typescript-package-rcl-web.md) |
+| `examples/**` | [`rcl-web`](./typescript.md), [examples README](../examples/README.md) |
 | `conformance/**` | [Validation](./validation.md), [support matrix](./support-matrix.md), [corpus README](../conformance/cdr/README.md) |
 | `studio/` (not in the tree) | [Studio prototype](./prototypes/studio-ui.md), [design system](../.agents/docs/DESIGN.md) |
 

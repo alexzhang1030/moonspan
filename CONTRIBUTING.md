@@ -48,6 +48,7 @@ Third-party crates and npm packages on the published surface must stay
 OSI-permissive. After changing Cargo or Bun dependencies, run
 `just license-inventory` and keep `just license-inventory-check` green.
 
-The first published TypeScript package is `rclweb@0.0.1`. Publish is a
+The first published TypeScript package is `rcl-web@0.0.1`. Publish is a
 human step from `typescript/` after `just build` (`npm publish`). Do not
-commit the staged `typescript/LICENSE` / `typescript/NOTICE` copies.
+commit the staged `typescript/LICENSE` / `typescript/NOTICE` copies. Do
+not retry unscoped `rclweb` on npm (blocked as too similar to `rrweb`).

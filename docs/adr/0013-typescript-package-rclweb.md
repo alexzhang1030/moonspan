@@ -36,17 +36,23 @@ Owner ruling (2026-08-13): call the package `rclweb`; do not publish it as
 
 ## Consequences
 
-- Examples and scripts depend on `"rclweb": "workspace:*"`.
+- Examples and scripts depended on `"rclweb": "workspace:*"` until
+  [ADR 0014](./0014-typescript-package-rcl-web.md) (`"rcl-web": "workspace:*"`).
 - `just build` stages `typescript/wasm/rclweb.wasm` and `typescript/dist/`.
 - Historical task IDs that contain `sdk` are not the package name.
 - The first published version is `0.0.1`. The package is public. An npm
   tarball must include the repository `LICENSE` and `NOTICE` (copied into
   `typescript/` at pack time). The repository is Apache-2.0. Rust crates
   stay `publish = false`. A human still runs `npm publish`.
+- **Revisit trigger fired (2026-08-13):** npm rejects unscoped `rclweb` as
+  too similar to existing package `rrweb` (403). The exact name is
+  unpublished. Evidence: owner `npm publish` from `typescript/` after
+  login; `GET https://registry.npmjs.org/rclweb` is 404. The publish and
+  import name is now `rcl-web` ([ADR 0014](./0014-typescript-package-rcl-web.md)).
 
 ## Revisit triggers
 
-- The unscoped `rclweb` name is unavailable on the chosen registry.
+- The unscoped `rclweb` name is unavailable on the chosen registry. **Fired:** npm 403 vs `rrweb`.
 - A language-workspace split requires the TypeScript package to leave this
   repository (ADR 0003 revisit).
 

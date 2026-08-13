@@ -5,7 +5,7 @@
  * exercise the wrong row/RMW.
  */
 import path from "node:path";
-import { init, Node, shutdown, std_msgs } from "rclweb";
+import { init, Node, shutdown, std_msgs } from "rcl-web";
 
 const gatewayUrl =
   process.env.RCLWEB_GATEWAY_URL ?? "ws://127.0.0.1:8794/ws";

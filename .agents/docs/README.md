@@ -2,7 +2,7 @@
 
 PCR records preserve the durable reasoning that contributors need across tasks. Formal requirements live under [`docs/`](../../docs/README.md). These records remain open to evidence-backed updates.
 
-rclweb is one Rust core (`rclweb`) serving the gateway natively and the browser as Wasm, a TypeScript package (`rclweb` at `typescript/`), and R2WP over WebSocket and WebTransport ([ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md), [ADR 0013](../../docs/adr/0013-typescript-package-rclweb.md), [architecture](../../docs/architecture.md)).
+rclweb is one Rust core (`rclweb`) serving the gateway natively and the browser as Wasm, a TypeScript package (`rcl-web` at `typescript/`), and R2WP over WebSocket and WebTransport ([ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md), [ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md), [architecture](../../docs/architecture.md)).
 
 Documentation describes the product. It is not a delivery-phase ledger. Historical task IDs (M0, R1, U0, and the rest) stay in git and in ADR Decision text.
 
@@ -16,7 +16,7 @@ Documentation describes the product. It is not a delivery-phase ledger. Historic
 | Rust workspace (fmt, clippy, lints, just recipes) | [Technology stack — Rust workspace infrastructure](./technology-stack.md#rust-workspace-infrastructure) |
 | Traps already paid for | [Gotchas](./gotchas.md) |
 | Evidence and gate authority | [Validation](./validation.md) |
-| TypeScript package | [`rclweb`](../../docs/typescript.md), [ADR 0013](../../docs/adr/0013-typescript-package-rclweb.md) |
+| TypeScript package | [`rcl-web`](../../docs/typescript.md), [ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md) |
 | License | [Licensing](../../docs/licensing.md) |
 | Studio visual system | [DESIGN.md](./DESIGN.md) |
 
@@ -49,10 +49,10 @@ Documentation describes the product. It is not a delivery-phase ledger. Historic
 | `rclwebd/src/acl.rs` | [security](../../docs/security.md); `enforce` is default-deny ([gotchas](./gotchas.md#acls-default-to-off-enforce-is-default-deny)) |
 | `rclwebd/src/ops.rs` | [deploy](../../docs/deploy.md); `/healthz` is liveness ([gotchas](./gotchas.md#healthz-is-liveness-not-readiness)) |
 | `docker/**` | [deploy](../../docs/deploy.md), digest-pinned `oven/bun` ([gotchas](./gotchas.md#github-releases-downloads-need-retries)) |
-| `typescript/**` | [`rclweb`](../../docs/typescript.md), [ADR 0013](../../docs/adr/0013-typescript-package-rclweb.md). First published version is `0.0.1`. Reconnect is a fresh session ([gotchas](./gotchas.md#reconnect-is-a-fresh-session-not-sessionresume)); Worker `telemetry()` is the last poll snapshot ([gotchas](./gotchas.md#worker-telemetry-is-the-last-poll-snapshot)); pack copies LICENSE/NOTICE ([gotchas](./gotchas.md#npm-pack-copies-license-and-notice-do-not-commit-them)) |
-| `scripts/npm-pack.ts` | Stage root `LICENSE`/`NOTICE` into `typescript/` and verify the `rclweb@0.0.1` tarball ([licensing](../../docs/licensing.md)) |
-| `typescript/src/index.ts`, `internal.ts` | Public `init`/`Node` vs host/ABI ([`rclweb`](../../docs/typescript.md#public-vs-internal)); graph getters hide GraphSnapshot JSON ([gotchas](./gotchas.md#public-node-graph-hides-graphsnapshot-json)) |
-| `examples/**` | [`rclweb`](../../docs/typescript.md), [examples README](../../examples/README.md) |
+| `typescript/**` | [`rcl-web`](../../docs/typescript.md), [ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md). First published version is `0.0.1`. npm blocks unscoped `rclweb` vs `rrweb` ([gotchas](./gotchas.md#unscoped-rclweb-is-blocked-on-npm-as-too-similar-to-rrweb)). Reconnect is a fresh session ([gotchas](./gotchas.md#reconnect-is-a-fresh-session-not-sessionresume)); Worker `telemetry()` is the last poll snapshot ([gotchas](./gotchas.md#worker-telemetry-is-the-last-poll-snapshot)); pack copies LICENSE/NOTICE ([gotchas](./gotchas.md#npm-pack-copies-license-and-notice-do-not-commit-them)) |
+| `scripts/npm-pack.ts` | Stage root `LICENSE`/`NOTICE` into `typescript/` and verify the `rcl-web@0.0.1` tarball ([licensing](../../docs/licensing.md)) |
+| `typescript/src/index.ts`, `internal.ts` | Public `init`/`Node` vs host/ABI ([`rcl-web`](../../docs/typescript.md#public-vs-internal)); graph getters hide GraphSnapshot JSON ([gotchas](./gotchas.md#public-node-graph-hides-graphsnapshot-json)) |
+| `examples/**` | [`rcl-web`](../../docs/typescript.md), [examples README](../../examples/README.md) |
 | `.github/workflows/ci.yml` | [Validation](../../docs/validation.md); do not wrap cargo tests in Docker ([gotchas](./gotchas.md#do-not-wrap-cargo-tests-in-a-docker-mock-lane)) |
 | `pixi.toml` | Optional RoboStack J-FT ([technology stack](./technology-stack.md#optional-local-ros-prefix), [gotchas](./gotchas.md#pixi-ros-test-must-pin-rosprefix-over-a-host-optros)) |
 | `scripts/build-wasm.ts` | Fat-LTO wasm ship ([gotchas](./gotchas.md#release-wasm-inherits-native-release-settings)) |

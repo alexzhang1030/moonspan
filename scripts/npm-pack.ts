@@ -86,7 +86,7 @@ export function packAndList(root: string): { tarball: string; listing: string } 
       .find((l) => l.endsWith(".tgz"));
     const tarball = tarballLine && existsSync(tarballLine)
       ? tarballLine
-      : path.join(outDir, "rclweb-0.0.1.tgz");
+      : path.join(outDir, "rcl-web-0.0.1.tgz");
     if (!existsSync(tarball)) {
       throw new Error(`packed tarball not found (stdout: ${packed.stdout.trim()})`);
     }
@@ -123,8 +123,8 @@ function main(): void {
     version: string;
     private?: boolean;
   };
-  if (pkg.name !== "rclweb" || pkg.version !== "0.0.1" || pkg.private) {
-    console.error("npm-pack: package must be rclweb@0.0.1 with private unset or false");
+  if (pkg.name !== "rcl-web" || pkg.version !== "0.0.1" || pkg.private) {
+    console.error("npm-pack: package must be rcl-web@0.0.1 with private unset or false");
     process.exit(1);
   }
   console.log(
