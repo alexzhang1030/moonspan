@@ -67,6 +67,12 @@ export function tarballContainsSource(listing: string): boolean {
   return listing.split(/\r?\n/).some((l) => l.trim().startsWith("package/src/"));
 }
 
+/** True when the export map still points at `.ts` source (`.d.ts` is allowed). */
+export function exportsPointAtSource(exportsValue: unknown, files: string[] = []): boolean {
+  const exportText = JSON.stringify(exportsValue ?? {}).replaceAll(".d.ts", "");
+  return exportText.includes(".ts") || files.includes("src");
+}
+
 function run(cmd: string, args: string[], cwd: string): { status: number; stdout: string; stderr: string } {
   const result = spawnSync(cmd, args, { cwd, encoding: "utf8" });
   return {
@@ -146,7 +152,7 @@ function main(): void {
     console.error("npm-pack: package must be rcl-web@0.0.1 with private unset or false");
     process.exit(1);
   }
-  if (JSON.stringify(pkg.exports ?? {}).includes(".ts") || (pkg.files ?? []).includes("src")) {
+  if (exportsPointAtSource(pkg.exports, pkg.files ?? [])) {
     console.error("npm-pack: exports must point at dist; files must not include src");
     process.exit(1);
   }

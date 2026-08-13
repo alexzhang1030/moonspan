@@ -5,6 +5,7 @@ import path from "node:path";
 import {
   parseNpmPackMode,
   stageLicenseFiles,
+  exportsPointAtSource,
   tarballContainsSource,
   tarballMemberMissing,
 } from "./npm-pack.ts";
@@ -61,6 +62,22 @@ describe("tarballMemberMissing", () => {
     ].join("\n");
     expect(tarballContainsSource(listing)).toBe(true);
     expect(tarballContainsSource("package/dist/index.js\n")).toBe(false);
+  });
+});
+
+describe("exportsPointAtSource", () => {
+  test("treats .d.ts export maps as the ship bundle", () => {
+    expect(
+      exportsPointAtSource({
+        ".": { types: "./dist/index.d.ts", import: "./dist/index.js" },
+      }),
+    ).toBe(false);
+    expect(
+      exportsPointAtSource({
+        ".": { types: "./src/index.ts", import: "./src/index.ts" },
+      }),
+    ).toBe(true);
+    expect(exportsPointAtSource({ ".": "./dist/index.js" }, ["src"])).toBe(true);
   });
 });
 
