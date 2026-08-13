@@ -46,13 +46,17 @@ The engine reclaims a retained inbound slab only when every lease on it is relea
 
 `rcl-web` is rclcpp-shaped (`init` / `Node` / `createSubscription`). Message types are `std_msgs.msg.String` / `sensor_msgs.msg.PointCloud2` / `rclweb_cdr_interfaces.msg.*`, not all-caps constants. The callback receives an owned message; `Node` copies PointCloud2 `data` and calls `lease.release()` after the callback returns. Applications must not import `rcl-web/internal` `connect` unless they are hosting the poll ABI — that path still requires an explicit release. [How to](../../docs/typescript.md), [API](../../docs/api.md).
 
+## hostRetainPrefixLen peeks the R2WP header only
+
+`hostRetainPrefixLen` in `typescript/src/wasm/abi.ts` reads version, opcode, big-endian `payload_len`, and `extension_len` to decide whether wasm gets the 32+ext prefix. It is not a second protocol implementation — `parse_frame_declared` still validates the frame. Do not grow it into a JS R2WP codec. Control, bootstrap, and experimental opcodes return `null` (full copy). Landed with [ADR 0017](../../docs/adr/0017-host-retain-inbound-sample-payload.md).
+
 ## parse_frame must not build default FrameOptions on the sample path
 
 `parse_frame` used to construct `FrameOptions::default()` (a `BTreeSet` of clock ids) on every call, then `unwrap_or`. The engine always passes `Some(&self.frame_options)`, but `Default` still ran, so every ROS_SAMPLE ingest paid that allocation. Build the fallback only in the `None` branch.
 
 ## encodeHostBatch large-frame encoder
 
-Spread-pushing a byte array into a `number[]` (`out.push(...bytes)`) throws a RangeError on large frames — every element becomes a call argument, and hundreds of KB / ~1 MiB (PointCloud2 scale) exceeds the engine's argument/call-stack limit. `encodeHostBatch` in `typescript/src/wasm/abi.ts` is a two-pass preallocated `Uint8Array` encoder (size, then write). Do not reintroduce `push(...bytes)` or per-byte `number[]` builders on the data path. Live WS ingest uses the external-ptr poll path for every frame so the engine owns the wasm allocation without a second deep copy; `encodeHostBatch` stays for command-only batches and tests.
+Spread-pushing a byte array into a `number[]` (`out.push(...bytes)`) throws a RangeError on large frames — every element becomes a call argument, and hundreds of KB / ~1 MiB (PointCloud2 scale) exceeds the engine's argument/call-stack limit. `encodeHostBatch` in `typescript/src/wasm/abi.ts` is a two-pass preallocated `Uint8Array` encoder (size, then write). Do not reintroduce `push(...bytes)` or per-byte `number[]` builders on the data path. Live WS ingest uses `rclweb_poll_ws` (header prefix for application frames). `encodeHostBatch` stays for command-only batches and tests.
 
 ## WebTransport local certs are ≤14 days by browser rule
 
@@ -86,9 +90,9 @@ Reliable operation streams (SERVICE_REQUEST/RESPONSE, ACTION_GOAL/CANCEL/RESULT)
 
 App events 13–14 and 17–20 include `lease_id` plus `payload_ptr`/`payload_len` (same lease model as Sample). The abbreviated command layouts omit those ptr fields; without them the wasm host cannot copy request/response bodies. TS must release the lease after `IoHost.copyPayload`. The I/O Worker copies those bytes and releases the lease before `postMessage` so main never holds a wasm pointer.
 
-## Worker PointCloud2 copies `data`, inline borrows it
+## Worker PointCloud2 copies `data`, inline borrows the WS buffer
 
-`rclweb_point_cloud2_meta` returns metadata plus an offset/len into the leased CDR. On `options.inline: true` the host hands a TypedArray into wasm memory (copy-budget 0 wasm→application; valid until `lease.release()`). The I/O Worker cannot share that memory with main without SAB, so it copies only the `data` field, releases the lease, and transfers the ArrayBuffer — same class of boundary copy as service/action CDR. The public `Node` callback always owns a copy and never sees the lease. Do not copy the whole CDR payload, and do not keep the lease outstanding after a Worker copy (a 1 MiB cloud would then pin wasm *and* hold a JS copy). [Architecture](../../docs/architecture.md#performance-contracts).
+Inbound PointCloud2 `data` is a view of the host-retained WebSocket buffer ([ADR 0017](../../docs/adr/0017-host-retain-inbound-sample-payload.md)). On `options.inline: true` that view is valid until `lease.release()`. The I/O Worker cannot share that buffer with main without SAB, so it copies only the `data` field, releases the lease, and transfers the ArrayBuffer — same class of boundary copy as service/action CDR. The public `Node` callback always owns a copy and never sees the lease. Do not copy the whole CDR payload, and do not keep the lease outstanding after a Worker copy (a 1 MiB cloud would then pin the WS buffer *and* hold a JS copy). [Architecture](../../docs/architecture.md#performance-contracts).
 
 ## PointCloud2 header and fields travel on the host command
 

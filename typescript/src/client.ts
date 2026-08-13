@@ -740,6 +740,7 @@ class InlineClient implements RclwebClient {
             typeName,
             event.payloadPtr,
             event.payloadLen,
+            event.hostPayload,
           );
           if (!generated) {
             this.#host.releaseLease(event.leaseId);
@@ -751,6 +752,7 @@ class InlineClient implements RclwebClient {
         const cloud = this.#host.decodePointCloud2(
           event.payloadPtr,
           event.payloadLen,
+          event.hostPayload,
         );
         if (!cloud) {
           this.#host.releaseLease(event.leaseId);
@@ -826,6 +828,7 @@ class InlineClient implements RclwebClient {
           "Response",
           event.payloadPtr,
           event.payloadLen,
+          event.hostPayload,
         );
         this.#host.releaseLease(event.leaseId);
         this.#host.flushSync();
@@ -844,6 +847,7 @@ class InlineClient implements RclwebClient {
           "Request",
           event.payloadPtr,
           event.payloadLen,
+          event.hostPayload,
         );
         this.#host.releaseLease(event.leaseId);
         this.#host.flushSync();
@@ -945,6 +949,7 @@ class InlineClient implements RclwebClient {
           "Goal",
           event.payloadPtr,
           event.payloadLen,
+          event.hostPayload,
         );
         this.#host.releaseLease(event.leaseId);
         this.#host.flushSync();
@@ -962,6 +967,7 @@ class InlineClient implements RclwebClient {
           "Feedback",
           event.payloadPtr,
           event.payloadLen,
+          event.hostPayload,
         );
         this.#host.releaseLease(event.leaseId);
         this.#host.flushSync();
@@ -978,6 +984,7 @@ class InlineClient implements RclwebClient {
           "Result",
           event.payloadPtr,
           event.payloadLen,
+          event.hostPayload,
         );
         this.#host.releaseLease(event.leaseId);
         this.#host.flushSync();
@@ -989,7 +996,11 @@ class InlineClient implements RclwebClient {
       }
       case "actionStatus": {
         const handler = this.#actionStatus.get(event.channelId);
-        const bytes = this.#host.copyPayload(event.payloadPtr, event.payloadLen);
+        const bytes = this.#host.copyPayload(
+          event.payloadPtr,
+          event.payloadLen,
+          event.hostPayload,
+        );
         this.#host.releaseLease(event.leaseId);
         this.#host.flushSync();
         handler?.(bytes, event.operationId.slice());
@@ -1266,14 +1277,20 @@ function copyChannelOpPayload(
   op: GeneratedOpKind,
   payloadPtr: number,
   payloadLen: number,
+  hostPayload?: Uint8Array,
 ): Uint8Array {
   const typeName = channelTypes.get(channelId);
   const section = typeName ? generatedOpTypeName(typeName, op) : undefined;
   if (section) {
-    const bytes = host.copyGeneratedBytes(section, payloadPtr, payloadLen);
+    const bytes = host.copyGeneratedBytes(
+      section,
+      payloadPtr,
+      payloadLen,
+      hostPayload,
+    );
     if (bytes) return bytes;
   }
-  return host.copyPayload(payloadPtr, payloadLen);
+  return host.copyPayload(payloadPtr, payloadLen, hostPayload);
 }
 
 class WorkerClient implements RclwebClient {

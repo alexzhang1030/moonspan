@@ -38,7 +38,7 @@ One gateway process may expose multiple domain IDs within its support row. Fleet
 
 - CDR stays on the binary data path; the gateway never parses sample bodies.
 - Browser APIs remain in JavaScript Workers; the core crosses the boundary through bounded poll batches ([ADR 0004](../../docs/adr/0004-browser-wasm-host-boundary.md)).
-- The copy budget is two controllable payload copies end to end, with telemetry counters ([performance contracts](../../docs/architecture.md#performance-contracts)). Those two are the RMW take and the Worker→wasm hop; 0 end-to-end is not a target. Gateway framing is 0 extra copies. Host poll copies each WS frame into wasm once. Wasm-thread views are 0 copies; the public `Node` API copies PointCloud2 `data`. Worker→main copies bulk fields. Foxglove / rosbridge: [performance](../../docs/performance.md).
+- The copy budget is one controllable payload copy end to end (RMW take). Sample bodies stay in the host WebSocket buffer; wasm keeps the R2WP prefix ([ADR 0017](../../docs/adr/0017-host-retain-inbound-sample-payload.md), [performance contracts](../../docs/architecture.md#performance-contracts)). Wasm-thread views are 0 copies; the public `Node` API copies PointCloud2 `data`. Worker→main copies bulk fields. Foxglove / rosbridge: [performance](../../docs/performance.md).
 - Queue, buffer, timeout, retry, and memory budgets are explicit; best-effort channels drop at the edge with stable dispositions.
 - Large-message / PointCloud2 delivery keeps O(1) borrowed CDR views and measures both host buffer strategies.
 - Service/action channels use `OPERATION_ID` streams; graph state arrives as GraphSnapshot/Delta after SessionReady.

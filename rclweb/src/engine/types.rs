@@ -224,11 +224,11 @@ pub struct PollOutcome {
 
 /// Controllable-copy and poll telemetry for the browser-side engine (R1-05 / R2-02).
 ///
-/// The standing copy budget is two controllable payload copies end-to-end:
-/// (1) gateway rcl-take → frame buffer, (2) Worker → wasm/engine retained
-/// memory. Application delivery uses borrowed views / decoded String fields
-/// (zero extra controllable copies). WS ingest moves owned bytes into
-/// a `Bytes` slab so parse/lease paths do not deep-copy the payload again.
+/// The standing copy budget is one controllable payload copy end-to-end
+/// for inbound samples: the RMW serialized take. Worker→wasm copies only
+/// the R2WP header+extension prefix; the CDR body stays in the host buffer
+/// (ADR 0017). Control and bootstrap frames still retain their full bytes.
+/// Application delivery uses borrowed views / decoded String fields.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct EngineTelemetry {
   /// Inbound WS/bootstrap/frame buffers retained (each is one controllable copy).

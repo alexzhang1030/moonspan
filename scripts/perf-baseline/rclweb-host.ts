@@ -127,7 +127,7 @@ export async function measureEngineRetainCopy(
       bytesCopiedIntoEngineDelta:
         after.bytesCopiedIntoEngine - before.bytesCopiedIntoEngine,
       pollMs: Number(pollMs.toFixed(4)),
-      note: "External-ptr WS ingest: one controllable retain copy (budget slot 2).",
+      note: "Synthetic full-frame retain after Start (bootstrap plane; not a valid sample).",
     };
   } finally {
     wasm.rclweb_engine_free(handle);

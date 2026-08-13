@@ -71,15 +71,15 @@ export const COPY_PATHS: Record<CopySystemId, CopyPath> = {
     },
     {
       stage: "Worker → wasm",
-      copies: 1,
+      copies: 0,
       kind: "inherent",
-      note: "one memcpy into wasm linear memory (external-ptr)",
+      note: "R2WP header+extension prefix only; CDR body stays in the JS buffer (ADR 0017)",
     },
     {
       stage: "wasm-thread application view",
       copies: 0,
       kind: "extra",
-      note: "TypedArray lease into wasm memory (rcl-web/internal)",
+      note: "TypedArray view of the host-retained WebSocket buffer (rcl-web/internal)",
     },
     {
       stage: "public Node / Worker → main",

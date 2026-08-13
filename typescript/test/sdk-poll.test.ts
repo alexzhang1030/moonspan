@@ -10,7 +10,7 @@ import {
   pollEngine,
   resolveIoWorkerUrl,
 } from "../src/internal.ts";
-import { decodeStdMsgsStringAt } from "../src/wasm/abi.ts";
+import { decodeStdMsgsStringAt, hostRetainPrefixLen } from "../src/wasm/abi.ts";
 import { scriptedPeerFixtures } from "./scripted-peer.ts";
 
 const wasmPath = path.join(import.meta.dir, "..", "wasm", "rclweb.wasm");
@@ -146,6 +146,15 @@ test("wasm artifact loads and exports the poll ABI", async () => {
   void batch;
   void decodePollResult;
   wasm.rclweb_engine_free(handle);
+});
+
+test("hostRetainPrefixLen copies only the R2WP header for application frames", () => {
+  const fixtures = scriptedPeerFixtures();
+  expect(hostRetainPrefixLen(fixtures.sample)).toBe(32);
+  expect(hostRetainPrefixLen(fixtures.pointCloud2Sample)).toBe(32);
+  expect(hostRetainPrefixLen(fixtures.serverHello)).toBeNull();
+  expect(hostRetainPrefixLen(fixtures.sessionReady)).toBeNull();
+  expect(hostRetainPrefixLen(new Uint8Array(8))).toBeNull();
 });
 
 test("decodeStdMsgsStringAt reads a filled (possibly uninit) wasm alloc", async () => {
@@ -361,7 +370,7 @@ function readXyz(data: Uint8Array, index: number): [number, number, number] {
   ];
 }
 
-test("scripted peer: PointCloud2 sample is a borrowed wasm view", async () => {
+test("scripted peer: PointCloud2 sample is a borrowed view of the WS buffer", async () => {
   const fixtures = scriptedPeerFixtures();
   const wasmBytes = readFileSync(wasmPath);
   const client = await connectOfflineForTests(
@@ -386,6 +395,8 @@ test("scripted peer: PointCloud2 sample is a borrowed wasm view", async () => {
   const sub = await subPromise;
   expect(sub.typeName).toBe(sensor_msgs.msg.PointCloud2.typeName);
 
+  const bytesBefore = client.telemetry()?.bytesCopiedIntoEngine ?? 0;
+
   let saw: {
     width: number;
     height: number;
@@ -402,7 +413,7 @@ test("scripted peer: PointCloud2 sample is a borrowed wasm view", async () => {
       width: msg.width,
       height: msg.height,
       dataLen: msg.data.length,
-      borrowed: msg.data.buffer === host.engineMemory(),
+      borrowed: msg.data.buffer === fixtures.pointCloud2Sample.buffer,
       frameId: msg.frameId,
       stampSec: msg.stampSec,
       field0: msg.fields[0]?.name ?? "",
@@ -433,6 +444,7 @@ test("scripted peer: PointCloud2 sample is a borrowed wasm view", async () => {
   const telemetry = client.telemetry();
   expect(telemetry).not.toBeNull();
   expect(telemetry!.leasesReleased).toBe(telemetry!.samplesEmitted);
+  expect(telemetry!.bytesCopiedIntoEngine - bytesBefore).toBe(32);
 
   await client.close();
 });

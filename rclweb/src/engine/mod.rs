@@ -36,9 +36,10 @@ use crate::protocol::control::{
 };
 use crate::protocol::extension::{OPERATION_ID_EXTENSION_TYPE, R2wpExtension};
 use crate::protocol::frame::{
-  DecodedFrame, FLAG_ROS_RELIABLE, FrameOptions, FramePayload, OPCODE_ACTION_CANCEL,
-  OPCODE_ACTION_FEEDBACK, OPCODE_ACTION_GOAL, OPCODE_ACTION_RESULT, OPCODE_ACTION_STATUS,
-  OPCODE_CONTROL_CBOR, OPCODE_ROS_SAMPLE, OPCODE_SERVICE_REQUEST, OPCODE_SERVICE_RESPONSE,
+  DecodedFrame, FLAG_ROS_RELIABLE, FRAME_HEADER_LENGTH, FrameOptions, FramePayload,
+  OPCODE_ACTION_CANCEL, OPCODE_ACTION_FEEDBACK, OPCODE_ACTION_GOAL, OPCODE_ACTION_RESULT,
+  OPCODE_ACTION_STATUS, OPCODE_CONTROL_CBOR, OPCODE_ROS_SAMPLE, OPCODE_SERVICE_REQUEST,
+  OPCODE_SERVICE_RESPONSE, parse_frame_declared, retain_declared_len,
 };
 use crate::protocol::{
   FrameHeader, encode_client_hello, encode_control_frame, encode_extension_area, encode_frame,
@@ -111,7 +112,10 @@ struct ActiveAction {
 #[derive(Debug)]
 struct RetainedBuffer {
   /// Inbound frame bytes. `Bytes` so parse/lease paths share without a deep copy.
+  /// Host-retain ingest stores only the R2WP header+extension prefix.
   bytes: Bytes,
+  /// Header-declared frame size (`32 + ext + payload`). May exceed `bytes.len()`.
+  declared_len: usize,
   /// Number of outstanding sample leases pointing into this buffer.
   lease_refs: u32,
   /// True once the host has finished the poll that ingested these bytes
@@ -222,8 +226,8 @@ impl ClientEngine {
   /// application events, released buffers, and the next deadline.
   ///
   /// Takes ownership of events so inbound `WsBytes` payloads move into the
-  /// retained slab (the browser-side controllable copy) without a second
-  /// deep copy (copy-budget slot 2).
+  /// retained slab. Sample-body host-retain (ADR 0017) keeps only the R2WP
+  /// prefix here; control/bootstrap still retain the full frame.
   pub fn poll(&mut self, events: Vec<HostEvent>) -> PollOutcome {
     self.run_poll(|this, outcome| {
       let limit = events.len().min(MAX_HOST_EVENTS_PER_POLL);
@@ -842,16 +846,15 @@ impl ClientEngine {
   }
 
   fn handle_ws_bytes(&mut self, buffer_id: u32, bytes: Bytes, outcome: &mut PollOutcome) {
-    // Move into the retained slab. This retention is the browser-side
-    // controllable copy (budget slot 2) when the host already placed bytes
-    // in engine-owned storage; `Bytes` keeps later parse clones O(1).
+    // Count the bytes actually retained. Sample ingest copies only the R2WP
+    // prefix (ADR 0017); control/bootstrap still copy the full frame.
     self.telemetry.copies_into_engine = self.telemetry.copies_into_engine.saturating_add(1);
     self.telemetry.bytes_copied_into_engine =
       self.telemetry.bytes_copied_into_engine.saturating_add(bytes.len() as u64);
     let id = if buffer_id == 0 {
       self.alloc_buffer(bytes)
     } else {
-      self.retained.insert(buffer_id, RetainedBuffer { bytes, lease_refs: 0, ingest_done: false });
+      self.retained.insert(buffer_id, Self::new_retained(bytes));
       self.next_buffer_id = self.next_buffer_id.max(buffer_id.saturating_add(1));
       buffer_id
     };
@@ -899,10 +902,12 @@ impl ClientEngine {
   }
 
   fn handle_frame(&mut self, buffer_id: u32, outcome: &mut PollOutcome) {
-    let Some(bytes) = self.retained.get(&buffer_id).map(|b| b.bytes.clone()) else {
+    let Some(buf) = self.retained.get(&buffer_id) else {
       return;
     };
-    let frame = match parse_frame(&bytes, Some(&self.frame_options)) {
+    let bytes = buf.bytes.clone();
+    let declared_len = buf.declared_len;
+    let frame = match parse_frame_declared(&bytes, declared_len, Some(&self.frame_options)) {
       Ok(frame) => frame,
       Err(err) => {
         self.fail(outcome, err.code as u8, err.reason);
@@ -931,7 +936,7 @@ impl ClientEngine {
         self.handle_control(msg.kind, &msg.fields, &effects, outcome);
       }
       OPCODE_ROS_SAMPLE => {
-        self.handle_sample(buffer_id, &frame, &bytes, outcome);
+        self.handle_sample(buffer_id, &frame, declared_len, outcome);
       }
       OPCODE_SERVICE_REQUEST
       | OPCODE_SERVICE_RESPONSE
@@ -940,7 +945,7 @@ impl ClientEngine {
       | OPCODE_ACTION_RESULT
       | OPCODE_ACTION_STATUS
       | OPCODE_ACTION_CANCEL => {
-        self.handle_service_action(buffer_id, &frame, &bytes, outcome);
+        self.handle_service_action(buffer_id, &frame, declared_len, outcome);
       }
       _ => {}
     }
@@ -1117,15 +1122,15 @@ impl ClientEngine {
     &mut self,
     buffer_id: u32,
     frame: &DecodedFrame<'_>,
-    full_bytes: &[u8],
+    declared_len: usize,
     outcome: &mut PollOutcome,
   ) {
     let FramePayload::Application(payload) = &frame.payload else {
       return;
     };
-    let payload_offset = payload.as_ptr() as usize - full_bytes.as_ptr() as usize;
-    let payload_len = payload.len();
-    if payload_offset + payload_len > full_bytes.len() {
+    let payload_offset = FRAME_HEADER_LENGTH + usize::from(frame.extension_len);
+    let payload_len = frame.payload_len as usize;
+    if payload_offset.checked_add(payload_len).is_none_or(|end| end > declared_len) {
       self.fail(outcome, 25, "sample_payload_out_of_bounds");
       return;
     }
@@ -1134,7 +1139,7 @@ impl ClientEngine {
       // Host TextDecoder reads the leased CDR. Embedding the body in the poll
       // result copied every String sample an extra time.
       None
-    } else {
+    } else if payload.len() == payload_len {
       let type_name =
         self.active_subscribes.get(&frame.channel_id).map(|s| s.type_name.as_str()).unwrap_or("");
       if type_name == STD_MSGS_STRING || type_name == "std_msgs/String" || type_name.is_empty() {
@@ -1142,6 +1147,8 @@ impl ClientEngine {
       } else {
         None
       }
+    } else {
+      None
     };
 
     let lease_id = self.next_lease_id;
@@ -1152,9 +1159,12 @@ impl ClientEngine {
     self.leases.insert(lease_id, Lease { buffer_id, payload_offset, payload_len });
 
     // Hosts read the CDR payload through [`Self::lease_payload_view`]
-    // into the retained slab. Native tests deliver `string_data` on the
-    // event; wasm leaves it empty so the host decodes the lease (no extra
-    // copy of the String body through the poll result).
+    // into the retained slab, or through a host-backed sentinel
+    // (`ptr == 0 && len > 0`) when only the R2WP prefix was retained.
+    // Native tests deliver `string_data` on the event when the payload is
+    // inline; wasm leaves it empty so the host decodes the lease or the
+    // retained JS buffer (no extra copy of the String body through the
+    // poll result).
     outcome.events.push(AppEvent::Sample {
       channel_id: frame.channel_id,
       lease_id,
@@ -1169,15 +1179,15 @@ impl ClientEngine {
     &mut self,
     buffer_id: u32,
     frame: &DecodedFrame<'_>,
-    full_bytes: &[u8],
+    declared_len: usize,
     outcome: &mut PollOutcome,
   ) {
-    let FramePayload::Application(payload) = &frame.payload else {
+    let FramePayload::Application(_payload) = &frame.payload else {
       return;
     };
-    let payload_offset = payload.as_ptr() as usize - full_bytes.as_ptr() as usize;
-    let payload_len = payload.len();
-    if payload_offset + payload_len > full_bytes.len() {
+    let payload_offset = FRAME_HEADER_LENGTH + usize::from(frame.extension_len);
+    let payload_len = frame.payload_len as usize;
+    if payload_offset.checked_add(payload_len).is_none_or(|end| end > declared_len) {
       self.fail(outcome, 25, "service_action_payload_out_of_bounds");
       return;
     }
@@ -1287,8 +1297,13 @@ impl ClientEngine {
   fn alloc_buffer(&mut self, bytes: Bytes) -> u32 {
     let id = self.next_buffer_id;
     self.next_buffer_id = self.next_buffer_id.saturating_add(1);
-    self.retained.insert(id, RetainedBuffer { bytes, lease_refs: 0, ingest_done: false });
+    self.retained.insert(id, Self::new_retained(bytes));
     id
+  }
+
+  fn new_retained(bytes: Bytes) -> RetainedBuffer {
+    let declared_len = retain_declared_len(bytes.as_ref());
+    RetainedBuffer { bytes, declared_len, lease_refs: 0, ingest_done: false }
   }
 
   fn release_lease(&mut self, lease_id: u32) {
@@ -1334,11 +1349,30 @@ impl ClientEngine {
   }
 
   /// Borrowed CDR payload view for an outstanding sample lease.
+  ///
+  /// Returns `None` when the lease is unknown, or when the payload lives on
+  /// the host (only the R2WP prefix was retained). Use
+  /// [`Self::lease_payload_abi`] for the poll-result sentinel.
   #[must_use]
   pub fn lease_payload_view(&self, lease_id: u32) -> Option<&[u8]> {
     let lease = self.leases.get(&lease_id)?;
     let buf = self.retained.get(&lease.buffer_id)?;
     buf.bytes.get(lease.payload_offset..lease.payload_offset + lease.payload_len)
+  }
+
+  /// Poll-result `(ptr, len)` for a lease.
+  ///
+  /// `(0, len)` with `len > 0` means the CDR body is host-backed. Wasm
+  /// allocators never return a non-empty region at address 0.
+  #[must_use]
+  pub fn lease_payload_abi(&self, lease_id: u32) -> (u32, u32) {
+    let Some(lease) = self.leases.get(&lease_id) else {
+      return (0, 0);
+    };
+    match self.lease_payload_view(lease_id) {
+      Some(view) => (view.as_ptr() as u32, view.len() as u32),
+      None => (0, lease.payload_len as u32),
+    }
   }
 
   /// Decode PointCloud2 from a lease as an O(1) borrowed view (R2-02).
