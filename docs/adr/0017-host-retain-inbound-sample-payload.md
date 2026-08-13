@@ -28,9 +28,14 @@ miss and an ADR 0004 revisit trigger (copy count / latency).
 
 ## Decision
 
-- Inbound **application-data** frames (opcodes 2–12) copy only the R2WP
-  header + extension prefix into wasm. The CDR body stays in the host
-  `Uint8Array` for the sample lease.
+- Inbound **ROS_SAMPLE** frames with no extension stay on the host. The
+  host peeks the R2WP header, pins the WebSocket `Uint8Array` until
+  `lease.release()`, and decodes String / PointCloud2 from that buffer.
+  Wasm is not on that data plane (session still owns control, channels,
+  service/action, and generated codecs).
+- Other application-data frames (opcodes 3–12, or samples with an
+  extension) copy only the R2WP header + extension prefix into wasm. The
+  CDR body stays in the host `Uint8Array` for the sample lease.
 - A poll-result sentinel `payload_ptr == 0 && payload_len > 0` means the
   body is host-backed. Wasm allocators never return a non-empty region at
   address 0.
@@ -46,22 +51,24 @@ miss and an ADR 0004 revisit trigger (copy count / latency).
 
 ## Rationale
 
-The 1 MiB memcpy was the hop Foxglove does not pay. Skipping it is the
-path to matching that ingest. A 32-byte header poll remains: session,
-sequence, and leases stay in wasm. Host-retain is the ADR 0004-legal way
-to drop copy-budget slot 2 for sample bodies.
+The 1 MiB memcpy was the hop Foxglove does not pay. Skipping it is
+necessary but not sufficient: a wasm poll of a 32-byte header still lost
+that hop by an order of magnitude. Host-side sample dispatch matches
+Foxglove's JS CDR path. ADR 0004 still holds for control and codecs;
+JavaScript already owned buffer lifetimes.
 
 ## Consequences
 
 - Controllable inbound copies drop from two to **one** (RMW serialized
   take). Worker→wasm is 0 for sample bodies.
-- `just perf-baseline` on the inline host should no longer lose 1 MiB
-  PointCloud2 to a wasm memcpy. Small String messages still pay a wasm
-  header poll that Foxglove's JS-only CDR does not.
+- `just perf-baseline` on the inline host times the same hop as Foxglove
+  (JS header peek + CDR decode). Remaining gap is R2WP's 32-byte header
+  versus Foxglove's 13-byte MessageData skip, plus decode details.
 - The I/O Worker still copies PointCloud2 `data` (and service/action CDR)
   onto the main thread.
 - `hostRetainPrefixLen` peeks version, opcode, `payload_len`, and
-  `extension_len`. It is not a second R2WP implementation.
+  `extension_len`. It is not a second R2WP implementation. The ROS_SAMPLE
+  hot path additionally reads channel / sequence / time from that header.
 
 ## Revisit triggers
 

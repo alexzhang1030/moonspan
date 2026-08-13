@@ -22,7 +22,7 @@ ADRs capture accepted decisions that carry significant reversal cost. Technical 
 | [0014](./0014-typescript-package-rcl-web.md) | Accepted | TypeScript package publishes and imports as unscoped `rcl-web` after npm rejected `rclweb` as too similar to `rrweb`. |
 | [0015](./0015-tsdown-ship-bundle.md) | Accepted | `rcl-web` npm tarball is the tsdown ESM + `.d.ts` bundle, not TypeScript source. |
 | [0016](./0016-oidc-trusted-publish.md) | Accepted | Publish `rcl-web` and the `rclweb` / `rclwebd` crates via GitHub OIDC trusted publishing. |
-| [0017](./0017-host-retain-inbound-sample-payload.md) | Accepted | Host-retain inbound sample CDR; wasm keeps the R2WP prefix only. |
+| [0017](./0017-host-retain-inbound-sample-payload.md) | Accepted | Host-retain inbound sample CDR; ROS_SAMPLE stays in JS. |
 
 ## Convention
 

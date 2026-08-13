@@ -200,7 +200,7 @@ export async function measureRclwebIngest(
       payloadBytes: spec.payloadBytes,
       latencyMs: summarize(latencies),
       resources: resourceDelta(cpuUs, memBefore, memAfter, sampleCount),
-      note: "wasm poll of the R2WP prefix until Sample; CDR stays in JS; lease release is after the timer",
+      note: "host-retain ROS_SAMPLE (no wasm poll); CDR stays in JS; lease release is after the timer",
     };
   } finally {
     await session.client.close();

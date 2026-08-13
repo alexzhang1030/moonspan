@@ -1,6 +1,7 @@
 /**
  * Flat binary poll batch codec (mirrors `rclweb::host::batch`).
- * Little-endian. The SDK never parses R2WP — only this host ABI.
+ * Little-endian. Control and codecs stay on this ABI. ROS_SAMPLE with no
+ * extension peeks the R2WP header in JS and never enters wasm (ADR 0017).
  */
 
 export const BATCH_MAGIC = 0x5243_4c42; // RCLB
@@ -941,6 +942,109 @@ function attachHostPayloads(
   }
 }
 
+const OPCODE_ROS_SAMPLE = 2;
+const HOST_LEASE_FLAG = 0x80000000;
+let hostLeaseSeq = 1;
+
+type HostLease = { frame: Uint8Array; handle: number };
+type HostEngineCounters = { samplesEmitted: number; leasesReleased: number };
+
+const hostLeases = new Map<number, HostLease>();
+const hostEngineTelemetry = new Map<number, HostEngineCounters>();
+
+function hostCounters(handle: number): HostEngineCounters {
+  let counters = hostEngineTelemetry.get(handle);
+  if (!counters) {
+    counters = { samplesEmitted: 0, leasesReleased: 0 };
+    hostEngineTelemetry.set(handle, counters);
+  }
+  return counters;
+}
+
+function dropHostEngine(handle: number): void {
+  for (const [id, lease] of hostLeases) {
+    if (lease.handle === handle) {
+      hostLeases.delete(id);
+    }
+  }
+  hostEngineTelemetry.delete(handle);
+}
+
+function overlayHostTelemetry(
+  handle: number,
+  snap: EngineTelemetrySnapshot,
+): EngineTelemetrySnapshot {
+  const host = hostEngineTelemetry.get(handle);
+  if (!host || (host.samplesEmitted === 0 && host.leasesReleased === 0)) {
+    return snap;
+  }
+  return {
+    ...snap,
+    samplesEmitted: snap.samplesEmitted + host.samplesEmitted,
+    leasesReleased: snap.leasesReleased + host.leasesReleased,
+  };
+}
+
+function readU64BE(bytes: Uint8Array, offset: number): bigint {
+  const hi = BigInt(readU32BE(bytes, offset));
+  const lo = BigInt(readU32BE(bytes, offset + 4));
+  return (hi << 32n) + lo;
+}
+
+function readI64BE(bytes: Uint8Array, offset: number): bigint {
+  return BigInt.asIntN(64, readU64BE(bytes, offset));
+}
+
+function dropHostReleases(events: HostEventInput[]): HostEventInput[] {
+  const rest: HostEventInput[] = [];
+  for (const event of events) {
+    if (event.type === "releaseLease") {
+      const id = event.leaseId >>> 0;
+      const lease = hostLeases.get(id);
+      if (lease) {
+        hostLeases.delete(id);
+        hostCounters(lease.handle).leasesReleased += 1;
+        continue;
+      }
+    }
+    rest.push(event);
+  }
+  return rest;
+}
+
+function emptyPollResult(): PollResult {
+  return { outbound: [], events: [], released: [], nextDeadlineMs: null };
+}
+
+/** ROS_SAMPLE with no extension: pin the WS buffer, skip wasm (ADR 0017). */
+function pollSampleHostRetain(
+  handle: number,
+  frame: Uint8Array,
+  prefixLen: number,
+): PollResult {
+  const leaseId = (HOST_LEASE_FLAG | (hostLeaseSeq++ & 0x7fffffff)) >>> 0;
+  hostLeases.set(leaseId, { frame, handle });
+  hostCounters(handle).samplesEmitted += 1;
+  return {
+    outbound: [],
+    events: [
+      {
+        type: "sample",
+        channelId: readU32BE(frame, 4),
+        leaseId,
+        sequence: readU64BE(frame, 8),
+        sourceTimeNs: readI64BE(frame, 16),
+        payloadPtr: 0,
+        payloadLen: frame.length - prefixLen,
+        stringData: null,
+        hostPayload: frame.subarray(prefixLen),
+      },
+    ],
+    released: [],
+    nextDeadlineMs: null,
+  };
+}
+
 export function decodePollResult(bytes: Uint8Array): PollResult {
   if (bytes.length < 28) {
     throw new Error("poll result truncated");
@@ -1346,7 +1450,13 @@ export async function loadWasm(wasmBytes: ArrayBuffer): Promise<WasmExports> {
       throw new Error(`wasm missing export ${name}`);
     }
   }
-  return exports;
+  return {
+    ...exports,
+    rclweb_engine_free(handle: number) {
+      dropHostEngine(handle);
+      exports.rclweb_engine_free(handle);
+    },
+  };
 }
 
 export function readTelemetryAt(
@@ -1359,7 +1469,7 @@ export function readTelemetryAt(
     throw new Error(`rclweb_telemetry failed with code ${rc}`);
   }
   const view = new DataView(wasm.memory.buffer, outPtr, 56);
-  return {
+  return overlayHostTelemetry(handle, {
     copiesIntoEngine: Number(view.getBigUint64(0, true)),
     bytesCopiedIntoEngine: Number(view.getBigUint64(8, true)),
     pollTurns: Number(view.getBigUint64(16, true)),
@@ -1367,7 +1477,7 @@ export function readTelemetryAt(
     samplesEmitted: Number(view.getBigUint64(32, true)),
     leasesReleased: Number(view.getBigUint64(40, true)),
     samplesSent: Number(view.getBigUint64(48, true)),
-  };
+  });
 }
 
 export function readTelemetry(
@@ -1587,15 +1697,19 @@ function takePollResult(wasm: WasmExports, handle: number): PollResult {
 }
 
 /**
- * Poll the engine. Application WS frames copy only the R2WP prefix into wasm
- * (ADR 0017). Control/bootstrap still copy the full frame. Command-only
- * batches keep the inline encoder.
+ * Poll the engine. ROS_SAMPLE frames with no extension stay on the host
+ * (ADR 0017): wasm is not on that data plane. Other application frames copy
+ * the R2WP prefix into wasm. Control/bootstrap still copy the full frame.
  */
 export function pollEngine(
   wasm: WasmExports,
   handle: number,
   events: HostEventInput[],
 ): PollResult {
+  events = dropHostReleases(events);
+  if (events.length === 0) {
+    return emptyPollResult();
+  }
   if (!batchHasWsBytes(events)) {
     return pollEngineInline(wasm, handle, events);
   }
@@ -1616,9 +1730,11 @@ export function pollEngine(
       run.push(events[i]!);
       i += 1;
     }
-    parts.push(pollEngineInline(wasm, handle, run));
+    const filtered = dropHostReleases(run);
+    if (filtered.length === 0) continue;
+    parts.push(pollEngineInline(wasm, handle, filtered));
   }
-  return mergePollResults(parts);
+  return parts.length === 0 ? emptyPollResult() : mergePollResults(parts);
 }
 
 function pollEngineInline(
@@ -1667,6 +1783,9 @@ function pollOneExternalWs(
   event: Extract<HostEventInput, { type: "wsBytes" }>,
 ): PollResult {
   const prefixLen = hostRetainPrefixLen(event.bytes);
+  if (prefixLen === R2WP_HEADER_LEN && event.bytes[1] === OPCODE_ROS_SAMPLE) {
+    return pollSampleHostRetain(handle, event.bytes, prefixLen);
+  }
   const copyLen = prefixLen ?? event.bytes.length;
   const ptr = copyLen === 0 ? 0 : wasm.rclweb_alloc(copyLen);
   if (copyLen !== 0 && ptr === 0) {

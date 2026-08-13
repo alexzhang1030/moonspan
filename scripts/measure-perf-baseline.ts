@@ -96,7 +96,7 @@ for (const row of pc2) {
 }
 console.log("");
 console.log(
-  `rclweb engine retain copies (1 MiB synthetic probe): ${rclwebHost.engineCopyProbe.copiesIntoEngineDelta} (bootstrap-plane full frame; sample path retains the R2WP prefix only)`,
+  `rclweb engine retain copies (1 MiB synthetic probe): ${rclwebHost.engineCopyProbe.copiesIntoEngineDelta} (bootstrap-plane full frame; ROS_SAMPLE never enters wasm)`,
 );
 console.log("");
 console.log(JSON.stringify(report, null, 2));

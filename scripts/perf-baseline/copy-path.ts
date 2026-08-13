@@ -73,7 +73,7 @@ export const COPY_PATHS: Record<CopySystemId, CopyPath> = {
       stage: "Worker → wasm",
       copies: 0,
       kind: "inherent",
-      note: "R2WP header+extension prefix only; CDR body stays in the JS buffer (ADR 0017)",
+      note: "ROS_SAMPLE stays in the JS buffer; wasm is not on that data plane (ADR 0017)",
     },
     {
       stage: "wasm-thread application view",

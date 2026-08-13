@@ -214,7 +214,7 @@ test("scripted peer: connect → subscribe → String sample + lease release", a
 
   expect(saw).not.toBeNull();
   expect(saw!.data).toBe("hello-from-fixture");
-  expect(saw!.leaseId).toBeGreaterThan(0);
+  expect(saw!.leaseId).toBeGreaterThanOrEqual(0x80000000);
 
   await client.close();
 });
@@ -444,7 +444,7 @@ test("scripted peer: PointCloud2 sample is a borrowed view of the WS buffer", as
   const telemetry = client.telemetry();
   expect(telemetry).not.toBeNull();
   expect(telemetry!.leasesReleased).toBe(telemetry!.samplesEmitted);
-  expect(telemetry!.bytesCopiedIntoEngine - bytesBefore).toBe(32);
+  expect(telemetry!.bytesCopiedIntoEngine - bytesBefore).toBe(0);
 
   await client.close();
 });
