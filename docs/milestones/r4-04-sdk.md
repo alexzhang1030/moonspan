@@ -41,7 +41,17 @@ Subscribe delivers `sensor_msgs/msg/PointCloud2` as metadata plus a `data` Typed
 | Inline | [`IoHost.decodePointCloud2`](../../sdk/typescript/src/host.ts) returns a view into wasm memory. Tests assert `data.buffer === engineMemory()`. |
 | Worker | [`io-worker.ts`](../../sdk/typescript/src/worker/io-worker.ts) copies `data`, releases the lease, and transfers the ArrayBuffer. |
 | Fixtures | [`scripts/fixture-gen`](../../scripts/fixture-gen/) emits `pointCloud2Sample` (four XYZ points). |
-| Publish | Still String-only. Other inbound types still drop and release. |
+
+## Outcome (this slice — PointCloud2 publish)
+
+`publish(..., SENSOR_MSGS_POINT_CLOUD2)` sends a typed PointCloud2. The wasm core encodes CDR (XYZ float32 fields when `fieldCount === 3` and `pointStep >= 12`; empty header). The I/O Worker carries the same `sendPointCloud2` command as the inline host.
+
+| Area | Behavior |
+|---|---|
+| Command | Poll ABI `CMD_SEND_POINT_CLOUD2` (17): metadata plus the `data` field, not full CDR. |
+| Engine | [`encode_point_cloud2_from_sdk_meta`](../../rclweb/src/cdr/point_cloud2.rs) then the existing ROS_SAMPLE send path. |
+| Client | [`Publisher.publish`](../../sdk/typescript/src/client.ts) accepts `StdMsgsString \| PointCloud2` from the channel type. |
+| Tests | Engine outbound decode, inline `samplesSent`, Worker scripted peer captures `OPCODE_ROS_SAMPLE`. |
 
 ## Delivered scope
 

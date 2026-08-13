@@ -66,6 +66,10 @@ App events 13–14 and 17–20 include `lease_id` plus `payload_ptr`/`payload_le
 
 `rclweb_point_cloud2_meta` returns metadata plus an offset/len into the leased CDR. On `options.inline: true` the SDK hands the application a TypedArray into wasm memory (copy-budget 0 wasm→application; valid until `lease.release()`). The I/O Worker cannot share that memory with main without SAB, so it copies only the `data` field, releases the lease, and transfers the ArrayBuffer — same class of boundary copy as service/action CDR. Do not copy the whole CDR payload, and do not keep the lease outstanding after that copy (a 1 MiB cloud would then pin wasm *and* hold a JS copy). [R4-04](../../docs/milestones/r4-04-sdk.md), [architecture](../../docs/architecture.md#performance-contracts).
 
+## PointCloud2 publish synthesizes fields
+
+The public `PointCloud2` type has no Header or PointField list. Outbound encode (`encode_point_cloud2_from_sdk_meta`) uses XYZ float32 fields when `fieldCount === 3` and `pointStep >= 12`, otherwise one UINT8 blob field. Stamp is zero and `frame_id` is empty. Republishing a received cloud round-trips `data` and the numeric meta, not header/fields. [R4-04](../../docs/milestones/r4-04-sdk.md).
+
 ## Phase 1 schema metadata JSON shape
 
 `rclweb/generated/metadata/` is produced by `scripts/generated-types.ts`. Rust embeds four files via `include_str!`:

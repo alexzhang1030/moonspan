@@ -52,6 +52,12 @@ export type MainToWorker =
       data: string;
     }
   | {
+      type: "sendPointCloud2";
+      requestId: number;
+      channelId: number;
+      message: PointCloud2;
+    }
+  | {
       type: "unsubscribe";
       requestId: number;
       channelId: number;

@@ -21,7 +21,7 @@ pub use cdr::{
   HEADER_LENGTH, MIN_MAX_NESTING_DEPTH, MIN_MAX_STREAM_BYTES, PointCloud2Header, PointCloud2View,
   PointField, REPRESENTATION_CDR_BE, REPRESENTATION_CDR_LE, SENSOR_MSGS_POINT_CLOUD2,
   WRITER_INITIAL_SIZE_HINT, build_synthetic_xyz_cdr, decode_point_cloud2, decode_point_cloud2_le,
-  encode_point_cloud2, encode_point_cloud2_le,
+  encode_point_cloud2, encode_point_cloud2_from_sdk_meta, encode_point_cloud2_le,
 };
 pub use engine::{
   AppCommand, AppEvent, ClientEngine, DEFAULT_QOS_DEPTH, DEMO_BUNDLE_HASH, DEMO_SCHEMA_HASH,

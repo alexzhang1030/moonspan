@@ -29,6 +29,7 @@ export const CMD_CANCEL_ACTION = 13;
 export const CMD_SEND_ACTION_FEEDBACK = 14;
 export const CMD_SEND_ACTION_RESULT = 15;
 export const CMD_SEND_ACTION_STATUS = 16;
+export const CMD_SEND_POINT_CLOUD2 = 17;
 
 export const APP_BOOTSTRAP_COMPLETE = 1;
 export const APP_SESSION_READY = 2;
@@ -83,6 +84,18 @@ export type HostCommand =
       domainId: number;
     }
   | { type: "sendSample"; channelId: number; stringData: string }
+  | {
+      type: "sendPointCloud2";
+      channelId: number;
+      height: number;
+      width: number;
+      pointStep: number;
+      rowStep: number;
+      isBigendian: boolean;
+      isDense: boolean;
+      fieldCount: number;
+      data: Uint8Array;
+    }
   | {
       type: "openService";
       correlation: Uint8Array;
@@ -363,6 +376,8 @@ function prepareCommand(command: HostCommand): PreparedCommand {
       };
     case "sendSample":
       return { cmd: command, stringData: te.encode(command.stringData) };
+    case "sendPointCloud2":
+      return { cmd: command, payload: command.data };
     case "openService":
     case "openAction":
       return {
@@ -398,6 +413,8 @@ function commandEncodedSize(prepared: PreparedCommand): number {
       return 4 + 16 + 4 + 4 + 2 + prepared.topic!.length + 2 + prepared.typeName!.length;
     case "sendSample":
       return 4 + 4 + 4 + prepared.stringData!.length;
+    case "sendPointCloud2":
+      return 4 + 32 + prepared.payload!.length;
     case "openService":
     case "openAction":
       return 4 + 16 + 4 + 4 + 2 + prepared.name!.length + 2 + prepared.typeName!.length;
@@ -495,6 +512,26 @@ function writeCommand(out: Uint8Array, offset: number, prepared: PreparedCommand
       offset = writeU32Into(out, offset, prepared.stringData!.length);
       out.set(prepared.stringData!, offset);
       return offset + prepared.stringData!.length;
+    }
+    case "sendPointCloud2": {
+      out[offset++] = CMD_SEND_POINT_CLOUD2;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      offset = writeU32Into(out, offset, command.channelId >>> 0);
+      offset = writeU32Into(out, offset, command.height >>> 0);
+      offset = writeU32Into(out, offset, command.width >>> 0);
+      offset = writeU32Into(out, offset, command.pointStep >>> 0);
+      offset = writeU32Into(out, offset, command.rowStep >>> 0);
+      out[offset++] = command.isBigendian ? 1 : 0;
+      out[offset++] = command.isDense ? 1 : 0;
+      out[offset++] = 0;
+      out[offset++] = 0;
+      offset = writeU32Into(out, offset, command.fieldCount >>> 0);
+      const data = prepared.payload!;
+      offset = writeU32Into(out, offset, data.length);
+      out.set(data, offset);
+      return offset + data.length;
     }
     case "openService":
     case "openAction": {

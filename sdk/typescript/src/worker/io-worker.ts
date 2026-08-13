@@ -388,6 +388,13 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
         post({ type: "ack", requestId: msg.requestId });
         break;
       }
+      case "sendPointCloud2": {
+        if (!host) throw new Error("host not initialized");
+        host.sendPointCloud2(msg.channelId, msg.message);
+        host.flushSync();
+        post({ type: "ack", requestId: msg.requestId });
+        break;
+      }
       case "unsubscribe": {
         if (!host) throw new Error("host not initialized");
         host.unsubscribe(Uint8Array.from(msg.correlation), msg.channelId);

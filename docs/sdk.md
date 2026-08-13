@@ -56,9 +56,21 @@ points.onMessage((cloud, lease) => {
 
 const pub = await client.session.publish("/chatter", STD_MSGS_STRING);
 await pub.publish({ data: "hello from the browser" });
+
+const cloudPub = await client.session.publish("/points", SENSOR_MSGS_POINT_CLOUD2);
+await cloudPub.publish({
+  height: 1,
+  width: cloud.width,
+  pointStep: 12,
+  rowStep: cloud.data.byteLength,
+  isBigendian: false,
+  isDense: true,
+  fieldCount: 3,
+  data: cloud.data.slice(),
+});
 ```
 
-Typed inbound samples are `std_msgs/msg/String` (`{ data: string }`) and `sensor_msgs/msg/PointCloud2` (metadata plus `data: Uint8Array`). Other message types are dropped and their leases released. Publish stays String-only. QoS on OpenChannel is reliability (`1` RELIABLE default, `2` BEST_EFFORT) plus KEEP_LAST depth (default `5`).
+Typed inbound samples are `std_msgs/msg/String` (`{ data: string }`) and `sensor_msgs/msg/PointCloud2` (metadata plus `data: Uint8Array`). Other inbound types are dropped and their leases released. Publish accepts the same two types; PointCloud2 encode lives in the wasm core (`fieldCount === 3` and `pointStep >= 12` synthesizes XYZ float32 fields, empty header). QoS on OpenChannel is reliability (`1` RELIABLE default, `2` BEST_EFFORT) plus KEEP_LAST depth (default `5`).
 
 **Release every lease.** The engine reclaims a retained inbound slab only when every lease on it is released. Dropping a sample without `lease.release()` pins wasm memory ([gotcha](../.agents/docs/gotchas.md#every-sample-lease-has-exactly-one-owner)).
 

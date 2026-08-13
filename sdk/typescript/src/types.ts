@@ -12,11 +12,16 @@ export type StdMsgsString = {
 };
 
 /**
- * `sensor_msgs/msg/PointCloud2` as delivered to `onMessage`.
+ * `sensor_msgs/msg/PointCloud2` as delivered to `onMessage` and accepted by
+ * `publish`.
  *
  * `data` is a TypedArray view into wasm memory on the inline host (0 copies,
  * valid until `lease.release()`). On the I/O Worker path the Worker copies
  * only the `data` field and releases the lease before `postMessage`.
+ *
+ * Publish encodes in the wasm core. `fieldCount === 3` and `pointStep >= 12`
+ * synthesizes XYZ float32 fields; the header stamp is zero and `frame_id`
+ * is empty. Header and PointField descriptors are not part of this type.
  */
 export type PointCloud2 = {
   height: number;

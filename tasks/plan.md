@@ -78,7 +78,7 @@ Gate: N2 subset demonstrated; conformance green on two rows and two transports.
 | R4-01 | Active | OIDC identity, SROS2/ACL, audit — first slice: Authenticate off-by-default / opt-in `oidc` + audit JSON; tenant/keystore remain D-04 |
 | R4-02 | Active | Deployment packaging and observability — first slice: `/livez` `/readyz` `/configz` `/metrics` `POST /drain`, J-FT and H-FT runtime images; PKI/remaining-row images/orchestrators remain follow-ups |
 | R4-03 | Active | Support matrix against live gates — no committed measurement JSON; remaining-row live e2e and human Qualified promotion remain follow-ups |
-| R4-04 | Active | SDK stabilization, docs, examples, and release — public vs internal exports, Worker URL, subscribe-chatter on `dist/`, Worker session ops (service/action/graph/parameters); npm publish / `1.0.0` / D-06 remain follow-ups |
+| R4-04 | Active | SDK stabilization, docs, examples, and release — public vs internal exports, Worker URL, subscribe-chatter on `dist/`, Worker session ops, PointCloud2 subscribe/publish; npm publish / `1.0.0` / D-06 remain follow-ups |
 
 Gate: release review. U0 (Studio) follows the release as before.
 
