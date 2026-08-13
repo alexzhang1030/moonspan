@@ -3,7 +3,7 @@
 TypeScript package for rclweb. If you can write rclcpp, you can write
 this package: `init` → `Node` → `createPublisher` / `createSubscription`.
 
-This package stays `"private": true` and `"version": "0.0.0"` until a human release review. Consume it from this repository's Bun workspace (`"rclweb": "workspace:*"`). Do not publish it to npm in this slice. Licensed under Apache License 2.0; see the repository [LICENSE](../LICENSE) and [licensing](../docs/licensing.md).
+The first published version is `0.0.1`. The package is public. An npm tarball must include the repository [LICENSE](../LICENSE) and [NOTICE](../NOTICE) (copied into this directory at pack time; do not commit those copies). Consume it from npm as `rclweb`, or from this repository's Bun workspace (`"rclweb": "workspace:*"`). Licensed under Apache License 2.0; see [licensing](../docs/licensing.md).
 
 Application contract: [`rclweb`](../docs/typescript.md).
 

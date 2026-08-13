@@ -124,7 +124,21 @@ license-inventory: toolchain-check
 license-inventory-check: toolchain-check
     cd "{{root}}" && bun run scripts/license-inventory.ts --check
 
-# Docs, protocol, corpus, and license inventory; Rust fmt/clippy; TypeScript package typecheck.
+# Stage repository LICENSE/NOTICE into typescript/ for npm pack.
+[group('quality')]
+npm-pack: toolchain-check
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{root}}"
+    bun run scripts/npm-pack.ts --stage
+    bun pm pack --cwd typescript
+
+# Verify the npm tarball is rclweb@0.0.1 and includes LICENSE, NOTICE, and wasm.
+[group('quality')]
+npm-pack-check: toolchain-check
+    cd "{{root}}" && bun run scripts/npm-pack.ts --check
+
+# Docs, protocol, corpus, and license inventory; npm pack members; Rust fmt/clippy; TypeScript package typecheck.
 [group('quality')]
 check: toolchain-check
     #!/usr/bin/env bash
@@ -133,6 +147,7 @@ check: toolchain-check
     bun run check
     cargo run --locked -p protocol-fixtures -- --check
     bun run scripts/license-inventory.ts --check
+    bun run scripts/npm-pack.ts --check
     just fmt-check
     just clippy
     bun run --filter rclweb check

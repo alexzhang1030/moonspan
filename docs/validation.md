@@ -9,7 +9,7 @@ rclweb turns design targets into release authority through reproducible conforma
 | Wire agreement | CDR, schemas, graph, QoS, and ROS time agree for the gated rows (`just test`, committed corpus) |
 | Live path | Talker → `rclwebd` → TypeScript subscribe in CI (`just e2e`, `just e2e-h-ft`, `just e2e-row`) |
 | Browser runtime | Wasm core plus real ROS operations (subscribe, publish, service, action, graph, parameters) |
-| Release | Identity, policy, deployment, reviewed matrix, and a human-chosen package version |
+| Release | Identity, policy, deployment, reviewed matrix, and package `rclweb@0.0.1` |
 
 ## Live path
 

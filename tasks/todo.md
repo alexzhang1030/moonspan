@@ -5,7 +5,7 @@ Authoritative detail lives in the [open-work list](./plan.md) and the topic docu
 ## Ready for a human
 
 - [ ] Promote support-matrix rows from live e2e to **Qualified**
-- [ ] Choose an npm version and publish `rclweb` (`"private": false`; include `LICENSE` and `NOTICE`)
+- [ ] Publish `rclweb@0.0.1` to npm (`just build` then `npm publish` from `typescript/`)
 - [ ] Name the OIDC tenant and SROS2 reference environment
 - [ ] Supply the reviewed ACL policy matrix
 - [ ] Confirm or correct the `NOTICE` copyright line

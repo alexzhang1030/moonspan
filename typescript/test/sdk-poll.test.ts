@@ -24,8 +24,8 @@ test("sdk package identity and privacy", () => {
     exports: Record<string, string>;
   };
   expect(pkg.name).toBe("rclweb");
-  expect(pkg.version).toBe("0.0.0");
-  expect(pkg.private).toBe(true);
+  expect(pkg.version).toBe("0.0.1");
+  expect(pkg.private).toBe(false);
   expect(pkg.type).toBe("module");
   expect(pkg.exports["."]).toBe("./src/index.ts");
   expect(pkg.exports["./internal"]).toBe("./src/internal.ts");

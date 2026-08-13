@@ -20,6 +20,10 @@ dist/
 coverage/
 playwright-report/
 test-results/
+# Copied into typescript/ only for npm pack / publish (do not commit).
+typescript/LICENSE
+typescript/NOTICE
+typescript/*.tgz
 
 # Rust
 target/

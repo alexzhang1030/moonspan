@@ -1,10 +1,19 @@
 {
   "name": "rclweb",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.0.1",
+  "private": false,
   "license": "Apache-2.0",
   "description": "Browser TypeScript package for rclweb (R2WP client around the rclweb wasm core)",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alexzhang1030/rclweb.git",
+    "directory": "typescript"
+  },
+  "homepage": "https://github.com/alexzhang1030/rclweb#readme",
+  "bugs": {
+    "url": "https://github.com/alexzhang1030/rclweb/issues"
+  },
   "exports": {
     ".": "./src/index.ts",
     "./internal": "./src/internal.ts"
@@ -12,11 +21,14 @@
   "files": [
     "src",
     "wasm",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "NOTICE"
   ],
   "scripts": {
     "check": "bun build ./src/index.ts --target=browser --outdir=./dist",
     "test": "bun test",
-    "build": "bun build ./src/index.ts --target=browser --outdir=./dist && bun build ./src/worker/io-worker.ts --target=browser --outdir=./dist/worker"
+    "build": "bun build ./src/index.ts --target=browser --outdir=./dist && bun build ./src/worker/io-worker.ts --target=browser --outdir=./dist/worker",
+    "prepack": "bun ../scripts/npm-pack.ts --stage"
   }
 }

@@ -39,7 +39,10 @@ Owner ruling (2026-08-13): call the package `rclweb`; do not publish it as
 - Examples and scripts depend on `"rclweb": "workspace:*"`.
 - `just build` stages `typescript/wasm/rclweb.wasm` and `typescript/dist/`.
 - Historical task IDs that contain `sdk` are not the package name.
-- npm publish still waits on a human-chosen version. The repository is Apache-2.0.
+- The first published version is `0.0.1`. The package is public. An npm
+  tarball must include the repository `LICENSE` and `NOTICE` (copied into
+  `typescript/` at pack time). The repository is Apache-2.0. Rust crates
+  stay `publish = false`. A human still runs `npm publish`.
 
 ## Revisit triggers
 
