@@ -5,7 +5,8 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { connect, STD_MSGS_STRING } from "../src/index.ts";
+import { std_msgs } from "../src/index.ts";
+import { connect } from "../src/internal.ts";
 import { scriptedPeerFixtures } from "./scripted-peer.ts";
 
 const wasmPath = path.join(import.meta.dir, "..", "wasm", "rclweb.wasm");
@@ -69,7 +70,7 @@ test("scripted WebSocket replay reaches a typed String sample", async () => {
   const url = `ws://127.0.0.1:${server.port}`;
   const client = await connect(url, { inline: true, wasmUrl });
 
-  const sub = await client.session.subscribe("/chatter", STD_MSGS_STRING);
+  const sub = await client.session.subscribe("/chatter", std_msgs.msg.String);
   const sample = await new Promise<{ data: string }>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error("sample timeout")), 3000);
     sub.onMessage((msg, lease) => {

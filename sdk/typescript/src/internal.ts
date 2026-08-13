@@ -1,13 +1,37 @@
 /**
- * Host, wasm poll ABI, buffer strategies, and test helpers.
+ * Host, wasm poll ABI, buffer strategies, session `connect`, and test helpers.
  *
- * Application code should import `@rclweb/sdk`. This submodule is for
- * repository tests, the e2e harness internals, and contributors working
- * on the poll boundary — not a stability promise.
+ * Application code should import `@rclweb/sdk` (`init` / `Node`). This
+ * submodule is for repository tests, the e2e harness internals, and
+ * contributors working on the poll boundary — not a stability promise.
  */
 
-export { connectOfflineForTests } from "./client.ts";
-export { resolveIoWorkerUrl } from "./client.ts";
+export { connect, connectOfflineForTests, resolveIoWorkerUrl } from "./client.ts";
+export type {
+  ActionClient,
+  ActionFeedbackHandler,
+  ActionServer,
+  ActionServerHandlers,
+  ActionStatusHandler,
+  ConnectOptions,
+  GraphEndpoint,
+  GraphHandler,
+  GraphNode,
+  GraphView,
+  Publisher,
+  QosOptions,
+  RclwebClient,
+  RclwebSession,
+  SampleLease,
+  SampleMessage,
+  ServiceClient,
+  ServiceServer,
+  ServiceServerHandler,
+  StdMsgsString,
+  Subscription,
+  SubscriptionHandler,
+} from "./client.ts";
+export { DEFAULT_QOS_DEPTH, isPointCloud2, isStdMsgsString } from "./client.ts";
 
 export {
   encodeHostBatch,
@@ -36,5 +60,3 @@ export {
 } from "./buffer/strategies.ts";
 
 export { IoHost } from "./host.ts";
-
-export { SENSOR_MSGS_POINT_CLOUD2 } from "./types.ts";

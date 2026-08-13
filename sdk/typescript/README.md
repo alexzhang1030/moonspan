@@ -1,22 +1,20 @@
 # `@rclweb/sdk`
 
-Browser TypeScript SDK for rclweb. The public surface is `connect` plus session operations; the I/O Worker and wasm core own R2WP bytes.
+Browser TypeScript SDK for rclweb. If you can write rclcpp, you can write
+this package: `init` → `Node` → `createPublisher` / `createSubscription`.
 
 This package stays `"private": true` and `"version": "0.0.0"` until a human release review. Consume it from this repository's Bun workspace (`"@rclweb/sdk": "workspace:*"`). Do not publish it to npm in this slice.
 
 Application contract: [SDK](../../docs/sdk.md). Milestone: [R4-04](../../docs/milestones/r4-04-sdk.md).
 
 ```ts
-import { connect, SENSOR_MSGS_POINT_CLOUD2, STD_MSGS_STRING } from "@rclweb/sdk";
+import { init, Node, std_msgs } from "@rclweb/sdk";
 
-const client = await connect("ws://127.0.0.1:8794/ws");
-const sub = await client.session.subscribe("/chatter", STD_MSGS_STRING);
-sub.onMessage((msg, lease) => {
+await init("ws://127.0.0.1:8794/ws");
+const node = new Node("minimal_subscriber");
+node.createSubscription(std_msgs.msg.String, "chatter", 10, (msg) => {
   console.log(msg.data);
-  lease.release();
 });
 ```
 
-`subscribe(..., SENSOR_MSGS_POINT_CLOUD2)` delivers PointCloud2 metadata plus `data: Uint8Array` (borrowed on the inline host, copied on the Worker path). `publish(..., SENSOR_MSGS_POINT_CLOUD2)` encodes that shape in the wasm core.
-
-Host, wasm poll ABI, and test helpers: `@rclweb/sdk/internal` (not a stability promise).
+Host, wasm poll ABI, session `connect`, and sample leases: `@rclweb/sdk/internal` (not a stability promise).

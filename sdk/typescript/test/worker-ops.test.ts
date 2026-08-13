@@ -6,7 +6,8 @@
 
 import { expect, test } from "bun:test";
 import path from "node:path";
-import { connect, SENSOR_MSGS_POINT_CLOUD2, STD_MSGS_STRING } from "../src/index.ts";
+import { sensor_msgs, std_msgs } from "../src/index.ts";
+import { connect } from "../src/internal.ts";
 import { scriptedPeerFixtures } from "./scripted-peer.ts";
 
 const wasmPath = path.join(import.meta.dir, "..", "wasm", "rclweb.wasm");
@@ -75,7 +76,7 @@ test("Worker path: scripted subscribe reaches a typed String sample", async () =
   });
 
   const client = await connect(`ws://127.0.0.1:${server.port}`, { wasmUrl });
-  const sub = await client.session.subscribe("/chatter", STD_MSGS_STRING);
+  const sub = await client.session.subscribe("/chatter", std_msgs.msg.String);
   const sample = await new Promise<{ data: string }>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error("sample timeout")), 5000);
     sub.onMessage((msg, lease) => {
@@ -299,7 +300,7 @@ test("Worker path: PointCloud2 sample copies data across the boundary", async ()
   });
 
   const client = await connect(`ws://127.0.0.1:${server.port}`, { wasmUrl });
-  const sub = await client.session.subscribe("/points", SENSOR_MSGS_POINT_CLOUD2);
+  const sub = await client.session.subscribe("/points", sensor_msgs.msg.PointCloud2);
   const sample = await new Promise<{
     width: number;
     dataLen: number;
@@ -389,7 +390,7 @@ test("Worker path: publish PointCloud2 emits a ROS_SAMPLE frame", async () => {
   });
 
   const client = await connect(`ws://127.0.0.1:${server.port}`, { wasmUrl });
-  const pub = await client.session.publish("/points", SENSOR_MSGS_POINT_CLOUD2);
+  const pub = await client.session.publish("/points", sensor_msgs.msg.PointCloud2);
   await pub.publish(xyzCloud(4));
   const deadline = Date.now() + 5000;
   while (sampleFrame == null && Date.now() < deadline) {

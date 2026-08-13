@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { SENSOR_MSGS_POINT_CLOUD2, STD_MSGS_STRING } from "../src/index.ts";
+import { sensor_msgs, std_msgs } from "../src/index.ts";
 import {
   connectOfflineForTests,
   decodePollResult,
@@ -34,28 +34,50 @@ test("sdk package identity and privacy", () => {
 test("public runtime exports stay application-facing", async () => {
   const sdk = await import("../src/index.ts");
   expect(Object.keys(sdk).sort()).toEqual([
-    "DEFAULT_QOS_DEPTH",
-    "SENSOR_MSGS_POINT_CLOUD2",
-    "STD_MSGS_STRING",
-    "connect",
+    "Client",
+    "Header",
+    "KeepLast",
+    "Node",
+    "PointCloud2",
+    "PointField",
+    "Publisher",
+    "QoS",
+    "Service",
+    "String",
+    "Subscription",
+    "Time",
+    "WallTimer",
+    "builtin_interfaces",
     "decodeCertificateHashValue",
     "fetchLocalDevTlsHashes",
     "httpOriginFromWebTransportUrl",
-    "isPointCloud2",
-    "isStdMsgsString",
+    "init",
+    "ok",
+    "sensor_msgs",
+    "shutdown",
+    "spin",
+    "std_msgs",
   ]);
+  expect(sdk).not.toHaveProperty("connect");
   expect(sdk).not.toHaveProperty("loadWasm");
   expect(sdk).not.toHaveProperty("IoHost");
   expect(sdk).not.toHaveProperty("connectOfflineForTests");
   expect(sdk).not.toHaveProperty("encodeHostBatch");
+  expect(sdk).not.toHaveProperty("STD_MSGS_STRING");
+  expect(sdk).not.toHaveProperty("SENSOR_MSGS_POINT_CLOUD2");
 });
 
 test("workspace export map resolves public and internal subpaths", async () => {
   const pub = await import("@rclweb/sdk");
   const intern = await import("@rclweb/sdk/internal");
-  expect(typeof pub.connect).toBe("function");
+  expect(typeof pub.init).toBe("function");
+  expect(typeof pub.Node).toBe("function");
+  expect(pub.std_msgs.msg.String.typeName).toBe("std_msgs/msg/String");
   expect(typeof intern.resolveIoWorkerUrl).toBe("function");
-  expect(intern).not.toHaveProperty("connect");
+  expect(typeof intern.connect).toBe("function");
+  expect(intern).not.toHaveProperty("init");
+  expect(intern).not.toHaveProperty("STD_MSGS_STRING");
+  expect(intern).not.toHaveProperty("SENSOR_MSGS_POINT_CLOUD2");
 });
 
 test("I/O Worker URL follows the loading script extension", () => {
@@ -126,14 +148,14 @@ test("scripted peer: connect → subscribe → String sample + lease release", a
   host.ingestBytes(fixtures.sessionReady);
   host.flushSync();
 
-  const subPromise = client.session.subscribe("/chatter", STD_MSGS_STRING);
+  const subPromise = client.session.subscribe("/chatter", std_msgs.msg.String);
   // OpenChannel is pending; feed ChannelReady.
   host.ingestBytes(fixtures.channelReady);
   host.flushSync();
   const sub = await subPromise;
   expect(sub.channelId).toBe(1);
   expect(sub.topic).toBe("/chatter");
-  expect(sub.typeName).toBe(STD_MSGS_STRING);
+  expect(sub.typeName).toBe(std_msgs.msg.String.typeName);
 
   let saw: { data: string; leaseId: number } | null = null;
   sub.onMessage((msg, lease) => {
@@ -172,7 +194,7 @@ test("scripted peer: sample with no handler still releases its lease", async () 
   host.ingestBytes(fixtures.sessionReady);
   host.flushSync();
 
-  const subPromise = client.session.subscribe("/chatter", STD_MSGS_STRING);
+  const subPromise = client.session.subscribe("/chatter", std_msgs.msg.String);
   host.ingestBytes(fixtures.channelReady);
   host.flushSync();
   const sub = await subPromise;
@@ -212,7 +234,7 @@ test("scripted peer: publish → ChannelReady → SendSample outbound", async ()
   host.ingestBytes(fixtures.sessionReady);
   host.flushSync();
 
-  const pubPromise = client.session.publish("/chatter", STD_MSGS_STRING, {
+  const pubPromise = client.session.publish("/chatter", std_msgs.msg.String, {
     reliability: 1,
     depth: 5,
   });
@@ -271,12 +293,12 @@ test("scripted peer: publish PointCloud2 increments samplesSent", async () => {
   host.ingestBytes(fixtures.sessionReady);
   host.flushSync();
 
-  const pubPromise = client.session.publish("/points", SENSOR_MSGS_POINT_CLOUD2);
+  const pubPromise = client.session.publish("/points", sensor_msgs.msg.PointCloud2);
   host.flushSync();
   host.ingestBytes(fixtures.channelReady);
   host.flushSync();
   const publisher = await pubPromise;
-  expect(publisher.typeName).toBe(SENSOR_MSGS_POINT_CLOUD2);
+  expect(publisher.typeName).toBe(sensor_msgs.msg.PointCloud2.typeName);
 
   await publisher.publish(xyzCloud(4));
   const telemetry = client.telemetry();
@@ -314,11 +336,11 @@ test("scripted peer: PointCloud2 sample is a borrowed wasm view", async () => {
   host.ingestBytes(fixtures.sessionReady);
   host.flushSync();
 
-  const subPromise = client.session.subscribe("/points", SENSOR_MSGS_POINT_CLOUD2);
+  const subPromise = client.session.subscribe("/points", sensor_msgs.msg.PointCloud2);
   host.ingestBytes(fixtures.channelReady);
   host.flushSync();
   const sub = await subPromise;
-  expect(sub.typeName).toBe(SENSOR_MSGS_POINT_CLOUD2);
+  expect(sub.typeName).toBe(sensor_msgs.msg.PointCloud2.typeName);
 
   let saw: {
     width: number;
@@ -381,7 +403,7 @@ test("scripted peer: PointCloud2 sample with no handler still releases its lease
   host.ingestBytes(fixtures.sessionReady);
   host.flushSync();
 
-  const subPromise = client.session.subscribe("/points", SENSOR_MSGS_POINT_CLOUD2);
+  const subPromise = client.session.subscribe("/points", sensor_msgs.msg.PointCloud2);
   host.ingestBytes(fixtures.channelReady);
   host.flushSync();
   await subPromise;

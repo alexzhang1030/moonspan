@@ -29,7 +29,7 @@ One gateway process may expose multiple domain IDs within its support row. Fleet
 |---|---|
 | R2WP | Frames, control messages, channels, schema identity, errors, versioning, and provenance — normative subset declared per phase |
 | `rclweb` core | Protocol codecs, CDR ([core contract](../../docs/runtime/cdr.md)), session/channel state (R1-02), type registry, ROS state, QoS, and host poll contract |
-| Browser SDK | Public API (`@rclweb/sdk`), Worker lifecycle, buffer transfer, telemetry, and reconnect — no protocol parsing. Host and wasm ABI stay on `@rclweb/sdk/internal` ([SDK](../../docs/sdk.md)) |
+| Browser SDK | Public rclcpp-shaped API (`init` / `Node`), Worker lifecycle, buffer transfer, telemetry, and reconnect — no protocol parsing. Host, session `connect`, and wasm ABI stay on `@rclweb/sdk/internal` ([SDK](../../docs/sdk.md)) |
 | `rclwebd` | ROS attachment (versioned serialized adapter ABI + dlopen typesupport), sessions, schema cache, scheduling, policy, audit, and operations |
 | Conformance system | Fixtures (single oracle), corpus, workloads, environment identity, and the support matrix |
 | Studio | Post-release workspace, panels, rendering, media, and command presentation |
@@ -38,7 +38,7 @@ One gateway process may expose multiple domain IDs within its support row. Fleet
 
 - CDR stays on the binary data path; the gateway never parses sample bodies.
 - Browser APIs remain in JavaScript Workers; the core crosses the boundary through bounded poll batches (ADR 0004; R1-04 hand-written ABI + I/O Worker).
-- The copy budget is two controllable payload copies end to end, with telemetry counters ([performance contracts](../../docs/architecture.md#performance-contracts)). Wasm→application is 0 copies on the thread that owns wasm; the I/O Worker copies bulk sample fields (PointCloud2 `data`) and service/action CDR before `postMessage` because wasm memory is not shared with main.
+- The copy budget is two controllable payload copies end to end, with telemetry counters ([performance contracts](../../docs/architecture.md#performance-contracts)). Wasm→application is 0 copies on the thread that owns wasm; the public `Node` API copies PointCloud2 `data` into an owned message and releases the lease. The I/O Worker copies bulk sample fields (PointCloud2 `data`) and service/action CDR before `postMessage` because wasm memory is not shared with main.
 - Queue, buffer, timeout, retry, and memory budgets are explicit; best-effort channels drop at the edge with stable dispositions ([R2-01](../../docs/milestones/r2-01-data-plane-hardening.md)).
 - Large-message / PointCloud2 delivery keeps O(1) borrowed CDR views and measures both host buffer strategies ([R2-02](../../docs/milestones/r2-02-large-message-path.md)).
 - Service/action channels use `OPERATION_ID` streams; graph state arrives as GraphSnapshot/Delta after SessionReady ([R3-01](../../docs/milestones/r3-01-services-actions-graph.md)).

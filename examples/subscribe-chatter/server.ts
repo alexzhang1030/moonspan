@@ -132,7 +132,7 @@ const html = `<!doctype html>
     <ul id="log" aria-live="polite"></ul>
   </main>
   <script type="module">
-    import { connect, STD_MSGS_STRING } from "/sdk/index.js";
+    import { init, Node, std_msgs } from "/sdk/index.js";
     const status = document.getElementById("status");
     const log = document.getElementById("log");
     const go = document.getElementById("go");
@@ -142,28 +142,26 @@ const html = `<!doctype html>
       go.disabled = true;
       status.textContent = "Connecting…";
       try {
-        const client = await connect(${JSON.stringify(gatewayUrl)}, {
-          wasmUrl: "/wasm/rclweb.wasm",
-        });
-        status.textContent = "Session ready · subscribing /chatter";
-        const sub = await client.session.subscribe("/chatter", STD_MSGS_STRING);
-        const pub = await client.session.publish("/chatter", STD_MSGS_STRING);
-        status.textContent = "Subscribed · waiting for samples";
-        compose.hidden = false;
-        compose.addEventListener("submit", async (ev) => {
-          ev.preventDefault();
-          const data = out.value.trim();
-          if (!data) return;
-          out.value = "";
-          await pub.publish({ data });
-        });
-        sub.onMessage((msg, lease) => {
+        await init(${JSON.stringify(gatewayUrl)});
+        const node = new Node("subscribe_chatter");
+        const publisher = node.createPublisher(std_msgs.msg.String, "/chatter", 10);
+        node.createSubscription(std_msgs.msg.String, "/chatter", 10, (msg) => {
           const li = document.createElement("li");
           li.textContent = msg.data;
           log.prepend(li);
           while (log.children.length > 12) log.lastElementChild?.remove();
-          lease.release();
           status.textContent = "Receiving samples";
+        });
+        status.textContent = "Subscribed · waiting for samples";
+        compose.hidden = false;
+        compose.addEventListener("submit", (ev) => {
+          ev.preventDefault();
+          const data = out.value.trim();
+          if (!data) return;
+          out.value = "";
+          const message = new std_msgs.msg.String();
+          message.data = data;
+          publisher.publish(message);
         });
       } catch (err) {
         status.textContent = err instanceof Error ? err.message : String(err);
