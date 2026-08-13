@@ -12,6 +12,7 @@ Documentation describes the product. It is not a delivery-phase ledger. Historic
 |---|---|
 | Product direction | [Intent](./intent.md) |
 | System boundaries and the single-core decision | [Architecture](./architecture.md) |
+| Sample path versus Foxglove / rosbridge | [Performance](../../docs/performance.md) |
 | Languages, platforms, transport, and tooling | [Technology stack](./technology-stack.md) |
 | Rust workspace (fmt, clippy, lints, just recipes) | [Technology stack — Rust workspace infrastructure](./technology-stack.md#rust-workspace-infrastructure) |
 | Traps already paid for | [Gotchas](./gotchas.md) |
@@ -61,6 +62,7 @@ Documentation describes the product. It is not a delivery-phase ledger. Historic
 | `pixi.toml` | Optional RoboStack J-FT ([technology stack](./technology-stack.md#optional-local-ros-prefix), [gotchas](./gotchas.md#pixi-ros-test-must-pin-rosprefix-over-a-host-optros)) |
 | `scripts/build-wasm.ts` | Fat-LTO wasm ship ([gotchas](./gotchas.md#release-wasm-inherits-native-release-settings)) |
 | Support matrix | Human matrix edit; no committed measurement JSON ([gotchas](./gotchas.md#do-not-commit-measurement-json)) |
+| `scripts/perf-baseline/**`, `scripts/measure-perf-baseline.ts` | [Performance](../../docs/performance.md); stdout only, no committed JSON ([gotchas](./gotchas.md#do-not-commit-measurement-json)) |
 | `studio/` (not in the tree) | [Studio](../../docs/prototypes/studio-ui.md), [DESIGN.md](./DESIGN.md) |
 
 ## Design record check

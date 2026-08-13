@@ -64,7 +64,7 @@ The sample path is copy discipline and drop discipline, with counters in telemet
 
 The 0-copy view holds on the thread that owns wasm (the I/O Worker, or the calling thread when `options.inline: true`). The public `Node` callback copies PointCloud2 `data` so the application never holds a lease (rclcpp-owned message). Bulk fields that cross to the main thread on the Worker path are copied at that boundary: PointCloud2 `data` and service/action CDR. Shared wasm memory remains the parked path to 0-copy on the Worker ([ADR 0004](./adr/0004-browser-wasm-host-boundary.md)).
 
-**Why not zero.** Those two copies are the two runtime hops, not slack. `rcl_take_serialized_message` is the serialized adapter ABI; sharing RMW cache memory needs a later ADR ([ADR 0006](./adr/0006-edge-ros-c-abi-boundary.md)). Wasm linear memory cannot alias a WebSocket `ArrayBuffer`. The sample also crosses the network — kernel and browser RX buffers sit outside this budget. Host-retaining the JS buffer and keeping only headers in wasm would skip the wasm payload copy, but it moves CDR and lease ownership onto the host, against [ADR 0004](./adr/0004-browser-wasm-host-boundary.md).
+**Why not zero.** Those two copies are the two runtime hops, not slack. `rcl_take_serialized_message` is the serialized adapter ABI; sharing RMW cache memory needs a later ADR ([ADR 0006](./adr/0006-edge-ros-c-abi-boundary.md)). Wasm linear memory cannot alias a WebSocket `ArrayBuffer`. The sample also crosses the network — kernel and browser RX buffers sit outside this budget. Host-retaining the JS buffer and keeping only headers in wasm would skip the wasm payload copy, but it moves CDR and lease ownership onto the host, against [ADR 0004](./adr/0004-browser-wasm-host-boundary.md). Comparison with Foxglove Bridge and rosbridge, plus the reproducing benchmark, is in [performance](./performance.md).
 
 **CDR is O(1) for blob-heavy types.** Decoding PointCloud2 is metadata reads plus an (offset, length) for `data`. Codecs keep the borrowed-view contract; they do not materialize `Vec<u8>` for bulk payloads.
 
@@ -103,4 +103,5 @@ Cross-origin-isolated deployments may use a bounded `SharedArrayBuffer` ring. Ge
 | Security | [Security](./security.md) |
 | Platforms | [Compatibility](./compatibility.md), [support matrix](./support-matrix.md) |
 | Evidence | [Validation](./validation.md) |
+| Performance | [Performance](./performance.md) |
 | Studio | [Common Studio prototype](./prototypes/studio-ui.md) |

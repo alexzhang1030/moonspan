@@ -23,4 +23,4 @@ rclweb uses established ROS web and Wasm projects as compatibility targets and b
 
 R2WP and the TypeScript package remain the primary application contract. Compatibility endpoints have independent capability, policy, and telemetry controls. The Humble and Jazzy rows live in the [support matrix](./support-matrix.md); later topology work enters through [compatibility qualification](./compatibility.md).
 
-[Validation](./validation.md) owns comparative workloads, metrics, and evidence.
+Copy counts, wire expansion, and the reproducing baseline versus Foxglove and rosbridge are in [performance](./performance.md). [Validation](./validation.md) owns comparative workloads, metrics, and evidence.
