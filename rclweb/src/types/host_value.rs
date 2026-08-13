@@ -323,6 +323,18 @@ fn sample_collections() -> Collections {
   }
 }
 
+pub fn sample_primitive_scalars() -> PrimitiveScalars {
+  sample_scalars()
+}
+
+pub fn sample_nested_sample() -> NestedSample {
+  NestedSample {
+    stamp: Time { sec: 11, nanosec: 22 },
+    scalars: sample_scalars(),
+    collections: sample_collections(),
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -356,17 +368,5 @@ mod tests {
     assert_eq!(got, original);
     let again = encode_generated_cdr(&GeneratedMessage::PrimitiveScalars(got.clone())).unwrap();
     assert_eq!(again, cdr);
-  }
-}
-
-pub fn sample_primitive_scalars() -> PrimitiveScalars {
-  sample_scalars()
-}
-
-pub fn sample_nested_sample() -> NestedSample {
-  NestedSample {
-    stamp: Time { sec: 11, nanosec: 22 },
-    scalars: sample_scalars(),
-    collections: sample_collections(),
   }
 }
