@@ -24,6 +24,29 @@ fn text_val(text: &str) -> CborValue<'static> {
   CborValue::Text(Cow::Owned(text.to_owned()))
 }
 
+fn channel_ready_map(correlation: &[u8; 16], channel_id: u32) -> CborValue<'static> {
+  CborValue::Map(vec![
+    (1, CborValue::Unsigned(9)),
+    (2, bytes_val(correlation)),
+    (29, CborValue::Unsigned(u64::from(channel_id))),
+    (33, CborValue::Unsigned(0)),
+    (12, CborValue::Map(Vec::new())),
+    (59, CborValue::Unsigned(2)),
+    (
+      57,
+      CborValue::Map(vec![
+        (1, CborValue::Unsigned(1)),
+        (2, CborValue::Unsigned(2)),
+        (3, CborValue::Unsigned(1)),
+        (4, CborValue::Unsigned(5)),
+        (7, CborValue::Unsigned(1)),
+      ]),
+    ),
+    (9, CborValue::Unsigned(0)),
+    (8, text_val("J-FT")),
+  ])
+}
+
 fn main() {
   let server_hello = encode_server_hello(&ServerHello {
     selected_wire_version: 0,
@@ -76,31 +99,39 @@ fn main() {
   .expect("session ready");
 
   let sub_corr = [0xb1u8; 16];
-  let channel_ready = encode_control_frame(
+  let channel_ready =
+    encode_control_frame(0, 1, &channel_ready_map(&sub_corr, 1)).expect("channel ready");
+
+  let service_corr = [0xe1u8; 16];
+  let service_channel_ready = encode_control_frame(0, 1, &channel_ready_map(&service_corr, 1))
+    .expect("service channel ready");
+
+  let action_corr = [0xe3u8; 16];
+  let action_channel_ready =
+    encode_control_frame(0, 1, &channel_ready_map(&action_corr, 1)).expect("action channel ready");
+
+  let node_id = [0xaau8; 16];
+  let graph_snapshot = encode_control_frame(
     0,
     1,
     &CborValue::Map(vec![
-      (1, CborValue::Unsigned(9)),
-      (2, bytes_val(&sub_corr)),
-      (29, CborValue::Unsigned(1)),
-      (33, CborValue::Unsigned(0)),
-      (12, CborValue::Map(Vec::new())),
-      (59, CborValue::Unsigned(2)),
-      (
-        57,
-        CborValue::Map(vec![
-          (1, CborValue::Unsigned(1)),
-          (2, CborValue::Unsigned(2)),
-          (3, CborValue::Unsigned(1)),
-          (4, CborValue::Unsigned(5)),
-          (7, CborValue::Unsigned(1)),
-        ]),
-      ),
-      (9, CborValue::Unsigned(0)),
+      (1, CborValue::Unsigned(3)),
+      (2, bytes_val(&[0u8; 16])),
+      (14, CborValue::Unsigned(1)),
+      (7, text_val("gw-test")),
       (8, text_val("J-FT")),
+      (
+        22,
+        CborValue::Array(vec![CborValue::Map(vec![
+          (55, bytes_val(&node_id)),
+          (1, text_val("/talker")),
+          (9, CborValue::Unsigned(0)),
+        ])]),
+      ),
+      (23, CborValue::Array(Vec::new())),
     ]),
   )
-  .expect("channel ready");
+  .expect("graph snapshot");
 
   let payload = ClientEngine::encode_std_msgs_string("hello-from-fixture").unwrap();
   let mut sample = vec![0u8; FRAME_HEADER_LENGTH + payload.len()];
@@ -129,9 +160,14 @@ fn main() {
         "serverHello": hex(&server_hello),
         "sessionReady": hex(&session_ready),
         "channelReady": hex(&channel_ready),
+        "serviceChannelReady": hex(&service_channel_ready),
+        "actionChannelReady": hex(&action_channel_ready),
+        "graphSnapshot": hex(&graph_snapshot),
         "sample": hex(&sample),
         "authCorrelationHex": hex(&auth_corr),
         "subCorrelationHex": hex(&sub_corr),
+        "serviceCorrelationHex": hex(&service_corr),
+        "actionCorrelationHex": hex(&action_corr),
     })
   );
 }

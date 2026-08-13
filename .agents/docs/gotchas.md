@@ -60,7 +60,7 @@ R3-01 reliable operation streams (SERVICE_REQUEST/RESPONSE, ACTION_GOAL/CANCEL/R
 
 ## Service/action poll events carry payload views
 
-App events 13–14 and 17–20 include `lease_id` plus `payload_ptr`/`payload_len` (same lease model as Sample). The abbreviated command layouts omit those ptr fields; without them the wasm host cannot copy request/response bodies. TS must release the lease after `IoHost.copyPayload`.
+App events 13–14 and 17–20 include `lease_id` plus `payload_ptr`/`payload_len` (same lease model as Sample). The abbreviated command layouts omit those ptr fields; without them the wasm host cannot copy request/response bodies. TS must release the lease after `IoHost.copyPayload`. The I/O Worker copies those bytes and releases the lease before `postMessage` so main never holds a wasm pointer ([R4-04](../../docs/milestones/r4-04-sdk.md)).
 
 ## Phase 1 schema metadata JSON shape
 

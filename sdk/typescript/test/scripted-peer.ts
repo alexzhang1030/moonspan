@@ -10,9 +10,14 @@ type FixtureSet = {
   serverHello: string;
   sessionReady: string;
   channelReady: string;
+  serviceChannelReady: string;
+  actionChannelReady: string;
+  graphSnapshot: string;
   sample: string;
   authCorrelationHex: string;
   subCorrelationHex: string;
+  serviceCorrelationHex: string;
+  actionCorrelationHex: string;
 };
 
 function hexToBytes(hex: string): Uint8Array {
@@ -31,8 +36,13 @@ export function scriptedPeerFixtures() {
     serverHello: hexToBytes(cached.serverHello),
     sessionReady: hexToBytes(cached.sessionReady),
     channelReady: hexToBytes(cached.channelReady),
+    serviceChannelReady: hexToBytes(cached.serviceChannelReady),
+    actionChannelReady: hexToBytes(cached.actionChannelReady),
+    graphSnapshot: hexToBytes(cached.graphSnapshot),
     sample: hexToBytes(cached.sample),
     authCorrelation: hexToBytes(cached.authCorrelationHex),
     subCorrelation: hexToBytes(cached.subCorrelationHex),
+    serviceCorrelation: hexToBytes(cached.serviceCorrelationHex),
+    actionCorrelation: hexToBytes(cached.actionCorrelationHex),
   };
 }
