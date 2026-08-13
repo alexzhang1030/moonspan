@@ -263,13 +263,20 @@ function xyzCloud(points: number) {
     view.setFloat32(i * 12 + 8, i * 0.03, true);
   }
   return {
+    stampSec: 1,
+    stampNanosec: 2,
+    frameId: "map",
     height: 1,
     width: points,
+    fields: [
+      { name: "x", offset: 0, datatype: 7, count: 1 },
+      { name: "y", offset: 4, datatype: 7, count: 1 },
+      { name: "z", offset: 8, datatype: 7, count: 1 },
+    ],
     pointStep: 12,
     rowStep: points * 12,
     isBigendian: false,
     isDense: true,
-    fieldCount: 3,
     data,
   };
 }
@@ -347,6 +354,9 @@ test("scripted peer: PointCloud2 sample is a borrowed wasm view", async () => {
     height: number;
     dataLen: number;
     borrowed: boolean;
+    frameId: string;
+    stampSec: number;
+    field0: string;
     xyz0: [number, number, number];
     xyz1: [number, number, number];
   } | null = null;
@@ -356,6 +366,9 @@ test("scripted peer: PointCloud2 sample is a borrowed wasm view", async () => {
       height: msg.height,
       dataLen: msg.data.length,
       borrowed: msg.data.buffer === host.engineMemory(),
+      frameId: msg.frameId,
+      stampSec: msg.stampSec,
+      field0: msg.fields[0]?.name ?? "",
       xyz0: readXyz(msg.data, 0),
       xyz1: readXyz(msg.data, 1),
     };
@@ -370,6 +383,9 @@ test("scripted peer: PointCloud2 sample is a borrowed wasm view", async () => {
   expect(saw!.height).toBe(1);
   expect(saw!.dataLen).toBe(48);
   expect(saw!.borrowed).toBe(true);
+  expect(saw!.frameId).toBe("map");
+  expect(saw!.stampSec).toBe(1);
+  expect(saw!.field0).toBe("x");
   expect(saw!.xyz0[0]).toBeCloseTo(0);
   expect(saw!.xyz0[1]).toBeCloseTo(0);
   expect(saw!.xyz0[2]).toBeCloseTo(0);

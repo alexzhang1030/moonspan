@@ -352,13 +352,16 @@ export class IoHost {
       command: {
         type: "sendPointCloud2",
         channelId,
+        stampSec: cloud.stampSec,
+        stampNanosec: cloud.stampNanosec,
+        frameId: cloud.frameId,
         height: cloud.height,
         width: cloud.width,
         pointStep: cloud.pointStep,
         rowStep: cloud.rowStep,
         isBigendian: cloud.isBigendian,
         isDense: cloud.isDense,
-        fieldCount: cloud.fieldCount,
+        fields: cloud.fields,
         data: cloud.data,
       },
     });
@@ -677,13 +680,16 @@ export class IoHost {
 
 function assemblePointCloud2(meta: PointCloud2Meta, data: Uint8Array): PointCloud2 {
   return {
+    stampSec: meta.stampSec,
+    stampNanosec: meta.stampNanosec,
+    frameId: meta.frameId,
     height: meta.height,
     width: meta.width,
+    fields: meta.fields,
+    isBigendian: meta.isBigendian,
     pointStep: meta.pointStep,
     rowStep: meta.rowStep,
-    isBigendian: meta.isBigendian,
     isDense: meta.isDense,
-    fieldCount: meta.fieldCount,
     data,
   };
 }

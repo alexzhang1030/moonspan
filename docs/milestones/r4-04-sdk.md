@@ -44,11 +44,11 @@ Subscribe delivers `sensor_msgs/msg/PointCloud2` as metadata plus a `data` Typed
 
 ## Outcome (this slice — PointCloud2 publish)
 
-The host `publish(..., sensor_msgs.msg.PointCloud2)` path sends a typed PointCloud2. The wasm core encodes CDR (XYZ float32 fields when `fieldCount === 3` and `pointStep >= 12`; empty header). The I/O Worker carries the same `sendPointCloud2` command as the inline host. The public `Node.createPublisher(sensor_msgs.msg.PointCloud2, ...)` wraps that path.
+The host `publish(..., sensor_msgs.msg.PointCloud2)` path sends a typed PointCloud2. The wasm core encodes CDR from the ROS header, PointField list, and `data` (no XYZ synthesis, no dropped `frame_id`). The I/O Worker carries the same `sendPointCloud2` command as the inline host. The public `Node.createPublisher(sensor_msgs.msg.PointCloud2, ...)` wraps that path.
 
 | Area | Behavior |
 |---|---|
-| Command | Poll ABI `CMD_SEND_POINT_CLOUD2` (17): metadata plus the `data` field, not full CDR. |
+| Command | Poll ABI `CMD_SEND_POINT_CLOUD2` (17): header, fields, and the `data` field, not full CDR. |
 | Engine | [`encode_point_cloud2_from_sdk_meta`](../../rclweb/src/cdr/point_cloud2.rs) then the existing ROS_SAMPLE send path. |
 | Client | [`Publisher.publish`](../../sdk/typescript/src/client.ts) accepts `StdMsgsString \| PointCloud2` from the channel type. |
 | Tests | Engine outbound decode, inline `samplesSent`, Worker scripted peer captures `OPCODE_ROS_SAMPLE`. |
@@ -69,6 +69,16 @@ and the session/lease host live on `@rclweb/sdk/internal`.
 | Messages | [`std_msgs` / `sensor_msgs`](../../sdk/typescript/src/interfaces.ts) classes with ROS IDL field names. |
 | Demo / e2e | subscribe-chatter and the e2e harness use `init` + `Node`. |
 | Tests | [`node.test.ts`](../../sdk/typescript/test/node.test.ts) covers subscribe/publish without leases. Host 0-copy tests stay on `internal`. |
+
+## Outcome (this slice — PointCloud2 header and fields)
+
+Subscribe and publish round-trip `sensor_msgs/msg/PointCloud2` header stamp/`frame_id` and the PointField list. Republishing a received cloud keeps those fields; the host no longer synthesizes XYZ from `field_count == 3`.
+
+| Area | Behavior |
+|---|---|
+| Command | `CMD_SEND_POINT_CLOUD2` carries stamp, `frame_id`, and each PointField before `data`. |
+| Inbound meta | `rclweb_point_cloud2_meta` writes stamp/`frame_id`/fields after the numeric prefix. Point `data` stays an offset/len view. |
+| Node | `wireToRos` / `rosToWire` copy header and fields. Applications set `cloud.header.frame_id` like rclcpp. |
 
 ## Delivered scope
 

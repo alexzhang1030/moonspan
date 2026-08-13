@@ -293,14 +293,6 @@ function resolveName(namespace: string, name: string): string {
   return `${ns.startsWith("/") ? ns : `/${ns}`}/${name}`;
 }
 
-function xyzFields(): PointField[] {
-  return [
-    field("x", 0, PointField.FLOAT32, 1),
-    field("y", 4, PointField.FLOAT32, 1),
-    field("z", 8, PointField.FLOAT32, 1),
-  ];
-}
-
 function field(
   name: string,
   offset: number,
@@ -343,6 +335,9 @@ function toWire(typeName: string, message: unknown): SampleMessage {
 
 function wireToRos(wire: WirePointCloud2): PointCloud2 {
   const msg = new PointCloud2();
+  msg.header.stamp.sec = wire.stampSec;
+  msg.header.stamp.nanosec = wire.stampNanosec;
+  msg.header.frame_id = wire.frameId;
   msg.height = wire.height;
   msg.width = wire.width;
   msg.point_step = wire.pointStep;
@@ -350,23 +345,27 @@ function wireToRos(wire: WirePointCloud2): PointCloud2 {
   msg.is_bigendian = wire.isBigendian;
   msg.is_dense = wire.isDense;
   msg.data = wire.data.slice();
-  if (wire.fieldCount === 3 && wire.pointStep >= 12) {
-    msg.fields = xyzFields();
-  } else if (wire.fieldCount > 0) {
-    msg.fields = [field("data", 0, PointField.UINT8, Math.max(wire.pointStep, 1))];
-  }
+  msg.fields = wire.fields.map((f) => field(f.name, f.offset, f.datatype, f.count));
   return msg;
 }
 
 function rosToWire(msg: PointCloud2): WirePointCloud2 {
   return {
+    stampSec: msg.header.stamp.sec,
+    stampNanosec: msg.header.stamp.nanosec,
+    frameId: msg.header.frame_id,
     height: msg.height,
     width: msg.width,
+    fields: msg.fields.map((f) => ({
+      name: f.name,
+      offset: f.offset,
+      datatype: f.datatype,
+      count: f.count,
+    })),
+    isBigendian: msg.is_bigendian,
     pointStep: msg.point_step,
     rowStep: msg.row_step,
-    isBigendian: msg.is_bigendian,
     isDense: msg.is_dense,
-    fieldCount: msg.fields.length,
     data: msg.data,
   };
 }

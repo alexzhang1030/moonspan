@@ -189,20 +189,25 @@ pub unsafe extern "C" fn rclweb_telemetry(handle: u32, out_ptr: *mut u8) -> i32 
 
 /// Decode PointCloud2 metadata from a CDR payload in wasm linear memory.
 ///
-/// Writes a fixed little-endian meta record to `out_ptr` (40 bytes):
+/// Writes a little-endian meta record to `out_ptr` (`out_len` bytes):
 /// `height:u32, width:u32, point_step:u32, row_step:u32, data_offset:u32,
-/// data_len:u32, is_bigendian:u8, is_dense:u8, pad:u16, field_count:u32`.
-/// `data_offset` is relative to `payload_ptr`. Returns 0 on success, negative
-/// on fault. Does not materialize or iterate the point payload (R2-02).
+/// data_len:u32, is_bigendian:u8, is_dense:u8, pad:u16, field_count:u32,
+/// stamp_sec:i32, stamp_nanosec:u32, frame_id_len:u16, frame_id...,
+/// then fields: name_len:u16, name..., offset:u32, datatype:u8, count:u32`.
+/// `data_offset` is relative to `payload_ptr`. Returns bytes written (>= 42)
+/// on success, negative on fault. Does not materialize or iterate the point
+/// payload (R2-02). If `out_len` is too small, returns -4 and, when
+/// `out_len >= 4`, writes the needed size as `u32` at `out_ptr`.
 ///
 /// # Safety
 /// `payload_ptr` must address `payload_len` readable bytes; `out_ptr` must
-/// address 40 writable bytes.
+/// address `out_len` writable bytes.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn rclweb_point_cloud2_meta(
   payload_ptr: *const u8,
   payload_len: u32,
   out_ptr: *mut u8,
+  out_len: u32,
 ) -> i32 {
   if payload_ptr.is_null() || out_ptr.is_null() {
     return -1;
@@ -217,19 +222,19 @@ pub unsafe extern "C" fn rclweb_point_cloud2_meta(
   if data_offset > u32::MAX as usize || view.data.len() > u32::MAX as usize {
     return -3;
   }
-  // SAFETY: host provides a 40-byte writable region.
-  let out = unsafe { std::slice::from_raw_parts_mut(out_ptr, 40) };
-  out[0..4].copy_from_slice(&view.height.to_le_bytes());
-  out[4..8].copy_from_slice(&view.width.to_le_bytes());
-  out[8..12].copy_from_slice(&view.point_step.to_le_bytes());
-  out[12..16].copy_from_slice(&view.row_step.to_le_bytes());
-  out[16..20].copy_from_slice(&(data_offset as u32).to_le_bytes());
-  out[20..24].copy_from_slice(&(view.data.len() as u32).to_le_bytes());
-  out[24] = u8::from(view.is_bigendian);
-  out[25] = u8::from(view.is_dense);
-  out[26] = 0;
-  out[27] = 0;
-  out[28..32].copy_from_slice(&(view.fields.len() as u32).to_le_bytes());
-  out[32..40].fill(0);
-  0
+  let need = crate::cdr::point_cloud2_host_meta_len(&view);
+  if (out_len as usize) < need {
+    if out_len >= 4 {
+      // SAFETY: host provides at least 4 writable bytes.
+      let out = unsafe { std::slice::from_raw_parts_mut(out_ptr, out_len as usize) };
+      out[..4].copy_from_slice(&(need as u32).to_le_bytes());
+    }
+    return -4;
+  }
+  // SAFETY: host provides `out_len` writable bytes, already checked >= need.
+  let out = unsafe { std::slice::from_raw_parts_mut(out_ptr, out_len as usize) };
+  match crate::cdr::write_point_cloud2_host_meta(&view, data_offset as u32, out) {
+    Some(n) => i32::try_from(n).unwrap_or(-3),
+    None => -3,
+  }
 }

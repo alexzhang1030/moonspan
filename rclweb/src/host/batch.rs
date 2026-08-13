@@ -40,7 +40,9 @@
 //! - `15` SendActionResult `{ channel_id, opid[16], len:u32, bytes... }`
 //! - `16` SendActionStatus `{ channel_id, opid[16], len:u32, bytes... }`
 //! - `17` SendPointCloud2 `{ channel_id:u32, height:u32, width:u32, point_step:u32,
-//!     row_step:u32, is_bigendian:u8, is_dense:u8, pad:u16, field_count:u32,
+//!     row_step:u32, is_bigendian:u8, is_dense:u8, pad:u16, stamp_sec:i32,
+//!     stamp_nanosec:u32, frame_id_len:u16, frame_id..., field_count:u32,
+//!     fields: [ name_len:u16, name..., offset:u32, datatype:u8, count:u32 ]...,
 //!     data_len:u32, data... }`
 //!
 //! ## Outbound result (engine → host)
@@ -455,7 +457,8 @@ fn decode_command(bytes: &[u8], offset: &mut usize, cmd: u8) -> Result<AppComman
     }
     CMD_CLOSE => Ok(AppCommand::Close),
     CMD_SEND_POINT_CLOUD2 => {
-      if *offset + 32 > bytes.len() {
+      // channel_id..stamp_nanosec = 32 bytes, then frame_id_len.
+      if *offset + 34 > bytes.len() {
         return Err(BatchError::Truncated);
       }
       let channel_id = read_u32(bytes, *offset);
@@ -471,8 +474,33 @@ fn decode_command(bytes: &[u8], offset: &mut usize, cmd: u8) -> Result<AppComman
       let is_bigendian = bytes[*offset] != 0;
       let is_dense = bytes[*offset + 1] != 0;
       *offset += 4;
-      let field_count = read_u32(bytes, *offset);
+      let stamp_sec = read_i32(bytes, *offset);
       *offset += 4;
+      let stamp_nanosec = read_u32(bytes, *offset);
+      *offset += 4;
+      let frame_id = read_u16_string(bytes, offset)?;
+      if *offset + 4 > bytes.len() {
+        return Err(BatchError::Truncated);
+      }
+      let field_count = read_u32(bytes, *offset) as usize;
+      *offset += 4;
+      let mut fields = Vec::with_capacity(field_count);
+      for _ in 0..field_count {
+        let name = read_u16_string(bytes, offset)?;
+        if *offset + 9 > bytes.len() {
+          return Err(BatchError::Truncated);
+        }
+        let field_offset = read_u32(bytes, *offset);
+        *offset += 4;
+        let datatype = bytes[*offset];
+        *offset += 1;
+        let count = read_u32(bytes, *offset);
+        *offset += 4;
+        fields.push(crate::cdr::PointField { name, offset: field_offset, datatype, count });
+      }
+      if *offset + 4 > bytes.len() {
+        return Err(BatchError::Truncated);
+      }
       let data_len = read_u32(bytes, *offset) as usize;
       *offset += 4;
       if *offset + data_len > bytes.len() {
@@ -482,13 +510,14 @@ fn decode_command(bytes: &[u8], offset: &mut usize, cmd: u8) -> Result<AppComman
       *offset += data_len;
       Ok(AppCommand::SendPointCloud2 {
         channel_id,
+        header: crate::cdr::PointCloud2Header { stamp_sec, stamp_nanosec, frame_id },
         height,
         width,
+        fields,
         point_step,
         row_step,
         is_bigendian,
         is_dense,
-        field_count,
         data,
       })
     }
@@ -933,13 +962,14 @@ fn encode_command(out: &mut Vec<u8>, cmd: &AppCommand) {
     }
     AppCommand::SendPointCloud2 {
       channel_id,
+      header,
       height,
       width,
+      fields,
       point_step,
       row_step,
       is_bigendian,
       is_dense,
-      field_count,
       data,
     } => {
       out.extend_from_slice(&[CMD_SEND_POINT_CLOUD2, 0, 0, 0]);
@@ -949,7 +979,18 @@ fn encode_command(out: &mut Vec<u8>, cmd: &AppCommand) {
       write_u32(out, *point_step);
       write_u32(out, *row_step);
       out.extend_from_slice(&[u8::from(*is_bigendian), u8::from(*is_dense), 0, 0]);
-      write_u32(out, *field_count);
+      write_i32(out, header.stamp_sec);
+      write_u32(out, header.stamp_nanosec);
+      write_u16(out, header.frame_id.len() as u16);
+      out.extend_from_slice(header.frame_id.as_bytes());
+      write_u32(out, fields.len() as u32);
+      for field in fields {
+        write_u16(out, field.name.len() as u16);
+        out.extend_from_slice(field.name.as_bytes());
+        write_u32(out, field.offset);
+        out.push(field.datatype);
+        write_u32(out, field.count);
+      }
       write_u32(out, data.len() as u32);
       out.extend_from_slice(data);
     }
@@ -999,12 +1040,32 @@ fn encode_opid_payload(
   out.extend_from_slice(payload);
 }
 
+fn read_u16_string(bytes: &[u8], offset: &mut usize) -> Result<String, BatchError> {
+  if *offset + 2 > bytes.len() {
+    return Err(BatchError::Truncated);
+  }
+  let len = read_u16(bytes, *offset) as usize;
+  *offset += 2;
+  if *offset + len > bytes.len() {
+    return Err(BatchError::Truncated);
+  }
+  let s = std::str::from_utf8(&bytes[*offset..*offset + len])
+    .map_err(|_| BatchError::BadKind)?
+    .to_owned();
+  *offset += len;
+  Ok(s)
+}
+
 pub fn read_u16(bytes: &[u8], offset: usize) -> u16 {
   u16::from_le_bytes([bytes[offset], bytes[offset + 1]])
 }
 
 pub fn read_u32(bytes: &[u8], offset: usize) -> u32 {
   u32::from_le_bytes([bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]])
+}
+
+pub fn read_i32(bytes: &[u8], offset: usize) -> i32 {
+  i32::from_le_bytes([bytes[offset], bytes[offset + 1], bytes[offset + 2], bytes[offset + 3]])
 }
 
 pub fn read_u64(bytes: &[u8], offset: usize) -> u64 {
@@ -1131,13 +1192,18 @@ mod tests {
     let data = vec![1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
     let events = vec![HostEvent::Command(AppCommand::SendPointCloud2 {
       channel_id: 9,
+      header: crate::cdr::PointCloud2Header {
+        stamp_sec: 3,
+        stamp_nanosec: 4,
+        frame_id: "map".into(),
+      },
       height: 1,
       width: 1,
+      fields: vec![crate::cdr::PointField { name: "x".into(), offset: 0, datatype: 7, count: 1 }],
       point_step: 12,
       row_step: 12,
       is_bigendian: false,
       is_dense: true,
-      field_count: 3,
       data: data.clone(),
     })];
     let encoded = encode_host_batch_inline(&events);
@@ -1146,14 +1212,18 @@ mod tests {
       HostEvent::Command(AppCommand::SendPointCloud2 {
         channel_id,
         width,
-        field_count,
+        header,
+        fields,
         data: got,
         is_dense,
         ..
       }) => {
         assert_eq!(*channel_id, 9);
         assert_eq!(*width, 1);
-        assert_eq!(*field_count, 3);
+        assert_eq!(header.frame_id, "map");
+        assert_eq!(header.stamp_sec, 3);
+        assert_eq!(fields.len(), 1);
+        assert_eq!(fields[0].name, "x");
         assert!(*is_dense);
         assert_eq!(got, &data);
       }

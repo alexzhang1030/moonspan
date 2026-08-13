@@ -20,7 +20,8 @@ pub use limits::{
 pub use point_cloud2::{
   Header as PointCloud2Header, PointCloud2View, PointField, SENSOR_MSGS_POINT_CLOUD2,
   build_synthetic_xyz_cdr, decode_point_cloud2, decode_point_cloud2_le, encode_point_cloud2,
-  encode_point_cloud2_from_sdk_meta, encode_point_cloud2_le,
+  encode_point_cloud2_from_sdk_meta, encode_point_cloud2_le, point_cloud2_host_meta_len,
+  write_point_cloud2_host_meta,
 };
 pub use reader::{CdrHeader, CdrNesting, CdrReader};
 pub use writer::CdrWriter;

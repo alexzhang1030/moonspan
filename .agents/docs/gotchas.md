@@ -70,9 +70,9 @@ App events 13–14 and 17–20 include `lease_id` plus `payload_ptr`/`payload_le
 
 `rclweb_point_cloud2_meta` returns metadata plus an offset/len into the leased CDR. On `options.inline: true` the host hands a TypedArray into wasm memory (copy-budget 0 wasm→application; valid until `lease.release()`). The I/O Worker cannot share that memory with main without SAB, so it copies only the `data` field, releases the lease, and transfers the ArrayBuffer — same class of boundary copy as service/action CDR. The public `Node` callback always owns a copy and never sees the lease. Do not copy the whole CDR payload, and do not keep the lease outstanding after a Worker copy (a 1 MiB cloud would then pin wasm *and* hold a JS copy). [R4-04](../../docs/milestones/r4-04-sdk.md), [architecture](../../docs/architecture.md#performance-contracts).
 
-## PointCloud2 publish synthesizes fields
+## PointCloud2 header and fields travel on the host command
 
-The public `sensor_msgs.msg.PointCloud2` class has Header and PointField list (ROS IDL names). The host command still sends numeric meta plus `data`; outbound encode (`encode_point_cloud2_from_sdk_meta`) uses XYZ float32 fields when `fields.length === 3` and `point_step >= 12`, otherwise one UINT8 blob field. Stamp is zero and `frame_id` is empty on the wire. Republishing a received cloud round-trips `data` and the numeric meta, not header stamp/`frame_id`. [R4-04](../../docs/milestones/r4-04-sdk.md).
+`CMD_SEND_POINT_CLOUD2` carries stamp, `frame_id`, and the PointField list with the point `data`. Do not reintroduce XYZ synthesis from `field_count == 3` — that dropped `frame_id` and made republish lie. Inbound `rclweb_point_cloud2_meta` writes the same header/fields after the numeric prefix; point `data` stays an offset/len view. [R4-04](../../docs/milestones/r4-04-sdk.md).
 
 ## Phase 1 schema metadata JSON shape
 
