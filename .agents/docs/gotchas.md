@@ -155,7 +155,7 @@ Trusted publishing on crates.io requires the crate to already exist. `rclweb` / 
 
 ## npm OIDC identity is the workflow file
 
-npm trusted publishing matches owner + repo + workflow **filename**. A GitHub `environment:` is optional and must stay off the npm job unless the npmjs.com Environment field is the same string. The first draft put `environment: release` on the job and `--provenance` on `npm publish` — that is the old token/deploy model. Official publish is `id-token: write` + `actions/setup-node@v6` + `npm publish`. Provenance is automatic. First automatic cut (`v0.0.3`) published `rcl-web@0.0.3` with a Sigstore provenance statement. [ADR 0016](../../docs/adr/0016-oidc-trusted-publish.md).
+npm trusted publishing matches owner + repo + workflow **filename**. A GitHub `environment:` is optional and must stay off the npm job unless the npmjs.com Environment field is the same string. The first draft put `environment: release` on the job and `--provenance` on `npm publish` — that is the old token/deploy model. Official publish is `id-token: write` + `actions/setup-node@v6` + `npm publish`. Provenance is automatic. First automatic cut (`v0.0.3`) published `rcl-web@0.0.3` with a Sigstore provenance statement. Pushing the tag does not create a GitHub Release; that is a separate API/UI step ([v0.0.3](https://github.com/alexzhang1030/rclweb/releases/tag/v0.0.3)). [ADR 0016](../../docs/adr/0016-oidc-trusted-publish.md).
 
 ## Do not put NODE_AUTH_TOKEN on the npm OIDC job
 
