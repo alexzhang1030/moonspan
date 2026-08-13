@@ -29,7 +29,7 @@ One gateway process may expose multiple domain IDs within its support row. Fleet
 |---|---|
 | R2WP | Frames, control messages, channels, schema identity, errors, versioning, and provenance |
 | `rclweb` core | Protocol codecs, CDR ([core contract](../../docs/runtime/cdr.md)), session/channel state, type registry, ROS state, QoS, and host poll contract |
-| TypeScript package | Public rclcpp-shaped API (`init` / `Node`), Worker lifecycle, buffer transfer, telemetry, and reconnect — no protocol parsing. Host, session `connect`, and wasm ABI stay on `rcl-web/internal` ([`rcl-web`](../../docs/typescript.md)) |
+| TypeScript package | Public API (`init` / `Node` / pub / sub / service / action). Host, session `connect`, and wasm ABI stay on `rcl-web/internal` ([how to](../../docs/typescript.md), [API](../../docs/api.md)) |
 | `rclwebd` | ROS attachment (versioned serialized adapter ABI + dlopen typesupport), sessions, schema cache, scheduling, policy, audit, and operations |
 | Conformance system | Fixtures (single oracle), corpus, workloads, environment identity, and the support matrix |
 | Studio | Optional post-release workspace, panels, rendering, media, and command presentation |

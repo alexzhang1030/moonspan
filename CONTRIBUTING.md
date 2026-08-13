@@ -1,6 +1,11 @@
 # Contributing to rclweb
 
-The root command surface is `just`. After cloning:
+Customer docs (install, `Node`, topics, services, actions) live in
+[`docs/typescript.md`](docs/typescript.md) and
+[`docs/api.md`](docs/api.md). This page is the repository command
+surface.
+
+After cloning:
 
 ```bash
 just setup
@@ -9,11 +14,34 @@ just test
 just build
 ```
 
-`just check` is the foundation gate (docs, protocol, corpus, license inventory, npm pack members, `cargo fmt`, Clippy with `-D warnings`, tsdown ship bundle). Do not treat a rust-only loop as a substitute.
+`just check` is the foundation gate (docs, protocol, corpus, license
+inventory, npm/crate pack members, `cargo fmt`, Clippy with `-D warnings`,
+tsdown ship bundle).
+
+| Command | Purpose |
+|---|---|
+| `just setup` | Frozen Bun install + `just doctor` |
+| `just toolchain-check` | Verify pinned bun / rustc / just |
+| `just doctor` | Pins plus rustc/rustfmt/clippy identity |
+| `just fmt` / `just fmt-check` / `just clippy` / `just lint-rust` | Rust format and Clippy |
+| `just check` | Full foundation gate |
+| `just test` | Bun and Cargo tests |
+| `just build` | Native build, fat-LTO wasm, tsdown bundle |
+| `just npm-pack` / `just npm-pack-check` | npm tarball for `rcl-web` |
+| `just cargo-publish` / `just cargo-publish-check` | crates.io pack for `rclweb` / `rclwebd` |
+| `just e2e` / `just e2e-h-ft` | Live talker → gateway → `rcl-web` |
+| `just gateway` / `just gateway-h-ft` | Packaged gateway on the host network |
+| `just ros-test` / `just ros-test-pixi` | Gateway tests against real rcl |
+| `just protocol-check` / `just cdr-corpus-check` | Registry, CDDL, CDR corpus |
+| `just license-inventory` / `just license-inventory-check` | Third-party allowlist |
+
+Pins: Bun `.bun-version`, Rust `rust-toolchain.toml` (1.97.1 +
+`wasm32-unknown-unknown`), just `.just-version`.
 
 ## Rust workspace
 
-The compiler pin is `rust-toolchain.toml` (**1.97.1** plus `wasm32-unknown-unknown`). Workspace crates inherit `edition`, `rust-version`, and `license` from the root `Cargo.toml`.
+Workspace crates inherit `edition`, `rust-version`, and `license` from
+the root `Cargo.toml`.
 
 | File | Role |
 |---|---|
@@ -22,11 +50,8 @@ The compiler pin is `rust-toolchain.toml` (**1.97.1** plus `wasm32-unknown-unkno
 | `[workspace.lints]` | `unsafe_code = "deny"`, rustc/clippy `all` denied |
 | `[workspace.dependencies]` | shared crate versions; members use `*.workspace = true` |
 
-Unsafe Rust is allowed only in the host poll ABI and the rcl FFI modules (`#![allow(unsafe_code)]` there). Workspace lint level is **deny**, not forbid: forbid cannot be overridden in those modules.
-
-Clippy `pedantic` / `nursery` / restriction groups (unwrap, panic, indexing, print_*) stay off until a dedicated pass. Do not add a lint exception without a narrow reason.
-
-Format and lint without the rest of the gate:
+Unsafe Rust is allowed only in the host poll ABI and the rcl FFI modules
+(`#![allow(unsafe_code)]` there). Lint level is **deny**, not forbid.
 
 ```bash
 just fmt
@@ -36,21 +61,18 @@ just fix-rust
 
 ## Records
 
-Read the [PCR map](.agents/docs/README.md) before changing an enrolled area. Update the authoritative document with the code. Durable decisions live under [`docs/adr/`](docs/adr/README.md). The TypeScript application contract is [`docs/typescript.md`](docs/typescript.md).
+Read the [PCR map](.agents/docs/README.md) before changing an enrolled
+area. The application API is [`docs/api.md`](docs/api.md); the how-to is
+[`docs/typescript.md`](docs/typescript.md). Durable decisions live under
+[`docs/adr/`](docs/adr/README.md).
 
 ## License
 
-The repository is Apache License 2.0 ([LICENSE](./LICENSE), [NOTICE](./NOTICE),
-[licensing](./docs/licensing.md)). Contributions submitted for inclusion are
-under that license unless you state otherwise in writing.
+Apache-2.0 ([LICENSE](./LICENSE), [NOTICE](./NOTICE),
+[licensing](./docs/licensing.md)). Third-party crates and npm packages
+on the published surface must stay OSI-permissive. After changing Cargo
+or Bun dependencies, run `just license-inventory`.
 
-Third-party crates and npm packages on the published surface must stay
-OSI-permissive. After changing Cargo or Bun dependencies, run
-`just license-inventory` and keep `just license-inventory-check` green.
-
-The current TypeScript package is `rcl-web@0.0.2` (`0.0.1` on npm shipped
-source). Publish is GitHub OIDC ([release](./docs/release.md)). Do not
-commit the staged `typescript/LICENSE` / `typescript/NOTICE` copies.
-Crate `LICENSE` / `NOTICE` copies are committed and must match the root
-files. Do not retry unscoped `rclweb` on npm (blocked as too similar to
-`rrweb`).
+Do not commit staged `typescript/LICENSE` / `typescript/NOTICE`. Crate
+`LICENSE` / `NOTICE` copies are committed and must match the root files.
+Do not retry unscoped `rclweb` on npm (blocked as too similar to `rrweb`).

@@ -1,6 +1,7 @@
 # Examples
 
-Runnable consumers of `rclweb`. Application API: [`rclweb`](../docs/typescript.md).
+Runnable consumers of `rcl-web`.
+[How to](../docs/typescript.md) · [API](../docs/api.md).
 
 | Path | Role |
 |---|---|
