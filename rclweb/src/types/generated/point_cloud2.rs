@@ -27,5 +27,5 @@ pub fn decode<'a>(
 pub fn encode(view: &PointCloud2View<'_>, endian: CdrEndian) -> Result<Vec<u8>, CdrError> {
   let mut w = CdrWriter::new_default(endian)?;
   cdr_encode(&mut w, view)?;
-  Ok(w.to_bytes())
+  Ok(w.into_bytes())
 }

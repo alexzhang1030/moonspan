@@ -227,7 +227,7 @@ pub struct PollOutcome {
 /// The standing copy budget is two controllable payload copies end-to-end:
 /// (1) gateway rcl-take → frame buffer, (2) Worker → wasm/engine retained
 /// memory. Application delivery uses borrowed views / decoded String fields
-/// (zero extra controllable copies). Large-frame ingest moves owned bytes into
+/// (zero extra controllable copies). WS ingest moves owned bytes into
 /// a `Bytes` slab so parse/lease paths do not deep-copy the payload again.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct EngineTelemetry {

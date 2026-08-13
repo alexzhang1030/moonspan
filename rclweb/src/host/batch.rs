@@ -158,9 +158,9 @@ pub enum BatchError {
 }
 
 /// Decode a host event batch. When `resolve_ws` is provided it maps
-/// `(buffer_id, ptr, len)` into owned bytes (wasm host copies from linear
-/// memory). When the batch sets [`FLAG_INLINE_WS_BYTES`], WS payloads follow
-/// each WsBytes header inline and `resolve_ws` is unused.
+/// `(buffer_id, ptr, len)` into owned bytes (wasm host takes a pre-copied
+/// linear-memory allocation). When the batch sets [`FLAG_INLINE_WS_BYTES`],
+/// WS payloads follow each WsBytes header inline and `resolve_ws` is unused.
 pub fn decode_host_batch(
   bytes: &[u8],
   mut resolve_ws: impl FnMut(u32, u32, u32) -> Result<Vec<u8>, BatchError>,

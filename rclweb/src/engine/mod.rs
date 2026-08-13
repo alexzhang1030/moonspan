@@ -209,7 +209,7 @@ impl ClientEngine {
   pub fn encode_std_msgs_string(text: &str) -> Result<Vec<u8>, String> {
     let mut writer = CdrWriter::new_default(CdrEndian::Little).map_err(|e| e.to_string())?;
     writer.write_string(text, None).map_err(|e| e.to_string())?;
-    Ok(writer.to_bytes())
+    Ok(writer.into_bytes())
   }
 
   /// Decode a `std_msgs/msg/String` CDR payload.
@@ -223,7 +223,7 @@ impl ClientEngine {
   ///
   /// Takes ownership of events so inbound `WsBytes` payloads move into the
   /// retained slab (the browser-side controllable copy) without a second
-  /// deep copy of large frames (R2-02).
+  /// deep copy (copy-budget slot 2).
   pub fn poll(&mut self, events: Vec<HostEvent>) -> PollOutcome {
     #[cfg(not(target_arch = "wasm32"))]
     let started = std::time::Instant::now();

@@ -38,7 +38,7 @@ pub fn encode_goal(v: &MeasureSequenceGoal, endian: CdrEndian) -> Result<Vec<u8>
   let root = w.root_nesting();
   let n = w.enter_nested(root)?;
   encode_collections(&mut w, &v.target, n)?;
-  Ok(w.to_bytes())
+  Ok(w.into_bytes())
 }
 
 pub fn decode_result(
@@ -58,7 +58,7 @@ pub fn encode_result(v: &MeasureSequenceResult, endian: CdrEndian) -> Result<Vec
   let root = w.root_nesting();
   let n = w.enter_nested(root)?;
   encode_nested_sample(&mut w, &v.result, n)?;
-  Ok(w.to_bytes())
+  Ok(w.into_bytes())
 }
 
 pub fn decode_feedback(
@@ -83,5 +83,5 @@ pub fn encode_feedback(
   w.write_f32(v.progress)?;
   let n = w.enter_nested(root)?;
   encode_nested_sample(&mut w, &v.sample, n)?;
-  Ok(w.to_bytes())
+  Ok(w.into_bytes())
 }

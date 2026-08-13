@@ -84,5 +84,5 @@ pub fn encode(v: &PrimitiveScalars, endian: CdrEndian) -> Result<Vec<u8>, CdrErr
   let mut w = CdrWriter::new_default(endian)?;
   let root = w.root_nesting();
   encode_primitive_scalars(&mut w, v, root)?;
-  Ok(w.to_bytes())
+  Ok(w.into_bytes())
 }

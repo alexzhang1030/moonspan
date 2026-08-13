@@ -43,7 +43,7 @@ Inbound samples follow this path:
 1. The serialized rcl surface receives CDR bytes with type, schema, QoS, time, and domain context.
 2. `rclwebd` applies policy, budgets, scheduling, and deployment provenance on headers only; it never parses or copies the CDR body (header-prefixed take buffer, in-place header fill, `Bytes` fan-out).
 3. R2WP carries the sample over binary WebSocket or WebTransport.
-4. The I/O Worker transfers a bounded batch to the core Worker; one copy into wasm linear memory.
+4. The I/O Worker copies each WS frame into wasm linear memory once (external-ptr; the engine takes ownership). Command-only batches stay inline.
 5. The core resolves the schema and emits typed host events whose bulk fields are borrowed views under the lease model. The public `Node` API copies those fields into an owned ROS message and releases the lease after the callback.
 
 Outbound operations follow the reverse path after validation in the core and policy at the gateway.
@@ -59,7 +59,7 @@ The sample path is copy discipline and drop discipline, with counters in telemet
 | rmw → serialized buffer | 1 (inherent) | `rcl_take_serialized_message` into a header-prefixed take buffer |
 | Gateway framing | 0 | Fill the reserved R2WP header in place; the gateway never parses or moves the CDR body |
 | Gateway fan-out | 0 | Per-client policy on headers; one framed payload shared via `Bytes::clone` |
-| Worker → wasm linear memory | 1 (inherent) | One whole-payload copy in; Wasm cannot view external `ArrayBuffer`s |
+| Worker → wasm linear memory | 1 (inherent) | One whole-payload copy in via external-ptr; Wasm cannot view external `ArrayBuffer`s |
 | Wasm → application | 0 | TypedArray views into wasm memory under the lease model (`rcl-web/internal`) |
 
 The 0-copy view holds on the thread that owns wasm (the I/O Worker, or the calling thread when `options.inline: true`). The public `Node` callback copies PointCloud2 `data` so the application never holds a lease (rclcpp-owned message). Bulk fields that cross to the main thread on the Worker path are copied at that boundary: PointCloud2 `data` and service/action CDR. Shared wasm memory remains the parked path to 0-copy on the Worker ([ADR 0004](./adr/0004-browser-wasm-host-boundary.md)).

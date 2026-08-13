@@ -119,7 +119,7 @@ export class IoHost {
     this.#sink = {
       send: (bytes) => {
         if (ws.readyState === WebSocket.OPEN) {
-          ws.send(bytes.slice().buffer);
+          ws.send(bytes);
         }
       },
       close: () => ws.close(),
@@ -202,7 +202,7 @@ export class IoHost {
           const len = new Uint8Array(4);
           new DataView(len.buffer).setUint32(0, bytes.byteLength, false);
           await writer.write(len);
-          await writer.write(bytes.slice());
+          await writer.write(bytes);
         },
         close: () => {
           try {

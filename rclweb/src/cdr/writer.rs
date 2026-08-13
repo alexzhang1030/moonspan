@@ -100,6 +100,14 @@ impl CdrWriter {
     self.buf.clone()
   }
 
+  /// Consume the writer and take the stream buffer without cloning.
+  /// Prefer this at encoder finish. Use [`Self::to_bytes`] when a snapshot
+  /// must stay valid across later writes.
+  #[must_use]
+  pub fn into_bytes(self) -> Vec<u8> {
+    self.buf
+  }
+
   /// Root nesting token at depth 0.
   #[must_use]
   pub fn root_nesting(&self) -> CdrNesting {

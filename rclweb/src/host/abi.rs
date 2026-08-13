@@ -108,7 +108,7 @@ pub unsafe extern "C" fn rclweb_poll(handle: u32, batch_ptr: *const u8, batch_le
     }
     // SAFETY: host allocated the WS payload with rclweb_alloc and filled it.
     // Take ownership so the retain path moves bytes without a second deep copy
-    // (R2-02 large-message controllable-copy budget).
+    // (copy-budget slot 2).
     let vec = unsafe { Vec::from_raw_parts(ptr as *mut u8, len as usize, len as usize) };
     Ok(vec)
   }) {

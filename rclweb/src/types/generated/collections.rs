@@ -59,5 +59,5 @@ pub fn encode(v: &Collections, endian: CdrEndian) -> Result<Vec<u8>, CdrError> {
   let mut w = CdrWriter::new_default(endian)?;
   let root = w.root_nesting();
   encode_collections(&mut w, v, root)?;
-  Ok(w.to_bytes())
+  Ok(w.into_bytes())
 }
