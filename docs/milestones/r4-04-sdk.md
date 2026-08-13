@@ -21,8 +21,9 @@ package stays `"private": true` and `"version": "0.0.0"`.
 
 The default I/O Worker path implements the same session methods as the
 inline host: services, actions, graph, and parameter wrappers. Service
-and action CDR is copied out of wasm in the Worker; the lease is released
-there. Main never sees payload pointers.
+and action payloads are copied out of wasm in the Worker; the lease is
+released there. Main never sees payload pointers. Generated service/action
+roots copy packed host-value bytes; untyped channels stay CDR.
 
 | Area | Behavior |
 |---|---|
@@ -65,7 +66,7 @@ and the session/lease host live on `@rclweb/sdk/internal`.
 | Area | Behavior |
 |---|---|
 | Context | [`init` / `ok` / `spin` / `shutdown`](../../sdk/typescript/src/context.ts). The extra argument versus `rclcpp::init` is the gateway URL. |
-| Node | [`Node`](../../sdk/typescript/src/node.ts): `createPublisher`, `createSubscription`, `createClient`, `createService`, `createWallTimer`. `10` is KeepLast(10) + reliable. |
+| Node | [`Node`](../../sdk/typescript/src/node.ts): `createPublisher`, `createSubscription`, `createClient`, `createService`, `createActionClient`, `createActionServer`, `createWallTimer`. `10` is KeepLast(10) + reliable. |
 | Messages | [`std_msgs` / `sensor_msgs` / `rclweb_cdr_interfaces`](../../sdk/typescript/src/interfaces.ts) classes with ROS IDL field names. |
 | Demo / e2e | subscribe-chatter and the e2e harness use `init` + `Node`. |
 | Tests | [`node.test.ts`](../../sdk/typescript/test/node.test.ts) covers subscribe/publish without leases. Host 0-copy tests stay on `internal`. |
@@ -82,7 +83,7 @@ Subscribe and publish round-trip `sensor_msgs/msg/PointCloud2` header stamp/`fra
 
 ## Outcome (this slice — typed corpus messages)
 
-Subscribe and publish deliver Phase 1 message roots as ROS classes: `rclweb_cdr_interfaces.msg.PrimitiveScalars`, `Collections`, and `NestedSample`. The host and wasm share a packed little-endian layout (not CDR, not JSON). The engine converts host-value ↔ CDR with the generated codecs. `int64` / `uint64` are `bigint`. Service and action request types stay CDR.
+Subscribe and publish deliver Phase 1 message roots as ROS classes: `rclweb_cdr_interfaces.msg.PrimitiveScalars`, `Collections`, and `NestedSample`. The host and wasm share a packed little-endian layout (not CDR, not JSON). The engine converts host-value ↔ CDR with the generated codecs. `int64` / `uint64` are `bigint`.
 
 | Area | Behavior |
 |---|---|
@@ -90,6 +91,17 @@ Subscribe and publish deliver Phase 1 message roots as ROS classes: `rclweb_cdr_
 | Wasm | `rclweb_decode_generated` writes host-value bytes (`-4` + needed-size retry, same as PointCloud2 meta). |
 | Worker | Tracks `channelId → typeName`. Generated samples are copied as objects and the lease is released before `postMessage`. Unknown non-String types still drop-and-release. |
 | Fixtures | [`scripts/fixture-gen`](../../scripts/fixture-gen/) emits `primitiveScalarsSample` and `nestedSample`. |
+
+## Outcome (this slice — typed service and action)
+
+Phase 1 service and action roots are ROS classes on `Node`: `rclweb_cdr_interfaces.srv.EchoNested` (`.Request` / `.Response`) and `rclweb_cdr_interfaces.action.MeasureSequence` (`.Goal` / `.Result` / `.Feedback`). OpenChannel still uses the parent name. Poll commands keep opaque payload bytes: generated parents are packed host-value (engine converts to CDR); other types stay CDR. `LAYOUT_VERSION` stays 1. `ACTION_STATUS` stays CDR. Untyped `AddTwoInts` / Fibonacci keep working.
+
+| Area | Behavior |
+|---|---|
+| Node | `createClient(EchoNested, …)` / `createActionClient(MeasureSequence, …)` send and receive ROS classes. Untyped `{ typeName }` overloads stay `Uint8Array`. |
+| Engine | `CallService` / `SendServiceResponse` / `SendActionGoal` / Feedback / Result convert host-value → CDR when the channel parent is generated. |
+| Host / Worker | Inbound generated ops copy host-value bytes via `rclweb_decode_generated` and release the lease. The Worker keys service/action channels by `typeName`. |
+| Fixtures | [`scripts/fixture-gen`](../../scripts/fixture-gen/) emits EchoNested and MeasureSequence CDR payloads. Tests rewrite the frame payload (request CDR ≠ response CDR). |
 
 ## Delivered scope
 
@@ -112,6 +124,5 @@ bun test sdk/typescript/test
 
 ## Still open in R4-04
 
-- Generated TypeScript service/action request types (createClient still takes CDR)
 - npm publish, `"private": false`, and a human-chosen version
 - D-06 repository license on the package

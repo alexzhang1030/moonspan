@@ -1,6 +1,6 @@
 /**
  * rclcpp-shaped Node: createPublisher / createSubscription / createClient /
- * createService / createWallTimer.
+ * createService / createActionClient / createActionServer / createWallTimer.
  *
  * TypeScript cannot do `create_publisher<std_msgs::msg::String>(topic, qos)`,
  * so the message type is the first argument (the template parameter as a value):
@@ -9,12 +9,21 @@
  */
 
 import type {
+  ActionClient as SessionActionClient,
+  ActionServer as SessionActionServer,
   Publisher as SessionPublisher,
   RclwebClient,
   Subscription as SessionSubscription,
 } from "./client.ts";
 import { requireClient } from "./context.ts";
 import {
+  EchoNested,
+  EchoNested_Request,
+  EchoNested_Response,
+  MeasureSequence,
+  MeasureSequence_Feedback,
+  MeasureSequence_Goal,
+  MeasureSequence_Result,
   PointCloud2,
   PointField,
   String as StdMsgsStringMsg,
@@ -22,7 +31,7 @@ import {
   type MessageType,
 } from "./interfaces.ts";
 import { qosToOptions, type QoSInput } from "./qos.ts";
-import { reviveGenerated } from "./generated-value.ts";
+import { decodeOpPayload, encodeOpPayload, reviveGenerated } from "./generated-value.ts";
 import {
   isPointCloud2,
   isStdMsgsString,
@@ -81,7 +90,7 @@ export class Subscription<T> {
   }
 }
 
-export class Client {
+export class Client<Req = Uint8Array, Res = Uint8Array> {
   readonly name: string;
   readonly typeName: string;
   #inner: Promise<ServiceClient>;
@@ -102,10 +111,12 @@ export class Client {
     }
   }
 
-  /** rclcpp `async_send_request` — request/response are CDR until typed generation. */
-  async sendRequest(request: Uint8Array): Promise<Uint8Array> {
+  /** rclcpp `async_send_request`. Phase 1 generated types are ROS classes; others are CDR. */
+  async sendRequest(request: Req): Promise<Res> {
     const client = await this.#inner;
-    return client.call(request);
+    const bytes = encodeOpPayload(this.typeName, "Request", request);
+    const response = await client.call(bytes);
+    return decodeOpPayload(this.typeName, "Response", response) as Res;
   }
 
   destroy(): void {
@@ -123,6 +134,90 @@ export class Service {
     this.typeName = typeName;
     this.#inner = inner;
     void inner.catch(() => {});
+  }
+
+  destroy(): void {
+    void this.#inner.then((server) => server.close());
+  }
+}
+
+export class ActionClient<G = Uint8Array, R = Uint8Array, F = Uint8Array> {
+  readonly name: string;
+  readonly typeName: string;
+  #inner: Promise<SessionActionClient>;
+
+  constructor(name: string, typeName: string, inner: Promise<SessionActionClient>) {
+    this.name = name;
+    this.typeName = typeName;
+    this.#inner = inner;
+    void inner.catch(() => {});
+  }
+
+  async waitForAction(): Promise<boolean> {
+    try {
+      await this.#inner;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  sendGoal(goal: G): { operationId: Promise<Uint8Array>; result: Promise<R> } {
+    const sent = this.#inner.then((client) =>
+      client.sendGoal(encodeOpPayload(this.typeName, "Goal", goal)),
+    );
+    return {
+      operationId: sent.then((s) => s.operationId),
+      result: sent.then(async (s) => {
+        const bytes = await s.result;
+        return decodeOpPayload(this.typeName, "Result", bytes) as R;
+      }),
+    };
+  }
+
+  onFeedback(callback: (feedback: F, operationId: Uint8Array) => void): void {
+    void this.#inner.then((client) => {
+      client.onFeedback((bytes, operationId) => {
+        callback(decodeOpPayload(this.typeName, "Feedback", bytes) as F, operationId);
+      });
+    });
+  }
+
+  cancel(operationId: Uint8Array): void {
+    void this.#inner.then((client) => client.cancel(operationId));
+  }
+
+  destroy(): void {
+    void this.#inner.then((client) => client.close());
+  }
+}
+
+export class ActionServer<G = Uint8Array, R = Uint8Array, F = Uint8Array> {
+  readonly name: string;
+  readonly typeName: string;
+  #inner: Promise<SessionActionServer>;
+
+  constructor(name: string, typeName: string, inner: Promise<SessionActionServer>) {
+    this.name = name;
+    this.typeName = typeName;
+    this.#inner = inner;
+    void inner.catch(() => {});
+  }
+
+  sendFeedback(operationId: Uint8Array, feedback: F): void {
+    void this.#inner.then((server) => {
+      server.sendFeedback(operationId, encodeOpPayload(this.typeName, "Feedback", feedback));
+    });
+  }
+
+  sendResult(operationId: Uint8Array, result: R): void {
+    void this.#inner.then((server) => {
+      server.sendResult(operationId, encodeOpPayload(this.typeName, "Result", result));
+    });
+  }
+
+  sendStatus(operationId: Uint8Array, status: Uint8Array): void {
+    void this.#inner.then((server) => server.sendStatus(operationId, status));
   }
 
   destroy(): void {
@@ -153,6 +248,8 @@ export class Node {
   #subscriptions: Subscription<unknown>[] = [];
   #clients: Client[] = [];
   #services: Service[] = [];
+  #actionClients: ActionClient[] = [];
+  #actionServers: ActionServer[] = [];
   #timers: WallTimer[] = [];
 
   constructor(name: string, namespace = "") {
@@ -244,6 +341,14 @@ export class Node {
     return subscription;
   }
 
+  createClient(
+    type: typeof EchoNested,
+    serviceName: string,
+  ): Client<EchoNested_Request, EchoNested_Response>;
+  createClient(
+    type: { readonly typeName: string },
+    serviceName: string,
+  ): Client<Uint8Array, Uint8Array>;
   createClient(type: { readonly typeName: string }, serviceName: string): Client {
     const name = resolveName(this.namespace, serviceName);
     const inner = this.#client.session.createServiceClient(name, type.typeName);
@@ -253,19 +358,105 @@ export class Node {
   }
 
   createService(
+    type: typeof EchoNested,
+    serviceName: string,
+    handler: (
+      request: EchoNested_Request,
+    ) => EchoNested_Response | Promise<EchoNested_Response>,
+  ): Service;
+  createService(
     type: { readonly typeName: string },
     serviceName: string,
     handler: (request: Uint8Array) => Uint8Array | Promise<Uint8Array>,
+  ): Service;
+  createService(
+    type: { readonly typeName: string },
+    serviceName: string,
+    handler: (request: never) => unknown,
   ): Service {
     const name = resolveName(this.namespace, serviceName);
+    const typeName = type.typeName;
     const inner = this.#client.session.createServiceServer(
       name,
-      type.typeName,
-      (request) => handler(request),
+      typeName,
+      (request) => {
+        const decoded = decodeOpPayload(typeName, "Request", request);
+        return Promise.resolve(handler(decoded as never)).then((response) =>
+          encodeOpPayload(typeName, "Response", response),
+        );
+      },
     );
-    const service = new Service(name, type.typeName, inner);
+    const service = new Service(name, typeName, inner);
     this.#services.push(service);
     return service;
+  }
+
+  createActionClient(
+    type: typeof MeasureSequence,
+    actionName: string,
+  ): ActionClient<
+    MeasureSequence_Goal,
+    MeasureSequence_Result,
+    MeasureSequence_Feedback
+  >;
+  createActionClient(
+    type: { readonly typeName: string },
+    actionName: string,
+  ): ActionClient<Uint8Array, Uint8Array, Uint8Array>;
+  createActionClient(
+    type: { readonly typeName: string },
+    actionName: string,
+  ): ActionClient {
+    const name = resolveName(this.namespace, actionName);
+    const inner = this.#client.session.createActionClient(name, type.typeName);
+    const client = new ActionClient(name, type.typeName, inner);
+    this.#actionClients.push(client);
+    return client;
+  }
+
+  createActionServer(
+    type: typeof MeasureSequence,
+    actionName: string,
+    handlers: {
+      onGoal?: (
+        goal: MeasureSequence_Goal,
+        operationId: Uint8Array,
+      ) => void | Promise<void>;
+      onCancel?: (operationId: Uint8Array) => void | Promise<void>;
+    },
+  ): ActionServer<
+    MeasureSequence_Goal,
+    MeasureSequence_Result,
+    MeasureSequence_Feedback
+  >;
+  createActionServer(
+    type: { readonly typeName: string },
+    actionName: string,
+    handlers?: {
+      onGoal?: (goal: Uint8Array, operationId: Uint8Array) => void | Promise<void>;
+      onCancel?: (operationId: Uint8Array) => void | Promise<void>;
+    },
+  ): ActionServer<Uint8Array, Uint8Array, Uint8Array>;
+  createActionServer(
+    type: { readonly typeName: string },
+    actionName: string,
+    handlers: {
+      onGoal?: (goal: never, operationId: Uint8Array) => void | Promise<void>;
+      onCancel?: (operationId: Uint8Array) => void | Promise<void>;
+    } = {},
+  ): ActionServer {
+    const name = resolveName(this.namespace, actionName);
+    const typeName = type.typeName;
+    const inner = this.#client.session.createActionServer(name, typeName, {
+      onGoal: handlers.onGoal
+        ? (goal, operationId) =>
+            handlers.onGoal!(decodeOpPayload(typeName, "Goal", goal) as never, operationId)
+        : undefined,
+      onCancel: handlers.onCancel,
+    });
+    const server = new ActionServer(name, typeName, inner);
+    this.#actionServers.push(server);
+    return server;
   }
 
   createWallTimer(periodMs: number, callback: () => void): WallTimer {
@@ -280,11 +471,15 @@ export class Node {
     for (const sub of this.#subscriptions) sub.destroy();
     for (const client of this.#clients) client.destroy();
     for (const service of this.#services) service.destroy();
+    for (const client of this.#actionClients) client.destroy();
+    for (const server of this.#actionServers) server.destroy();
     this.#timers = [];
     this.#publishers = [];
     this.#subscriptions = [];
     this.#clients = [];
     this.#services = [];
+    this.#actionClients = [];
+    this.#actionServers = [];
   }
 }
 

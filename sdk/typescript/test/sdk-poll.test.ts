@@ -34,6 +34,8 @@ test("sdk package identity and privacy", () => {
 test("public runtime exports stay application-facing", async () => {
   const sdk = await import("../src/index.ts");
   expect(Object.keys(sdk).sort()).toEqual([
+    "ActionClient",
+    "ActionServer",
     "Client",
     "Collections",
     "Header",

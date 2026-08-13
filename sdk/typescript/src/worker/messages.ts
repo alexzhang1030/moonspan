@@ -3,10 +3,11 @@
  * Application-facing only — no R2WP field knowledge on either side beyond
  * opaque binary frames the Worker already owns.
  *
- * Service/action CDR bytes are copied out of wasm in the Worker and the lease
- * is released there. PointCloud2 `data` is copied the same way. Generated
- * corpus messages are copied as host-value objects. Main never sees payload
- * pointers.
+ * Service/action payloads are copied out of wasm in the Worker and the lease
+ * is released there. Generated service/action roots copy packed host-value
+ * bytes; untyped channels stay CDR. PointCloud2 `data` is copied the same
+ * way. Generated corpus messages are copied as host-value objects. Main never
+ * sees payload pointers.
  */
 
 import type { GeneratedMsg } from "../generated-value.ts";

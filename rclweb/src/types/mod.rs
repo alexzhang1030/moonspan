@@ -26,9 +26,11 @@ pub use generated::{
   POINT_CLOUD2_TYPE_NAME, PRIMITIVE_SCALARS_TYPE_NAME, PointCloud2, PrimitiveScalars, Time,
 };
 pub use host_value::{
-  GeneratedMessage, GeneratedValueError, decode_generated_cdr, decode_host_value,
-  encode_generated_cdr, encode_host_value, is_generated_msg_type, sample_nested_sample,
-  sample_primitive_scalars,
+  ECHO_NESTED_TYPE_NAME, GeneratedMessage, GeneratedOpKind, GeneratedValueError,
+  MEASURE_SEQUENCE_TYPE_NAME, decode_generated_cdr, decode_host_value, encode_generated_cdr,
+  encode_host_value, generated_op_type_name, is_generated_msg_type, sample_echo_nested_request,
+  sample_echo_nested_response, sample_measure_sequence_feedback, sample_measure_sequence_goal,
+  sample_measure_sequence_result, sample_nested_sample, sample_primitive_scalars,
 };
 pub use key::{SCHEME_RCLWEB_SCHEMA_V1, SCHEME_REP2011_RIHS, SchemaKey};
 pub use limits::{ENCODING_CDR1, PHASE1_SCHEMA_GENERATION};

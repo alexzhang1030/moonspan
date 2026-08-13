@@ -4,13 +4,15 @@
  * application messages (ADR 0004).
  *
  * Service/action payloads are copied out of wasm here and the lease is
- * released before the message crosses to main. PointCloud2 `data` is copied
- * the same way; generated corpus messages are copied as host-value objects.
- * String samples keep the lease until main calls release().
+ * released before the message crosses to main. Generated service/action
+ * roots become packed host-value bytes; untyped channels stay CDR.
+ * PointCloud2 `data` is copied the same way; generated corpus messages are
+ * copied as host-value objects. String samples keep the lease until main
+ * calls release().
  */
 
 import { IoHost } from "../host.ts";
-import { isGeneratedMsgType } from "../interfaces.ts";
+import { generatedOpTypeName, isGeneratedMsgType, type GeneratedOpKind } from "../interfaces.ts";
 import type { GeneratedMsg } from "../generated-value.ts";
 import type { MainToWorker, WorkerToMain } from "./messages.ts";
 
@@ -76,8 +78,15 @@ function copyAndRelease(
     leaseId: number;
     operationId: Uint8Array;
   },
+  channelId: number,
+  op?: GeneratedOpKind,
 ): { operationId: number[]; payload: Uint8Array } {
-  const payload = host!.copyPayload(event.payloadPtr, event.payloadLen);
+  const typeName = channelTypes.get(channelId);
+  const section = op && typeName ? generatedOpTypeName(typeName, op) : undefined;
+  const payload = section
+    ? (host!.copyGeneratedBytes(section, event.payloadPtr, event.payloadLen) ??
+      host!.copyPayload(event.payloadPtr, event.payloadLen))
+    : host!.copyPayload(event.payloadPtr, event.payloadLen);
   const operationId = Array.from(event.operationId);
   host!.releaseLease(event.leaseId);
   host!.flushSync();
@@ -226,7 +235,7 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
                 break;
               }
               case "serviceResponse": {
-                const copied = copyAndRelease(event);
+                const copied = copyAndRelease(event, event.channelId, "Response");
                 const key = opidKey(event.channelId, event.operationId);
                 const requestId = pendingCalls.get(key) ?? 0;
                 pendingCalls.delete(key);
@@ -240,7 +249,7 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
                 break;
               }
               case "serviceRequest": {
-                const copied = copyAndRelease(event);
+                const copied = copyAndRelease(event, event.channelId, "Request");
                 post({
                   type: "serviceRequest",
                   channelId: event.channelId,
@@ -275,7 +284,7 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
                 break;
               }
               case "actionGoal": {
-                const copied = copyAndRelease(event);
+                const copied = copyAndRelease(event, event.channelId, "Goal");
                 post({
                   type: "actionGoal",
                   channelId: event.channelId,
@@ -285,7 +294,7 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
                 break;
               }
               case "actionFeedback": {
-                const copied = copyAndRelease(event);
+                const copied = copyAndRelease(event, event.channelId, "Feedback");
                 post({
                   type: "actionFeedback",
                   channelId: event.channelId,
@@ -295,7 +304,7 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
                 break;
               }
               case "actionResult": {
-                const copied = copyAndRelease(event);
+                const copied = copyAndRelease(event, event.channelId, "Result");
                 const key = opidKey(event.channelId, event.operationId);
                 const requestId = pendingActionResults.get(key) ?? 0;
                 pendingActionResults.delete(key);
@@ -309,7 +318,7 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
                 break;
               }
               case "actionStatus": {
-                const copied = copyAndRelease(event);
+                const copied = copyAndRelease(event, event.channelId);
                 post({
                   type: "actionStatus",
                   channelId: event.channelId,
@@ -453,6 +462,7 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
           requestId: msg.requestId,
           channelId: msg.channelId,
         });
+        channelTypes.set(msg.channelId, msg.typeName);
         host.openService({
           correlation: Uint8Array.from(msg.correlation),
           channelId: msg.channelId,
@@ -487,6 +497,7 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
           requestId: msg.requestId,
           channelId: msg.channelId,
         });
+        channelTypes.set(msg.channelId, msg.typeName);
         host.openAction({
           correlation: Uint8Array.from(msg.correlation),
           channelId: msg.channelId,

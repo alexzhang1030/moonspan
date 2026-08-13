@@ -3,14 +3,19 @@ import {
   decodeGeneratedHostValue,
   encodeGeneratedHostValue,
   reviveGenerated,
+  sampleEchoNestedRequest,
+  sampleEchoNestedResponse,
   sampleNestedSample,
   samplePrimitiveScalars,
 } from "../src/generated-value.ts";
 import {
   Collections,
+  EchoNested_Request,
+  EchoNested_Response,
   NestedSample,
   PrimitiveScalars,
   Time,
+  generatedOpTypeName,
 } from "../src/interfaces.ts";
 
 test("host-value round-trips PrimitiveScalars including bigint", () => {
@@ -60,4 +65,37 @@ test("reviveGenerated reconstructs class instances after structured clone", () =
   expect(msg.stamp).toBeInstanceOf(Time);
   expect(msg.scalars.int64_value).toBe(-70_000n);
   expect(msg.collections).toBeInstanceOf(Collections);
+});
+
+test("host-value round-trips EchoNested request and response", () => {
+  const request = sampleEchoNestedRequest();
+  const reqBytes = encodeGeneratedHostValue(EchoNested_Request.typeName, request);
+  const reqRound = decodeGeneratedHostValue(
+    EchoNested_Request.typeName,
+    reqBytes,
+  ) as EchoNested_Request;
+  expect(reqRound).toBeInstanceOf(EchoNested_Request);
+  expect(reqRound.input.scalars.string_value).toBe("hello-scalars");
+  expect(reqRound.input.scalars.int64_value).toBe(-70_000n);
+  expect(reqRound.input.collections.bounded_string).toBe("abc");
+
+  const response = sampleEchoNestedResponse();
+  const resBytes = encodeGeneratedHostValue(EchoNested_Response.typeName, response);
+  const resRound = decodeGeneratedHostValue(
+    EchoNested_Response.typeName,
+    resBytes,
+  ) as EchoNested_Response;
+  expect(resRound).toBeInstanceOf(EchoNested_Response);
+  expect(resRound.accepted).toBe(true);
+  expect(resRound.output.stamp.sec).toBe(11);
+});
+
+test("generatedOpTypeName maps parent service and action sections", () => {
+  expect(generatedOpTypeName("rclweb_cdr_interfaces/srv/EchoNested", "Request")).toBe(
+    EchoNested_Request.typeName,
+  );
+  expect(generatedOpTypeName("rclweb_cdr_interfaces/srv/EchoNested", "Response")).toBe(
+    EchoNested_Response.typeName,
+  );
+  expect(generatedOpTypeName("example_interfaces/srv/AddTwoInts", "Request")).toBeUndefined();
 });

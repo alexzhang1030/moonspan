@@ -45,8 +45,12 @@ use crate::protocol::{
   parse_bootstrap, parse_frame,
 };
 use crate::session::{ChannelState, Role, Session, SessionEffects, SessionPhase};
-use crate::types::{CdrRepresentation, WIRE_ERROR_SCHEMA_UNAVAILABLE, lookup_phase1_root_for_open};
+use crate::types::{
+  CdrRepresentation, GeneratedOpKind, WIRE_ERROR_SCHEMA_UNAVAILABLE, decode_host_value,
+  encode_generated_cdr, generated_op_type_name, lookup_phase1_root_for_open,
+};
 use bytes::Bytes;
+use std::borrow::Cow;
 use std::collections::HashMap;
 
 const HEARTBEAT_INTERVAL_MS: u64 = 15_000;
@@ -84,7 +88,6 @@ struct ActivePublish {
 struct ActiveService {
   #[allow(dead_code)]
   name: String,
-  #[allow(dead_code)]
   type_name: String,
   #[allow(dead_code)]
   client: bool,
@@ -98,7 +101,6 @@ struct ActiveService {
 struct ActiveAction {
   #[allow(dead_code)]
   name: String,
-  #[allow(dead_code)]
   type_name: String,
   #[allow(dead_code)]
   client: bool,
@@ -430,24 +432,30 @@ impl ClientEngine {
         );
       }
       AppCommand::CallService { channel_id, operation_id, request } => {
-        self.send_service_action_frame(
-          *channel_id,
-          OPCODE_SERVICE_REQUEST,
-          operation_id,
-          request,
-          true,
-          outcome,
-        );
+        match self.encode_op_payload(*channel_id, GeneratedOpKind::Request, request) {
+          Ok(payload) => self.send_service_action_frame(
+            *channel_id,
+            OPCODE_SERVICE_REQUEST,
+            operation_id,
+            payload.as_ref(),
+            true,
+            outcome,
+          ),
+          Err(()) => Self::fail_service(*channel_id, outcome),
+        }
       }
       AppCommand::SendServiceResponse { channel_id, operation_id, response } => {
-        self.send_service_action_frame(
-          *channel_id,
-          OPCODE_SERVICE_RESPONSE,
-          operation_id,
-          response,
-          true,
-          outcome,
-        );
+        match self.encode_op_payload(*channel_id, GeneratedOpKind::Response, response) {
+          Ok(payload) => self.send_service_action_frame(
+            *channel_id,
+            OPCODE_SERVICE_RESPONSE,
+            operation_id,
+            payload.as_ref(),
+            true,
+            outcome,
+          ),
+          Err(()) => Self::fail_service(*channel_id, outcome),
+        }
       }
       AppCommand::OpenAction { correlation, channel_id, name, type_name, domain_id, client } => {
         let kind = if *client { PendingKind::ActionClient } else { PendingKind::ActionServer };
@@ -478,14 +486,17 @@ impl ClientEngine {
         );
       }
       AppCommand::SendActionGoal { channel_id, operation_id, goal } => {
-        self.send_service_action_frame(
-          *channel_id,
-          OPCODE_ACTION_GOAL,
-          operation_id,
-          goal,
-          true,
-          outcome,
-        );
+        match self.encode_op_payload(*channel_id, GeneratedOpKind::Goal, goal) {
+          Ok(payload) => self.send_service_action_frame(
+            *channel_id,
+            OPCODE_ACTION_GOAL,
+            operation_id,
+            payload.as_ref(),
+            true,
+            outcome,
+          ),
+          Err(()) => Self::fail_action(*channel_id, outcome),
+        }
       }
       AppCommand::CancelAction { channel_id, operation_id } => {
         self.send_service_action_frame(
@@ -498,24 +509,30 @@ impl ClientEngine {
         );
       }
       AppCommand::SendActionFeedback { channel_id, operation_id, feedback } => {
-        self.send_service_action_frame(
-          *channel_id,
-          OPCODE_ACTION_FEEDBACK,
-          operation_id,
-          feedback,
-          false,
-          outcome,
-        );
+        match self.encode_op_payload(*channel_id, GeneratedOpKind::Feedback, feedback) {
+          Ok(payload) => self.send_service_action_frame(
+            *channel_id,
+            OPCODE_ACTION_FEEDBACK,
+            operation_id,
+            payload.as_ref(),
+            false,
+            outcome,
+          ),
+          Err(()) => Self::fail_action(*channel_id, outcome),
+        }
       }
       AppCommand::SendActionResult { channel_id, operation_id, result } => {
-        self.send_service_action_frame(
-          *channel_id,
-          OPCODE_ACTION_RESULT,
-          operation_id,
-          result,
-          true,
-          outcome,
-        );
+        match self.encode_op_payload(*channel_id, GeneratedOpKind::Result, result) {
+          Ok(payload) => self.send_service_action_frame(
+            *channel_id,
+            OPCODE_ACTION_RESULT,
+            operation_id,
+            payload.as_ref(),
+            true,
+            outcome,
+          ),
+          Err(()) => Self::fail_action(*channel_id, outcome),
+        }
       }
       AppCommand::SendActionStatus { channel_id, operation_id, status } => {
         self.send_service_action_frame(
@@ -683,6 +700,45 @@ impl ClientEngine {
     pub_ch.seq_out = pub_ch.seq_out.saturating_add(1);
     self.push_outbound(bytes, outcome);
     self.telemetry.samples_sent = self.telemetry.samples_sent.saturating_add(1);
+  }
+
+  /// Host-value → CDR for Phase 1 generated service/action roots; otherwise pass through.
+  fn encode_op_payload<'a>(
+    &self,
+    channel_id: u32,
+    op: GeneratedOpKind,
+    bytes: &'a [u8],
+  ) -> Result<Cow<'a, [u8]>, ()> {
+    let type_name = self
+      .active_services
+      .get(&channel_id)
+      .map(|s| s.type_name.as_str())
+      .or_else(|| self.active_actions.get(&channel_id).map(|a| a.type_name.as_str()));
+    let Some(type_name) = type_name else {
+      return Ok(Cow::Borrowed(bytes));
+    };
+    let Some(section) = generated_op_type_name(type_name, op) else {
+      return Ok(Cow::Borrowed(bytes));
+    };
+    let msg = decode_host_value(section, bytes).map_err(|_| ())?;
+    let cdr = encode_generated_cdr(&msg).map_err(|_| ())?;
+    Ok(Cow::Owned(cdr))
+  }
+
+  fn fail_service(channel_id: u32, outcome: &mut PollOutcome) {
+    outcome.events.push(AppEvent::ServiceFailed {
+      channel_id,
+      code: 1,
+      message: "cdr_encode_failed".to_owned(),
+    });
+  }
+
+  fn fail_action(channel_id: u32, outcome: &mut PollOutcome) {
+    outcome.events.push(AppEvent::ActionFailed {
+      channel_id,
+      code: 1,
+      message: "cdr_encode_failed".to_owned(),
+    });
   }
 
   /// Encode an outbound service/action frame with an OPERATION_ID extension.

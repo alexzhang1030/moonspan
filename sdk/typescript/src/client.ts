@@ -16,7 +16,9 @@ import {
   PointCloud2 as PointCloud2Msg,
   PrimitiveScalars,
   String as StdMsgsStringMsg,
+  generatedOpTypeName,
   isGeneratedMsgType,
+  type GeneratedOpKind,
   typeNameOf,
   type TypeNameLike,
 } from "./interfaces.ts";
@@ -308,6 +310,7 @@ class InlineClient implements RclwebClient {
   #actionFeedback = new Map<number, ActionFeedbackHandler>();
   #actionStatus = new Map<number, ActionStatusHandler>();
   #actionServerHandlers = new Map<number, ActionServerHandlers>();
+  #channelTypes = new Map<number, string>();
   #graphHandler: GraphHandler | null = null;
   #graph: GraphView = { generation: 0, nodes: [], endpoints: [] };
   #connectWaiters: Array<() => void> = [];
@@ -611,6 +614,7 @@ class InlineClient implements RclwebClient {
         if (!pending) break;
         this.#pendingServices.delete(event.channelId);
         const channelId = event.channelId;
+        this.#channelTypes.set(channelId, event.typeName);
         if (pending.client) {
           const client: ServiceClient = {
             name: event.name,
@@ -618,6 +622,7 @@ class InlineClient implements RclwebClient {
             channelId,
             call: (request) => this.#callService(channelId, request),
             close: async () => {
+              this.#channelTypes.delete(channelId);
               this.#host.unsubscribe(corrTag(0xc5), channelId);
               this.#host.flushSync();
             },
@@ -633,6 +638,7 @@ class InlineClient implements RclwebClient {
             channelId,
             close: async () => {
               this.#serviceHandlers.delete(channelId);
+              this.#channelTypes.delete(channelId);
               this.#host.unsubscribe(corrTag(0xc6), channelId);
               this.#host.flushSync();
             },
@@ -653,7 +659,14 @@ class InlineClient implements RclwebClient {
       case "serviceResponse": {
         const key = opidKey(event.channelId, event.operationId);
         const pending = this.#pendingCalls.get(key);
-        const bytes = this.#host.copyPayload(event.payloadPtr, event.payloadLen);
+        const bytes = copyChannelOpPayload(
+          this.#host,
+          this.#channelTypes,
+          event.channelId,
+          "Response",
+          event.payloadPtr,
+          event.payloadLen,
+        );
         this.#host.releaseLease(event.leaseId);
         this.#host.flushSync();
         if (pending) {
@@ -664,7 +677,14 @@ class InlineClient implements RclwebClient {
       }
       case "serviceRequest": {
         const handler = this.#serviceHandlers.get(event.channelId);
-        const bytes = this.#host.copyPayload(event.payloadPtr, event.payloadLen);
+        const bytes = copyChannelOpPayload(
+          this.#host,
+          this.#channelTypes,
+          event.channelId,
+          "Request",
+          event.payloadPtr,
+          event.payloadLen,
+        );
         this.#host.releaseLease(event.leaseId);
         this.#host.flushSync();
         if (!handler) break;
@@ -680,6 +700,7 @@ class InlineClient implements RclwebClient {
         if (!pending) break;
         this.#pendingActions.delete(event.channelId);
         const channelId = event.channelId;
+        this.#channelTypes.set(channelId, event.typeName);
         if (pending.client) {
           const client: ActionClient = {
             name: event.name,
@@ -699,6 +720,7 @@ class InlineClient implements RclwebClient {
             close: async () => {
               this.#actionFeedback.delete(channelId);
               this.#actionStatus.delete(channelId);
+              this.#channelTypes.delete(channelId);
               this.#host.unsubscribe(corrTag(0xc7), channelId);
               this.#host.flushSync();
             },
@@ -726,6 +748,7 @@ class InlineClient implements RclwebClient {
             },
             close: async () => {
               this.#actionServerHandlers.delete(channelId);
+              this.#channelTypes.delete(channelId);
               this.#host.unsubscribe(corrTag(0xc8), channelId);
               this.#host.flushSync();
             },
@@ -745,7 +768,14 @@ class InlineClient implements RclwebClient {
       }
       case "actionGoal": {
         const handlers = this.#actionServerHandlers.get(event.channelId);
-        const bytes = this.#host.copyPayload(event.payloadPtr, event.payloadLen);
+        const bytes = copyChannelOpPayload(
+          this.#host,
+          this.#channelTypes,
+          event.channelId,
+          "Goal",
+          event.payloadPtr,
+          event.payloadLen,
+        );
         this.#host.releaseLease(event.leaseId);
         this.#host.flushSync();
         if (handlers?.onGoal) {
@@ -755,7 +785,14 @@ class InlineClient implements RclwebClient {
       }
       case "actionFeedback": {
         const handler = this.#actionFeedback.get(event.channelId);
-        const bytes = this.#host.copyPayload(event.payloadPtr, event.payloadLen);
+        const bytes = copyChannelOpPayload(
+          this.#host,
+          this.#channelTypes,
+          event.channelId,
+          "Feedback",
+          event.payloadPtr,
+          event.payloadLen,
+        );
         this.#host.releaseLease(event.leaseId);
         this.#host.flushSync();
         handler?.(bytes, event.operationId.slice());
@@ -764,7 +801,14 @@ class InlineClient implements RclwebClient {
       case "actionResult": {
         const key = opidKey(event.channelId, event.operationId);
         const pending = this.#pendingActionResults.get(key);
-        const bytes = this.#host.copyPayload(event.payloadPtr, event.payloadLen);
+        const bytes = copyChannelOpPayload(
+          this.#host,
+          this.#channelTypes,
+          event.channelId,
+          "Result",
+          event.payloadPtr,
+          event.payloadLen,
+        );
         this.#host.releaseLease(event.leaseId);
         this.#host.flushSync();
         if (pending) {
@@ -1031,6 +1075,23 @@ function opidKey(channelId: number, operationId: Uint8Array): string {
 
 function asPayload(value: Uint8Array | number[]): Uint8Array {
   return value instanceof Uint8Array ? value : Uint8Array.from(value);
+}
+
+function copyChannelOpPayload(
+  host: IoHost,
+  channelTypes: Map<number, string>,
+  channelId: number,
+  op: GeneratedOpKind,
+  payloadPtr: number,
+  payloadLen: number,
+): Uint8Array {
+  const typeName = channelTypes.get(channelId);
+  const section = typeName ? generatedOpTypeName(typeName, op) : undefined;
+  if (section) {
+    const bytes = host.copyGeneratedBytes(section, payloadPtr, payloadLen);
+    if (bytes) return bytes;
+  }
+  return host.copyPayload(payloadPtr, payloadLen);
 }
 
 class WorkerClient implements RclwebClient {

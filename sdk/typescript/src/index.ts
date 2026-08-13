@@ -14,6 +14,8 @@ export {
   Subscription,
   Client,
   Service,
+  ActionClient,
+  ActionServer,
   WallTimer,
   type SubscriptionCallback,
 } from "./node.ts";
