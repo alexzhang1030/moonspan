@@ -5,7 +5,7 @@
  * exercise the wrong row/RMW.
  */
 import path from "node:path";
-import { init, Node, shutdown, std_msgs } from "@rclweb/sdk";
+import { init, Node, shutdown, std_msgs } from "rclweb";
 
 const gatewayUrl =
   process.env.RCLWEB_GATEWAY_URL ?? "ws://127.0.0.1:8794/ws";
@@ -16,7 +16,7 @@ const timeoutMs = Number(process.env.RCLWEB_TIMEOUT_MS ?? "30000");
 const supportRow = process.env.RCLWEB_SUPPORT_ROW ?? "J-FT";
 
 const repoRoot = path.resolve(import.meta.dir, "../..");
-const defaultWasm = path.join(repoRoot, "sdk/typescript/wasm/rclweb.wasm");
+const defaultWasm = path.join(repoRoot, "typescript/wasm/rclweb.wasm");
 const wasmUrl = process.env.RCLWEB_WASM_URL ?? pathToFileUrl(defaultWasm);
 
 function pathToFileUrl(p: string): string {

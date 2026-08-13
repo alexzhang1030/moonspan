@@ -44,7 +44,7 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified. Phase details live in
 - [~] R4-01 OIDC, SROS2/ACL, audit (Authenticate off-by-default / opt-in `oidc` + audit; channel ACLs off-by-default / opt-in `enforce` default-deny; SROS2 enclave and the reviewed matrix content still open).
 - [~] R4-02 Deployment and observability (ops endpoints + runtime images for all six rows; PKI/orchestrators/remote export still open).
 - [~] R4-03 Support matrix against live gates (no committed measurement JSON; live lanes cover all six rows — J-CY/J-ZN/H-CY/H-ZN landed; human Qualified promotion still open).
-- [~] R4-04 SDK stabilization and release (rclcpp-shaped `init`/`Node`, SDK docs, Worker URL, subscribe-chatter on `dist/`, Worker session ops, PointCloud2 and Phase 1 corpus msg/srv/action types, reconnect reopens service/action, Worker telemetry, public Node graph; npm publish still open).
+- [~] R4-04 TypeScript package stabilization and release (`rclweb` at `typescript/`, rclcpp-shaped `init`/`Node`, docs, Worker URL, subscribe-chatter on `dist/`, Worker session ops, PointCloud2 and Phase 1 corpus msg/srv/action types, reconnect reopens service/action, Worker telemetry, public Node graph; npm publish still open).
 
 ## Kickoff decisions
 

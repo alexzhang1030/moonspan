@@ -3,32 +3,32 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "rclweb",
+      "name": "rclweb-workspace",
     },
     "examples/e2e-harness": {
       "name": "@rclweb/e2e-harness",
       "version": "0.0.0",
       "dependencies": {
-        "@rclweb/sdk": "workspace:*",
+        "rclweb": "workspace:*",
       },
     },
     "examples/subscribe-chatter": {
       "name": "@rclweb/subscribe-chatter",
       "version": "0.0.0",
       "dependencies": {
-        "@rclweb/sdk": "workspace:*",
+        "rclweb": "workspace:*",
       },
     },
-    "sdk/typescript": {
-      "name": "@rclweb/sdk",
+    "typescript": {
+      "name": "rclweb",
       "version": "0.0.0",
     },
   },
   "packages": {
     "@rclweb/e2e-harness": ["@rclweb/e2e-harness@workspace:examples/e2e-harness"],
 
-    "@rclweb/sdk": ["@rclweb/sdk@workspace:sdk/typescript"],
-
     "@rclweb/subscribe-chatter": ["@rclweb/subscribe-chatter@workspace:examples/subscribe-chatter"],
+
+    "rclweb": ["rclweb@workspace:typescript"],
   }
 }

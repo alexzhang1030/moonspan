@@ -24,10 +24,10 @@ import {
   sharedArrayBufferConstructible,
   type BufferStrategy,
   type BufferStrategyStats,
-} from "../sdk/typescript/src/index.ts";
+} from "../typescript/src/index.ts";
 
 const root = path.resolve(import.meta.dir, "..");
-const wasmPath = path.join(root, "sdk/typescript/wasm/rclweb.wasm");
+const wasmPath = path.join(root, "typescript/wasm/rclweb.wasm");
 
 const POINT_PAYLOAD_BYTES = 87_381 * 12; // 1_048_572
 const FRAME_COUNT = 30; // 3 seconds at 10 Hz

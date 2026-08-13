@@ -1,7 +1,7 @@
 /**
  * Host, wasm poll ABI, buffer strategies, session `connect`, and test helpers.
  *
- * Application code should import `@rclweb/sdk` (`init` / `Node`). This
+ * Application code should import `rclweb` (`init` / `Node`). This
  * submodule is for repository tests, the e2e harness internals, and
  * contributors working on the poll boundary — not a stability promise.
  */

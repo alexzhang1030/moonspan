@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted
+Accepted. The `@rclweb/sdk` publish name is superseded by
+[ADR 0013](./0013-typescript-package-rclweb.md).
 
 ## Date
 

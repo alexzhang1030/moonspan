@@ -1,9 +1,9 @@
 {
-  "name": "@rclweb/sdk",
+  "name": "rclweb",
   "version": "0.0.0",
   "private": true,
   "license": "Apache-2.0",
-  "description": "Browser TypeScript SDK for rclweb (R2WP client around the rclweb wasm core)",
+  "description": "Browser TypeScript package for rclweb (R2WP client around the rclweb wasm core)",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",

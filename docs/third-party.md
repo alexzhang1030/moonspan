@@ -235,7 +235,7 @@ shipped, but they still follow the same OSI-permissive allowlist.
 
 ## Bun workspace
 
-Workspace packages: `@rclweb/e2e-harness`, `@rclweb/sdk`, `@rclweb/subscribe-chatter`, `rclweb`.
+Workspace packages: `@rclweb/e2e-harness`, `@rclweb/subscribe-chatter`, `rclweb`, `rclweb-workspace`.
 
 No external npm dependencies are declared in the Bun workspace.
 

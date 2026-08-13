@@ -35,7 +35,7 @@ cargo test --locked -p rclweb --lib engine::
 cargo test --locked -p rclwebd --test ws_gateway
 cargo test --locked -p rclwebd --lib local_dev_tls
 cargo test --locked -p rclwebd --lib control::hello_tests
-bun test sdk/typescript/test
+bun test typescript/test
 just check && just test && just build
 just e2e-h-ft   # or CI job e2e-ros-talker-h-ft
 ```
@@ -53,7 +53,7 @@ H-FT protocol without Humble packages is the mock gateway in `cargo test` (`just
 | WT accept / stub | [`rclwebd/src/wt.rs`](../../rclwebd/src/wt.rs) |
 | HTTP advertise + WS | [`rclwebd/src/ws.rs`](../../rclwebd/src/ws.rs) |
 | Engine OpenChannel / ClientHello | [`rclweb/src/engine/`](../../rclweb/src/engine/) |
-| SDK ConnectOptions / host | [`sdk/typescript/src/`](../../sdk/typescript/src/) |
+| SDK ConnectOptions / host | [`typescript/src/`](../../typescript/src/) |
 | Mock H-FT protocol | [`rclwebd/tests/ws_gateway.rs`](../../rclwebd/tests/ws_gateway.rs) (runs under `just test`) |
 | Live Humble e2e | [`docker/compose.r3-03-h-ft-e2e.yml`](../../docker/compose.r3-03-h-ft-e2e.yml) |
 

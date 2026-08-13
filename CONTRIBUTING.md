@@ -9,7 +9,7 @@ just test
 just build
 ```
 
-`just check` is the foundation gate (docs, protocol, corpus, license inventory, `cargo fmt`, Clippy with `-D warnings`, SDK typecheck). Do not treat a rust-only loop as a substitute.
+`just check` is the foundation gate (docs, protocol, corpus, license inventory, `cargo fmt`, Clippy with `-D warnings`, TypeScript package typecheck). Do not treat a rust-only loop as a substitute.
 
 ## Rust workspace
 
@@ -36,7 +36,7 @@ just fix-rust
 
 ## Records
 
-Read the [PCR map](.agents/docs/README.md) before changing an enrolled area. Update the authoritative document with the code. Durable decisions live under [`docs/adr/`](docs/adr/README.md). The browser SDK application contract is [`docs/sdk.md`](docs/sdk.md).
+Read the [PCR map](.agents/docs/README.md) before changing an enrolled area. Update the authoritative document with the code. Durable decisions live under [`docs/adr/`](docs/adr/README.md). The TypeScript application contract is [`docs/typescript.md`](docs/typescript.md).
 
 ## License
 

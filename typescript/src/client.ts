@@ -1,7 +1,7 @@
 /**
  * Session `connect` host: subscribe/publish and sample leases.
- * Application code uses `@rclweb/sdk` `init` / `Node`. This module is the
- * `@rclweb/sdk/internal` path. All R2WP work stays in the I/O Worker / inline
+ * Application code uses `rclweb` `init` / `Node`. This module is the
+ * `rclweb/internal` path. All R2WP work stays in the I/O Worker / inline
  * host (architecture rule).
  *
  * Reconnect (R2-01) is a fresh session: ClientHello → Authenticate → re-open

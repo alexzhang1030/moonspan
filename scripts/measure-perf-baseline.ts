@@ -17,7 +17,7 @@ import { measureAllProtocolCosts } from "./perf-baseline/protocol-cost.ts";
 import { measureRclwebHost } from "./perf-baseline/rclweb-host.ts";
 
 const root = path.resolve(import.meta.dir, "..");
-const wasmPath = path.join(root, "sdk/typescript/wasm/rclweb.wasm");
+const wasmPath = path.join(root, "typescript/wasm/rclweb.wasm");
 
 if (!existsSync(wasmPath)) {
   console.error(`missing wasm artifact: ${wasmPath}; run just build first`);

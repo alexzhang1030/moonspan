@@ -1,7 +1,7 @@
 # R1-04: Wasm host boundary, I/O Worker, SDK subscribe path
 
 Status: Complete. The `rclweb` client connection engine, hand-written wasm
-poll ABI (ADR 0004), and `@rclweb/sdk` TypeScript host deliver
+poll ABI (ADR 0004), and `rclweb` TypeScript host deliver
 `connect(url)` → `session.subscribe(topic, type)` → typed
 `std_msgs/msg/String` events with an explicit sample lease. Live browser CI
 and demo evidence remain R1-05.
@@ -41,8 +41,8 @@ batches into `poll`. Sample payloads are borrowed views under an explicit
 | Wasm ABI (`cfg(wasm32)`) | [`rclweb/src/host/abi.rs`](../../rclweb/src/host/abi.rs) |
 | Fat LTO ship profile | `[profile.release-wasm]` in root `Cargo.toml` |
 | Wasm stage | [`scripts/build-wasm.ts`](../../scripts/build-wasm.ts) (prints size; does not write JSON) |
-| SDK host + Worker | [`sdk/typescript/src/`](../../sdk/typescript/src/) |
-| Scripted peer fixtures | [`scripts/fixture-gen/`](../../scripts/fixture-gen/), [`sdk/typescript/test/fixtures/`](../../sdk/typescript/test/fixtures/) |
+| SDK host + Worker | [`typescript/src/`](../../typescript/src/) |
+| Scripted peer fixtures | [`scripts/fixture-gen/`](../../scripts/fixture-gen/), [`typescript/test/fixtures/`](../../typescript/test/fixtures/) |
 | Engine ↔ gateway collision | [`rclwebd/tests/client_engine_collision.rs`](../../rclwebd/tests/client_engine_collision.rs) |
 
 ## Acceptance evidence
@@ -50,8 +50,8 @@ batches into `poll`. Sample payloads are borrowed views under an explicit
 ```bash
 cargo test --locked -p rclweb
 cargo test --locked -p rclwebd --test client_engine_collision
-bun run scripts/build-wasm.ts          # stages sdk/typescript/wasm/rclweb.wasm; prints size
-bun test sdk/typescript/test
+bun run scripts/build-wasm.ts          # stages typescript/wasm/rclweb.wasm; prints size
+bun test typescript/test
 just check && just test && just build
 ```
 
@@ -64,5 +64,5 @@ Poll latency measurement is `just poll-latency` (stdout).
 ## Ownership after completion
 
 - [`rclweb` core](../runtime/core.md) owns the client engine and poll ABI.
-- [`@rclweb/sdk`](../../sdk/typescript/) owns the Worker host and public API.
+- [`rclweb`](../../typescript/) owns the Worker host and public API.
 - End-to-end CI, demo, and copy counters remain [R1-05](../../tasks/plan.md).

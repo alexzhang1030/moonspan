@@ -61,8 +61,8 @@ Committed rustfmt/clippy knobs, workspace lints, shared crate versions, and name
 |---|---|
 | `rclweb/` | Cargo crate: the core (native + wasm32); `cdylib` exports the hand-written poll ABI |
 | `rclwebd/` | Cargo crate: the gateway |
-| `sdk/typescript/` | Bun workspace and browser SDK. `@rclweb/sdk` is the public application contract; `@rclweb/sdk/internal` is host/ABI/test helpers ([SDK](../../docs/sdk.md)) |
-| `sdk/typescript/wasm/` | Staged `rclweb.wasm` from `scripts/build-wasm.ts` (fat LTO) |
+| `typescript/` | Bun workspace package `rclweb`. Public application contract; `rclweb/internal` is host/ABI/test helpers ([`rclweb`](../../docs/typescript.md), [ADR 0013](../../docs/adr/0013-typescript-package-rclweb.md)) |
+| `typescript/wasm/` | Staged `rclweb.wasm` from `scripts/build-wasm.ts` (fat LTO) |
 | `protocol/` | Normative contracts, registries, schemas, and frozen fixtures |
 | `conformance/` | CDR corpus and qualification workloads |
 | `pixi.toml` | Optional RoboStack J-FT prefix for `just ros-test-pixi`; not a toolchain pin |

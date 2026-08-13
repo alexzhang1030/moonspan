@@ -1,6 +1,6 @@
 # rclweb
 
-rclweb connects browser applications to ROS 2 through a versioned wire protocol (R2WP), a single Rust core compiled natively for the edge gateway and to Wasm for the browser, and a TypeScript SDK.
+rclweb connects browser applications to ROS 2 through a versioned wire protocol (R2WP), a single Rust core compiled natively for the edge gateway and to Wasm for the browser, and a TypeScript package (`rclweb`).
 
 ## Scope
 
@@ -8,7 +8,7 @@ rclweb connects browser applications to ROS 2 through a versioned wire protocol 
 |---|---|
 | `rclweb/` | Rust core: R2WP protocol, CDR codecs, session/channel state, client engine + poll ABI (native + wasm32) |
 | `rclwebd/` | Rust edge gateway: transport endpoints, serialized rcl attachment, policy |
-| `sdk/typescript/` | Browser SDK: Worker host, buffers, public typed API around the core wasm artifact |
+| `typescript/` | TypeScript package `rclweb`: Worker host, buffers, public typed API around the core wasm artifact |
 | `protocol/` | Normative R2WP contract, registry, schema, and frozen fixtures |
 | `conformance/` | Authoritative ROS CDR corpus (six rows of data; J-FT and H-FT delivery-gated) |
 | `examples/` | Demo applications (from R1) |
@@ -77,7 +77,7 @@ progress. The walking skeleton reaches a live ROS talker in CI (`just e2e` /
 |---|---|
 | How to contribute | [CONTRIBUTING.md](./CONTRIBUTING.md) |
 | Full documentation map | [docs/README.md](./docs/README.md) |
-| Browser SDK | [docs/sdk.md](./docs/sdk.md) |
+| TypeScript package | [docs/typescript.md](./docs/typescript.md) |
 | Product scope | [docs/product-scope.md](./docs/product-scope.md) |
 | Architecture | [docs/architecture.md](./docs/architecture.md) |
 | Decisions | [docs/adr/README.md](./docs/adr/README.md) |

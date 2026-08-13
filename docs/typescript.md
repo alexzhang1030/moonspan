@@ -1,23 +1,24 @@
-# Browser SDK
+# TypeScript package
 
-`@rclweb/sdk` is the application contract for rclweb. If you can write
+`rclweb` is the application contract. If you can write
 [rclcpp](https://docs.ros.org/en/humble/p/rclcpp/), you can write this
-SDK: `init` → `Node` → `createPublisher` / `createSubscription` with ROS
-message types. The SDK does not parse R2WP: the I/O Worker owns transport
+package: `init` → `Node` → `createPublisher` / `createSubscription` with ROS
+message types. It does not parse R2WP: the I/O Worker owns transport
 bytes and the wasm core owns protocol, CDR, and ROS state
-([architecture](./architecture.md), [ADR 0004](./adr/0004-browser-wasm-host-boundary.md)).
+([architecture](./architecture.md), [ADR 0004](./adr/0004-browser-wasm-host-boundary.md),
+[ADR 0013](./adr/0013-typescript-package-rclweb.md)).
 
-The package lives at [`sdk/typescript/`](../sdk/typescript/) and is consumed from this repository's Bun workspace. It stays `"private": true` and `"version": "0.0.0"` until a human release review. This slice does not publish to npm. The package is Apache-2.0 ([licensing](./licensing.md)).
+The package lives at [`typescript/`](../typescript/) and is consumed from this repository's Bun workspace. It stays `"private": true` and `"version": "0.0.0"` until a human release review. This slice does not publish to npm. The package is Apache-2.0 ([licensing](./licensing.md)).
 
 ## Install (workspace)
 
-Root `package.json` already lists `sdk/*` as a workspace. Examples depend on `"@rclweb/sdk": "workspace:*"`. After `just setup`:
+Root `package.json` already lists `typescript` as a workspace. Examples depend on `"rclweb": "workspace:*"`. After `just setup`:
 
 ```ts
-import { init, Node, std_msgs, sensor_msgs, rclweb_cdr_interfaces } from "@rclweb/sdk";
+import { init, Node, std_msgs, sensor_msgs, rclweb_cdr_interfaces } from "rclweb";
 ```
 
-`just build` stages `sdk/typescript/wasm/rclweb.wasm` and emits `sdk/typescript/dist/` (gitignored). The workspace export map points at TypeScript source so Bun tests and scripts do not need `dist/`. Browser pages should load the built `dist/index.js` (see [subscribe-chatter](../examples/subscribe-chatter/README.md)).
+`just build` stages `typescript/wasm/rclweb.wasm` and emits `typescript/dist/` (gitignored). The workspace export map points at TypeScript source so Bun tests and scripts do not need `dist/`. Browser pages should load the built `dist/index.js` (see [subscribe-chatter](../examples/subscribe-chatter/README.md)).
 
 ## init and Node
 
@@ -38,7 +39,7 @@ const node = new Node("minimal_publisher");
 
 `init` currently authenticates as scheme `token` / `anonymous`. The gateway default is Authenticate `off` ([R4-01](./milestones/r4-01-oidc-sros2-audit.md)). Optional `InitOptions` (`inline`, `wasmUrl`, `transport`, WebTransport hashes) are for tests and local-dev TLS — applications leave them unset.
 
-`InitOptions.reconnect` (default off) is a fresh session: ClientHello → Authenticate → SessionReady, then the SDK re-opens topics, services, and actions with the same channel IDs so existing `Node` objects keep working. In-flight service calls and action results reject with `"session reconnected"`. SessionResume stays parked. This applies on both the default I/O Worker path and `inline: true`.
+`InitOptions.reconnect` (default off) is a fresh session: ClientHello → Authenticate → SessionReady, then the package re-opens topics, services, and actions with the same channel IDs so existing `Node` objects keep working. In-flight service calls and action results reject with `"session reconnected"`. SessionResume stays parked. This applies on both the default I/O Worker path and `inline: true`.
 
 ## Publisher and subscription
 
@@ -146,10 +147,10 @@ console.log(node.countPublishers("chatter"));
 
 | Import | Stability | Contents |
 |---|---|---|
-| `@rclweb/sdk` | Candidate application contract | `init`, `Node`, ROS message types, QoS, local-dev TLS helpers |
-| `@rclweb/sdk/internal` | Repository only | `connect` / session, `IoHost`, wasm poll ABI, buffer strategies, sample leases. Not a stability promise. |
+| `rclweb` | Candidate application contract | `init`, `Node`, ROS message types, QoS, local-dev TLS helpers |
+| `rclweb/internal` | Repository only | `connect` / session, `IoHost`, wasm poll ABI, buffer strategies, sample leases. Not a stability promise. |
 
-Do not import the internal submodule from application code. A test asserts the public runtime export list; adding a host or ABI symbol to `@rclweb/sdk` is a contract change.
+Do not import the internal submodule from application code. A test asserts the public runtime export list; adding a host or ABI symbol to `rclweb` is a contract change.
 
 ## Examples
 
@@ -162,7 +163,7 @@ See [examples/README.md](../examples/README.md).
 
 ## Version and release
 
-Independent SDK versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). R2WP wire version is a separate identity ([ADR 0005](./adr/0005-r2wp-wire-versioning.md)). This package does not bump to `1.0.0`, set `"private": false`, or publish. Remaining R4-04 work: npm publish after a human release review. An npm tarball must include the repository `LICENSE` and `NOTICE`.
+Independent package versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). R2WP wire version is a separate identity ([ADR 0005](./adr/0005-r2wp-wire-versioning.md)). This package does not bump to `1.0.0`, set `"private": false`, or publish. Remaining R4-04 work: npm publish after a human release review. An npm tarball must include the repository `LICENSE` and `NOTICE`.
 
 ## Related
 

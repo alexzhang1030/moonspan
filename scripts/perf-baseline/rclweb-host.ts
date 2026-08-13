@@ -11,7 +11,7 @@ import {
   pollEngine,
   readTelemetry,
   type BufferStrategy,
-} from "../../sdk/typescript/src/index.ts";
+} from "../../typescript/src/index.ts";
 import { summarize, type LatencySummary } from "./stats.ts";
 import {
   WORKLOADS,

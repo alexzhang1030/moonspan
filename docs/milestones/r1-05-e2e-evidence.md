@@ -1,11 +1,11 @@
 # R1-05: End-to-end CI evidence, demo, poll latency, copy counters
 
 Status: Complete. A docker-compose (single Jazzy container) lane runs a real
-ROS 2 talker through `rclwebd` into the `@rclweb/sdk` inline host and exposes
+ROS 2 talker through `rclwebd` into the `rclweb` inline host and exposes
 gateway + engine copy counters. Wasm size and poll latency print from
 `just build` / `just poll-latency`. The committed demo under
 `examples/subscribe-chatter` exercises subscribe and publish from a browser
-page on the Worker path (serves `sdk/typescript/dist/` after `just build`;
+page on the Worker path (serves `typescript/dist/` after `just build`;
 [R4-04](./r4-04-sdk.md)). CI e2e still uses the inline harness.
 
 ## Outcome

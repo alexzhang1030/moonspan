@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted. Repository licensing is Apache-2.0 as of D-06 (2026-08-13); see
+Accepted. The `sdk/typescript/` / `@rclweb/sdk` workspace enrollment is
+superseded by [ADR 0013](./0013-typescript-package-rclweb.md). Repository
+licensing is Apache-2.0 as of D-06 (2026-08-13); see
 [licensing](../licensing.md).
 
 ## Date

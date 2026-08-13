@@ -29,8 +29,8 @@ inbound controllable copy budget ≤ 2.
 | PointCloud2 borrowed codec | [`rclweb/src/cdr/point_cloud2.rs`](../../rclweb/src/cdr/point_cloud2.rs) |
 | Engine retain / lease PC2 view | [`rclweb/src/engine/`](../../rclweb/src/engine/) |
 | Wasm `rclweb_point_cloud2_meta` | [`rclweb/src/host/abi.rs`](../../rclweb/src/host/abi.rs) |
-| Two-pass host batch + large poll | [`sdk/typescript/src/wasm/abi.ts`](../../sdk/typescript/src/wasm/abi.ts) |
-| Buffer strategies | [`sdk/typescript/src/buffer/strategies.ts`](../../sdk/typescript/src/buffer/strategies.ts) |
+| Two-pass host batch + large poll | [`typescript/src/wasm/abi.ts`](../../typescript/src/wasm/abi.ts) |
+| Buffer strategies | [`typescript/src/buffer/strategies.ts`](../../typescript/src/buffer/strategies.ts) |
 | Evidence script | [`scripts/measure-large-message.ts`](../../scripts/measure-large-message.ts) (`just large-message`) |
 
 ## Acceptance evidence
@@ -38,7 +38,7 @@ inbound controllable copy budget ≤ 2.
 ```bash
 cargo test --locked -p rclweb
 bun run scripts/build-wasm.ts
-bun test sdk/typescript/test
+bun test typescript/test
 bun run scripts/measure-large-message.ts
 just check && just test && just build
 ```
