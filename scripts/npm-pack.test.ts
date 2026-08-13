@@ -5,6 +5,8 @@ import path from "node:path";
 import {
   parseNpmPackMode,
   stageLicenseFiles,
+  exportsPointAtSource,
+  tarballContainsSource,
   tarballMemberMissing,
 } from "./npm-pack.ts";
 
@@ -28,9 +30,13 @@ describe("tarballMemberMissing", () => {
       "package/NOTICE",
       "package/README.md",
       "package/package.json",
-      "package/src/index.ts",
+      "package/dist/index.js",
+      "package/dist/index.d.ts",
+      "package/dist/internal.js",
+      "package/dist/internal.d.ts",
+      "package/dist/worker/io-worker.js",
       "package/wasm/rclweb.wasm",
-      "package/src/node.ts",
+      "package/dist/host-chunk.js",
     ].join("\n");
     expect(tarballMemberMissing(listing)).toEqual([]);
   });
@@ -39,10 +45,39 @@ describe("tarballMemberMissing", () => {
     const listing = [
       "package/README.md",
       "package/package.json",
-      "package/src/index.ts",
+      "package/dist/index.js",
+      "package/dist/index.d.ts",
+      "package/dist/internal.js",
+      "package/dist/internal.d.ts",
+      "package/dist/worker/io-worker.js",
       "package/wasm/rclweb.wasm",
     ].join("\n");
     expect(tarballMemberMissing(listing)).toEqual(["package/LICENSE", "package/NOTICE"]);
+  });
+
+  test("rejects a tarball that still ships TypeScript source", () => {
+    const listing = [
+      "package/dist/index.js",
+      "package/src/index.ts",
+    ].join("\n");
+    expect(tarballContainsSource(listing)).toBe(true);
+    expect(tarballContainsSource("package/dist/index.js\n")).toBe(false);
+  });
+});
+
+describe("exportsPointAtSource", () => {
+  test("treats .d.ts export maps as the ship bundle", () => {
+    expect(
+      exportsPointAtSource({
+        ".": { types: "./dist/index.d.ts", import: "./dist/index.js" },
+      }),
+    ).toBe(false);
+    expect(
+      exportsPointAtSource({
+        ".": { types: "./src/index.ts", import: "./src/index.ts" },
+      }),
+    ).toBe(true);
+    expect(exportsPointAtSource({ ".": "./dist/index.js" }, ["src"])).toBe(true);
   });
 });
 

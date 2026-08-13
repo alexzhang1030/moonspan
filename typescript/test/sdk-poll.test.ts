@@ -21,14 +21,25 @@ test("sdk package identity and privacy", () => {
     version: string;
     private: boolean;
     type: string;
-    exports: Record<string, string>;
+    exports: Record<string, { types?: string; import?: string; default?: string }>;
+    files: string[];
   };
   expect(pkg.name).toBe("rcl-web");
-  expect(pkg.version).toBe("0.0.1");
+  expect(pkg.version).toBe("0.0.2");
   expect(pkg.private).toBe(false);
   expect(pkg.type).toBe("module");
-  expect(pkg.exports["."]).toBe("./src/index.ts");
-  expect(pkg.exports["./internal"]).toBe("./src/internal.ts");
+  expect(pkg.files).toEqual(["dist", "wasm", "README.md", "LICENSE", "NOTICE"]);
+  expect(pkg.files).not.toContain("src");
+  expect(pkg.exports["."]).toEqual({
+    types: "./dist/index.d.ts",
+    import: "./dist/index.js",
+    default: "./dist/index.js",
+  });
+  expect(pkg.exports["./internal"]).toEqual({
+    types: "./dist/internal.d.ts",
+    import: "./dist/internal.js",
+    default: "./dist/internal.js",
+  });
 });
 
 test("public runtime exports stay application-facing", async () => {
@@ -74,8 +85,8 @@ test("public runtime exports stay application-facing", async () => {
 });
 
 test("workspace export map resolves public and internal subpaths", async () => {
-  const pub = await import("rcl-web");
-  const intern = await import("rcl-web/internal");
+  const pub = await import("../src/index.ts");
+  const intern = await import("../src/internal.ts");
   expect(typeof pub.init).toBe("function");
   expect(typeof pub.Node).toBe("function");
   expect(pub.std_msgs.msg.String.typeName).toBe("std_msgs/msg/String");

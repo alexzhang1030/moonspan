@@ -12,7 +12,7 @@ The product is one Rust core (`rclweb`) for gateway and browser, `rclwebd` at th
 | Support rows | Six rows of corpus data stay committed; live talker e2e covers all six; **Qualified** is a human matrix edit |
 | Bun | 1.3.14, workspace manifests, lockfile, root checks |
 | License | Apache-2.0; OSI-permissive third-party policy ([licensing](../docs/licensing.md)) |
-| First published version | TypeScript package `rcl-web@0.0.1`; the npm tarball must include `LICENSE` and `NOTICE`. Crates stay `publish = false`. A human still runs `npm publish` from `typescript/` |
+| Published versions | `rcl-web@0.0.1` is on npm as TypeScript source. The current ship is `0.0.2` (tsdown bundle). The npm tarball must include `LICENSE` and `NOTICE`. Crates stay `publish = false`. A human still runs `npm publish` from `typescript/` |
 | npm registry name | Unscoped `rclweb` is blocked as too similar to `rrweb`. Publish and import name is `rcl-web` ([ADR 0014](../docs/adr/0014-typescript-package-rcl-web.md)) |
 
 ## Open — needs a human ruling

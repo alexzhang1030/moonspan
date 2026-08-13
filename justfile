@@ -124,21 +124,22 @@ license-inventory: toolchain-check
 license-inventory-check: toolchain-check
     cd "{{root}}" && bun run scripts/license-inventory.ts --check
 
-# Stage repository LICENSE/NOTICE into typescript/ for npm pack.
+# Stage repository LICENSE/NOTICE into typescript/ and write the npm tarball.
 [group('quality')]
 npm-pack: toolchain-check
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{root}}"
+    bun run --filter rcl-web build
     bun run scripts/npm-pack.ts --stage
     bun pm pack --cwd typescript
 
-# Verify the npm tarball is rcl-web@0.0.1 and includes LICENSE, NOTICE, and wasm.
+# Verify the npm tarball is rcl-web@0.0.2 with the tsdown dist, LICENSE, NOTICE, and wasm.
 [group('quality')]
 npm-pack-check: toolchain-check
     cd "{{root}}" && bun run scripts/npm-pack.ts --check
 
-# Docs, protocol, corpus, and license inventory; npm pack members; Rust fmt/clippy; TypeScript package typecheck.
+# Docs, protocol, corpus, and license inventory; npm pack members; Rust fmt/clippy; tsdown ship bundle.
 [group('quality')]
 check: toolchain-check
     #!/usr/bin/env bash

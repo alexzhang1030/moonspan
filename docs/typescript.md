@@ -8,7 +8,7 @@ bytes and the wasm core owns protocol, CDR, and ROS state
 ([architecture](./architecture.md), [ADR 0004](./adr/0004-browser-wasm-host-boundary.md),
 [ADR 0014](./adr/0014-typescript-package-rcl-web.md)).
 
-The package lives at [`typescript/`](../typescript/). The first published version is `0.0.1`. The package is public (`"private": false`). It is Apache-2.0 ([licensing](./licensing.md)). npm rejected unscoped `rclweb` as too similar to `rrweb`; the publish and import name is `rcl-web`.
+The package lives at [`typescript/`](../typescript/). The current version is `0.0.2`. `0.0.1` is on npm as TypeScript source. The package is public (`"private": false`). It is Apache-2.0 ([licensing](./licensing.md)). npm rejected unscoped `rclweb` as too similar to `rrweb`; the publish and import name is `rcl-web`.
 
 ## Install
 
@@ -20,13 +20,13 @@ npm install rcl-web
 bun add rcl-web
 ```
 
-From this repository's Bun workspace, examples depend on `"rcl-web": "workspace:*"`. After `just setup`:
+From this repository's Bun workspace, examples depend on `"rcl-web": "workspace:*"`. After `just setup` and `just build`:
 
 ```ts
 import { init, Node, std_msgs, sensor_msgs, rclweb_cdr_interfaces } from "rcl-web";
 ```
 
-`just build` stages `typescript/wasm/rclweb.wasm` and emits `typescript/dist/` (gitignored). The workspace export map points at TypeScript source so Bun tests and scripts do not need `dist/`. Browser pages should load the built `dist/index.js` (see [subscribe-chatter](../examples/subscribe-chatter/README.md)).
+`just build` stages `typescript/wasm/rclweb.wasm` and runs tsdown into `typescript/dist/` (gitignored). The npm export map points at that bundle (`dist/index.js` + `.d.ts`). Bun tests import repository source directly. Browser pages load the built `dist/index.js` (see [subscribe-chatter](../examples/subscribe-chatter/README.md)).
 
 ## init and Node
 
@@ -171,9 +171,9 @@ See [examples/README.md](../examples/README.md).
 
 ## Version and release
 
-Independent package versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). R2WP wire version is a separate identity ([ADR 0005](./adr/0005-r2wp-wire-versioning.md)). The first published version is `0.0.1`. The package is public. The npm name is `rcl-web` ([ADR 0014](./adr/0014-typescript-package-rcl-web.md)).
+Independent package versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). R2WP wire version is a separate identity ([ADR 0005](./adr/0005-r2wp-wire-versioning.md)). The current version is `0.0.2`. `0.0.1` on the registry shipped TypeScript source. The package is public. The npm name is `rcl-web` ([ADR 0014](./adr/0014-typescript-package-rcl-web.md)). The tarball is the tsdown bundle, not TypeScript source ([ADR 0015](./adr/0015-tsdown-ship-bundle.md)).
 
-An npm tarball must include the repository `LICENSE` and `NOTICE`. Those files live at the repository root; `just npm-pack` / the package `prepack` script copies them into `typescript/` (gitignored). `just npm-pack-check` is part of `just check`.
+An npm tarball must include the tsdown `dist/` bundle, `wasm/rclweb.wasm`, and the repository `LICENSE` and `NOTICE`. It must not include `src/`. `just npm-pack` / `prepack` copies the license files and runs tsdown. `just npm-pack-check` is part of `just check`.
 
 Publish (human, from a clean tree after `just build`):
 

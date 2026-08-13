@@ -119,7 +119,7 @@ Foundation CI installs Bun with SHA-pinned `oven-sh/setup-bun` (`.bun-version`) 
 
 ## Worker URL follows the script extension
 
-`new Worker(new URL("./worker/io-worker.ts", import.meta.url))` is correct for Bun workspace source and wrong after `bun build` writes `dist/index.js`. The sibling in `dist/` is `io-worker.js`. `resolveIoWorkerUrl` picks `.ts` vs `.js` from the loading script. Do not hardcode `.ts`.
+`new Worker(new URL("./worker/io-worker.ts", import.meta.url))` is correct for Bun workspace source and wrong after tsdown writes `dist/`. The sibling under `dist/` is `worker/io-worker.js`. `resolveIoWorkerUrl` picks `.ts` vs `.js` from the loading script. Do not hardcode `.ts`.
 
 ## Bundle files are named by type
 
@@ -127,11 +127,19 @@ Canonical bundles live at `conformance/cdr/fixtures/bundles/<type with / → .>.
 
 ## Unscoped `rclweb` is blocked on npm as too similar to `rrweb`
 
-The exact name `rclweb` is unpublished (`GET https://registry.npmjs.org/rclweb` → 404; search total 0). A logged-in `npm publish` still returns **403**: npm's confusion / typo-squatting rule rejects it as too similar to [`rrweb`](https://www.npmjs.com/package/rrweb) (session replay; ~2.7M weekly downloads). The first attempt looked like a 404 because npm hides unauthorized PUTs; after `npm login` the real reason is the similarity check. Do not retry unscoped `rclweb`. The publish and import name is `rcl-web` ([ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md)). `GET https://registry.npmjs.org/rcl-web` is 404; only a human `npm publish` can prove the similarity check accepts it.
+The exact name `rclweb` is unpublished (`GET https://registry.npmjs.org/rclweb` → 404; search total 0). A logged-in `npm publish` still returns **403**: npm's confusion / typo-squatting rule rejects it as too similar to [`rrweb`](https://www.npmjs.com/package/rrweb) (session replay; ~2.7M weekly downloads). The first attempt looked like a 404 because npm hides unauthorized PUTs; after `npm login` the real reason is the similarity check. Do not retry unscoped `rclweb`. The publish and import name is `rcl-web` ([ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md)). `rcl-web@0.0.1` is on the registry (TypeScript source). The tsdown ship is `0.0.2`; npm will not overwrite `0.0.1`.
+
+## License inventory looks in the declaring workspace first
+
+`just license-inventory-check` used to read only `node_modules/<name>/package.json` at the repo root. A dirty local tree can hoist `tsdown` / `typescript` there after they were briefly added on the root package. A clean `bun install --frozen-lockfile` (CI) can leave them only under `typescript/node_modules/`. The inventory then recorded license `""` and `just check` failed (`tsdown@0.22.14: disallowed or missing license ""`). Look in the declaring workspace first, then the root hoist. Reproduce: remove the root copies and run `just license-inventory-check`.
+
+## npm pack ships the tsdown dist, not TypeScript source
+
+The published `rcl-web` tarball is tsdown ESM + `.d.ts` under `dist/`, plus `wasm/rclweb.wasm`. `files` must not include `src/`. `just npm-pack-check` fails if the tarball contains `package/src/`. Run tsdown through Bun (`bun --bun tsdown`) so the config loader does not require the optional `unrun` peer. Workspace `import from "rcl-web"` resolves to that `dist/` — live e2e/perf images must run `bun run --filter rcl-web build` after staging wasm; they used to load `src/` through the export map. [ADR 0015](../../docs/adr/0015-tsdown-ship-bundle.md).
 
 ## npm pack copies LICENSE and NOTICE; do not commit them
 
-npm `files` cannot include `../LICENSE`. `scripts/npm-pack.ts --stage` (also the package `prepack` script) copies the repository `LICENSE` and `NOTICE` into `typescript/`. Those copies are gitignored. `just npm-pack-check` requires them in the tarball for `rcl-web@0.0.1`. Do not commit `typescript/LICENSE` or `typescript/NOTICE`.
+npm `files` cannot include `../LICENSE`. `scripts/npm-pack.ts --stage` (also the package `prepack` script) copies the repository `LICENSE` and `NOTICE` into `typescript/`. Those copies are gitignored. `just npm-pack-check` requires them in the tarball for `rcl-web@0.0.2`. Do not commit `typescript/LICENSE` or `typescript/NOTICE`.
 
 ## Do not commit measurement JSON
 

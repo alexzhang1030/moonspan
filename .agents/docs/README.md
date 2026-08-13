@@ -16,7 +16,7 @@ Documentation describes the product. It is not a delivery-phase ledger. Historic
 | Rust workspace (fmt, clippy, lints, just recipes) | [Technology stack — Rust workspace infrastructure](./technology-stack.md#rust-workspace-infrastructure) |
 | Traps already paid for | [Gotchas](./gotchas.md) |
 | Evidence and gate authority | [Validation](./validation.md) |
-| TypeScript package | [`rcl-web`](../../docs/typescript.md), [ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md) |
+| TypeScript package | [`rcl-web`](../../docs/typescript.md), [ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md), [ADR 0015](../../docs/adr/0015-tsdown-ship-bundle.md) |
 | License | [Licensing](../../docs/licensing.md) |
 | Studio visual system | [DESIGN.md](./DESIGN.md) |
 
@@ -49,8 +49,9 @@ Documentation describes the product. It is not a delivery-phase ledger. Historic
 | `rclwebd/src/acl.rs` | [security](../../docs/security.md); `enforce` is default-deny ([gotchas](./gotchas.md#acls-default-to-off-enforce-is-default-deny)) |
 | `rclwebd/src/ops.rs` | [deploy](../../docs/deploy.md); `/healthz` is liveness ([gotchas](./gotchas.md#healthz-is-liveness-not-readiness)) |
 | `docker/**` | [deploy](../../docs/deploy.md), digest-pinned `oven/bun` ([gotchas](./gotchas.md#github-releases-downloads-need-retries)) |
-| `typescript/**` | [`rcl-web`](../../docs/typescript.md), [ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md). First published version is `0.0.1`. npm blocks unscoped `rclweb` vs `rrweb` ([gotchas](./gotchas.md#unscoped-rclweb-is-blocked-on-npm-as-too-similar-to-rrweb)). Reconnect is a fresh session ([gotchas](./gotchas.md#reconnect-is-a-fresh-session-not-sessionresume)); Worker `telemetry()` is the last poll snapshot ([gotchas](./gotchas.md#worker-telemetry-is-the-last-poll-snapshot)); pack copies LICENSE/NOTICE ([gotchas](./gotchas.md#npm-pack-copies-license-and-notice-do-not-commit-them)) |
-| `scripts/npm-pack.ts` | Stage root `LICENSE`/`NOTICE` into `typescript/` and verify the `rcl-web@0.0.1` tarball ([licensing](../../docs/licensing.md)) |
+| `typescript/**` | [`rcl-web`](../../docs/typescript.md), [ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md). Current version is `0.0.2` (`0.0.1` on npm shipped source). npm blocks unscoped `rclweb` vs `rrweb` ([gotchas](./gotchas.md#unscoped-rclweb-is-blocked-on-npm-as-too-similar-to-rrweb)). Reconnect is a fresh session ([gotchas](./gotchas.md#reconnect-is-a-fresh-session-not-sessionresume)); Worker `telemetry()` is the last poll snapshot ([gotchas](./gotchas.md#worker-telemetry-is-the-last-poll-snapshot)); pack copies LICENSE/NOTICE ([gotchas](./gotchas.md#npm-pack-copies-license-and-notice-do-not-commit-them)) |
+| `scripts/license-inventory.ts` | OSI-permissive inventory; workspace npm deps are read from the declaring package first ([gotchas](./gotchas.md#license-inventory-looks-in-the-declaring-workspace-first)) |
+| `scripts/npm-pack.ts`, `typescript/tsdown.config.mjs` | tsdown ship bundle + LICENSE/NOTICE; tarball must not include `src/` ([ADR 0015](../../docs/adr/0015-tsdown-ship-bundle.md), [gotchas](./gotchas.md#npm-pack-ships-the-tsdown-dist-not-typescript-source)) |
 | `typescript/src/index.ts`, `internal.ts` | Public `init`/`Node` vs host/ABI ([`rcl-web`](../../docs/typescript.md#public-vs-internal)); graph getters hide GraphSnapshot JSON ([gotchas](./gotchas.md#public-node-graph-hides-graphsnapshot-json)) |
 | `examples/**` | [`rcl-web`](../../docs/typescript.md), [examples README](../../examples/README.md) |
 | `.github/workflows/ci.yml` | [Validation](../../docs/validation.md); do not wrap cargo tests in Docker ([gotchas](./gotchas.md#do-not-wrap-cargo-tests-in-a-docker-mock-lane)) |

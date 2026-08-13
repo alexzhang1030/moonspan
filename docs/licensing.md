@@ -22,7 +22,7 @@ The published surface is:
 
 - the `rclweb` crate (native and `wasm32-unknown-unknown`)
 - the `rclwebd` binary, including optional `ros` and `webtransport`
-- the TypeScript package `rcl-web` at `typescript/` (no external npm dependencies)
+- the TypeScript package `rcl-web` at `typescript/` (no runtime npm dependencies; tsdown + TypeScript are ship-bundle `devDependencies`)
 
 Do not add GPL, AGPL, LGPL, or other copyleft licenses to that graph. The
 same allowlist applies to workspace `dev-dependency` crates so a test-only
@@ -31,7 +31,8 @@ copyleft crate cannot leak into a later release.
 ## Inventory
 
 [`docs/third-party.md`](./third-party.md) is generated from `Cargo.lock` and
-the Bun workspace manifests:
+the Bun workspace manifests. Declared npm packages are read from the
+declaring workspace `node_modules/` first, then the root hoist:
 
 ```bash
 just license-inventory
@@ -52,7 +53,8 @@ Outside this inventory (they are not crate/npm release units):
 Workspace Cargo members inherit `license = "Apache-2.0"`. Bun workspace
 packages declare `"license": "Apache-2.0"`.
 
-The first published TypeScript package is `rcl-web@0.0.1` (`"private": false`).
+The current TypeScript package is `rcl-web@0.0.2` (`"private": false`).
+`0.0.1` on npm shipped TypeScript source.
 An npm tarball must include the repository `LICENSE` and `NOTICE`.
 `just npm-pack` / the package `prepack` script copies those files into
 `typescript/` (gitignored). `just npm-pack-check` is part of `just check`.
