@@ -45,6 +45,7 @@ just build
 | `just build` | Native build, fat-LTO `rclweb` wasm staged into the TypeScript package, and package build |
 | `just npm-pack` | Copy `LICENSE`/`NOTICE` into `typescript/` and write the npm tarball |
 | `just npm-pack-check` | Verify the tarball is `rcl-web@0.0.2` with the tsdown `dist/`, `LICENSE`, `NOTICE`, and wasm |
+| `just cargo-publish-check` | Verify `rclweb` / `rclwebd` pack for crates.io; fixture crates stay private |
 | `just poll-latency` | Print wasm poll latency + size |
 | `just e2e` | Docker compose: Jazzy talker → rclwebd (J-FT) → SDK subscribe |
 | `just e2e-h-ft` | Docker compose: Humble talker → rclwebd (H-FT) → SDK subscribe |
@@ -64,9 +65,9 @@ just build
 A browser page can subscribe to a live ROS 2 talker in CI (`just e2e`,
 `just e2e-h-ft`, and the Cyclone/Zenoh row lanes). The TypeScript package
 is `rcl-web@0.0.2` (npm rejected unscoped `rclweb` as too similar to
-`rrweb`; `0.0.1` on the registry shipped TypeScript source). A human
-publishes it from `typescript/` after `just build` (`npm publish`).
-Support-matrix **Qualified** remains a human matrix edit.
+`rrweb`; `0.0.1` on the registry shipped TypeScript source). Publish is
+GitHub OIDC ([release](./docs/release.md)). Support-matrix **Qualified**
+remains a human matrix edit.
 Open work lives in [tasks/plan.md](./tasks/plan.md).
 
 ## Start here
@@ -74,6 +75,7 @@ Open work lives in [tasks/plan.md](./tasks/plan.md).
 | Need | Document |
 |---|---|
 | How to contribute | [CONTRIBUTING.md](./CONTRIBUTING.md) |
+| How to publish | [docs/release.md](./docs/release.md) |
 | Full documentation map | [docs/README.md](./docs/README.md) |
 | TypeScript package | [docs/typescript.md](./docs/typescript.md) |
 | Product scope | [docs/product-scope.md](./docs/product-scope.md) |

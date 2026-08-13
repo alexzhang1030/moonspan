@@ -60,8 +60,11 @@ An npm tarball must include the repository `LICENSE` and `NOTICE`.
 `typescript/` (gitignored). `just npm-pack-check` is part of `just check`.
 Unscoped `rclweb` is blocked on npm as too similar to `rrweb`; the
 publish name is `rcl-web` ([ADR 0014](./adr/0014-typescript-package-rcl-web.md)).
-A human still runs `npm publish` from `typescript/`. Rust crates stay
-`publish = false` (not crates.io).
+Publish is GitHub OIDC from
+[`.github/workflows/release.yml`](../.github/workflows/release.yml)
+([release](./release.md), [ADR 0016](./adr/0016-oidc-trusted-publish.md)).
+`rclweb` and `rclwebd` publish to crates.io. Fixture crates stay
+`publish = false`.
 
 Per-file SPDX headers are not required. The root `LICENSE` / `NOTICE` and
 the manifest fields are the project convention.

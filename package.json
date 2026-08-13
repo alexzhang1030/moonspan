@@ -25,6 +25,8 @@
     "license-inventory:check": "bun run scripts/license-inventory.ts --check",
     "npm-pack:stage": "bun run scripts/npm-pack.ts --stage",
     "npm-pack:check": "bun run scripts/npm-pack.ts --check",
+    "cargo-publish:stage": "bun run scripts/cargo-publish.ts --stage",
+    "cargo-publish:check": "bun run scripts/cargo-publish.ts --check",
     "toolchain-check": "bun run scripts/toolchain-check.ts",
     "test:license-inventory": "bun test scripts/license-inventory.test.ts",
     "test:npm-pack": "bun test scripts/npm-pack.test.ts",

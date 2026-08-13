@@ -1,6 +1,6 @@
 # `rclwebd` edge gateway
 
-`rclwebd` is rclweb's controlled edge boundary between browser sessions and ROS 2 domains. It links the shared [`rclweb` core](../runtime/core.md) for R2WP parsing and encoding, and owns transport, scheduling, sessions, schemas, policy, audit, telemetry, and recovery. ROS attachment goes through a versioned serialized adapter ABI ([ADR 0006](../adr/0006-edge-ros-c-abi-boundary.md)) with dynamic (dlopen) typesupport.
+`rclwebd` is rclweb's controlled edge boundary between browser sessions and ROS 2 domains. It links the shared [`rclweb` core](../runtime/core.md) for R2WP parsing and encoding, and owns transport, scheduling, sessions, schemas, policy, audit, telemetry, and recovery. ROS attachment goes through a versioned serialized adapter ABI ([ADR 0006](../adr/0006-edge-ros-c-abi-boundary.md)) with dynamic (dlopen) typesupport. The crate publishes to crates.io ([release](../release.md)); `cargo install rclwebd --features ros` needs a ROS prefix.
 
 The binary WebSocket endpoint is tokio/axum (`GET /ws` plus `GET /healthz`). Serialized subscribe and publish use the rcl FFI. ChannelReady and SessionReady carry effective budgets. Best-effort channels use latest-wins write-queue admission with disposition counters on `/telemetryz`. Reconnect is a fresh session. Large-message / PointCloud2 traffic uses borrowed views. Authenticate is `off` by default (SessionReady subject `anonymous`) or opt-in `oidc` (JWT); set `RCLWEBD_AUTH_MODE=oidc` to enable. Operations endpoints and runtime images are in [deploy](../deploy.md).
 

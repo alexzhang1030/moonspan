@@ -47,4 +47,4 @@ bun run scripts/build-wasm.ts
 cargo build --locked -p rclweb --target wasm32-unknown-unknown --profile release-wasm
 ```
 
-`just build` prints the staged wasm byte count and `just poll-latency` prints p50/p99 as [ADR 0010](../adr/0010-restructure-single-rust-core.md) reopen inputs. Copy counters live on the client engine (`EngineTelemetry`) and gateway (`/telemetryz`). Large-message numbers are `just large-message`. [Validation](../validation.md) owns evidence and release gates.
+`just build` prints the staged wasm byte count and `just poll-latency` prints p50/p99 as [ADR 0010](../adr/0010-restructure-single-rust-core.md) reopen inputs. Copy counters live on the client engine (`EngineTelemetry`) and gateway (`/telemetryz`). Large-message numbers are `just large-message`. [Validation](../validation.md) owns evidence and release gates. The crate publishes to crates.io ([release](../release.md)).

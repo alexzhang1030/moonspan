@@ -14,5 +14,5 @@ name = "r1_04_fixture_gen"
 path = "main.rs"
 
 [dependencies]
-rclweb = { path = "../../rclweb" }
+rclweb.workspace = true
 serde_json.workspace = true
