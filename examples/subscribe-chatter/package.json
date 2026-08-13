@@ -2,6 +2,7 @@
   "name": "@rclweb/subscribe-chatter",
   "version": "0.0.0",
   "private": true,
+  "license": "Apache-2.0",
   "type": "module",
   "scripts": {
     "dev": "bun run ./server.ts",

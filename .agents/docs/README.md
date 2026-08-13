@@ -16,6 +16,7 @@ rclweb is one Rust core (`rclweb`) serving the gateway natively and the browser 
 | Evidence, single oracle, and gate authority | [Validation](./validation.md) |
 | Support matrix vs live gates | [Validation](./validation.md#evidence-contract), [R4-03](../../docs/milestones/r4-03-support-matrix.md) |
 | Browser SDK public surface | [SDK](../../docs/sdk.md), [R4-04](../../docs/milestones/r4-04-sdk.md) |
+| License and third-party policy | [Licensing](../../docs/licensing.md) |
 | Studio visual system | [DESIGN.md](./DESIGN.md) |
 
 ## Project records
@@ -29,6 +30,7 @@ rclweb is one Rust core (`rclweb`) serving the gateway natively and the browser 
 | J-FT runtime image and operations endpoints | [Deploy](../../docs/deploy.md), [R4-02](../../docs/milestones/r4-02-deployment-observability.md) |
 | Support-matrix status | [R4-03](../../docs/milestones/r4-03-support-matrix.md) |
 | SDK public surface | [SDK](../../docs/sdk.md), [R4-04](../../docs/milestones/r4-04-sdk.md) |
+| License and third-party policy | [Licensing](../../docs/licensing.md), [third-party inventory](../../docs/third-party.md) |
 | Delivery sequence | [Implementation plan](../../tasks/plan.md) |
 | Current execution state | [Execution checklist](../../tasks/todo.md) |
 

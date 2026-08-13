@@ -1,8 +1,8 @@
 # R4-04: SDK stabilization, docs, and examples
 
-Status: In progress. npm publish, a `1.0.0` version, and
-[D-06](../../tasks/plan.md#kickoff-decision-register) licensing remain
-follow-ups. This task does not publish the package.
+Status: In progress. npm publish and a `1.0.0` version remain follow-ups.
+[D-06](../../tasks/plan.md#kickoff-decision-register) is Apache-2.0
+([licensing](../licensing.md)). This task does not publish the package.
 
 The candidate application contract is [`docs/sdk.md`](../sdk.md). The
 package stays `"private": true` and `"version": "0.0.0"`.
@@ -145,5 +145,4 @@ bun test sdk/typescript/test
 
 ## Still open in R4-04
 
-- npm publish, `"private": false`, and a human-chosen version
-- D-06 repository license on the package
+- npm publish, `"private": false`, and a human-chosen version (include `LICENSE` and `NOTICE` in the tarball)

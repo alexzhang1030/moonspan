@@ -55,4 +55,4 @@ The [decision register](./plan.md#kickoff-decision-register) owns details and cl
 - [x] D-03 Bun version and workspace convention.
 - [ ] D-04 OIDC provider and SROS2 environment.
 - [ ] D-05 Benchmark artifact retention and publication.
-- [ ] D-06 Repository and third-party licensing policy.
+- [x] D-06 Repository and third-party licensing policy.

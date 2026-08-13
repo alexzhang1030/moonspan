@@ -40,7 +40,7 @@ just build
 | `just toolchain-check` | Verify pinned tools |
 | `just doctor` | Pins plus rustc/rustfmt/clippy identity |
 | `just fmt` / `just fmt-check` / `just clippy` / `just lint-rust` | Rust format and Clippy (subset of `just check`) |
-| `just check` | Docs, protocol, and corpus checks; Rust fmt/clippy; SDK typecheck |
+| `just check` | Docs, protocol, corpus, and license inventory; Rust fmt/clippy; SDK typecheck |
 | `just test` | Bun and Cargo test suites |
 | `just build` | Native build, fat-LTO `rclweb` wasm staged into the SDK, and SDK build |
 | `just poll-latency` | Print wasm poll latency + size (R-D1) |
@@ -54,6 +54,8 @@ just build
 | `just ros-test-pixi` | Same, using optional RoboStack Jazzy via pixi (not CI evidence) |
 | `just protocol-check` | Validate the R2WP registry JSON and control CDDL |
 | `just cdr-corpus-check` | Verify the committed ROS CDR corpus |
+| `just license-inventory` | Regenerate `docs/third-party.md` from lockfiles |
+| `just license-inventory-check` | Verify the inventory and OSI-permissive allowlist |
 
 ## Status
 
@@ -92,4 +94,9 @@ Lockfiles: commit `Cargo.lock` and `bun.lock`. Generated outputs stay ignored (`
 
 ## Licensing
 
-Repository license and third-party compliance follow the recorded human ruling for [D-06](./tasks/plan.md#kickoff-decision-register) in the kickoff decision register. That ruling governs repository `LICENSE`/`NOTICE` text and third-party compliance artifacts.
+rclweb is licensed under the [Apache License, Version 2.0](./LICENSE).
+Copyright 2026 Alex. See [NOTICE](./NOTICE).
+
+Third-party crates on the published surface must be OSI-permissive. Policy
+and inventory: [licensing](./docs/licensing.md),
+[third-party](./docs/third-party.md).

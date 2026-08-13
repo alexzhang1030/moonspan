@@ -114,7 +114,17 @@ generated-types-check: toolchain-check
 generated-types-write: toolchain-check
     cd "{{root}}" && bun run generated-types:write
 
-# Docs, protocol, and corpus checks; Rust fmt/clippy; SDK typecheck.
+# Regenerate docs/third-party.md from lockfiles (D-06).
+[group('quality')]
+license-inventory: toolchain-check
+    cd "{{root}}" && bun run scripts/license-inventory.ts --write
+
+# Verify the committed third-party inventory and license allowlist.
+[group('quality')]
+license-inventory-check: toolchain-check
+    cd "{{root}}" && bun run scripts/license-inventory.ts --check
+
+# Docs, protocol, corpus, and license inventory; Rust fmt/clippy; SDK typecheck.
 [group('quality')]
 check: toolchain-check
     #!/usr/bin/env bash
@@ -122,6 +132,7 @@ check: toolchain-check
     cd "{{root}}"
     bun run check
     cargo run --locked -p protocol-fixtures -- --check
+    bun run scripts/license-inventory.ts --check
     just fmt-check
     just clippy
     bun run --filter @rclweb/sdk check
