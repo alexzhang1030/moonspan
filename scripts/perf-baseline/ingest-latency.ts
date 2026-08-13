@@ -1,14 +1,17 @@
 /**
  * Primary perf-baseline probe: latency, CPU, and memory.
  *
- * Each hop is "bytes already in JS → usable ROS message":
- * - rclweb: wasm poll until Sample (string decoded / PointCloud2 metadata)
- * - foxglove: MessageData header skip + JS CDR decode (same types)
- * - rosbridge: JSON.parse; String is a JSON field, PointCloud2 is base64+CDR
+ * Two hop classes — do not mix them:
+ * - decode: framed bytes → usable message (header skip + CDR / JSON.parse)
+ * - deliver: framed bytes → user callback (subscription lookup + decode)
  *
+ * `rclweb.ingest` pairs with `foxglove.deliver`, not with a 13-byte skip.
+ * Idle-queue ROS_SAMPLE skips the poll batch; keep flushSync in the timed
+ * loop so the product call shape stays honest.
  * Not live e2e (`just perf-baseline-live`).
  */
 
+import { Buffer } from "node:buffer";
 import { connectOfflineForTests } from "../../typescript/src/internal.ts";
 import { sensor_msgs, std_msgs } from "../../typescript/src/index.ts";
 import {
@@ -22,9 +25,12 @@ import {
   stdMsgsStringCdrOfSize,
 } from "./cdr-payloads.ts";
 import {
+  FOXGLOVE_MESSAGE_DATA_HEADER_BYTES,
+  R2WP_FRAME_HEADER_BYTES,
   decodeFoxgloveMessageData,
   decodeRosbridgeJson,
   encodeFoxglove,
+  encodeR2wp,
   encodeRosbridgeJson,
 } from "./protocol-cost.ts";
 import {
@@ -68,9 +74,12 @@ export const INGEST_SIZES: readonly IngestSizeSpec[] = [
 ];
 
 export type IngestHopId =
-  | "rclweb.ingest"
+  | "rclweb.cdrDecode"
   | "foxglove.cdrDecode"
-  | "rosbridge.jsonDecode";
+  | "rosbridge.jsonDecode"
+  | "rclweb.ingest"
+  | "foxglove.deliver"
+  | "rosbridge.deliver";
 
 export type IngestRow = {
   hop: IngestHopId;
@@ -80,6 +89,18 @@ export type IngestRow = {
   resources: ResourceDelta;
   note: string;
 };
+
+const DECODE_HOPS: readonly IngestHopId[] = [
+  "rclweb.cdrDecode",
+  "foxglove.cdrDecode",
+  "rosbridge.jsonDecode",
+];
+
+const DELIVER_HOPS: readonly IngestHopId[] = [
+  "rclweb.ingest",
+  "foxglove.deliver",
+  "rosbridge.deliver",
+];
 
 function cdrFor(spec: IngestSizeSpec): Uint8Array {
   if (spec.kind === "string") {
@@ -105,6 +126,240 @@ function buildR2wpFrames(
     frames[i] = frame;
   }
   return frames;
+}
+
+function consumeUsable(spec: IngestSizeSpec, cdr: Uint8Array): void {
+  if (spec.kind === "string") {
+    void decodeStdMsgsStringCdr(cdr);
+    return;
+  }
+  const cloud = decodePointCloud2Cdr(cdr);
+  void cloud.width;
+  void cloud.data[0];
+  void cloud.data[cloud.data.length - 1];
+}
+
+/** Inner reps so a timed sample sits above first-alloc / JIT noise. */
+function decodeInner(spec: IngestSizeSpec): number {
+  if (spec.kind === "pointcloud2") return 32;
+  if (spec.payloadBytes >= 32 * 1024) return 16;
+  return 64;
+}
+
+function measureTimed(
+  hop: IngestHopId,
+  spec: IngestSizeSpec,
+  sampleCount: number,
+  warmup: number,
+  runOnce: () => void,
+  note: string,
+  inner = 1,
+): IngestRow {
+  const reps = Math.max(1, inner);
+  for (let i = 0; i < warmup; i++) {
+    for (let k = 0; k < reps; k++) runOnce();
+  }
+  const latencies: number[] = [];
+  tryGc();
+  const memBefore = snapshotMemory();
+  const cpu0 = cpuStart();
+  for (let i = 0; i < sampleCount; i++) {
+    const t0 = performance.now();
+    for (let k = 0; k < reps; k++) runOnce();
+    latencies.push((performance.now() - t0) / reps);
+  }
+  const cpuUs = cpuDeltaUs(cpu0);
+  tryGc();
+  const memAfter = snapshotMemory();
+  return {
+    hop,
+    size: spec.id,
+    payloadBytes: spec.payloadBytes,
+    latencyMs: summarize(latencies),
+    resources: resourceDelta(cpuUs, memBefore, memAfter, sampleCount * reps),
+    note,
+  };
+}
+
+function rosbridgeEnvelope(spec: IngestSizeSpec, cdr: Uint8Array): string {
+  if (spec.kind === "string") {
+    return JSON.stringify({
+      op: "publish",
+      topic: `/bench/${spec.id}`,
+      msg: { data: decodeStdMsgsStringCdr(cdr) },
+    });
+  }
+  return encodeRosbridgeJson(`/bench/${spec.id}`, cdr);
+}
+
+function measureDecodeHops(
+  spec: IngestSizeSpec,
+  sampleCount: number,
+  warmup: number,
+): IngestRow[] {
+  const cdr = cdrFor(spec);
+  const r2wp = encodeR2wp(cdr);
+  const fox = encodeFoxglove(cdr);
+  const json = rosbridgeEnvelope(spec, cdr);
+  const runRclweb = (): void =>
+    consumeUsable(spec, r2wp.subarray(R2WP_FRAME_HEADER_BYTES));
+  const runFox = (): void =>
+    consumeUsable(spec, decodeFoxgloveMessageData(fox));
+  const runRb = (): void => {
+    if (spec.kind === "string") {
+      const obj = JSON.parse(json) as { msg: { data: string } };
+      void obj.msg.data.length;
+      return;
+    }
+    consumeUsable(spec, decodeRosbridgeJson(json));
+  };
+  const inner = decodeInner(spec);
+  const prewarm = Math.max(8, warmup);
+  for (let i = 0; i < prewarm; i++) {
+    for (let k = 0; k < inner; k++) {
+      runRclweb();
+      runFox();
+      runRb();
+    }
+  }
+  const tR: number[] = [];
+  const tF: number[] = [];
+  const tB: number[] = [];
+  tryGc();
+  const memBefore = snapshotMemory();
+  const cpu0 = cpuStart();
+  for (let i = 0; i < sampleCount; i++) {
+    let t0 = performance.now();
+    for (let k = 0; k < inner; k++) runRclweb();
+    tR.push((performance.now() - t0) / inner);
+    t0 = performance.now();
+    for (let k = 0; k < inner; k++) runFox();
+    tF.push((performance.now() - t0) / inner);
+    t0 = performance.now();
+    for (let k = 0; k < inner; k++) runRb();
+    tB.push((performance.now() - t0) / inner);
+  }
+  const cpuUs = cpuDeltaUs(cpu0);
+  tryGc();
+  const memAfter = snapshotMemory();
+  const sumR = tR.reduce((a, b) => a + b, 0);
+  const sumF = tF.reduce((a, b) => a + b, 0);
+  const sumB = tB.reduce((a, b) => a + b, 0);
+  const sum = sumR + sumF + sumB;
+  const ops = sampleCount * inner;
+  const row = (
+    hop: IngestHopId,
+    samples: number[],
+    share: number,
+    note: string,
+  ): IngestRow => ({
+    hop,
+    size: spec.id,
+    payloadBytes: spec.payloadBytes,
+    latencyMs: summarize(samples),
+    resources: resourceDelta(
+      cpuUs * (sum === 0 ? 1 / 3 : share / sum),
+      memBefore,
+      memAfter,
+      ops,
+    ),
+    note,
+  });
+  return [
+    row(
+      "rclweb.cdrDecode",
+      tR,
+      sumR,
+      "R2WP 32-byte skip + JS CDR; interleaved with foxglove.cdrDecode",
+    ),
+    row(
+      "foxglove.cdrDecode",
+      tF,
+      sumF,
+      "MessageData 13-byte skip + JS CDR; interleaved with rclweb.cdrDecode",
+    ),
+    row(
+      "rosbridge.jsonDecode",
+      tB,
+      sumB,
+      "JSON.parse; String is a JSON field, PointCloud2 is base64+CDR",
+    ),
+  ];
+}
+
+function measureFoxgloveDeliver(
+  spec: IngestSizeSpec,
+  sampleCount: number,
+  warmup: number,
+): IngestRow {
+  const framed = encodeFoxglove(cdrFor(spec), 1);
+  const view = new DataView(framed.buffer, framed.byteOffset, framed.byteLength);
+  const handlers = new Map<number, (cdr: Uint8Array) => void>();
+  let delivered = 0;
+  handlers.set(1, (payload) => {
+    consumeUsable(spec, payload);
+    delivered += 1;
+  });
+  const row = measureTimed(
+    "foxglove.deliver",
+    spec,
+    sampleCount,
+    warmup,
+    () => {
+      if (framed[0] !== 0x01) return;
+      const handler = handlers.get(view.getUint32(1, true));
+      handler?.(framed.subarray(FOXGLOVE_MESSAGE_DATA_HEADER_BYTES));
+    },
+    "MessageData parse + subscriptionId lookup + JS CDR + callback (pairs with rclweb.ingest)",
+  );
+  if (delivered !== warmup + sampleCount) {
+    throw new Error(
+      `foxglove deliver delivered ${delivered}/${warmup + sampleCount} for ${spec.id}`,
+    );
+  }
+  return row;
+}
+
+function measureRosbridgeDeliver(
+  spec: IngestSizeSpec,
+  sampleCount: number,
+  warmup: number,
+): IngestRow {
+  const text = rosbridgeEnvelope(spec, cdrFor(spec));
+  const topic = `/bench/${spec.id}`;
+  const handlers = new Map<string, (msg: unknown) => void>();
+  let delivered = 0;
+  handlers.set(topic, (msg) => {
+    if (spec.kind === "string") {
+      void (msg as string).length;
+    } else {
+      consumeUsable(spec, msg as Uint8Array);
+    }
+    delivered += 1;
+  });
+  const row = measureTimed(
+    "rosbridge.deliver",
+    spec,
+    sampleCount,
+    warmup,
+    () => {
+      const obj = JSON.parse(text) as { topic: string; msg: { data: string } };
+      const handler = handlers.get(obj.topic);
+      if (!handler) return;
+      if (spec.kind === "string") {
+        handler(obj.msg.data);
+        return;
+      }
+      handler(new Uint8Array(Buffer.from(obj.msg.data, "base64")));
+    },
+    "JSON.parse + topic lookup + callback (pairs with rclweb.ingest)",
+  );
+  if (delivered !== warmup + sampleCount) {
+    throw new Error(
+      `rosbridge deliver delivered ${delivered}/${warmup + sampleCount} for ${spec.id}`,
+    );
+  }
+  return row;
 }
 
 async function openScriptedSub(
@@ -200,85 +455,11 @@ export async function measureRclwebIngest(
       payloadBytes: spec.payloadBytes,
       latencyMs: summarize(latencies),
       resources: resourceDelta(cpuUs, memBefore, memAfter, sampleCount),
-      note: "wasm poll until Sample; lease release is after the timer",
+      note: "product deliver: idle-queue ROS_SAMPLE skips poll; pairs with foxglove.deliver",
     };
   } finally {
     await session.client.close();
   }
-}
-
-function consumeUsable(spec: IngestSizeSpec, cdr: Uint8Array): void {
-  if (spec.kind === "string") {
-    void decodeStdMsgsStringCdr(cdr);
-    return;
-  }
-  const cloud = decodePointCloud2Cdr(cdr);
-  void cloud.width;
-  void cloud.data[0];
-  void cloud.data[cloud.data.length - 1];
-}
-
-function measureEnvelopeHop(
-  hop: Exclude<IngestHopId, "rclweb.ingest">,
-  spec: IngestSizeSpec,
-  sampleCount = spec.sampleCount,
-  warmup = spec.warmup,
-): IngestRow {
-  const cdr = cdrFor(spec);
-  const framed = hop === "foxglove.cdrDecode" ? encodeFoxglove(cdr) : null;
-  const text = hop === "rosbridge.jsonDecode"
-    ? spec.kind === "string"
-      ? JSON.stringify({
-          op: "publish",
-          topic: `/bench/${spec.id}`,
-          msg: { data: decodeStdMsgsStringCdr(cdr) },
-        })
-      : encodeRosbridgeJson(`/bench/${spec.id}`, cdr)
-    : null;
-
-  const runOnce = (): void => {
-    if (framed) {
-      consumeUsable(spec, decodeFoxgloveMessageData(framed));
-      return;
-    }
-    if (spec.kind === "string") {
-      const obj = JSON.parse(text!) as { msg: { data: string } };
-      void obj.msg.data.length;
-      return;
-    }
-    consumeUsable(spec, decodeRosbridgeJson(text!));
-  };
-
-  for (let i = 0; i < warmup; i++) runOnce();
-
-  const latencies: number[] = [];
-  tryGc();
-  const memBefore = snapshotMemory();
-  const cpu0 = cpuStart();
-  for (let i = 0; i < sampleCount; i++) {
-    const t0 = performance.now();
-    runOnce();
-    latencies.push(performance.now() - t0);
-  }
-  const cpuUs = cpuDeltaUs(cpu0);
-  tryGc();
-  const memAfter = snapshotMemory();
-
-  const notes: Record<typeof hop, string> = {
-    "foxglove.cdrDecode":
-      "MessageData skip + JS CDR to a usable String / PointCloud2 (data is a view)",
-    "rosbridge.jsonDecode":
-      "JSON.parse; String is a JSON field, PointCloud2 is base64+CDR",
-  };
-
-  return {
-    hop,
-    size: spec.id,
-    payloadBytes: spec.payloadBytes,
-    latencyMs: summarize(latencies),
-    resources: resourceDelta(cpuUs, memBefore, memAfter, sampleCount),
-    note: notes[hop],
-  };
 }
 
 export async function measureIngestSuite(
@@ -291,9 +472,10 @@ export async function measureIngestSuite(
   for (const spec of sizes) {
     const n = sampleCountOverride ?? spec.sampleCount;
     const warmup = warmupOverride ?? spec.warmup;
+    rows.push(...measureDecodeHops(spec, n, warmup));
     rows.push(await measureRclwebIngest(wasmBytes, spec, n, warmup));
-    rows.push(measureEnvelopeHop("foxglove.cdrDecode", spec, n, warmup));
-    rows.push(measureEnvelopeHop("rosbridge.jsonDecode", spec, n, warmup));
+    rows.push(measureFoxgloveDeliver(spec, n, warmup));
+    rows.push(measureRosbridgeDeliver(spec, n, warmup));
   }
   return rows;
 }
@@ -306,7 +488,7 @@ function num(n: number, digits: number, width: number): string {
   return n.toFixed(digits).padStart(width);
 }
 
-export function formatIngestTable(rows: IngestRow[]): string {
+function formatRowBlock(rows: IngestRow[]): string[] {
   const header = [
     pad("hop", 26),
     pad("size", 18),
@@ -319,7 +501,6 @@ export function formatIngestTable(rows: IngestRow[]): string {
     "rss_ΔKiB".padStart(10),
     "heap_ΔKiB".padStart(10),
   ].join(" ");
-
   const lines = rows.map((r) => {
     const rssKiB = r.resources.rssAfterBytes / 1024;
     const rssDeltaKiB = r.resources.rssDeltaBytes / 1024;
@@ -337,10 +518,19 @@ export function formatIngestTable(rows: IngestRow[]): string {
       num(heapDeltaKiB, 1, 10),
     ].join(" ");
   });
+  return [header, ...lines];
+}
 
+export function formatIngestTable(rows: IngestRow[]): string {
+  const decode = rows.filter((r) => (DECODE_HOPS as readonly string[]).includes(r.hop));
+  const deliver = rows.filter((r) =>
+    (DELIVER_HOPS as readonly string[]).includes(r.hop),
+  );
   return [
-    "Latency / CPU / RSS — usable message (rclweb = wasm poll; foxglove/rosbridge = JS-only decode)",
-    header,
-    ...lines,
+    "Decode — framed bytes → usable message (header skip + CDR / JSON.parse). Paired by work.",
+    ...formatRowBlock(decode),
+    "",
+    "Deliver — framed bytes → user callback. rclweb.ingest pairs with foxglove.deliver, not with cdrDecode.",
+    ...formatRowBlock(deliver),
   ].join("\n");
 }

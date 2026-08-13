@@ -43,8 +43,8 @@ Inbound samples follow this path:
 1. The serialized rcl surface receives CDR bytes with type, schema, QoS, time, and domain context.
 2. `rclwebd` applies policy, budgets, scheduling, and deployment provenance on headers only; it never parses or copies the CDR body (header-prefixed take buffer, in-place header fill, `Bytes` fan-out).
 3. R2WP carries the sample over binary WebSocket or WebTransport.
-4. The I/O Worker copies each WS frame into wasm linear memory once (external-ptr; the engine takes ownership). Command-only batches stay inline.
-5. The core resolves the schema and emits typed host events whose bulk fields are borrowed views under the lease model. The public `Node` API copies those fields into an owned ROS message and releases the lease after the callback.
+4. The I/O Worker delivers ROS_SAMPLE from the host WebSocket buffer ([ADR 0017](./adr/0017-host-retain-inbound-sample-payload.md)). When the host queue is idle, that frame is pinned and emitted without a poll batch. A sample that arrives while control is already queued stays ordered behind that flush. Other application frames copy the R2WP header+extension prefix into wasm. Control and bootstrap still copy the full frame.
+5. The host emits typed sample events from the retained WebSocket buffer (String / PointCloud2 JS CDR). The core still owns control, channels, service/action, and generated codecs. Bulk fields are borrowed views of that buffer (or of wasm memory for the full-copy control path) under the lease model. The public `Node` API copies those fields into an owned ROS message and releases the lease after the callback.
 
 Outbound operations follow the reverse path after validation in the core and policy at the gateway.
 
@@ -52,19 +52,19 @@ Outbound operations follow the reverse path after validation in the core and pol
 
 The sample path is copy discipline and drop discipline, with counters in telemetry. Live subscribe take writes CDR after a reserved R2WP header prefix so framing does not copy the body. Inbound publish/ops keep the CDR as a `Bytes` subslice of the WebSocket frame.
 
-**Copy budget.** Two controllable payload copies end-to-end for an inbound sample; anything beyond is a regression:
+**Copy budget.** One controllable payload copy end-to-end for an inbound sample; anything beyond is a regression:
 
 | Stage | Copies | Mechanism |
 |---|---|---|
 | rmw → serialized buffer | 1 (inherent) | `rcl_take_serialized_message` into a header-prefixed take buffer |
 | Gateway framing | 0 | Fill the reserved R2WP header in place; the gateway never parses or moves the CDR body |
 | Gateway fan-out | 0 | Per-client policy on headers; one framed payload shared via `Bytes::clone` |
-| Worker → wasm linear memory | 1 (inherent) | One whole-payload copy in via external-ptr; Wasm cannot view external `ArrayBuffer`s |
-| Wasm → application | 0 | TypedArray views into wasm memory under the lease model (`rcl-web/internal`) |
+| Worker → wasm linear memory | 0 (sample body) | ROS_SAMPLE stays in the JS buffer; other application frames copy the R2WP prefix only ([ADR 0017](./adr/0017-host-retain-inbound-sample-payload.md)) |
+| Wasm → application | 0 | TypedArray view of the host-retained WebSocket buffer (`rcl-web/internal`) |
 
-The 0-copy view holds on the thread that owns wasm (the I/O Worker, or the calling thread when `options.inline: true`). The public `Node` callback copies PointCloud2 `data` so the application never holds a lease (rclcpp-owned message). Bulk fields that cross to the main thread on the Worker path are copied at that boundary: PointCloud2 `data` and service/action CDR. Shared wasm memory remains the parked path to 0-copy on the Worker ([ADR 0004](./adr/0004-browser-wasm-host-boundary.md)).
+The 0-copy view holds on the thread that owns the WebSocket buffer (the I/O Worker, or the calling thread when `options.inline: true`). The public `Node` callback copies PointCloud2 `data` so the application never holds a lease (rclcpp-owned message). Bulk fields that cross to the main thread on the Worker path are copied at that boundary: PointCloud2 `data` and service/action CDR. Shared wasm memory remains the parked path to 0-copy on the Worker ([ADR 0004](./adr/0004-browser-wasm-host-boundary.md)).
 
-**Why not zero.** Those two copies are the two runtime hops, not slack. `rcl_take_serialized_message` is the serialized adapter ABI; sharing RMW cache memory needs a later ADR ([ADR 0006](./adr/0006-edge-ros-c-abi-boundary.md)). Wasm linear memory cannot alias a WebSocket `ArrayBuffer`. The sample also crosses the network — kernel and browser RX buffers sit outside this budget. Host-retaining the JS buffer and keeping only headers in wasm would skip the wasm payload copy, but it moves CDR and lease ownership onto the host, against [ADR 0004](./adr/0004-browser-wasm-host-boundary.md). Comparison with Foxglove Bridge and rosbridge is in [performance](./performance.md).
+**Why not zero.** The remaining controllable copy is the RMW take, not slack. `rcl_take_serialized_message` is the serialized adapter ABI; sharing RMW cache memory needs a later ADR ([ADR 0006](./adr/0006-edge-ros-c-abi-boundary.md)). Wasm linear memory still cannot alias a WebSocket `ArrayBuffer`; ROS_SAMPLE therefore never enters wasm. The sample also crosses the network — kernel and browser RX buffers sit outside this budget. Host-retain is allowed by [ADR 0004](./adr/0004-browser-wasm-host-boundary.md) (JavaScript owns buffer lifetimes) and recorded in [ADR 0017](./adr/0017-host-retain-inbound-sample-payload.md). Comparison with Foxglove Bridge and rosbridge is in [performance](./performance.md).
 
 **CDR is O(1) for blob-heavy types.** Decoding PointCloud2 is metadata reads plus an (offset, length) for `data`. Codecs keep the borrowed-view contract; they do not materialize `Vec<u8>` for bulk payloads.
 
@@ -76,7 +76,7 @@ The 0-copy view holds on the thread that owns wasm (the I/O Worker, or the calli
 
 ## Execution and buffers
 
-The Rust/Wasm core owns synchronous state machines and CDR work. TypeScript Workers own browser scheduling, timers, network APIs, and buffer transfer. A bounded `poll` call joins those execution models ([ADR 0004](./adr/0004-browser-wasm-host-boundary.md)).
+The Rust/Wasm core owns synchronous state machines and CDR work. TypeScript Workers own browser scheduling, timers, network APIs, and buffer transfer. A bounded `poll` call joins those execution models for control, codecs, and service/action ([ADR 0004](./adr/0004-browser-wasm-host-boundary.md)). No-extension ROS_SAMPLE on an idle host queue does not enter that poll batch ([ADR 0017](./adr/0017-host-retain-inbound-sample-payload.md)).
 
 Cross-origin-isolated deployments may use a bounded `SharedArrayBuffer` ring. General deployments use transferable `ArrayBuffer` ownership. Both paths implement the same behavior and carry separate performance evidence.
 

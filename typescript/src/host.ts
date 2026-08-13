@@ -1,6 +1,7 @@
 /**
  * Shared I/O + wasm poll host used by the Worker and the inline (test) path.
  * Owns the transport (WebSocket or WebTransport) and transferable ingest.
+ * Idle-queue ROS_SAMPLE does not enter a poll batch (ADR 0017).
  */
 
 import {
@@ -16,7 +17,9 @@ import {
   pointCloud2DataView,
   pollEngine,
   readTelemetryAt,
+  tryPinHostSample,
 } from "./wasm/abi.ts";
+import { decodePointCloud2Cdr, decodeStdMsgsStringCdr } from "./cdr-le.ts";
 import {
   decodeGeneratedHostValue,
   type GeneratedMsg,
@@ -146,11 +149,7 @@ export class IoHost {
         this.#callbacks.onTransportError("non-binary websocket message");
         return;
       }
-      this.#enqueue({
-        type: "wsBytes",
-        bufferId: 0,
-        bytes: new Uint8Array(data),
-      });
+      this.#ingestWsBytes(new Uint8Array(data));
     });
     ws.addEventListener("error", () => {
       this.#callbacks.onTransportError("websocket error");
@@ -263,11 +262,7 @@ export class IoHost {
           if (pending.length < 4 + len) break;
           const frame = pending.slice(4, 4 + len);
           pending = pending.slice(4 + len);
-          this.#enqueue({
-            type: "wsBytes",
-            bufferId: 0,
-            bytes: frame,
-          });
+          this.#ingestWsBytes(frame);
         }
       }
     } catch (err) {
@@ -279,7 +274,7 @@ export class IoHost {
 
   /** Feed scripted bytes (tests) as if they arrived on the WebSocket. */
   ingestBytes(bytes: Uint8Array): void {
-    this.#enqueue({ type: "wsBytes", bufferId: 0, bytes });
+    this.#ingestWsBytes(bytes);
   }
 
   /** Start bootstrap without a live socket (scripted-peer tests). */
@@ -533,6 +528,10 @@ export class IoHost {
     ) {
       return;
     }
+    if (event.hostPayload) {
+      event.stringData = decodeStdMsgsStringCdr(event.hostPayload);
+      return;
+    }
     event.stringData = decodeStdMsgsStringAt(
       this.#wasm,
       event.payloadPtr,
@@ -540,7 +539,14 @@ export class IoHost {
     );
   }
 
-  copyPayload(payloadPtr: number, payloadLen: number): Uint8Array {
+  copyPayload(
+    payloadPtr: number,
+    payloadLen: number,
+    hostPayload?: Uint8Array,
+  ): Uint8Array {
+    if (hostPayload) {
+      return hostPayload.slice();
+    }
     return new Uint8Array(
       this.#wasm.memory.buffer,
       payloadPtr,
@@ -554,13 +560,18 @@ export class IoHost {
   }
 
   /**
-   * Borrowed PointCloud2 view into wasm memory. Valid while the sample lease
+   * Borrowed PointCloud2 view. Host-retained samples view the WebSocket
+   * buffer; wasm-backed samples view linear memory. Valid while the lease
    * is outstanding. Returns null when the payload is not PointCloud2 CDR.
    */
   decodePointCloud2(
     payloadPtr: number,
     payloadLen: number,
+    hostPayload?: Uint8Array,
   ): PointCloud2 | null {
+    if (hostPayload) {
+      return decodePointCloud2Cdr(hostPayload);
+    }
     try {
       const meta = decodePointCloud2Meta(this.#wasm, payloadPtr, payloadLen);
       return assemblePointCloud2(
@@ -574,19 +585,17 @@ export class IoHost {
 
   /**
    * Owned copy of PointCloud2 metadata plus the `data` field only.
-   * Used on the I/O Worker path so main never holds a wasm pointer.
+   * Used on the I/O Worker path so main never holds a wasm pointer or a
+   * Worker-local WebSocket buffer.
    */
   copyPointCloud2(
     payloadPtr: number,
     payloadLen: number,
+    hostPayload?: Uint8Array,
   ): PointCloud2 | null {
-    try {
-      const meta = decodePointCloud2Meta(this.#wasm, payloadPtr, payloadLen);
-      const view = pointCloud2DataView(this.#wasm, payloadPtr, meta);
-      return assemblePointCloud2(meta, view.slice());
-    } catch {
-      return null;
-    }
+    const borrowed = this.decodePointCloud2(payloadPtr, payloadLen, hostPayload);
+    if (!borrowed) return null;
+    return { ...borrowed, data: borrowed.data.slice() };
   }
 
   /**
@@ -597,14 +606,16 @@ export class IoHost {
     typeName: string,
     payloadPtr: number,
     payloadLen: number,
+    hostPayload?: Uint8Array,
   ): GeneratedMsg | null {
     try {
-      const bytes = decodeGeneratedBytes(
-        this.#wasm,
+      const bytes = this.#decodeGeneratedBytes(
         typeName,
         payloadPtr,
         payloadLen,
+        hostPayload,
       );
+      if (!bytes) return null;
       return decodeGeneratedHostValue(typeName, bytes) as GeneratedMsg;
     } catch {
       return null;
@@ -619,16 +630,43 @@ export class IoHost {
     typeName: string,
     payloadPtr: number,
     payloadLen: number,
+    hostPayload?: Uint8Array,
   ): Uint8Array | null {
     try {
-      return decodeGeneratedBytes(
-        this.#wasm,
+      return this.#decodeGeneratedBytes(
         typeName,
         payloadPtr,
         payloadLen,
+        hostPayload,
       );
     } catch {
       return null;
+    }
+  }
+
+  #decodeGeneratedBytes(
+    typeName: string,
+    payloadPtr: number,
+    payloadLen: number,
+    hostPayload?: Uint8Array,
+  ): Uint8Array | null {
+    if (!hostPayload) {
+      return decodeGeneratedBytes(this.#wasm, typeName, payloadPtr, payloadLen);
+    }
+    const len = hostPayload.length;
+    const ptr = this.#wasm.rclweb_alloc(len);
+    if (ptr === 0 && len !== 0) {
+      throw new Error("rclweb_alloc failed for host-retained generated CDR");
+    }
+    try {
+      if (len !== 0) {
+        new Uint8Array(this.#wasm.memory.buffer, ptr, len).set(hostPayload);
+      }
+      return decodeGeneratedBytes(this.#wasm, typeName, ptr, len);
+    } finally {
+      if (len !== 0) {
+        this.#wasm.rclweb_free(ptr, len);
+      }
     }
   }
 
@@ -697,6 +735,23 @@ export class IoHost {
     if (this.#disposed) return;
     this.#pending.push(event);
     this.#scheduleFlush();
+  }
+
+  /**
+   * No-extension ROS_SAMPLE on an idle queue skips the poll batch: pin the
+   * WS buffer and emit the sample. A sample that arrives while control is
+   * already queued stays ordered behind that flush (ADR 0017).
+   */
+  #ingestWsBytes(bytes: Uint8Array): void {
+    if (this.#disposed || this.#handle === 0) return;
+    if (this.#pending.length === 0) {
+      const event = tryPinHostSample(this.#handle, bytes);
+      if (event) {
+        this.#callbacks.onEvent(event);
+        return;
+      }
+    }
+    this.#enqueue({ type: "wsBytes", bufferId: 0, bytes });
   }
 
   #scheduleFlush(): void {

@@ -38,7 +38,9 @@ Documentation describes the product. It is not a delivery-phase ledger. Historic
 
 | Area | Context |
 |---|---|
-| `rclweb/src/protocol/frame.rs` | Do not `FrameOptions::default()` before `unwrap_or` ([gotchas](./gotchas.md#parseframe-must-not-build-default-frameoptions-on-the-sample-path)) |
+| `rclweb/src/protocol/frame.rs` | Do not `FrameOptions::default()` before `unwrap_or` ([gotchas](./gotchas.md#parseframe-must-not-build-default-frameoptions-on-the-sample-path)). Prefix ingest is `parse_frame_declared` ([ADR 0017](../../docs/adr/0017-host-retain-inbound-sample-payload.md)) |
+| `typescript/src/wasm/abi.ts` `hostRetainPrefixLen` | Peek R2WP opcode/ext only; idle-queue ROS_SAMPLE skips poll ([gotchas](./gotchas.md#hostretainprefixlen-peeks-the-r2wp-header-only)) |
+| `typescript/src/cdr-le.ts` | Host-retain String / PointCloud2 decode; `data` is a view of the WS buffer ([ADR 0017](../../docs/adr/0017-host-retain-inbound-sample-payload.md)) |
 | `rclweb/**` | [Architecture](./architecture.md), [technology stack](./technology-stack.md), [`rclweb` core](../../docs/runtime/core.md), [CDR](../../docs/runtime/cdr.md), [generated types](../../docs/runtime/generated-types.md). crates.io publish ([release](../../docs/release.md)) |
 | `rclweb/generated/metadata/**`, `scripts/generated-types.ts` | [generated types](../../docs/runtime/generated-types.md); sectioned-root join gotcha in [gotchas](./gotchas.md#sectioned-corpus-roots-are-graph-endpoints-without-source-rows) |
 | `rclwebd/**` | [Architecture](./architecture.md), [`rclwebd`](../../docs/gateway/rclwebd.md), [security](../../docs/security.md), [deploy](../../docs/deploy.md), [ADR 0011](../../docs/adr/0011-local-dev-webtransport-tls.md). crates.io publish ([release](../../docs/release.md)) |
@@ -62,7 +64,7 @@ Documentation describes the product. It is not a delivery-phase ledger. Historic
 | `pixi.toml` | Optional RoboStack J-FT ([technology stack](./technology-stack.md#optional-local-ros-prefix), [gotchas](./gotchas.md#pixi-ros-test-must-pin-rosprefix-over-a-host-optros)) |
 | `scripts/build-wasm.ts` | Fat-LTO wasm ship ([gotchas](./gotchas.md#release-wasm-inherits-native-release-settings)) |
 | Support matrix | Human matrix edit; no committed measurement JSON ([gotchas](./gotchas.md#do-not-commit-measurement-json)) |
-| `scripts/perf-baseline/**`, `scripts/measure-perf-baseline.ts` | [Performance](../../docs/performance.md); primary metrics are latency / CPU / RSS; stdout only, no committed JSON ([gotchas](./gotchas.md#do-not-commit-measurement-json)). RSS snapshots retry EINTR ([gotchas](./gotchas.md#processmemoryusage-can-return-eintr)) |
+| `scripts/perf-baseline/**`, `scripts/measure-perf-baseline.ts` | [Performance](../../docs/performance.md); primary metrics are latency / CPU / RSS; stdout only, no committed JSON ([gotchas](./gotchas.md#do-not-commit-measurement-json)). Hops must pair by work ([gotchas](./gotchas.md#perf-baseline-hops-must-pair-by-work)). RSS snapshots retry EINTR ([gotchas](./gotchas.md#processmemoryusage-can-return-eintr)) |
 | `studio/` (not in the tree) | [Studio](../../docs/prototypes/studio-ui.md), [DESIGN.md](./DESIGN.md) |
 
 ## Design record check

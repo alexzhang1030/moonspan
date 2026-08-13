@@ -1,6 +1,7 @@
 /**
  * Flat binary poll batch codec (mirrors `rclweb::host::batch`).
- * Little-endian. The SDK never parses R2WP — only this host ABI.
+ * Little-endian. Control and codecs stay on this ABI. ROS_SAMPLE with no
+ * extension peeks the R2WP header in JS and never enters wasm (ADR 0017).
  */
 
 export const BATCH_MAGIC = 0x5243_4c42; // RCLB
@@ -170,6 +171,19 @@ export type HostEventInput =
   | { type: "command"; command: HostCommand }
   | { type: "releaseLease"; leaseId: number };
 
+export type SampleAppEvent = {
+  type: "sample";
+  channelId: number;
+  leaseId: number;
+  sequence: bigint;
+  sourceTimeNs: bigint;
+  payloadPtr: number;
+  payloadLen: number;
+  stringData: string | null;
+  /** CDR body in the host WebSocket buffer when wasm kept only the R2WP prefix. */
+  hostPayload?: Uint8Array;
+};
+
 export type AppEvent =
   | { type: "bootstrapComplete"; selectedWireVersion: number }
   | {
@@ -198,16 +212,7 @@ export type AppEvent =
       code: number;
       message: string;
     }
-  | {
-      type: "sample";
-      channelId: number;
-      leaseId: number;
-      sequence: bigint;
-      sourceTimeNs: bigint;
-      payloadPtr: number;
-      payloadLen: number;
-      stringData: string | null;
-    }
+  | SampleAppEvent
   | { type: "heartbeat"; counter: bigint }
   | { type: "error"; code: number; message: string }
   | { type: "closed"; phase: number }
@@ -232,6 +237,7 @@ export type AppEvent =
       sequence: bigint;
       payloadPtr: number;
       payloadLen: number;
+      hostPayload?: Uint8Array;
     }
   | {
       type: "serviceResponse";
@@ -241,6 +247,7 @@ export type AppEvent =
       sequence: bigint;
       payloadPtr: number;
       payloadLen: number;
+      hostPayload?: Uint8Array;
     }
   | {
       type: "actionReady";
@@ -263,6 +270,7 @@ export type AppEvent =
       sequence: bigint;
       payloadPtr: number;
       payloadLen: number;
+      hostPayload?: Uint8Array;
     }
   | {
       type: "actionFeedback";
@@ -272,6 +280,7 @@ export type AppEvent =
       sequence: bigint;
       payloadPtr: number;
       payloadLen: number;
+      hostPayload?: Uint8Array;
     }
   | {
       type: "actionResult";
@@ -281,6 +290,7 @@ export type AppEvent =
       sequence: bigint;
       payloadPtr: number;
       payloadLen: number;
+      hostPayload?: Uint8Array;
     }
   | {
       type: "actionStatus";
@@ -290,6 +300,7 @@ export type AppEvent =
       sequence: bigint;
       payloadPtr: number;
       payloadLen: number;
+      hostPayload?: Uint8Array;
     }
   | {
       type: "graphSnapshot";
@@ -714,8 +725,8 @@ function writeCommand(out: Uint8Array, offset: number, prepared: PreparedCommand
  *
  * Two-pass preallocated `Uint8Array`: size first, then write. Large frames
  * must never use `push(...bytes)` / per-byte `number[]` builders (RangeError).
- * Live WS ingest uses {@link encodeHostBatchExternalWs} so the payload is
- * copied into wasm once.
+ * Live WS ingest uses `rclweb_poll_ws` (header prefix for application
+ * frames). This encoder stays for command-only batches and tests.
  */
 export function encodeHostBatch(events: HostEventInput[]): Uint8Array {
   const preparedCommands: Array<PreparedCommand | null> = new Array(events.length);
@@ -796,9 +807,9 @@ export function encodeHostBatch(events: HostEventInput[]): Uint8Array {
 
 /**
  * Encode a host batch that references pre-copied WS payloads in wasm linear
- * memory (`ptr`/`len` form, no inline trailer). Live ingest uses this for
- * every `wsBytes` event so the engine can take ownership of the allocation
- * (copy-budget slot 2) without a second deep copy.
+ * memory (`ptr`/`len` form, no inline trailer). Live ingest prefers
+ * `rclweb_poll_ws` per frame (prefix-only for application data). This encoder
+ * remains for mixed batches that still take engine-owned wasm regions.
  */
 export function encodeHostBatchExternalWs(
   events: HostEventInput[],
@@ -887,6 +898,183 @@ export function encodeHostBatchExternalWs(
  * behavioral threshold.
  */
 export const LARGE_FRAME_INLINE_THRESHOLD = 64 * 1024;
+
+const R2WP_HEADER_LEN = 32;
+
+function readU32BE(bytes: Uint8Array, offset: number): number {
+  return (
+    ((bytes[offset]! << 24) |
+      (bytes[offset + 1]! << 16) |
+      (bytes[offset + 2]! << 8) |
+      bytes[offset + 3]!) >>>
+    0
+  );
+}
+
+/**
+ * Bytes of an R2WP application frame to copy into wasm (header + extension).
+ * Returns null when the frame must be copied in full (bootstrap, control,
+ * truncated, or experimental opcode). Peeks version, opcode, payload_len,
+ * and extension_len only — not a second protocol implementation.
+ */
+export function hostRetainPrefixLen(bytes: Uint8Array): number | null {
+  if (bytes.length < R2WP_HEADER_LEN) return null;
+  if (bytes[0] !== 0) return null;
+  const opcode = bytes[1]!;
+  if (opcode < 2 || opcode > 12) return null;
+  const payloadLen = readU32BE(bytes, 24);
+  const extLen = (bytes[28]! << 8) | bytes[29]!;
+  const prefix = R2WP_HEADER_LEN + extLen;
+  if (payloadLen === 0) return null;
+  if (prefix + payloadLen !== bytes.length) return null;
+  return prefix;
+}
+
+function attachHostPayloads(
+  result: PollResult,
+  frame: Uint8Array,
+  prefixLen: number,
+): void {
+  const payload = frame.subarray(prefixLen);
+  for (const event of result.events) {
+    if (!("payloadLen" in event)) continue;
+    if (event.payloadPtr === 0 && event.payloadLen > 0) {
+      event.hostPayload = payload;
+    }
+  }
+}
+
+const OPCODE_ROS_SAMPLE = 2;
+const HOST_LEASE_FLAG = 0x80000000;
+let hostLeaseSeq = 1;
+
+type HostLease = { frame: Uint8Array; handle: number };
+type HostEngineCounters = { samplesEmitted: number; leasesReleased: number };
+
+const hostLeases = new Map<number, HostLease>();
+const hostEngineTelemetry = new Map<number, HostEngineCounters>();
+
+function hostCounters(handle: number): HostEngineCounters {
+  let counters = hostEngineTelemetry.get(handle);
+  if (!counters) {
+    counters = { samplesEmitted: 0, leasesReleased: 0 };
+    hostEngineTelemetry.set(handle, counters);
+  }
+  return counters;
+}
+
+function dropHostEngine(handle: number): void {
+  for (const [id, lease] of hostLeases) {
+    if (lease.handle === handle) {
+      hostLeases.delete(id);
+    }
+  }
+  hostEngineTelemetry.delete(handle);
+}
+
+function overlayHostTelemetry(
+  handle: number,
+  snap: EngineTelemetrySnapshot,
+): EngineTelemetrySnapshot {
+  const host = hostEngineTelemetry.get(handle);
+  if (!host || (host.samplesEmitted === 0 && host.leasesReleased === 0)) {
+    return snap;
+  }
+  return {
+    ...snap,
+    samplesEmitted: snap.samplesEmitted + host.samplesEmitted,
+    leasesReleased: snap.leasesReleased + host.leasesReleased,
+  };
+}
+
+function readU64BE(bytes: Uint8Array, offset: number): bigint {
+  const hi = BigInt(readU32BE(bytes, offset));
+  const lo = BigInt(readU32BE(bytes, offset + 4));
+  return (hi << 32n) + lo;
+}
+
+function readI64BE(bytes: Uint8Array, offset: number): bigint {
+  return BigInt.asIntN(64, readU64BE(bytes, offset));
+}
+
+function dropHostReleases(events: HostEventInput[]): HostEventInput[] {
+  let drop = false;
+  for (const event of events) {
+    if (event.type === "releaseLease" && hostLeases.has(event.leaseId >>> 0)) {
+      drop = true;
+      break;
+    }
+  }
+  if (!drop) return events;
+  const rest: HostEventInput[] = [];
+  for (const event of events) {
+    if (event.type === "releaseLease") {
+      const id = event.leaseId >>> 0;
+      const lease = hostLeases.get(id);
+      if (lease) {
+        hostLeases.delete(id);
+        hostCounters(lease.handle).leasesReleased += 1;
+        continue;
+      }
+    }
+    rest.push(event);
+  }
+  return rest;
+}
+
+function emptyPollResult(): PollResult {
+  return { outbound: [], events: [], released: [], nextDeadlineMs: null };
+}
+
+/** Pin a no-extension ROS_SAMPLE in the host lease table. */
+function pinHostSample(
+  handle: number,
+  frame: Uint8Array,
+  prefixLen: number,
+): SampleAppEvent {
+  const leaseId = (HOST_LEASE_FLAG | (hostLeaseSeq++ & 0x7fffffff)) >>> 0;
+  hostLeases.set(leaseId, { frame, handle });
+  hostCounters(handle).samplesEmitted += 1;
+  return {
+    type: "sample",
+    channelId: readU32BE(frame, 4),
+    leaseId,
+    sequence: readU64BE(frame, 8),
+    sourceTimeNs: readI64BE(frame, 16),
+    payloadPtr: 0,
+    payloadLen: frame.length - prefixLen,
+    stringData: null,
+    hostPayload: frame.subarray(prefixLen),
+  };
+}
+
+/**
+ * Idle-queue ROS_SAMPLE: pin the WS buffer without a poll batch.
+ * Returns null when the frame is not a complete no-extension ROS_SAMPLE.
+ */
+export function tryPinHostSample(
+  handle: number,
+  bytes: Uint8Array,
+): SampleAppEvent | null {
+  const prefixLen = hostRetainPrefixLen(bytes);
+  if (prefixLen !== R2WP_HEADER_LEN || bytes[1] !== OPCODE_ROS_SAMPLE) {
+    return null;
+  }
+  return pinHostSample(handle, bytes, prefixLen);
+}
+
+function pollSampleHostRetain(
+  handle: number,
+  frame: Uint8Array,
+  prefixLen: number,
+): PollResult {
+  return {
+    outbound: [],
+    events: [pinHostSample(handle, frame, prefixLen)],
+    released: [],
+    nextDeadlineMs: null,
+  };
+}
 
 export function decodePollResult(bytes: Uint8Array): PollResult {
   if (bytes.length < 28) {
@@ -1293,7 +1481,13 @@ export async function loadWasm(wasmBytes: ArrayBuffer): Promise<WasmExports> {
       throw new Error(`wasm missing export ${name}`);
     }
   }
-  return exports;
+  return {
+    ...exports,
+    rclweb_engine_free(handle: number) {
+      dropHostEngine(handle);
+      exports.rclweb_engine_free(handle);
+    },
+  };
 }
 
 export function readTelemetryAt(
@@ -1306,7 +1500,7 @@ export function readTelemetryAt(
     throw new Error(`rclweb_telemetry failed with code ${rc}`);
   }
   const view = new DataView(wasm.memory.buffer, outPtr, 56);
-  return {
+  return overlayHostTelemetry(handle, {
     copiesIntoEngine: Number(view.getBigUint64(0, true)),
     bytesCopiedIntoEngine: Number(view.getBigUint64(8, true)),
     pollTurns: Number(view.getBigUint64(16, true)),
@@ -1314,7 +1508,7 @@ export function readTelemetryAt(
     samplesEmitted: Number(view.getBigUint64(32, true)),
     leasesReleased: Number(view.getBigUint64(40, true)),
     samplesSent: Number(view.getBigUint64(48, true)),
-  };
+  });
 }
 
 export function readTelemetry(
@@ -1534,18 +1728,53 @@ function takePollResult(wasm: WasmExports, handle: number): PollResult {
 }
 
 /**
- * Poll the engine. Any `wsBytes` event uses the external-ptr path so the
- * host copies payload bytes into wasm once and the engine takes ownership
- * (copy-budget slot 2). Command-only batches keep the inline encoder.
+ * Poll the engine. ROS_SAMPLE frames with no extension stay on the host
+ * (ADR 0017): wasm is not on that data plane. IoHost delivers those frames
+ * without a poll batch when the host queue is idle. Other application frames
+ * copy the R2WP prefix into wasm. Control/bootstrap still copy the full frame.
  */
 export function pollEngine(
   wasm: WasmExports,
   handle: number,
   events: HostEventInput[],
 ): PollResult {
-  if (batchHasWsBytes(events)) {
-    return pollEngineExternalWs(wasm, handle, events);
+  // Single-frame ROS_SAMPLE ingest: do not copy the event list or enter wasm.
+  if (events.length === 1 && events[0]!.type === "wsBytes") {
+    return pollOneExternalWs(wasm, handle, events[0]!);
   }
+  events = dropHostReleases(events);
+  if (events.length === 0) {
+    return emptyPollResult();
+  }
+  if (!batchHasWsBytes(events)) {
+    return pollEngineInline(wasm, handle, events);
+  }
+  const parts: PollResult[] = [];
+  let i = 0;
+  while (i < events.length) {
+    const event = events[i]!;
+    if (event.type === "wsBytes") {
+      parts.push(pollOneExternalWs(wasm, handle, event));
+      i += 1;
+      continue;
+    }
+    const run: HostEventInput[] = [];
+    while (i < events.length && events[i]!.type !== "wsBytes") {
+      run.push(events[i]!);
+      i += 1;
+    }
+    const filtered = dropHostReleases(run);
+    if (filtered.length === 0) continue;
+    parts.push(pollEngineInline(wasm, handle, filtered));
+  }
+  return parts.length === 0 ? emptyPollResult() : mergePollResults(parts);
+}
+
+function pollEngineInline(
+  wasm: WasmExports,
+  handle: number,
+  events: HostEventInput[],
+): PollResult {
   const batch = encodeHostBatch(events);
   const ptr = wasm.rclweb_alloc(batch.length);
   if (ptr === 0 && batch.length !== 0) {
@@ -1565,83 +1794,58 @@ export function pollEngine(
   }
 }
 
+function mergePollResults(parts: PollResult[]): PollResult {
+  const merged: PollResult = {
+    outbound: [],
+    events: [],
+    released: [],
+    nextDeadlineMs: null,
+  };
+  for (const part of parts) {
+    merged.outbound.push(...part.outbound);
+    merged.events.push(...part.events);
+    merged.released.push(...part.released);
+    merged.nextDeadlineMs = part.nextDeadlineMs;
+  }
+  return merged;
+}
+
 function pollOneExternalWs(
   wasm: WasmExports,
   handle: number,
   event: Extract<HostEventInput, { type: "wsBytes" }>,
 ): PollResult {
-  const len = event.bytes.length;
-  const ptr = len === 0 ? 0 : wasm.rclweb_alloc(len);
-  if (len !== 0 && ptr === 0) {
+  const prefixLen = hostRetainPrefixLen(event.bytes);
+  if (prefixLen === R2WP_HEADER_LEN && event.bytes[1] === OPCODE_ROS_SAMPLE) {
+    return pollSampleHostRetain(handle, event.bytes, prefixLen);
+  }
+  const copyLen = prefixLen ?? event.bytes.length;
+  const ptr = copyLen === 0 ? 0 : wasm.rclweb_alloc(copyLen);
+  if (copyLen !== 0 && ptr === 0) {
     throw new Error("rclweb_alloc failed for wsBytes");
   }
   let transferred = false;
   try {
-    if (len !== 0) {
-      new Uint8Array(wasm.memory.buffer, ptr, len).set(event.bytes);
+    if (copyLen !== 0) {
+      const src =
+        prefixLen == null ? event.bytes : event.bytes.subarray(0, prefixLen);
+      new Uint8Array(wasm.memory.buffer, ptr, copyLen).set(src);
     }
     // poll_ws takes the region even when it returns an error (other than
     // never-called). Do not rclweb_free after this point.
     transferred = true;
-    const pollLen = wasm.rclweb_poll_ws(handle, event.bufferId, ptr, len);
+    const pollLen = wasm.rclweb_poll_ws(handle, event.bufferId, ptr, copyLen);
     if (pollLen < 0) {
       throw new Error(`rclweb_poll_ws failed with code ${pollLen}`);
     }
-    return takePollResult(wasm, handle);
+    const result = takePollResult(wasm, handle);
+    if (prefixLen != null) {
+      attachHostPayloads(result, event.bytes, prefixLen);
+    }
+    return result;
   } finally {
-    if (!transferred && len !== 0) {
-      wasm.rclweb_free(ptr, len);
-    }
-  }
-}
-
-function pollEngineExternalWs(
-  wasm: WasmExports,
-  handle: number,
-  events: HostEventInput[],
-): PollResult {
-  if (events.length === 1 && events[0]!.type === "wsBytes") {
-    return pollOneExternalWs(wasm, handle, events[0]!);
-  }
-  const wsPtrs = new Map<number, { ptr: number; len: number }>();
-  const owned: Array<{ ptr: number; len: number }> = [];
-  let wsIndex = 0;
-  try {
-    for (const event of events) {
-      if (event.type !== "wsBytes") continue;
-      const len = event.bytes.length;
-      const ptr = len === 0 ? 0 : wasm.rclweb_alloc(len);
-      if (len !== 0 && ptr === 0) {
-        throw new Error("rclweb_alloc failed for wsBytes");
-      }
-      if (len !== 0) {
-        new Uint8Array(wasm.memory.buffer, ptr, len).set(event.bytes);
-        owned.push({ ptr, len });
-      }
-      wsPtrs.set(wsIndex, { ptr, len });
-      wsIndex += 1;
-    }
-    const batch = encodeHostBatchExternalWs(events, wsPtrs);
-    const batchPtr = wasm.rclweb_alloc(batch.length);
-    if (batchPtr === 0 && batch.length !== 0) {
-      throw new Error("rclweb_alloc failed for external batch");
-    }
-    try {
-      new Uint8Array(wasm.memory.buffer, batchPtr, batch.length).set(batch);
-      const len = wasm.rclweb_poll(handle, batchPtr, batch.length);
-      if (len < 0) {
-        throw new Error(`rclweb_poll failed with code ${len}`);
-      }
-      owned.length = 0;
-      return takePollResult(wasm, handle);
-    } finally {
-      if (batch.length !== 0) {
-        wasm.rclweb_free(batchPtr, batch.length);
-      }
-    }
-  } finally {
-    for (const { ptr, len } of owned) {
-      if (len !== 0) wasm.rclweb_free(ptr, len);
+    if (!transferred && copyLen !== 0) {
+      wasm.rclweb_free(ptr, copyLen);
     }
   }
 }

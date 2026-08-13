@@ -40,11 +40,15 @@ Traps already paid for in this repository, each with its why.
 
 ## Every sample lease has exactly one owner
 
-The engine reclaims a retained inbound slab only when every lease on it is released (`sweep_released` in `rclweb/src/engine/mod.rs` frees a buffer once ingest is done and its lease refcount hits zero). Any host or package code path that drops a sample without delivering it MUST release the lease at the drop site — otherwise the slab is pinned forever. An earlier host leaked on three drop paths: the Worker's non-String sample branch and the no-handler branch in both `InlineClient` and `WorkerClient`. The no-handler race is reachable in normal operation because `subscribed` and the first samples can arrive in the same poll flush, before the application has called `onMessage`. Fixed, with regression coverage in `typescript/test/sdk-poll.test.ts` (no-handler sample: `leasesReleased` must equal `samplesEmitted`). PointCloud2 delivery on the Worker copies `data` and releases at that copy site. Generated corpus messages are copied as host-value objects and released the same way. Unknown non-String types still drop-and-release. The public `Node` API releases after the user callback ([Public Node releases leases](#public-node-releases-leases)); `rcl-web/internal` `connect` still requires an explicit `lease.release()`.
+The engine reclaims a retained inbound slab only when every lease on it is released (`sweep_released` in `rclweb/src/engine/mod.rs` frees a buffer once ingest is done and its lease refcount hits zero). ROS_SAMPLE with no extension never enters wasm: the host pins the WebSocket `Uint8Array` in `hostLeases` until `lease.release()` (high-bit lease ids), and `telemetry()` overlays those host counts onto the wasm snapshot so `leasesReleased` still equals `samplesEmitted`. Any host or package code path that drops a sample without delivering it MUST release the lease at the drop site — otherwise the slab or host buffer is pinned forever. An earlier host leaked on three drop paths: the Worker's non-String sample branch and the no-handler branch in both `InlineClient` and `WorkerClient`. The no-handler race is reachable in normal operation because `subscribed` and the first samples can arrive in the same poll flush, before the application has called `onMessage`. Fixed, with regression coverage in `typescript/test/sdk-poll.test.ts` (no-handler sample: `leasesReleased` must equal `samplesEmitted`). PointCloud2 delivery on the Worker copies `data` and releases at that copy site. Generated corpus messages are copied as host-value objects and released the same way. Unknown non-String types still drop-and-release. The public `Node` API releases after the user callback ([Public Node releases leases](#public-node-releases-leases)); `rcl-web/internal` `connect` still requires an explicit `lease.release()`.
 
 ## Public Node releases leases
 
 `rcl-web` is rclcpp-shaped (`init` / `Node` / `createSubscription`). Message types are `std_msgs.msg.String` / `sensor_msgs.msg.PointCloud2` / `rclweb_cdr_interfaces.msg.*`, not all-caps constants. The callback receives an owned message; `Node` copies PointCloud2 `data` and calls `lease.release()` after the callback returns. Applications must not import `rcl-web/internal` `connect` unless they are hosting the poll ABI — that path still requires an explicit release. [How to](../../docs/typescript.md), [API](../../docs/api.md).
+
+## hostRetainPrefixLen peeks the R2WP header only
+
+`hostRetainPrefixLen` in `typescript/src/wasm/abi.ts` reads version, opcode, big-endian `payload_len`, and `extension_len` to decide whether a frame is a complete application payload. ROS_SAMPLE with no extension never enters wasm — the host pins the WebSocket buffer until `lease.release()` (high-bit lease ids). When the host queue is idle, that pin-and-emit skips enqueue / `pollEngine` / `PollResult`; a sample that arrives while control is already queued stays ordered behind that flush. Do not grow this peek into a full JS R2WP codec, and do not route idle-queue samples back through the generic poll batch. Control, bootstrap, experimental opcodes, and samples with extensions still go through wasm. Landed with [ADR 0017](../../docs/adr/0017-host-retain-inbound-sample-payload.md).
 
 ## parse_frame must not build default FrameOptions on the sample path
 
@@ -52,7 +56,7 @@ The engine reclaims a retained inbound slab only when every lease on it is relea
 
 ## encodeHostBatch large-frame encoder
 
-Spread-pushing a byte array into a `number[]` (`out.push(...bytes)`) throws a RangeError on large frames — every element becomes a call argument, and hundreds of KB / ~1 MiB (PointCloud2 scale) exceeds the engine's argument/call-stack limit. `encodeHostBatch` in `typescript/src/wasm/abi.ts` is a two-pass preallocated `Uint8Array` encoder (size, then write). Do not reintroduce `push(...bytes)` or per-byte `number[]` builders on the data path. Live WS ingest uses the external-ptr poll path for every frame so the engine owns the wasm allocation without a second deep copy; `encodeHostBatch` stays for command-only batches and tests.
+Spread-pushing a byte array into a `number[]` (`out.push(...bytes)`) throws a RangeError on large frames — every element becomes a call argument, and hundreds of KB / ~1 MiB (PointCloud2 scale) exceeds the engine's argument/call-stack limit. `encodeHostBatch` in `typescript/src/wasm/abi.ts` is a two-pass preallocated `Uint8Array` encoder (size, then write). Do not reintroduce `push(...bytes)` or per-byte `number[]` builders on the data path. Live WS ingest uses `rclweb_poll_ws` (header prefix for application frames). `encodeHostBatch` stays for command-only batches and tests.
 
 ## WebTransport local certs are ≤14 days by browser rule
 
@@ -86,9 +90,9 @@ Reliable operation streams (SERVICE_REQUEST/RESPONSE, ACTION_GOAL/CANCEL/RESULT)
 
 App events 13–14 and 17–20 include `lease_id` plus `payload_ptr`/`payload_len` (same lease model as Sample). The abbreviated command layouts omit those ptr fields; without them the wasm host cannot copy request/response bodies. TS must release the lease after `IoHost.copyPayload`. The I/O Worker copies those bytes and releases the lease before `postMessage` so main never holds a wasm pointer.
 
-## Worker PointCloud2 copies `data`, inline borrows it
+## Worker PointCloud2 copies `data`, inline borrows the WS buffer
 
-`rclweb_point_cloud2_meta` returns metadata plus an offset/len into the leased CDR. On `options.inline: true` the host hands a TypedArray into wasm memory (copy-budget 0 wasm→application; valid until `lease.release()`). The I/O Worker cannot share that memory with main without SAB, so it copies only the `data` field, releases the lease, and transfers the ArrayBuffer — same class of boundary copy as service/action CDR. The public `Node` callback always owns a copy and never sees the lease. Do not copy the whole CDR payload, and do not keep the lease outstanding after a Worker copy (a 1 MiB cloud would then pin wasm *and* hold a JS copy). [Architecture](../../docs/architecture.md#performance-contracts).
+Inbound PointCloud2 `data` is a view of the host-retained WebSocket buffer ([ADR 0017](../../docs/adr/0017-host-retain-inbound-sample-payload.md)). On `options.inline: true` that view is valid until `lease.release()`. The I/O Worker cannot share that buffer with main without SAB, so it copies only the `data` field, releases the lease, and transfers the ArrayBuffer — same class of boundary copy as service/action CDR. The public `Node` callback always owns a copy and never sees the lease. Do not copy the whole CDR payload, and do not keep the lease outstanding after a Worker copy (a 1 MiB cloud would then pin the WS buffer *and* hold a JS copy). [Architecture](../../docs/architecture.md#performance-contracts).
 
 ## PointCloud2 header and fields travel on the host command
 
@@ -168,6 +172,10 @@ npm trusted publishing matches owner + repo + workflow **filename**. A GitHub `e
 ## Do not commit measurement JSON
 
 The owner deleted `docs/evidence/*.json`. Nothing in CI read those files. `just build` used to rewrite `recordedAt` on a wasm-size file, dirtying the tree. Qualification is a human edit of the [support matrix](../../docs/support-matrix.md). Measurement recipes (`just poll-latency`, `just large-message`, `just perf-baseline`) print to stdout. `just perf-baseline` leads with latency / CPU / RSS. Do not add an evidence-check job.
+
+## perf-baseline hops must pair by work
+
+`just perf-baseline` used to put `rclweb.ingest` (subscribe + flush + lease + `onMessage`) next to `foxglove.cdrDecode` (13-byte skip + our own CDR). The Foxglove row was not a Foxglove client. Paid when the owner called that comparison non-corresponding (2026-08-13). Decode hops are header skip + CDR on both sides. Deliver hops are framed bytes → callback (`rclweb.ingest` with `foxglove.deliver`). Do not mix the classes in one comparison. The first timed hop of a new payload size also pays heap growth if hops run sequentially with `tryGc` between them — decode hops are interleaved in one loop so that is not reported as a codec loss. [performance](../../docs/performance.md).
 
 ## process.memoryUsage can return EINTR
 

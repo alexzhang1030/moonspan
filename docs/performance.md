@@ -1,17 +1,24 @@
 # Performance
 
-`just perf-baseline` times **bytes already in JS → usable ROS message** (latency / CPU / RSS). That is not a 13-byte Foxglove header `subarray`. Stdout only; do not commit it.
+`just perf-baseline` times **bytes already in JS → usable ROS message** (latency / CPU / RSS). Stdout only; do not commit it. Two hop classes — do not mix them:
+
+| Class | Work | Rows |
+|---|---|---|
+| decode | header skip + CDR (or `JSON.parse`) | `rclweb.cdrDecode`, `foxglove.cdrDecode`, `rosbridge.jsonDecode` |
+| deliver | framed bytes → user callback | `rclweb.ingest`, `foxglove.deliver`, `rosbridge.deliver` |
+
+`rclweb.ingest` pairs with `foxglove.deliver`. It does not pair with a 13-byte MessageData skip.
 
 | | rosbridge JSON | Foxglove | rclweb |
 |---|---|---|---|
 | Wire | JSON; blobs as base64 | CDR + 13 B | CDR + 32 B |
 | Gateway extra copy of CDR | 1 | 1 | **0** |
-| Browser, usable message | `JSON.parse` (+ base64) | JS CDR decode | wasm memcpy + typed decode |
-| Controllable copies | 3 | 2 | 2 |
+| Browser, usable message | `JSON.parse` (+ base64) | JS CDR decode | JS CDR decode (data is a view) |
+| Controllable copies | 3 | 2 | **1** |
 
-Foxglove can view PointCloud2 `data` on the WS buffer. rclweb copies the frame into wasm (copy-budget slot 2, [ADR 0004](./adr/0004-browser-wasm-host-boundary.md)). Engineering p99 targets are e2e, in [validation](./validation.md#engineering-targets), and are not CI fails.
+Foxglove views PointCloud2 `data` on the WS buffer. rclweb does the same: ROS_SAMPLE stays in JS, and PointCloud2 `data` is a view of those bytes ([ADR 0017](./adr/0017-host-retain-inbound-sample-payload.md)). Engineering p99 targets are e2e, in [validation](./validation.md#engineering-targets), and are not CI fails.
 
-**Ceiling on this hop.** Wasm linear memory cannot alias a WebSocket `ArrayBuffer` ([Wasm design #1162](https://github.com/WebAssembly/design/issues/1162); engines keep guard pages). BYOB stream reads *transfer* the buffer; `WebAssembly.Memory.buffer` is not transferable ([WHATWG streams #1109](https://github.com/whatwg/streams/issues/1109)). Foxglove `@foxglove/cdr` returns an aligned typed-array **view** of that buffer ([CdrReader.typedArray](https://github.com/foxglove/cdr/blob/main/src/CdrReader.ts)). Remaining ingest work is allocator + poll ABI (Talc, `rclweb_poll_ws`), not skipping the memcpy. RMW loans stay under [ADR 0006](./adr/0006-edge-ros-c-abi-boundary.md). `opt-level = 3` would reopen [ADR 0010](./adr/0010-restructure-single-rust-core.md) (`just build` size vs `just poll-latency`).
+**Copy ceiling on this hop.** ROS_SAMPLE never enters wasm ([ADR 0017](./adr/0017-host-retain-inbound-sample-payload.md)). The 1 MiB memcpy, the 32-byte wasm header poll, and the idle-queue poll batch (enqueue / flush / `PollResult`) are closed. Wasm linear memory still cannot alias a WebSocket `ArrayBuffer` ([Wasm design #1162](https://github.com/WebAssembly/design/issues/1162)). Decode hops use the same JS CDR; a first-of-size run is not a codec loss (shared prewarm + inner batch). Remaining *deliver* latency is host lease + per-channel callback versus Foxglove’s MessageData parse + subscription map. Worker→main copies, generated-type wasm decode, and live bridge e2e are other hops. RMW loans stay under [ADR 0006](./adr/0006-edge-ros-c-abi-boundary.md). `opt-level = 3` would reopen [ADR 0010](./adr/0010-restructure-single-rust-core.md) (`just build` size vs `just poll-latency`).
 
 | Command | Measures |
 |---|---|

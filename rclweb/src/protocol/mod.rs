@@ -42,7 +42,8 @@ pub use frame::{
   FRAME_PAYLOAD_MAX_BYTES, FrameOptions, FramePayload, OPCODE_ACTION_CANCEL,
   OPCODE_ACTION_FEEDBACK, OPCODE_ACTION_GOAL, OPCODE_ACTION_RESULT, OPCODE_ACTION_STATUS,
   OPCODE_CONTROL_CBOR, OPCODE_MEDIA_CHUNK, OPCODE_ROS_SAMPLE, OPCODE_SERVICE_REQUEST,
-  OPCODE_SERVICE_RESPONSE, parse_frame,
+  OPCODE_SERVICE_RESPONSE, frame_declared_total, opcode_allows_host_retain, parse_frame,
+  parse_frame_declared, retain_declared_len,
 };
 
 #[cfg(test)]

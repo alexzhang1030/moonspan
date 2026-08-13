@@ -95,17 +95,20 @@ describe("protocol-cost models", () => {
 });
 
 describe("copy-path model", () => {
-  test("rclweb stays at two controllable copies with zero gateway framing", () => {
+  test("rclweb stays at one controllable copy with zero gateway framing", () => {
     const rclweb = COPY_PATHS.rclweb;
-    expect(rclweb.controllable).toBe(2);
+    expect(rclweb.controllable).toBe(1);
     const framing = rclweb.stages.find((s) => s.stage === "gateway framing");
     expect(framing?.copies).toBe(0);
     const wasm = rclweb.stages.find((s) => s.stage === "Worker → wasm");
-    expect(wasm?.copies).toBe(1);
+    expect(wasm?.copies).toBe(0);
   });
 
-  test("Foxglove binary matches rclweb copy count but spends the extra copy on framing", () => {
+  test("Foxglove binary spends its extra copy on gateway framing", () => {
     expect(COPY_PATHS["foxglove-bridge"].controllable).toBe(2);
+    expect(COPY_PATHS.rclweb.controllable).toBeLessThan(
+      COPY_PATHS["foxglove-bridge"].controllable,
+    );
     const framing = COPY_PATHS["foxglove-bridge"].stages.find(
       (s) => s.stage === "gateway framing",
     );
@@ -116,7 +119,8 @@ describe("copy-path model", () => {
     expect(COPY_PATHS["rosbridge-json"].controllable).toBeGreaterThan(
       COPY_PATHS.rclweb.controllable,
     );
-    expect(COPY_PATHS["rosbridge-cbor-raw"].controllable).toBe(
+    expect(COPY_PATHS["rosbridge-cbor-raw"].controllable).toBe(2);
+    expect(COPY_PATHS["rosbridge-cbor-raw"].controllable).toBeGreaterThan(
       COPY_PATHS.rclweb.controllable,
     );
   });
@@ -190,7 +194,7 @@ describe("ingest latency / CPU / mem harness", () => {
   );
 
   test.skipIf(!hasWasm)(
-    "ingest suite includes Foxglove and rosbridge envelope hops",
+    "ingest suite pairs decode hops and deliver hops",
     async () => {
       const bytes = readFileSync(wasmPath);
       const rows = await measureIngestSuite(
@@ -203,9 +207,12 @@ describe("ingest latency / CPU / mem harness", () => {
         2,
       );
       expect(rows.map((r) => r.hop)).toEqual([
-        "rclweb.ingest",
+        "rclweb.cdrDecode",
         "foxglove.cdrDecode",
         "rosbridge.jsonDecode",
+        "rclweb.ingest",
+        "foxglove.deliver",
+        "rosbridge.deliver",
       ]);
       for (const row of rows) {
         expect(row.latencyMs.n).toBe(6);

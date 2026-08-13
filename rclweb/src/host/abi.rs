@@ -37,7 +37,7 @@ fn alloc_layout(len: usize) -> Option<Layout> {
 ///
 /// The region is **uninitialized**. The host (or a wasm writer) must fill it
 /// before any read. Zeroing here was a full memset before the required ingest
-/// memcpy (copy-budget slot 2).
+/// copy (header prefix on the sample path; full frame for control/bootstrap).
 #[unsafe(no_mangle)]
 pub extern "C" fn rclweb_alloc(len: u32) -> *mut u8 {
   if len == 0 {
@@ -120,8 +120,9 @@ pub unsafe extern "C" fn rclweb_poll(handle: u32, batch_ptr: *const u8, batch_le
       return Err(BatchError::Truncated);
     }
     // SAFETY: host allocated the WS payload with rclweb_alloc and filled it.
-    // Take ownership so the retain path moves bytes without a second deep copy
-    // (copy-budget slot 2).
+    // Take ownership so the retain path moves those wasm bytes without a
+    // second deep copy. Application samples copy only the R2WP prefix
+    // (ADR 0017) via `rclweb_poll_ws`.
     let vec = unsafe { Vec::from_raw_parts(ptr as *mut u8, len as usize, len as usize) };
     Ok(vec)
   }) {
@@ -136,7 +137,9 @@ pub unsafe extern "C" fn rclweb_poll(handle: u32, batch_ptr: *const u8, batch_le
 ///
 /// Same ownership as [`rclweb_poll`]: `ptr`/`len` is a [`rclweb_alloc`] region
 /// the engine takes (including when this returns an error other than -1).
-/// Skips encoding a 28-byte batch on the sample hot path.
+/// Skips encoding a 28-byte batch on the sample hot path. The host may pass
+/// only the R2WP header+extension prefix; the engine infers the declared
+/// frame size from the header (ADR 0017).
 ///
 /// # Safety
 /// `ptr` must be a [`rclweb_alloc`] region of `len` bytes the host has filled,
@@ -183,10 +186,7 @@ fn encode_outcome(handle: u32, engine: &ClientEngine, outcome: &PollOutcome) -> 
     let mut smap = scratch.borrow_mut();
     let buf = smap.entry(handle).or_insert_with(|| Vec::with_capacity(256));
     buf.clear();
-    encode_poll_result_into(buf, outcome, |lease_id| match engine.lease_payload_view(lease_id) {
-      Some(view) => (view.as_ptr() as u32, view.len() as u32),
-      None => (0, 0),
-    });
+    encode_poll_result_into(buf, outcome, |lease_id| engine.lease_payload_abi(lease_id));
     let len = buf.len();
     if len > i32::MAX as usize { -5 } else { len as i32 }
   })
