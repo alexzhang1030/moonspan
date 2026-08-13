@@ -38,7 +38,7 @@ One gateway process may expose multiple domain IDs within its support row. Fleet
 
 - CDR stays on the binary data path; the gateway never parses sample bodies.
 - Browser APIs remain in JavaScript Workers; the core crosses the boundary through bounded poll batches ([ADR 0004](../../docs/adr/0004-browser-wasm-host-boundary.md)).
-- The copy budget is two controllable payload copies end to end, with telemetry counters ([performance contracts](../../docs/architecture.md#performance-contracts)). Wasm→application is 0 copies on the thread that owns wasm; the public `Node` API copies PointCloud2 `data` into an owned message and releases the lease. The I/O Worker copies bulk sample fields (PointCloud2 `data`) and service/action CDR before `postMessage` because wasm memory is not shared with main.
+- The copy budget is two controllable payload copies end to end, with telemetry counters ([performance contracts](../../docs/architecture.md#performance-contracts)). Gateway framing is 0 extra copies: live take writes CDR into a header-prefixed buffer. Wasm→application is 0 copies on the thread that owns wasm; the public `Node` API copies PointCloud2 `data` into an owned message and releases the lease. The I/O Worker copies bulk sample fields (PointCloud2 `data`) and service/action CDR before `postMessage` because wasm memory is not shared with main.
 - Queue, buffer, timeout, retry, and memory budgets are explicit; best-effort channels drop at the edge with stable dispositions.
 - Large-message / PointCloud2 delivery keeps O(1) borrowed CDR views and measures both host buffer strategies.
 - Service/action channels use `OPERATION_ID` streams; graph state arrives as GraphSnapshot/Delta after SessionReady.
