@@ -175,7 +175,7 @@ The owner deleted `docs/evidence/*.json`. Nothing in CI read those files. `just 
 
 ## perf-baseline hops must pair by work
 
-`just perf-baseline` used to put `rclweb.ingest` (subscribe + flush + lease + `onMessage`) next to `foxglove.cdrDecode` (13-byte skip + our own CDR). The Foxglove row was not a Foxglove client. Paid when the owner called that comparison non-corresponding (2026-08-13). Decode hops are header skip + CDR on both sides. Deliver hops are framed bytes → callback (`rclweb.ingest` with `foxglove.deliver`). Do not mix the classes in one comparison. [performance](../../docs/performance.md).
+`just perf-baseline` used to put `rclweb.ingest` (subscribe + flush + lease + `onMessage`) next to `foxglove.cdrDecode` (13-byte skip + our own CDR). The Foxglove row was not a Foxglove client. Paid when the owner called that comparison non-corresponding (2026-08-13). Decode hops are header skip + CDR on both sides. Deliver hops are framed bytes → callback (`rclweb.ingest` with `foxglove.deliver`). Do not mix the classes in one comparison. The first timed hop of a new payload size also pays heap growth if hops run sequentially with `tryGc` between them — decode hops are interleaved in one loop so that is not reported as a codec loss. [performance](../../docs/performance.md).
 
 ## process.memoryUsage can return EINTR
 

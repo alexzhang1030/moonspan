@@ -137,6 +137,13 @@ function consumeUsable(spec: IngestSizeSpec, cdr: Uint8Array): void {
   void cloud.data[cloud.data.length - 1];
 }
 
+/** Inner reps so a timed sample sits above first-alloc / JIT noise. */
+function decodeInner(spec: IngestSizeSpec): number {
+  if (spec.kind === "pointcloud2") return 32;
+  if (spec.payloadBytes >= 32 * 1024) return 16;
+  return 64;
+}
+
 function measureTimed(
   hop: IngestHopId,
   spec: IngestSizeSpec,
@@ -144,16 +151,20 @@ function measureTimed(
   warmup: number,
   runOnce: () => void,
   note: string,
+  inner = 1,
 ): IngestRow {
-  for (let i = 0; i < warmup; i++) runOnce();
+  const reps = Math.max(1, inner);
+  for (let i = 0; i < warmup; i++) {
+    for (let k = 0; k < reps; k++) runOnce();
+  }
   const latencies: number[] = [];
   tryGc();
   const memBefore = snapshotMemory();
   const cpu0 = cpuStart();
   for (let i = 0; i < sampleCount; i++) {
     const t0 = performance.now();
-    runOnce();
-    latencies.push(performance.now() - t0);
+    for (let k = 0; k < reps; k++) runOnce();
+    latencies.push((performance.now() - t0) / reps);
   }
   const cpuUs = cpuDeltaUs(cpu0);
   tryGc();
@@ -163,7 +174,7 @@ function measureTimed(
     size: spec.id,
     payloadBytes: spec.payloadBytes,
     latencyMs: summarize(latencies),
-    resources: resourceDelta(cpuUs, memBefore, memAfter, sampleCount),
+    resources: resourceDelta(cpuUs, memBefore, memAfter, sampleCount * reps),
     note,
   };
 }
@@ -179,60 +190,99 @@ function rosbridgeEnvelope(spec: IngestSizeSpec, cdr: Uint8Array): string {
   return encodeRosbridgeJson(`/bench/${spec.id}`, cdr);
 }
 
-function measureRclwebCdrDecode(
+function measureDecodeHops(
   spec: IngestSizeSpec,
   sampleCount: number,
   warmup: number,
-): IngestRow {
-  const framed = encodeR2wp(cdrFor(spec));
-  return measureTimed(
-    "rclweb.cdrDecode",
-    spec,
-    sampleCount,
-    warmup,
-    () => consumeUsable(spec, framed.subarray(R2WP_FRAME_HEADER_BYTES)),
-    "R2WP 32-byte skip + JS CDR (pairs with foxglove.cdrDecode)",
-  );
-}
-
-function measureFoxgloveCdrDecode(
-  spec: IngestSizeSpec,
-  sampleCount: number,
-  warmup: number,
-): IngestRow {
-  const framed = encodeFoxglove(cdrFor(spec));
-  return measureTimed(
-    "foxglove.cdrDecode",
-    spec,
-    sampleCount,
-    warmup,
-    () => consumeUsable(spec, decodeFoxgloveMessageData(framed)),
-    "MessageData 13-byte skip + JS CDR (pairs with rclweb.cdrDecode)",
-  );
-}
-
-function measureRosbridgeJsonDecode(
-  spec: IngestSizeSpec,
-  sampleCount: number,
-  warmup: number,
-): IngestRow {
-  const text = rosbridgeEnvelope(spec, cdrFor(spec));
-  const runOnce = (): void => {
+): IngestRow[] {
+  const cdr = cdrFor(spec);
+  const r2wp = encodeR2wp(cdr);
+  const fox = encodeFoxglove(cdr);
+  const json = rosbridgeEnvelope(spec, cdr);
+  const runRclweb = (): void =>
+    consumeUsable(spec, r2wp.subarray(R2WP_FRAME_HEADER_BYTES));
+  const runFox = (): void =>
+    consumeUsable(spec, decodeFoxgloveMessageData(fox));
+  const runRb = (): void => {
     if (spec.kind === "string") {
-      const obj = JSON.parse(text) as { msg: { data: string } };
+      const obj = JSON.parse(json) as { msg: { data: string } };
       void obj.msg.data.length;
       return;
     }
-    consumeUsable(spec, decodeRosbridgeJson(text));
+    consumeUsable(spec, decodeRosbridgeJson(json));
   };
-  return measureTimed(
-    "rosbridge.jsonDecode",
-    spec,
-    sampleCount,
-    warmup,
-    runOnce,
-    "JSON.parse; String is a JSON field, PointCloud2 is base64+CDR",
-  );
+  const inner = decodeInner(spec);
+  const prewarm = Math.max(8, warmup);
+  for (let i = 0; i < prewarm; i++) {
+    for (let k = 0; k < inner; k++) {
+      runRclweb();
+      runFox();
+      runRb();
+    }
+  }
+  const tR: number[] = [];
+  const tF: number[] = [];
+  const tB: number[] = [];
+  tryGc();
+  const memBefore = snapshotMemory();
+  const cpu0 = cpuStart();
+  for (let i = 0; i < sampleCount; i++) {
+    let t0 = performance.now();
+    for (let k = 0; k < inner; k++) runRclweb();
+    tR.push((performance.now() - t0) / inner);
+    t0 = performance.now();
+    for (let k = 0; k < inner; k++) runFox();
+    tF.push((performance.now() - t0) / inner);
+    t0 = performance.now();
+    for (let k = 0; k < inner; k++) runRb();
+    tB.push((performance.now() - t0) / inner);
+  }
+  const cpuUs = cpuDeltaUs(cpu0);
+  tryGc();
+  const memAfter = snapshotMemory();
+  const sumR = tR.reduce((a, b) => a + b, 0);
+  const sumF = tF.reduce((a, b) => a + b, 0);
+  const sumB = tB.reduce((a, b) => a + b, 0);
+  const sum = sumR + sumF + sumB;
+  const ops = sampleCount * inner;
+  const row = (
+    hop: IngestHopId,
+    samples: number[],
+    share: number,
+    note: string,
+  ): IngestRow => ({
+    hop,
+    size: spec.id,
+    payloadBytes: spec.payloadBytes,
+    latencyMs: summarize(samples),
+    resources: resourceDelta(
+      cpuUs * (sum === 0 ? 1 / 3 : share / sum),
+      memBefore,
+      memAfter,
+      ops,
+    ),
+    note,
+  });
+  return [
+    row(
+      "rclweb.cdrDecode",
+      tR,
+      sumR,
+      "R2WP 32-byte skip + JS CDR; interleaved with foxglove.cdrDecode",
+    ),
+    row(
+      "foxglove.cdrDecode",
+      tF,
+      sumF,
+      "MessageData 13-byte skip + JS CDR; interleaved with rclweb.cdrDecode",
+    ),
+    row(
+      "rosbridge.jsonDecode",
+      tB,
+      sumB,
+      "JSON.parse; String is a JSON field, PointCloud2 is base64+CDR",
+    ),
+  ];
 }
 
 function measureFoxgloveDeliver(
@@ -420,9 +470,7 @@ export async function measureIngestSuite(
   for (const spec of sizes) {
     const n = sampleCountOverride ?? spec.sampleCount;
     const warmup = warmupOverride ?? spec.warmup;
-    rows.push(measureRclwebCdrDecode(spec, n, warmup));
-    rows.push(measureFoxgloveCdrDecode(spec, n, warmup));
-    rows.push(measureRosbridgeJsonDecode(spec, n, warmup));
+    rows.push(...measureDecodeHops(spec, n, warmup));
     rows.push(await measureRclwebIngest(wasmBytes, spec, n, warmup));
     rows.push(measureFoxgloveDeliver(spec, n, warmup));
     rows.push(measureRosbridgeDeliver(spec, n, warmup));
