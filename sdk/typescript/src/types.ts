@@ -1,6 +1,8 @@
 /** Public SDK message and lease types. Protocol bytes stay inside the Worker. */
 
-export const STD_MSGS_STRING = "std_msgs/msg/String";
+export const STD_MSGS_STRING = "std_msgs/msg/String" as const;
+
+export const SENSOR_MSGS_POINT_CLOUD2 = "sensor_msgs/msg/PointCloud2" as const;
 
 /** Default KEEP_LAST depth when callers omit QoS depth (matches core). */
 export const DEFAULT_QOS_DEPTH = 5;
@@ -9,14 +11,42 @@ export type StdMsgsString = {
   data: string;
 };
 
+/**
+ * `sensor_msgs/msg/PointCloud2` as delivered to `onMessage`.
+ *
+ * `data` is a TypedArray view into wasm memory on the inline host (0 copies,
+ * valid until `lease.release()`). On the I/O Worker path the Worker copies
+ * only the `data` field and releases the lease before `postMessage`.
+ */
+export type PointCloud2 = {
+  height: number;
+  width: number;
+  pointStep: number;
+  rowStep: number;
+  isBigendian: boolean;
+  isDense: boolean;
+  fieldCount: number;
+  data: Uint8Array;
+};
+
+export type SampleMessage = StdMsgsString | PointCloud2;
+
+export function isStdMsgsString(message: SampleMessage): message is StdMsgsString {
+  return typeof message.data === "string";
+}
+
+export function isPointCloud2(message: SampleMessage): message is PointCloud2 {
+  return message.data instanceof Uint8Array;
+}
+
 /** Borrowed-view lease: call `release()` when the payload is no longer needed. */
 export type SampleLease = {
   readonly leaseId: number;
   release(): void;
 };
 
-export type SubscriptionHandler = (
-  message: StdMsgsString,
+export type SubscriptionHandler<T extends SampleMessage = SampleMessage> = (
+  message: T,
   lease: SampleLease,
 ) => void;
 

@@ -37,4 +37,4 @@ export {
 
 export { IoHost } from "./host.ts";
 
-export const SENSOR_MSGS_POINT_CLOUD2 = "sensor_msgs/msg/PointCloud2";
+export { SENSOR_MSGS_POINT_CLOUD2 } from "./types.ts";

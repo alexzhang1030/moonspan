@@ -4,8 +4,11 @@
  * opaque binary frames the Worker already owns.
  *
  * Service/action CDR bytes are copied out of wasm in the Worker and the lease
- * is released there. Main never sees payload pointers.
+ * is released there. PointCloud2 `data` is copied the same way. Main never
+ * sees payload pointers.
  */
+
+import type { PointCloud2 } from "../types.ts";
 
 export type MainToWorker =
   | { type: "init"; wasmUrl: string }
@@ -160,6 +163,12 @@ export type WorkerToMain =
       channelId: number;
       leaseId: number;
       data: string;
+    }
+  | {
+      type: "samplePointCloud2";
+      channelId: number;
+      leaseId: number;
+      message: PointCloud2;
     }
   | {
       type: "serviceReady";

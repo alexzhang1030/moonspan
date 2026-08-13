@@ -1,5 +1,6 @@
 //! Emit hex fixtures for the R1-04 SDK scripted-peer tests.
 
+use rclweb::cdr::build_synthetic_xyz_cdr;
 use rclweb::protocol::bootstrap::{
   BufferCapabilities, EffectiveLimits, ServerHello, TransportCapabilities,
 };
@@ -153,10 +154,31 @@ fn main() {
   .expect("header");
   sample[FRAME_HEADER_LENGTH..].copy_from_slice(&payload);
 
+  // Four XYZ points (48-byte payload) so SDK tests stay small.
+  let pc2_payload = build_synthetic_xyz_cdr(4).expect("pc2 cdr");
+  let mut point_cloud2_sample = vec![0u8; FRAME_HEADER_LENGTH + pc2_payload.len()];
+  write_frame_header(
+    &FrameHeader {
+      version: 0,
+      opcode: OPCODE_ROS_SAMPLE,
+      flags: 0,
+      channel_id: 1,
+      sequence: 0,
+      source_time_ns: 0,
+      priority: 2,
+      clock_id: 0,
+    },
+    pc2_payload.len() as u32,
+    0,
+    &mut point_cloud2_sample,
+  )
+  .expect("pc2 header");
+  point_cloud2_sample[FRAME_HEADER_LENGTH..].copy_from_slice(&pc2_payload);
+
   let _ = STD_MSGS_STRING;
   println!(
     "{}",
-    json!({
+    serde_json::to_string_pretty(&json!({
         "serverHello": hex(&server_hello),
         "sessionReady": hex(&session_ready),
         "channelReady": hex(&channel_ready),
@@ -164,10 +186,12 @@ fn main() {
         "actionChannelReady": hex(&action_channel_ready),
         "graphSnapshot": hex(&graph_snapshot),
         "sample": hex(&sample),
+        "pointCloud2Sample": hex(&point_cloud2_sample),
         "authCorrelationHex": hex(&auth_corr),
         "subCorrelationHex": hex(&sub_corr),
         "serviceCorrelationHex": hex(&service_corr),
         "actionCorrelationHex": hex(&action_corr),
-    })
+    }))
+    .expect("json"),
   );
 }

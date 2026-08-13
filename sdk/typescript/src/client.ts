@@ -1,5 +1,5 @@
 /**
- * Public `@rclweb/sdk` client: connect → subscribe/publish → typed String events.
+ * Public `@rclweb/sdk` client: connect → subscribe/publish → typed sample events.
  * All R2WP work stays in the I/O Worker / inline host (architecture rule).
  *
  * Reconnect (R2-01) is a fresh session: ClientHello → Authenticate → re-open
@@ -17,15 +17,23 @@ import type {
   ConnectOptions,
   GraphHandler,
   GraphView,
+  PointCloud2,
   QosOptions,
   SampleLease,
+  SampleMessage,
   ServiceClient,
   ServiceServer,
   ServiceServerHandler,
   StdMsgsString,
   SubscriptionHandler,
 } from "./types.ts";
-import { DEFAULT_QOS_DEPTH, STD_MSGS_STRING } from "./types.ts";
+import {
+  DEFAULT_QOS_DEPTH,
+  SENSOR_MSGS_POINT_CLOUD2,
+  STD_MSGS_STRING,
+  isPointCloud2,
+  isStdMsgsString,
+} from "./types.ts";
 import type { MainToWorker, WorkerToMain } from "./worker/messages.ts";
 
 export type {
@@ -39,8 +47,10 @@ export type {
   GraphHandler,
   GraphNode,
   GraphView,
+  PointCloud2,
   QosOptions,
   SampleLease,
+  SampleMessage,
   ServerCertificateHash,
   ServiceClient,
   ServiceServer,
@@ -48,7 +58,13 @@ export type {
   StdMsgsString,
   SubscriptionHandler,
 } from "./types.ts";
-export { DEFAULT_QOS_DEPTH, STD_MSGS_STRING };
+export {
+  DEFAULT_QOS_DEPTH,
+  SENSOR_MSGS_POINT_CLOUD2,
+  STD_MSGS_STRING,
+  isPointCloud2,
+  isStdMsgsString,
+};
 
 function defaultWasmUrl(): string {
   return new URL("../wasm/rclweb.wasm", import.meta.url).href;
@@ -80,11 +96,11 @@ type Pending = {
   reject: (err: Error) => void;
 };
 
-export type Subscription = {
+export type Subscription<T extends SampleMessage = SampleMessage> = {
   readonly topic: string;
   readonly typeName: string;
   readonly channelId: number;
-  onMessage(handler: SubscriptionHandler): void;
+  onMessage(handler: SubscriptionHandler<T>): void;
   unsubscribe(): Promise<void>;
 };
 
@@ -97,6 +113,16 @@ export type Publisher = {
 };
 
 export type RclwebSession = {
+  subscribe(
+    topic: string,
+    typeName: typeof SENSOR_MSGS_POINT_CLOUD2,
+    qos?: QosOptions,
+  ): Promise<Subscription<PointCloud2>>;
+  subscribe(
+    topic: string,
+    typeName?: typeof STD_MSGS_STRING,
+    qos?: QosOptions,
+  ): Promise<Subscription<StdMsgsString>>;
   subscribe(
     topic: string,
     typeName?: string,
@@ -282,8 +308,8 @@ class InlineClient implements RclwebClient {
 
   get session(): RclwebSession {
     return {
-      subscribe: (topic, typeName = STD_MSGS_STRING, qos = {}) =>
-        this.#subscribe(topic, typeName, qos),
+      subscribe: ((topic, typeName = STD_MSGS_STRING, qos = {}) =>
+        this.#subscribe(topic, typeName, qos)) as RclwebSession["subscribe"],
       publish: (topic, typeName = STD_MSGS_STRING, qos = {}) =>
         this.#publish(topic, typeName, qos),
       createServiceClient: (name, typeName = "") =>
@@ -455,7 +481,7 @@ class InlineClient implements RclwebClient {
       }
       case "sample": {
         const handler = this.#handlers.get(event.channelId);
-        if (!handler || event.stringData == null) {
+        if (!handler) {
           this.#host.releaseLease(event.leaseId);
           break;
         }
@@ -467,7 +493,19 @@ class InlineClient implements RclwebClient {
             this.#host.flushSync();
           },
         };
-        handler({ data: event.stringData }, lease);
+        if (event.stringData != null) {
+          handler({ data: event.stringData }, lease);
+          break;
+        }
+        const cloud = this.#host.decodePointCloud2(
+          event.payloadPtr,
+          event.payloadLen,
+        );
+        if (!cloud) {
+          this.#host.releaseLease(event.leaseId);
+          break;
+        }
+        handler(cloud, lease);
         break;
       }
       case "serviceReady": {
@@ -915,8 +953,8 @@ class WorkerClient implements RclwebClient {
   private constructor(worker: Worker) {
     this.#worker = worker;
     this.#session = {
-      subscribe: (topic, typeName = STD_MSGS_STRING, qos = {}) =>
-        this.#subscribe(topic, typeName, qos),
+      subscribe: ((topic, typeName = STD_MSGS_STRING, qos = {}) =>
+        this.#subscribe(topic, typeName, qos)) as RclwebSession["subscribe"],
       publish: (topic, typeName = STD_MSGS_STRING, qos = {}) =>
         this.#publish(topic, typeName, qos),
       createServiceClient: (name, typeName = "") =>
@@ -1136,6 +1174,23 @@ class WorkerClient implements RclwebClient {
             },
           },
         );
+        break;
+      }
+      case "samplePointCloud2": {
+        const handler = this.#handlers.get(msg.channelId);
+        if (!handler) {
+          break;
+        }
+        const leaseId = msg.leaseId;
+        handler(msg.message, {
+          leaseId,
+          release: () => {
+            this.#worker.postMessage({
+              type: "releaseLease",
+              leaseId,
+            } satisfies MainToWorker);
+          },
+        });
         break;
       }
       case "serviceReady": {

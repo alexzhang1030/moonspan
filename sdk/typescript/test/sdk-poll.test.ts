@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { STD_MSGS_STRING } from "../src/index.ts";
+import { SENSOR_MSGS_POINT_CLOUD2, STD_MSGS_STRING } from "../src/index.ts";
 import {
   connectOfflineForTests,
   decodePollResult,
@@ -35,17 +35,19 @@ test("public runtime exports stay application-facing", async () => {
   const sdk = await import("../src/index.ts");
   expect(Object.keys(sdk).sort()).toEqual([
     "DEFAULT_QOS_DEPTH",
+    "SENSOR_MSGS_POINT_CLOUD2",
     "STD_MSGS_STRING",
     "connect",
     "decodeCertificateHashValue",
     "fetchLocalDevTlsHashes",
     "httpOriginFromWebTransportUrl",
+    "isPointCloud2",
+    "isStdMsgsString",
   ]);
   expect(sdk).not.toHaveProperty("loadWasm");
   expect(sdk).not.toHaveProperty("IoHost");
   expect(sdk).not.toHaveProperty("connectOfflineForTests");
   expect(sdk).not.toHaveProperty("encodeHostBatch");
-  expect(sdk).not.toHaveProperty("SENSOR_MSGS_POINT_CLOUD2");
 });
 
 test("workspace export map resolves public and internal subpaths", async () => {
@@ -226,6 +228,118 @@ test("scripted peer: publish → ChannelReady → SendSample outbound", async ()
   const telemetry = client.telemetry();
   expect(telemetry).not.toBeNull();
   expect(telemetry!.samplesSent).toBe(1);
+
+  await client.close();
+});
+
+function readXyz(data: Uint8Array, index: number): [number, number, number] {
+  const view = new DataView(data.buffer, data.byteOffset + index * 12, 12);
+  return [
+    view.getFloat32(0, true),
+    view.getFloat32(4, true),
+    view.getFloat32(8, true),
+  ];
+}
+
+test("scripted peer: PointCloud2 sample is a borrowed wasm view", async () => {
+  const fixtures = scriptedPeerFixtures();
+  const wasmBytes = readFileSync(wasmPath);
+  const client = await connectOfflineForTests(
+    wasmBytes.buffer.slice(
+      wasmBytes.byteOffset,
+      wasmBytes.byteOffset + wasmBytes.byteLength,
+    ),
+  );
+
+  const host = client.host;
+  host.startOffline();
+  host.flushSync();
+  host.ingestBytes(fixtures.serverHello);
+  host.flushSync();
+  host.flushSync();
+  host.ingestBytes(fixtures.sessionReady);
+  host.flushSync();
+
+  const subPromise = client.session.subscribe("/points", SENSOR_MSGS_POINT_CLOUD2);
+  host.ingestBytes(fixtures.channelReady);
+  host.flushSync();
+  const sub = await subPromise;
+  expect(sub.typeName).toBe(SENSOR_MSGS_POINT_CLOUD2);
+
+  let saw: {
+    width: number;
+    height: number;
+    dataLen: number;
+    borrowed: boolean;
+    xyz0: [number, number, number];
+    xyz1: [number, number, number];
+  } | null = null;
+  sub.onMessage((msg, lease) => {
+    saw = {
+      width: msg.width,
+      height: msg.height,
+      dataLen: msg.data.length,
+      borrowed: msg.data.buffer === host.engineMemory(),
+      xyz0: readXyz(msg.data, 0),
+      xyz1: readXyz(msg.data, 1),
+    };
+    lease.release();
+  });
+
+  host.ingestBytes(fixtures.pointCloud2Sample);
+  host.flushSync();
+
+  expect(saw).not.toBeNull();
+  expect(saw!.width).toBe(4);
+  expect(saw!.height).toBe(1);
+  expect(saw!.dataLen).toBe(48);
+  expect(saw!.borrowed).toBe(true);
+  expect(saw!.xyz0[0]).toBeCloseTo(0);
+  expect(saw!.xyz0[1]).toBeCloseTo(0);
+  expect(saw!.xyz0[2]).toBeCloseTo(0);
+  expect(saw!.xyz1[0]).toBeCloseTo(0.01);
+  expect(saw!.xyz1[1]).toBeCloseTo(0.02);
+  expect(saw!.xyz1[2]).toBeCloseTo(0.03);
+
+  const telemetry = client.telemetry();
+  expect(telemetry).not.toBeNull();
+  expect(telemetry!.leasesReleased).toBe(telemetry!.samplesEmitted);
+
+  await client.close();
+});
+
+test("scripted peer: PointCloud2 sample with no handler still releases its lease", async () => {
+  const fixtures = scriptedPeerFixtures();
+  const wasmBytes = readFileSync(wasmPath);
+  const client = await connectOfflineForTests(
+    wasmBytes.buffer.slice(
+      wasmBytes.byteOffset,
+      wasmBytes.byteOffset + wasmBytes.byteLength,
+    ),
+  );
+
+  const host = client.host;
+  host.startOffline();
+  host.flushSync();
+  host.ingestBytes(fixtures.serverHello);
+  host.flushSync();
+  host.flushSync();
+  host.ingestBytes(fixtures.sessionReady);
+  host.flushSync();
+
+  const subPromise = client.session.subscribe("/points", SENSOR_MSGS_POINT_CLOUD2);
+  host.ingestBytes(fixtures.channelReady);
+  host.flushSync();
+  await subPromise;
+
+  host.ingestBytes(fixtures.pointCloud2Sample);
+  host.flushSync();
+  host.flushSync();
+
+  const telemetry = client.telemetry();
+  expect(telemetry).not.toBeNull();
+  expect(telemetry!.samplesEmitted).toBeGreaterThan(0);
+  expect(telemetry!.leasesReleased).toBe(telemetry!.samplesEmitted);
 
   await client.close();
 });

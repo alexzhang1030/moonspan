@@ -1,11 +1,12 @@
 /**
  * Worker-path (default `connect`, not `inline`) coverage for subscribe,
- * graph, services, and actions. Scripted peer bytes come from fixture-gen.
+ * graph, services, actions, and PointCloud2 samples. Scripted peer bytes
+ * come from fixture-gen.
  */
 
 import { expect, test } from "bun:test";
 import path from "node:path";
-import { connect, STD_MSGS_STRING } from "../src/index.ts";
+import { connect, SENSOR_MSGS_POINT_CLOUD2, STD_MSGS_STRING } from "../src/index.ts";
 import { scriptedPeerFixtures } from "./scripted-peer.ts";
 
 const wasmPath = path.join(import.meta.dir, "..", "wasm", "rclweb.wasm");
@@ -240,6 +241,85 @@ test("Worker path: action client sendGoal echoes result CDR", async () => {
   const { result } = action.sendGoal(goal);
   const payload = await result;
   expect([...payload]).toEqual([...goal]);
+  await client.close();
+  server.stop(true);
+});
+
+function readXyz(data: Uint8Array, index: number): [number, number, number] {
+  const view = new DataView(data.buffer, data.byteOffset + index * 12, 12);
+  return [
+    view.getFloat32(0, true),
+    view.getFloat32(4, true),
+    view.getFloat32(8, true),
+  ];
+}
+
+test("Worker path: PointCloud2 sample copies data across the boundary", async () => {
+  const fixtures = scriptedPeerFixtures();
+  const wasmUrl = pathToFileUrl(wasmPath);
+  let step: "hello" | "ready" | "channel" | "sample" | "done" = "hello";
+
+  const server = Bun.serve({
+    port: 0,
+    fetch(req, server) {
+      if (server.upgrade(req)) return undefined;
+      return new Response("expected websocket", { status: 400 });
+    },
+    websocket: {
+      message(ws, message) {
+        const bytes =
+          message instanceof ArrayBuffer
+            ? new Uint8Array(message)
+            : typeof message === "string"
+              ? new TextEncoder().encode(message)
+              : new Uint8Array(message);
+        if (step === "hello" && isHello(bytes)) {
+          step = "ready";
+          ws.send(fixtures.serverHello);
+          return;
+        }
+        if (step === "ready" && bytes[1] === OPCODE_CONTROL) {
+          step = "channel";
+          ws.send(fixtures.sessionReady);
+          return;
+        }
+        if (step === "channel" && bytes[1] === OPCODE_CONTROL) {
+          step = "sample";
+          ws.send(fixtures.channelReady);
+          setTimeout(() => {
+            if (step === "sample") {
+              ws.send(fixtures.pointCloud2Sample);
+              step = "done";
+            }
+          }, 10);
+        }
+      },
+    },
+  });
+
+  const client = await connect(`ws://127.0.0.1:${server.port}`, { wasmUrl });
+  const sub = await client.session.subscribe("/points", SENSOR_MSGS_POINT_CLOUD2);
+  const sample = await new Promise<{
+    width: number;
+    dataLen: number;
+    xyz1: [number, number, number];
+  }>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("pc2 timeout")), 5000);
+    sub.onMessage((msg, lease) => {
+      clearTimeout(timer);
+      lease.release();
+      resolve({
+        width: msg.width,
+        dataLen: msg.data.length,
+        xyz1: readXyz(msg.data, 1),
+      });
+    });
+  });
+  expect(sample.width).toBe(4);
+  expect(sample.dataLen).toBe(48);
+  expect(sample.xyz1[0]).toBeCloseTo(0.01);
+  expect(sample.xyz1[1]).toBeCloseTo(0.02);
+  expect(sample.xyz1[2]).toBeCloseTo(0.03);
   await client.close();
   server.stop(true);
 });
