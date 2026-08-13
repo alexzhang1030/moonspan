@@ -41,6 +41,8 @@ as the bundler.
   They are not runtime dependencies of the published package.
 - Live e2e/perf images run tsdown after staging wasm so
   `import from "rcl-web"` resolves to `dist/`.
+- The tsdown ship is `rcl-web@0.0.2`. `0.0.1` is already on the registry
+  as TypeScript source and cannot be overwritten.
 
 ## Revisit triggers
 

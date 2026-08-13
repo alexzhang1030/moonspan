@@ -40,7 +40,9 @@ human `npm publish` can prove npm's similarity check accepts it.
 - `just build` / `just check` use `--filter rcl-web`.
 - The first published version remains `0.0.1`. The tarball must include
   `LICENSE` and `NOTICE`.
-- If npm also 403s `rcl-web`, this ADR's revisit fires.
+- npm accepted `rcl-web@0.0.1` on 2026-08-13 (TypeScript source). The
+  tsdown ship is `0.0.2` ([ADR 0015](./0015-tsdown-ship-bundle.md)).
+- If a later `rcl-web` publish 403s, this ADR's revisit fires.
 
 ## Revisit triggers
 

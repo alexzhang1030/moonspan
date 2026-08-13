@@ -3,10 +3,11 @@
 TypeScript package for rclweb. If you can write rclcpp, you can write
 this package: `init` → `Node` → `createPublisher` / `createSubscription`.
 
-The first published version is `0.0.1`. The package is public. The npm
-name is `rcl-web` because npm rejected unscoped `rclweb` as too similar
-to `rrweb`. The tarball is the tsdown ESM + `.d.ts` bundle, not
-TypeScript source, plus [LICENSE](../LICENSE) and [NOTICE](../NOTICE)
+The current version is `0.0.2`. `0.0.1` on npm shipped TypeScript
+source. The package is public. The npm name is `rcl-web` because npm
+rejected unscoped `rclweb` as too similar to `rrweb`. The tarball is
+the tsdown ESM + `.d.ts` bundle, not TypeScript source, plus
+[LICENSE](../LICENSE) and [NOTICE](../NOTICE)
 (copied here at pack time; do not commit those copies). Consume it from
 npm as `rcl-web`, or from this repository's Bun workspace
 (`"rcl-web": "workspace:*"`). Licensed under Apache License 2.0; see

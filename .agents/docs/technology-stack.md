@@ -62,7 +62,7 @@ Committed rustfmt/clippy knobs, workspace lints, shared crate versions, and name
 |---|---|
 | `rclweb/` | Cargo crate: the core (native + wasm32); `cdylib` exports the hand-written poll ABI |
 | `rclwebd/` | Cargo crate: the gateway |
-| `typescript/` | Bun workspace package `rcl-web@0.0.1` (public). tsdown ship bundle. Public application contract; `rcl-web/internal` is host/ABI/test helpers ([`rcl-web`](../../docs/typescript.md), [ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md), [ADR 0015](../../docs/adr/0015-tsdown-ship-bundle.md)) |
+| `typescript/` | Bun workspace package `rcl-web@0.0.2` (public). tsdown ship bundle. Public application contract; `rcl-web/internal` is host/ABI/test helpers ([`rcl-web`](../../docs/typescript.md), [ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md), [ADR 0015](../../docs/adr/0015-tsdown-ship-bundle.md)) |
 | `typescript/wasm/` | Staged `rclweb.wasm` from `scripts/build-wasm.ts` (fat LTO) |
 | `protocol/` | Normative contracts, registries, schemas, and frozen fixtures |
 | `conformance/` | CDR corpus and qualification workloads |

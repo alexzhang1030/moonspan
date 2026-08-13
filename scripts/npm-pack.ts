@@ -11,6 +11,8 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 export const PACKAGE_DIR_REL = "typescript";
+export const EXPECTED_PACKAGE_NAME = "rcl-web";
+export const EXPECTED_PACKAGE_VERSION = "0.0.2";
 
 export const REQUIRED_TARBALL_MEMBERS = [
   "package/LICENSE",
@@ -105,7 +107,7 @@ export function packAndList(root: string): { tarball: string; listing: string } 
       .find((l) => l.endsWith(".tgz"));
     const tarball = tarballLine && existsSync(tarballLine)
       ? tarballLine
-      : path.join(outDir, "rcl-web-0.0.1.tgz");
+      : path.join(outDir, `${EXPECTED_PACKAGE_NAME}-${EXPECTED_PACKAGE_VERSION}.tgz`);
     if (!existsSync(tarball)) {
       throw new Error(`packed tarball not found (stdout: ${packed.stdout.trim()})`);
     }
@@ -148,8 +150,10 @@ function main(): void {
     exports?: unknown;
     files?: string[];
   };
-  if (pkg.name !== "rcl-web" || pkg.version !== "0.0.1" || pkg.private) {
-    console.error("npm-pack: package must be rcl-web@0.0.1 with private unset or false");
+  if (pkg.name !== EXPECTED_PACKAGE_NAME || pkg.version !== EXPECTED_PACKAGE_VERSION || pkg.private) {
+    console.error(
+      `npm-pack: package must be ${EXPECTED_PACKAGE_NAME}@${EXPECTED_PACKAGE_VERSION} with private unset or false`,
+    );
     process.exit(1);
   }
   if (exportsPointAtSource(pkg.exports, pkg.files ?? [])) {
