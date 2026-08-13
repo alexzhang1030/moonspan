@@ -2,7 +2,7 @@
  * Primary perf-baseline probe: latency, CPU, and memory.
  *
  * Each hop is "bytes already in JS → usable ROS message":
- * - rclweb: wasm poll until Sample (string decoded / PointCloud2 metadata)
+ * - rclweb: host-retain ROS_SAMPLE (header peek + JS CDR; no wasm poll)
  * - foxglove: MessageData header skip + JS CDR decode (same types)
  * - rosbridge: JSON.parse; String is a JSON field, PointCloud2 is base64+CDR
  *
@@ -339,7 +339,7 @@ export function formatIngestTable(rows: IngestRow[]): string {
   });
 
   return [
-    "Latency / CPU / RSS — usable message (rclweb = wasm poll; foxglove/rosbridge = JS-only decode)",
+    "Latency / CPU / RSS — usable message (rclweb = JS ROS_SAMPLE; foxglove/rosbridge = JS-only decode)",
     header,
     ...lines,
   ].join("\n");

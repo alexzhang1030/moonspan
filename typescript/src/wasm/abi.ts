@@ -996,6 +996,14 @@ function readI64BE(bytes: Uint8Array, offset: number): bigint {
 }
 
 function dropHostReleases(events: HostEventInput[]): HostEventInput[] {
+  let drop = false;
+  for (const event of events) {
+    if (event.type === "releaseLease" && hostLeases.has(event.leaseId >>> 0)) {
+      drop = true;
+      break;
+    }
+  }
+  if (!drop) return events;
   const rest: HostEventInput[] = [];
   for (const event of events) {
     if (event.type === "releaseLease") {
@@ -1706,15 +1714,16 @@ export function pollEngine(
   handle: number,
   events: HostEventInput[],
 ): PollResult {
+  // Single-frame ROS_SAMPLE ingest: do not copy the event list or enter wasm.
+  if (events.length === 1 && events[0]!.type === "wsBytes") {
+    return pollOneExternalWs(wasm, handle, events[0]!);
+  }
   events = dropHostReleases(events);
   if (events.length === 0) {
     return emptyPollResult();
   }
   if (!batchHasWsBytes(events)) {
     return pollEngineInline(wasm, handle, events);
-  }
-  if (events.length === 1 && events[0]!.type === "wsBytes") {
-    return pollOneExternalWs(wasm, handle, events[0]!);
   }
   const parts: PollResult[] = [];
   let i = 0;
