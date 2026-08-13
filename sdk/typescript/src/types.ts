@@ -37,6 +37,12 @@ export type ConnectOptions = {
   /** Override path/URL to the `rclweb.wasm` artifact. */
   wasmUrl?: string | URL;
   /**
+   * Override the I/O Worker module URL. Default is `./worker/io-worker.ts`
+   * next to this script when the caller loaded TypeScript, or
+   * `./worker/io-worker.js` next to the browser bundle.
+   */
+  workerUrl?: string | URL;
+  /**
    * Fresh-session reconnect on transport close (R2-01). SessionResume stays
    * parked in the v0.1 subset — this re-runs ClientHello → Auth → channel opens.
    */

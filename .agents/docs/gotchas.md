@@ -85,6 +85,10 @@ Foundation CI installs Bun with SHA-pinned `oven-sh/setup-bun` (`.bun-version`) 
 
 `[profile.release-wasm] inherits = "release"`. Adding `strip`, `lto`, or panic settings to native release also applies to the wasm ship profile unless that key is set again on `release-wasm`. Putting `strip = "symbols"` on native release dropped staged `rclweb.wasm` from 593631 bytes to 376519. Keep fat LTO, `panic = abort`, `opt-level = "z"`, and `strip` explicit on `release-wasm`. Reproduce with `just build` (it prints the staged size).
 
+## SDK Worker URL follows the script extension
+
+`new Worker(new URL("./worker/io-worker.ts", import.meta.url))` is correct for Bun workspace source and wrong after `bun build` writes `dist/index.js`. The sibling in `dist/` is `io-worker.js`. `resolveIoWorkerUrl` picks `.ts` vs `.js` from the loading script. Do not hardcode `.ts`. [R4-04](../../docs/milestones/r4-04-sdk.md).
+
 ## Bundle files are named by type
 
 Canonical bundles live at `conformance/cdr/fixtures/bundles/<type with / → .>.json` (for example `rclweb_cdr_interfaces.msg.PrimitiveScalars.json`). Humble `SchemaKey.value` is still the SHA-256 of those bytes — that digest is a wire field, not a filename. Renaming scheme/package strings inside the JSON changes the digest; do not Docker `--write` the corpus for a name change. [ADR 0012](../../docs/adr/0012-rclweb-schema-identifiers.md).

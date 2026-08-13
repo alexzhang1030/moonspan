@@ -54,6 +54,23 @@ function defaultWasmUrl(): string {
   return new URL("../wasm/rclweb.wasm", import.meta.url).href;
 }
 
+/**
+ * Resolve the I/O Worker module URL next to this script.
+ *
+ * Workspace source is `io-worker.ts`. The browser build emits `index.js`, so
+ * the sibling must be `io-worker.js` — a hardcoded `.ts` URL breaks `dist/`.
+ */
+export function resolveIoWorkerUrl(
+  scriptUrl: string,
+  override?: string | URL,
+): URL {
+  if (override !== undefined) {
+    return new URL(String(override), scriptUrl);
+  }
+  const name = scriptUrl.endsWith(".ts") ? "io-worker.ts" : "io-worker.js";
+  return new URL(`./worker/${name}`, scriptUrl);
+}
+
 function corrTag(tag: number): Uint8Array {
   return new Uint8Array(16).fill(tag & 0xff);
 }
@@ -926,7 +943,7 @@ class WorkerClient implements RclwebClient {
     wasmUrl: string,
     options: ConnectOptions = {},
   ): Promise<WorkerClient> {
-    const workerUrl = new URL("./worker/io-worker.ts", import.meta.url);
+    const workerUrl = resolveIoWorkerUrl(import.meta.url, options.workerUrl);
     const worker = new Worker(workerUrl.href, { type: "module" });
     const client = new WorkerClient(worker);
     await client.#request({ type: "init", wasmUrl });

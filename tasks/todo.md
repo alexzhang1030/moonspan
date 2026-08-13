@@ -44,7 +44,7 @@ Status values: `[ ]` queued, `[~]` active, `[x]` verified. Phase details live in
 - [~] R4-01 OIDC, SROS2/ACL, audit (Authenticate off-by-default / opt-in `oidc` + audit; ACL/SROS2 enclave still open).
 - [~] R4-02 Deployment and observability (ops endpoints + J-FT / H-FT runtime images; PKI/remaining-row images/orchestrators still open).
 - [~] R4-03 Support matrix against live gates (no committed measurement JSON; remaining-row live e2e and human Qualified promotion still open).
-- [ ] R4-04 SDK stabilization and release.
+- [~] R4-04 SDK stabilization and release (first slice: public vs internal exports, SDK docs, Worker URL, subscribe-chatter on `dist/`; npm publish still open).
 
 ## Kickoff decisions
 

@@ -36,4 +36,4 @@ just fix-rust
 
 ## Records
 
-Read the [PCR map](.agents/docs/README.md) before changing an enrolled area. Update the authoritative document with the code. Durable decisions live under [`docs/adr/`](docs/adr/README.md).
+Read the [PCR map](.agents/docs/README.md) before changing an enrolled area. Update the authoritative document with the code. Durable decisions live under [`docs/adr/`](docs/adr/README.md). The browser SDK application contract is [`docs/sdk.md`](docs/sdk.md).

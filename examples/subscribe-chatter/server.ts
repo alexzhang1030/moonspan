@@ -1,6 +1,7 @@
 /**
- * Minimal demo server: serves a page that connects to rclwebd and prints /chatter.
- * Run with a live gateway: `RCLWEB_GATEWAY_URL=ws://127.0.0.1:8794/ws bun run start`
+ * Demo server: serves the built SDK and a page that connects to rclwebd.
+ * Build first (`just build` or `bun run --filter @rclweb/sdk build`), then:
+ * `RCLWEB_GATEWAY_URL=ws://127.0.0.1:8794/ws bun run start`
  */
 import { serve } from "bun";
 import path from "node:path";
@@ -10,7 +11,16 @@ const gatewayUrl =
   process.env.RCLWEB_GATEWAY_URL ?? "ws://127.0.0.1:8794/ws";
 const root = import.meta.dir;
 const sdkWasm = path.resolve(root, "../../sdk/typescript/wasm/rclweb.wasm");
-const sdkSrc = path.resolve(root, "../../sdk/typescript/src");
+const sdkDist = path.resolve(root, "../../sdk/typescript/dist");
+const sdkIndex = path.join(sdkDist, "index.js");
+
+if (!(await Bun.file(sdkIndex).exists())) {
+  console.error(
+    "subscribe-chatter needs the SDK browser bundle at sdk/typescript/dist/index.js.\n" +
+      "Run `just build` (or `bun run --filter @rclweb/sdk build`) first.",
+  );
+  process.exit(1);
+}
 
 const html = `<!doctype html>
 <html lang="en">
@@ -66,6 +76,20 @@ const html = `<!doctype html>
       animation: rise 700ms ease-out 140ms both;
     }
     button:disabled { opacity: 0.5; cursor: default; }
+    #compose {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      animation: rise 700ms ease-out 160ms both;
+    }
+    #compose[hidden] { display: none; }
+    #out {
+      flex: 1;
+      font: inherit;
+      padding: 0.7rem 0.8rem;
+      border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+      background: color-mix(in srgb, white 70%, transparent);
+    }
     #status {
       margin-top: 1.25rem;
       font-variant-numeric: tabular-nums;
@@ -98,27 +122,41 @@ const html = `<!doctype html>
 <body>
   <main>
     <h1>rclweb</h1>
-    <p class="lede">Live <code>/chatter</code> through the walking-skeleton SDK.</p>
+    <p class="lede">Live <code>/chatter</code> through <code>@rclweb/sdk</code>.</p>
     <button id="go" type="button">Connect</button>
+    <form id="compose" hidden>
+      <input id="out" type="text" maxlength="200" placeholder="Publish to /chatter" autocomplete="off" />
+      <button id="send" type="submit">Send</button>
+    </form>
     <p id="status">Idle · gateway <code>${gatewayUrl}</code></p>
     <ul id="log" aria-live="polite"></ul>
   </main>
   <script type="module">
-    import { connect, STD_MSGS_STRING } from "/sdk/index.ts";
+    import { connect, STD_MSGS_STRING } from "/sdk/index.js";
     const status = document.getElementById("status");
     const log = document.getElementById("log");
     const go = document.getElementById("go");
+    const compose = document.getElementById("compose");
+    const out = document.getElementById("out");
     go.addEventListener("click", async () => {
       go.disabled = true;
       status.textContent = "Connecting…";
       try {
         const client = await connect(${JSON.stringify(gatewayUrl)}, {
           wasmUrl: "/wasm/rclweb.wasm",
-          inline: true,
         });
         status.textContent = "Session ready · subscribing /chatter";
         const sub = await client.session.subscribe("/chatter", STD_MSGS_STRING);
+        const pub = await client.session.publish("/chatter", STD_MSGS_STRING);
         status.textContent = "Subscribed · waiting for samples";
+        compose.hidden = false;
+        compose.addEventListener("submit", async (ev) => {
+          ev.preventDefault();
+          const data = out.value.trim();
+          if (!data) return;
+          out.value = "";
+          await pub.publish({ data });
+        });
         sub.onMessage((msg, lease) => {
           const li = document.createElement("li");
           li.textContent = msg.data;
@@ -147,7 +185,12 @@ serve({
     }
     if (url.pathname.startsWith("/sdk/")) {
       const rel = url.pathname.slice("/sdk/".length);
-      const file = Bun.file(path.join(sdkSrc, rel));
+      const filePath = path.resolve(sdkDist, rel);
+      const distRoot = path.resolve(sdkDist);
+      if (filePath !== distRoot && !filePath.startsWith(distRoot + path.sep)) {
+        return new Response("not found", { status: 404 });
+      }
+      const file = Bun.file(filePath);
       if (await file.exists()) {
         return new Response(file, {
           headers: { "content-type": "text/javascript; charset=utf-8" },
