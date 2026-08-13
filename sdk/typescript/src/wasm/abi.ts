@@ -438,16 +438,9 @@ function commandEncodedSize(prepared: PreparedCommand): number {
       for (const name of names) {
         fieldsSize += 11 + name.length;
       }
-      return (
-        4 +
-        36 +
-        2 +
-        prepared.frameId!.length +
-        4 +
-        fieldsSize +
-        4 +
-        prepared.payload!.length
-      );
+      // cmd(4) + channel..stamp_nanosec(32) + frame_id_len(2) + frame_id +
+      // field_count(4) + fields + data_len(4) + data
+      return 4 + 32 + 2 + prepared.frameId!.length + 4 + fieldsSize + 4 + prepared.payload!.length;
     }
     case "openService":
     case "openAction":
