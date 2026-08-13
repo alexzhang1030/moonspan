@@ -1123,12 +1123,16 @@ impl ClientEngine {
 
     let type_name =
       self.active_subscribes.get(&frame.channel_id).map(|s| s.type_name.as_str()).unwrap_or("");
-    let string_data =
-      if type_name == STD_MSGS_STRING || type_name == "std_msgs/String" || type_name.is_empty() {
-        Self::decode_std_msgs_string(payload).ok()
-      } else {
-        None
-      };
+    let string_data = if cfg!(target_arch = "wasm32") {
+      // Host TextDecoder reads the leased CDR. Embedding the body in the poll
+      // result copied every String sample an extra time.
+      None
+    } else if type_name == STD_MSGS_STRING || type_name == "std_msgs/String" || type_name.is_empty()
+    {
+      Self::decode_std_msgs_string(payload).ok()
+    } else {
+      None
+    };
 
     let lease_id = self.next_lease_id;
     self.next_lease_id = self.next_lease_id.saturating_add(1);
@@ -1138,8 +1142,9 @@ impl ClientEngine {
     self.leases.insert(lease_id, Lease { buffer_id, payload_offset, payload_len });
 
     // Hosts read the CDR payload through [`Self::lease_payload_view`]
-    // into the retained slab. The SDK String path delivers `string_data`
-    // (no extra controllable copy).
+    // into the retained slab. Native tests deliver `string_data` on the
+    // event; wasm leaves it empty so the host decodes the lease (no extra
+    // copy of the String body through the poll result).
     outcome.events.push(AppEvent::Sample {
       channel_id: frame.channel_id,
       lease_id,

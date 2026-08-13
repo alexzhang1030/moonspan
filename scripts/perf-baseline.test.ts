@@ -6,6 +6,8 @@ import {
   ROSBRIDGE_JSON_BASE64_EXPANSION,
 } from "./perf-baseline/copy-path.ts";
 import {
+  decodePointCloud2Cdr,
+  decodeStdMsgsStringCdr,
   encodeStdMsgsStringCdr,
   encodeXyzPointCloud2Cdr,
   stdMsgsStringCdrOfSize,
@@ -145,6 +147,16 @@ describe("ingest latency / CPU / mem harness", () => {
     expect(encodeXyzPointCloud2Cdr(4, true)).toEqual(payload);
   });
 
+  test("JS CDR decode round-trips String and PointCloud2", () => {
+    expect(decodeStdMsgsStringCdr(encodeStdMsgsStringCdr("hello-from-fixture"))).toBe(
+      "hello-from-fixture",
+    );
+    const cloud = decodePointCloud2Cdr(encodeXyzPointCloud2Cdr(4, true));
+    expect(cloud.width).toBe(4);
+    expect(cloud.data.byteLength).toBe(48);
+    expect(cloud.fields.map((f) => f.name)).toEqual(["x", "y", "z"]);
+  });
+
   test("string CDR ofSize hits the requested stream length", () => {
     expect(stdMsgsStringCdrOfSize(1024).byteLength).toBe(1024);
     expect(stdMsgsStringCdrOfSize(32 * 1024).byteLength).toBe(32 * 1024);
@@ -192,8 +204,8 @@ describe("ingest latency / CPU / mem harness", () => {
       );
       expect(rows.map((r) => r.hop)).toEqual([
         "rclweb.ingest",
-        "foxglove.messageDataView",
-        "rosbridge.jsonParseB64",
+        "foxglove.cdrDecode",
+        "rosbridge.jsonDecode",
       ]);
       for (const row of rows) {
         expect(row.latencyMs.n).toBe(6);

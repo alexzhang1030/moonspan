@@ -8,6 +8,7 @@
 
 use crate::engine::ClientEngine;
 use crate::host::batch::{BatchError, decode_host_batch, encode_poll_result};
+use std::alloc::{Layout, alloc, dealloc};
 use std::cell::RefCell;
 use std::collections::HashMap;
 
@@ -28,17 +29,26 @@ fn map_batch_err(err: BatchError) -> i32 {
   }
 }
 
+fn alloc_layout(len: usize) -> Option<Layout> {
+  Layout::array::<u8>(len).ok()
+}
+
 /// Allocate `len` bytes in wasm linear memory. Returns null on failure.
+///
+/// The region is **uninitialized**. The host (or a wasm writer) must fill it
+/// before any read. Zeroing here was a full memset before the required ingest
+/// memcpy (copy-budget slot 2).
 #[unsafe(no_mangle)]
 pub extern "C" fn rclweb_alloc(len: u32) -> *mut u8 {
   if len == 0 {
     return std::ptr::null_mut();
   }
-  let mut buf = vec![0u8; len as usize];
-  let ptr = buf.as_mut_ptr();
-  // Leak the Vec so the host owns the region until rclweb_free.
-  std::mem::forget(buf);
-  ptr
+  let Some(layout) = alloc_layout(len as usize) else {
+    return std::ptr::null_mut();
+  };
+  // SAFETY: `len > 0` so the layout is non-zero. Matching [`rclweb_free`] and
+  // `Vec::from_raw_parts` in [`rclweb_poll`] use this same layout.
+  unsafe { alloc(layout) }
 }
 
 /// Free a region previously returned by [`rclweb_alloc`].
@@ -50,8 +60,11 @@ pub unsafe extern "C" fn rclweb_free(ptr: *mut u8, len: u32) {
   if ptr.is_null() || len == 0 {
     return;
   }
-  // SAFETY: host contract — ptr/len pair from rclweb_alloc.
-  let _ = unsafe { Vec::from_raw_parts(ptr, len as usize, len as usize) };
+  let Some(layout) = alloc_layout(len as usize) else {
+    return;
+  };
+  // SAFETY: host contract — ptr/len pair from rclweb_alloc with the same layout.
+  unsafe { dealloc(ptr, layout) };
 }
 
 /// Create a client engine. Returns a non-zero handle, or 0 on failure.

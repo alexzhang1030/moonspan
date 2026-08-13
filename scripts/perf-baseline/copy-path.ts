@@ -6,7 +6,7 @@
  * sits outside the budget. Optional application copies (public Node,
  * Worker `postMessage`, Studio GPU upload) are listed separately.
  *
- * Machine-checkable twin of [docs/performance.md](../../docs/performance.md).
+ * Machine-checkable copy counts for [docs/performance.md](../../docs/performance.md).
  */
 
 export type CopySystemId =

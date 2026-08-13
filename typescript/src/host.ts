@@ -11,15 +11,20 @@ import {
   type WasmExports,
   decodeGeneratedBytes,
   decodePointCloud2Meta,
+  decodeStdMsgsStringAt,
   loadWasm,
   pointCloud2DataView,
   pollEngine,
-  readTelemetry,
+  readTelemetryAt,
 } from "./wasm/abi.ts";
 import {
   decodeGeneratedHostValue,
   type GeneratedMsg,
 } from "./generated-value.ts";
+import {
+  PointCloud2 as PointCloud2Msg,
+  isGeneratedMsgType,
+} from "./interfaces.ts";
 import type { PointCloud2, ServerCertificateHash } from "./types.ts";
 import {
   decodeCertificateHashValue,
@@ -79,6 +84,7 @@ export class IoHost {
   #lastTelemetry: EngineTelemetrySnapshot | null = null;
   #suppressCloseHandler = false;
   #connectOptions: HostConnectOptions = {};
+  #telemetryPtr = 0;
 
   private constructor(wasm: WasmExports, handle: number, callbacks: HostCallbacks) {
     this.#wasm = wasm;
@@ -510,6 +516,30 @@ export class IoHost {
     });
   }
 
+  /**
+   * Fill `stringData` from the leased CDR when wasm omitted it (wasm ingest
+   * no longer copies the String body through the poll result).
+   */
+  fillStringSample(
+    event: Extract<AppEvent, { type: "sample" }>,
+    typeName: string | undefined,
+  ): void {
+    if (event.stringData != null) return;
+    if (
+      typeName &&
+      (isGeneratedMsgType(typeName) ||
+        typeName === PointCloud2Msg.typeName ||
+        typeName === "sensor_msgs/PointCloud2")
+    ) {
+      return;
+    }
+    event.stringData = decodeStdMsgsStringAt(
+      this.#wasm,
+      event.payloadPtr,
+      event.payloadLen,
+    );
+  }
+
   copyPayload(payloadPtr: number, payloadLen: number): Uint8Array {
     return new Uint8Array(
       this.#wasm.memory.buffer,
@@ -653,6 +683,10 @@ export class IoHost {
     this.#pending = [];
     this.#flushScheduled = false;
     this.#disposed = true;
+    if (this.#telemetryPtr !== 0) {
+      this.#wasm.rclweb_free(this.#telemetryPtr, 56);
+      this.#telemetryPtr = 0;
+    }
     if (this.#handle !== 0) {
       this.#wasm.rclweb_engine_free(this.#handle);
       this.#handle = 0;
@@ -690,8 +724,11 @@ export class IoHost {
     const batch = this.#pending;
     this.#pending = [];
     const result = pollEngine(this.#wasm, this.#handle, batch);
-    this.#lastTelemetry = readTelemetry(this.#wasm, this.#handle);
-    this.#callbacks.onPollEnd?.(this.#lastTelemetry);
+    const onPollEnd = this.#callbacks.onPollEnd;
+    if (onPollEnd) {
+      this.#lastTelemetry = this.#readTelemetry();
+      onPollEnd(this.#lastTelemetry);
+    }
     for (const msg of result.outbound) {
       const sink = this.#sink;
       if (sink) {
@@ -730,11 +767,21 @@ export class IoHost {
       return this.#lastTelemetry;
     }
     try {
-      this.#lastTelemetry = readTelemetry(this.#wasm, this.#handle);
+      this.#lastTelemetry = this.#readTelemetry();
     } catch {
       // keep last known
     }
     return this.#lastTelemetry;
+  }
+
+  #readTelemetry(): EngineTelemetrySnapshot {
+    if (this.#telemetryPtr === 0) {
+      this.#telemetryPtr = this.#wasm.rclweb_alloc(56);
+      if (this.#telemetryPtr === 0) {
+        throw new Error("rclweb_alloc failed for telemetry");
+      }
+    }
+    return readTelemetryAt(this.#wasm, this.#handle, this.#telemetryPtr);
   }
 }
 

@@ -1,13 +1,12 @@
 /**
  * Primary perf-baseline probe: latency, CPU, and memory.
  *
- * rclweb hop: scripted-peer session, then time ingestBytes + flushSync until
- * a Sample is delivered and its lease is released. That is the wasm ingest
- * hop after bytes are already in JS — not loopback e2e (see
- * `just perf-baseline-live`).
+ * Each hop is "bytes already in JS → usable ROS message":
+ * - rclweb: wasm poll until Sample (string decoded / PointCloud2 metadata)
+ * - foxglove: MessageData header skip + JS CDR decode (same types)
+ * - rosbridge: JSON.parse; String is a JSON field, PointCloud2 is base64+CDR
  *
- * Foxglove / rosbridge hops: client reconstitutes a CDR view from a prebuilt
- * envelope (MessageData subarray vs JSON.parse + base64). No live bridges.
+ * Not live e2e (`just perf-baseline-live`).
  */
 
 import { connectOfflineForTests } from "../../typescript/src/internal.ts";
@@ -17,6 +16,8 @@ import {
   scriptedPeerFixtures,
 } from "../../typescript/test/scripted-peer.ts";
 import {
+  decodePointCloud2Cdr,
+  decodeStdMsgsStringCdr,
   encodeXyzPointCloud2Cdr,
   stdMsgsStringCdrOfSize,
 } from "./cdr-payloads.ts";
@@ -68,8 +69,8 @@ export const INGEST_SIZES: readonly IngestSizeSpec[] = [
 
 export type IngestHopId =
   | "rclweb.ingest"
-  | "foxglove.messageDataView"
-  | "rosbridge.jsonParseB64";
+  | "foxglove.cdrDecode"
+  | "rosbridge.jsonDecode";
 
 export type IngestRow = {
   hop: IngestHopId;
@@ -114,6 +115,7 @@ async function openScriptedSub(
   host: Awaited<ReturnType<typeof connectOfflineForTests>>["host"];
   template: Uint8Array;
   delivered: { n: number };
+  getLease: () => { release: () => void } | null;
 }> {
   const fixtures = scriptedPeerFixtures();
   const client = await connectOfflineForTests(wasmBytes.slice(0));
@@ -138,12 +140,13 @@ async function openScriptedSub(
   const sub = await subPromise;
 
   const delivered = { n: 0 };
+  let lastLease: { release: () => void } | null = null;
   sub.onMessage((_msg, lease) => {
     delivered.n += 1;
-    lease.release();
+    lastLease = lease;
   });
 
-  return { client, host, template, delivered };
+  return { client, host, template, delivered, getLease: () => lastLease };
 }
 
 export async function measureRclwebIngest(
@@ -162,6 +165,7 @@ export async function measureRclwebIngest(
     for (let i = 0; i < warmup; i++) {
       session.host.ingestBytes(frames[i]!);
       session.host.flushSync();
+      session.getLease()?.release();
     }
     if (session.delivered.n !== warmup) {
       throw new Error(
@@ -178,6 +182,7 @@ export async function measureRclwebIngest(
       session.host.ingestBytes(frames[i]!);
       session.host.flushSync();
       latencies.push(performance.now() - t0);
+      session.getLease()?.release();
     }
     const cpuUs = cpuDeltaUs(cpu0);
     tryGc();
@@ -195,11 +200,22 @@ export async function measureRclwebIngest(
       payloadBytes: spec.payloadBytes,
       latencyMs: summarize(latencies),
       resources: resourceDelta(cpuUs, memBefore, memAfter, sampleCount),
-      note: "scripted-peer wsBytes poll until Sample + lease release (wasm ingest hop, not e2e)",
+      note: "wasm poll until Sample; lease release is after the timer",
     };
   } finally {
     await session.client.close();
   }
+}
+
+function consumeUsable(spec: IngestSizeSpec, cdr: Uint8Array): void {
+  if (spec.kind === "string") {
+    void decodeStdMsgsStringCdr(cdr);
+    return;
+  }
+  const cloud = decodePointCloud2Cdr(cdr);
+  void cloud.width;
+  void cloud.data[0];
+  void cloud.data[cloud.data.length - 1];
 }
 
 function measureEnvelopeHop(
@@ -209,23 +225,28 @@ function measureEnvelopeHop(
   warmup = spec.warmup,
 ): IngestRow {
   const cdr = cdrFor(spec);
-  const framed = hop === "foxglove.messageDataView"
-    ? encodeFoxglove(cdr)
-    : null;
-  const text = hop === "rosbridge.jsonParseB64"
-    ? encodeRosbridgeJson(`/bench/${spec.id}`, cdr)
+  const framed = hop === "foxglove.cdrDecode" ? encodeFoxglove(cdr) : null;
+  const text = hop === "rosbridge.jsonDecode"
+    ? spec.kind === "string"
+      ? JSON.stringify({
+          op: "publish",
+          topic: `/bench/${spec.id}`,
+          msg: { data: decodeStdMsgsStringCdr(cdr) },
+        })
+      : encodeRosbridgeJson(`/bench/${spec.id}`, cdr)
     : null;
 
   const runOnce = (): void => {
     if (framed) {
-      const view = decodeFoxgloveMessageData(framed);
-      void view[0];
-      void view[view.length - 1];
+      consumeUsable(spec, decodeFoxgloveMessageData(framed));
       return;
     }
-    const body = decodeRosbridgeJson(text!);
-    void body[0];
-    void body[body.length - 1];
+    if (spec.kind === "string") {
+      const obj = JSON.parse(text!) as { msg: { data: string } };
+      void obj.msg.data.length;
+      return;
+    }
+    consumeUsable(spec, decodeRosbridgeJson(text!));
   };
 
   for (let i = 0; i < warmup; i++) runOnce();
@@ -244,10 +265,10 @@ function measureEnvelopeHop(
   const memAfter = snapshotMemory();
 
   const notes: Record<typeof hop, string> = {
-    "foxglove.messageDataView":
-      "13-byte MessageData header skip (subarray). Not live foxglove_bridge e2e.",
-    "rosbridge.jsonParseB64":
-      "JSON.parse + base64 of the CDR body (opaque-blob path). Not live rosbridge e2e.",
+    "foxglove.cdrDecode":
+      "MessageData skip + JS CDR to a usable String / PointCloud2 (data is a view)",
+    "rosbridge.jsonDecode":
+      "JSON.parse; String is a JSON field, PointCloud2 is base64+CDR",
   };
 
   return {
@@ -271,10 +292,8 @@ export async function measureIngestSuite(
     const n = sampleCountOverride ?? spec.sampleCount;
     const warmup = warmupOverride ?? spec.warmup;
     rows.push(await measureRclwebIngest(wasmBytes, spec, n, warmup));
-    rows.push(
-      measureEnvelopeHop("foxglove.messageDataView", spec, n, warmup),
-    );
-    rows.push(measureEnvelopeHop("rosbridge.jsonParseB64", spec, n, warmup));
+    rows.push(measureEnvelopeHop("foxglove.cdrDecode", spec, n, warmup));
+    rows.push(measureEnvelopeHop("rosbridge.jsonDecode", spec, n, warmup));
   }
   return rows;
 }
@@ -320,9 +339,7 @@ export function formatIngestTable(rows: IngestRow[]): string {
   });
 
   return [
-    "Latency / CPU / memory (this process; not a CI gate)",
-    "rclweb.ingest is wasm poll after bytes are in JS. Foxglove/rosbridge rows are client envelope decode, not live bridges.",
-    "E2e stamp latency + CPU/mem: just perf-baseline-live. Engineering targets (loopback p99 ≤ 3 ms @ 1 KiB; LAN p99 ≤ 8 ms @ 32 KiB) are e2e, not this hop.",
+    "Latency / CPU / RSS — usable message (rclweb = wasm poll; foxglove/rosbridge = JS-only decode)",
     header,
     ...lines,
   ].join("\n");

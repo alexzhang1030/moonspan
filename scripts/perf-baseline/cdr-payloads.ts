@@ -75,6 +75,98 @@ class CdrLeWriter {
   }
 }
 
+const td = new TextDecoder();
+
+class CdrLeReader {
+  constructor(
+    private readonly buf: Uint8Array,
+    private o = 4,
+  ) {
+    if (buf.length < 4 || buf[1] !== 1) {
+      throw new Error("expected little-endian CDR encapsulation");
+    }
+  }
+
+  private align4(): void {
+    this.o += (4 - (this.o % 4)) % 4;
+  }
+
+  u8(): number {
+    return this.buf[this.o++]!;
+  }
+
+  u32(): number {
+    this.align4();
+    const v =
+      this.buf[this.o]! |
+      (this.buf[this.o + 1]! << 8) |
+      (this.buf[this.o + 2]! << 16) |
+      (this.buf[this.o + 3]! << 24);
+    this.o += 4;
+    return v >>> 0;
+  }
+
+  i32(): number {
+    return this.u32() | 0;
+  }
+
+  bool(): boolean {
+    return this.u8() !== 0;
+  }
+
+  str(): string {
+    const n = this.u32();
+    if (n === 0) return "";
+    const bytes = this.buf.subarray(this.o, this.o + n - 1);
+    this.o += n;
+    return td.decode(bytes);
+  }
+
+  byteSeq(): Uint8Array {
+    const n = this.u32();
+    const view = this.buf.subarray(this.o, this.o + n);
+    this.o += n;
+    return view;
+  }
+}
+
+export function decodeStdMsgsStringCdr(cdr: Uint8Array): string {
+  return new CdrLeReader(cdr).str();
+}
+
+export type DecodedPointCloud2 = {
+  width: number;
+  height: number;
+  data: Uint8Array;
+  fields: Array<{ name: string; offset: number; datatype: number; count: number }>;
+};
+
+/** JS CDR decode matching `@foxglove/cdr` aligned `uint8Array` (data is a view). */
+export function decodePointCloud2Cdr(cdr: Uint8Array): DecodedPointCloud2 {
+  const r = new CdrLeReader(cdr);
+  r.i32();
+  r.u32();
+  r.str();
+  const height = r.u32();
+  const width = r.u32();
+  const fieldCount = r.u32();
+  const fields: DecodedPointCloud2["fields"] = [];
+  for (let i = 0; i < fieldCount; i++) {
+    fields.push({
+      name: r.str(),
+      offset: r.u32(),
+      datatype: r.u8(),
+      count: r.u32(),
+    });
+  }
+  r.bool();
+  r.u32();
+  r.u32();
+  const data = r.byteSeq();
+  r.bool();
+  return { width, height, data, fields };
+}
+
 /** `std_msgs/msg/String` CDR for an exact UTF-8 body (plus NUL). */
 export function encodeStdMsgsStringCdr(text: string): Uint8Array {
   const w = new CdrLeWriter(16 + text.length);
