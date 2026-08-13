@@ -901,6 +901,34 @@ export function decodePollResult(bytes: Uint8Array): PollResult {
   const outboundCount = readU32(bytes, 8);
   const eventCount = readU32(bytes, 12);
   const releasedCount = readU32(bytes, 16);
+  // Sample ingest: empty outbound, one Sample, no string body, no released.
+  if (
+    outboundCount === 0 &&
+    eventCount === 1 &&
+    releasedCount === 0 &&
+    bytes.length === 68 &&
+    bytes[28] === APP_SAMPLE &&
+    readI32(bytes, 64) < 0
+  ) {
+    const deadlineRaw = readI64(bytes, 20);
+    return {
+      outbound: [],
+      events: [
+        {
+          type: "sample",
+          channelId: readU32(bytes, 32),
+          leaseId: readU32(bytes, 36),
+          sequence: readU64(bytes, 40),
+          sourceTimeNs: readI64(bytes, 48),
+          payloadPtr: readU32(bytes, 56),
+          payloadLen: readU32(bytes, 60),
+          stringData: null,
+        },
+      ],
+      released: [],
+      nextDeadlineMs: deadlineRaw < 0n ? null : deadlineRaw,
+    };
+  }
   const deadlineRaw = readI64(bytes, 20);
   let offset = 28;
   const outbound: PollResult["outbound"] = [];
@@ -1196,6 +1224,7 @@ export type WasmExports = {
   rclweb_engine_new(): number;
   rclweb_engine_free(handle: number): void;
   rclweb_poll(handle: number, batchPtr: number, batchLen: number): number;
+  rclweb_poll_ws(handle: number, bufferId: number, ptr: number, len: number): number;
   rclweb_last_result_ptr(handle: number): number;
   rclweb_last_result_len(handle: number): number;
   rclweb_telemetry(handle: number, outPtr: number): number;
@@ -1255,6 +1284,7 @@ export async function loadWasm(wasmBytes: ArrayBuffer): Promise<WasmExports> {
     "rclweb_engine_new",
     "rclweb_engine_free",
     "rclweb_poll",
+    "rclweb_poll_ws",
     "rclweb_last_result_ptr",
     "rclweb_last_result_len",
     "rclweb_telemetry",
@@ -1535,45 +1565,34 @@ export function pollEngine(
   }
 }
 
-/** 12-byte header + one wsBytes event (type + bufferId + ptr + len). */
-const EXTERNAL_WS_BATCH_BYTES = 28;
-const externalWsBatchPtr = new WeakMap<WasmExports, number>();
-
-function externalWsBatchPtrFor(wasm: WasmExports): number {
-  let ptr = externalWsBatchPtr.get(wasm);
-  if (!ptr) {
-    ptr = wasm.rclweb_alloc(EXTERNAL_WS_BATCH_BYTES);
-    if (ptr === 0) {
-      throw new Error("rclweb_alloc failed for external batch");
-    }
-    externalWsBatchPtr.set(wasm, ptr);
-  }
-  return ptr;
-}
-
-function writeSingleExternalWs(
+function pollOneExternalWs(
   wasm: WasmExports,
-  batchPtr: number,
-  bufferId: number,
-  payloadPtr: number,
-  len: number,
-): void {
-  const out = new Uint8Array(
-    wasm.memory.buffer,
-    batchPtr,
-    EXTERNAL_WS_BATCH_BYTES,
-  );
-  writeU32Into(out, 0, BATCH_MAGIC);
-  writeU16Into(out, 4, LAYOUT_VERSION);
-  writeU16Into(out, 6, 0);
-  writeU32Into(out, 8, 1);
-  out[12] = EVENT_WS_BYTES;
-  out[13] = 0;
-  out[14] = 0;
-  out[15] = 0;
-  writeU32Into(out, 16, bufferId >>> 0);
-  writeU32Into(out, 20, payloadPtr >>> 0);
-  writeU32Into(out, 24, len >>> 0);
+  handle: number,
+  event: Extract<HostEventInput, { type: "wsBytes" }>,
+): PollResult {
+  const len = event.bytes.length;
+  const ptr = len === 0 ? 0 : wasm.rclweb_alloc(len);
+  if (len !== 0 && ptr === 0) {
+    throw new Error("rclweb_alloc failed for wsBytes");
+  }
+  let transferred = false;
+  try {
+    if (len !== 0) {
+      new Uint8Array(wasm.memory.buffer, ptr, len).set(event.bytes);
+    }
+    // poll_ws takes the region even when it returns an error (other than
+    // never-called). Do not rclweb_free after this point.
+    transferred = true;
+    const pollLen = wasm.rclweb_poll_ws(handle, event.bufferId, ptr, len);
+    if (pollLen < 0) {
+      throw new Error(`rclweb_poll_ws failed with code ${pollLen}`);
+    }
+    return takePollResult(wasm, handle);
+  } finally {
+    if (!transferred && len !== 0) {
+      wasm.rclweb_free(ptr, len);
+    }
+  }
 }
 
 function pollEngineExternalWs(
@@ -1623,36 +1642,6 @@ function pollEngineExternalWs(
   } finally {
     for (const { ptr, len } of owned) {
       if (len !== 0) wasm.rclweb_free(ptr, len);
-    }
-  }
-}
-
-function pollOneExternalWs(
-  wasm: WasmExports,
-  handle: number,
-  event: Extract<HostEventInput, { type: "wsBytes" }>,
-): PollResult {
-  const len = event.bytes.length;
-  const ptr = len === 0 ? 0 : wasm.rclweb_alloc(len);
-  if (len !== 0 && ptr === 0) {
-    throw new Error("rclweb_alloc failed for wsBytes");
-  }
-  let transferred = false;
-  try {
-    if (len !== 0) {
-      new Uint8Array(wasm.memory.buffer, ptr, len).set(event.bytes);
-    }
-    const batchPtr = externalWsBatchPtrFor(wasm);
-    writeSingleExternalWs(wasm, batchPtr, event.bufferId, ptr, len);
-    const pollLen = wasm.rclweb_poll(handle, batchPtr, EXTERNAL_WS_BATCH_BYTES);
-    if (pollLen < 0) {
-      throw new Error(`rclweb_poll failed with code ${pollLen}`);
-    }
-    transferred = true;
-    return takePollResult(wasm, handle);
-  } finally {
-    if (!transferred && len !== 0) {
-      wasm.rclweb_free(ptr, len);
     }
   }
 }

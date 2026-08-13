@@ -8,6 +8,10 @@
 
 #![deny(unsafe_code)]
 
+#[cfg(all(target_family = "wasm", not(target_feature = "atomics")))]
+#[global_allocator]
+static TALC: talc::wasm::WasmDynamicTalc = talc::wasm::new_wasm_dynamic_allocator();
+
 pub mod cdr;
 pub mod engine;
 pub mod host;

@@ -23,7 +23,7 @@ The [ADR 0004](../adr/0004-browser-wasm-host-boundary.md) boundary is implemente
 |---|---|
 | CDR, schemas, protocol and ROS state, deadlines, structured events | Browser network APIs, Worker scheduling, timers, buffers, package Promises, application delivery |
 
-Each host turn passes a bounded event batch into `poll`. The result contains outbound work, completed operations, application events, released buffers, and the next deadline. Sample payloads are offset/len views into retained wasm memory under an explicit lease; the host must release before reclaim. Batch size, retained memory, and execution time are observable budgets. The transferable `ArrayBuffer` path is the general deployment; the `SharedArrayBuffer` ring is implemented on the host for measurement and stays evidence-gated for COOP/COEP production isolation per ADR 0004.
+Each host turn passes a bounded event batch into `poll`. Single-frame WS ingest uses `rclweb_poll_ws` (external-ptr, no 28-byte batch header; the engine's `poll_ws_bytes` path skips the one-event `Vec`). The result contains outbound work, completed operations, application events, released buffers, and the next deadline. Sample payloads are offset/len views into retained wasm memory under an explicit lease; the host must release before reclaim. Batch size, retained memory, and execution time are observable budgets. The transferable `ArrayBuffer` path is the general deployment; the `SharedArrayBuffer` ring is implemented on the host for measurement and stays evidence-gated for COOP/COEP production isolation per ADR 0004. The wasm artifact uses Talc rather than default dlmalloc ([performance ceiling](../performance.md)).
 
 ## CDR and buffers
 

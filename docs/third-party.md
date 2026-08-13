@@ -24,6 +24,7 @@ the gateway binary, including optional `ros` and `webtransport`.
 
 | Crate | Version | License |
 |---|---|---|
+| allocator-api2 | 0.4.0 | MIT OR Apache-2.0 |
 | asn1-rs | 0.7.2 | MIT OR Apache-2.0 |
 | asn1-rs-derive | 0.6.0 | MIT OR Apache-2.0 |
 | asn1-rs-impl | 0.2.0 | MIT/Apache-2.0 |
@@ -92,6 +93,7 @@ the gateway binary, including optional `ros` and `webtransport`.
 | libc | 0.2.189 | MIT OR Apache-2.0 |
 | libloading | 0.8.9 | ISC |
 | litemap | 0.8.2 | Unicode-3.0 |
+| lock_api | 0.4.14 | MIT OR Apache-2.0 |
 | log | 0.4.33 | MIT OR Apache-2.0 |
 | lru-slab | 0.1.2 | MIT OR Apache-2.0 OR Zlib |
 | matchit | 0.8.4 | MIT AND BSD-3-Clause |
@@ -138,6 +140,7 @@ the gateway binary, including optional `ros` and `webtransport`.
 | rustversion | 1.0.23 | MIT OR Apache-2.0 |
 | ryu | 1.0.23 | Apache-2.0 OR BSL-1.0 |
 | schannel | 0.1.29 | MIT |
+| scopeguard | 1.2.0 | MIT OR Apache-2.0 |
 | security-framework | 3.7.0 | MIT OR Apache-2.0 |
 | security-framework-sys | 2.17.0 | MIT OR Apache-2.0 |
 | serde | 1.0.229 | MIT OR Apache-2.0 |
@@ -161,6 +164,7 @@ the gateway binary, including optional `ros` and `webtransport`.
 | syn | 3.0.3 | MIT OR Apache-2.0 |
 | sync_wrapper | 1.0.2 | Apache-2.0 |
 | synstructure | 0.13.2 | MIT |
+| talc | 5.0.4 | MIT |
 | thiserror | 2.0.20 | MIT OR Apache-2.0 |
 | thiserror-impl | 2.0.20 | MIT OR Apache-2.0 |
 | time | 0.3.55 | MIT OR Apache-2.0 |

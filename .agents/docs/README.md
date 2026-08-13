@@ -38,7 +38,7 @@ Documentation describes the product. It is not a delivery-phase ledger. Historic
 
 | Area | Context |
 |---|---|
-| `protocol/**` | [Architecture](./architecture.md), [R2WP](../../docs/protocol/r2wp.md), [normative subset](../../protocol/r2wp-v0.md#normative-scope-v01-subset) |
+| `rclweb/src/protocol/frame.rs` | Do not `FrameOptions::default()` before `unwrap_or` ([gotchas](./gotchas.md#parseframe-must-not-build-default-frameoptions-on-the-sample-path)) |
 | `rclweb/**` | [Architecture](./architecture.md), [technology stack](./technology-stack.md), [`rclweb` core](../../docs/runtime/core.md), [CDR](../../docs/runtime/cdr.md), [generated types](../../docs/runtime/generated-types.md). crates.io publish ([release](../../docs/release.md)) |
 | `rclweb/generated/metadata/**`, `scripts/generated-types.ts` | [generated types](../../docs/runtime/generated-types.md); sectioned-root join gotcha in [gotchas](./gotchas.md#sectioned-corpus-roots-are-graph-endpoints-without-source-rows) |
 | `rclwebd/**` | [Architecture](./architecture.md), [`rclwebd`](../../docs/gateway/rclwebd.md), [security](../../docs/security.md), [deploy](../../docs/deploy.md), [ADR 0011](../../docs/adr/0011-local-dev-webtransport-tls.md). crates.io publish ([release](../../docs/release.md)) |

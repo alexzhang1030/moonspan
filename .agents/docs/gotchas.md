@@ -46,6 +46,10 @@ The engine reclaims a retained inbound slab only when every lease on it is relea
 
 `rcl-web` is rclcpp-shaped (`init` / `Node` / `createSubscription`). Message types are `std_msgs.msg.String` / `sensor_msgs.msg.PointCloud2` / `rclweb_cdr_interfaces.msg.*`, not all-caps constants. The callback receives an owned message; `Node` copies PointCloud2 `data` and calls `lease.release()` after the callback returns. Applications must not import `rcl-web/internal` `connect` unless they are hosting the poll ABI — that path still requires an explicit release. [How to](../../docs/typescript.md), [API](../../docs/api.md).
 
+## parse_frame must not build default FrameOptions on the sample path
+
+`parse_frame` used to construct `FrameOptions::default()` (a `BTreeSet` of clock ids) on every call, then `unwrap_or`. The engine always passes `Some(&self.frame_options)`, but `Default` still ran, so every ROS_SAMPLE ingest paid that allocation. Build the fallback only in the `None` branch.
+
 ## encodeHostBatch large-frame encoder
 
 Spread-pushing a byte array into a `number[]` (`out.push(...bytes)`) throws a RangeError on large frames — every element becomes a call argument, and hundreds of KB / ~1 MiB (PointCloud2 scale) exceeds the engine's argument/call-stack limit. `encodeHostBatch` in `typescript/src/wasm/abi.ts` is a two-pass preallocated `Uint8Array` encoder (size, then write). Do not reintroduce `push(...bytes)` or per-byte `number[]` builders on the data path. Live WS ingest uses the external-ptr poll path for every frame so the engine owns the wasm allocation without a second deep copy; `encodeHostBatch` stays for command-only batches and tests.

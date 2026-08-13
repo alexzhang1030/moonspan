@@ -6,7 +6,7 @@ rclweb keeps the language count at the minimum the platform forces: Rust for eve
 
 | Area | Choice | Rationale |
 |---|---|---|
-| Core (protocol, CDR, ROS state) | Rust, native + `wasm32-unknown-unknown` | One codebase for gateway and browser removes the N-implementation tax ([ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md)); mature fuzzing/benchmark tooling; borrow checker enforces the borrowed-view CDR contract |
+| Core (protocol, CDR, ROS state) | Rust, native + `wasm32-unknown-unknown` | One codebase for gateway and browser removes the N-implementation tax ([ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md)); mature fuzzing/benchmark tooling; borrow checker enforces the borrowed-view CDR contract. Wasm32 uses [Talc](https://docs.rs/talc/latest/talc/wasm/index.html) (`WasmDynamicTalc`) instead of default dlmalloc ([dlmalloc-rs](https://github.com/alexcrichton/dlmalloc-rs) is explicit that it is not the fast allocator). `opt-level = "z"` stays until size vs `just poll-latency` reopen [ADR 0010](../../docs/adr/0010-restructure-single-rust-core.md) |
 | Browser host and SDK | TypeScript Workers | Native browser APIs, scheduling, buffer transfer, and public bindings; no protocol parsing |
 | Edge gateway | Rust (`rclwebd`, thin over the core; tokio + axum for the WebSocket endpoint) | Concurrent transport, bounded scheduling, policy, telemetry; axum's `ws` feature gives RFC 6455 binary messaging on the tokio stack without a second server framework |
 | ROS boundary | Versioned serialized adapter ABI (`serialized-adapter-v1`, [ADR 0006](../../docs/adr/0006-edge-ros-c-abi-boundary.md)) with dynamic typesupport | Isolates distribution/RMW variation without embedding or depending on a client library (owner constraint) |

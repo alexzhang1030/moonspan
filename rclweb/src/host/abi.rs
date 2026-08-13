@@ -6,8 +6,8 @@
 
 #![allow(unsafe_code)]
 
-use crate::engine::ClientEngine;
-use crate::host::batch::{BatchError, decode_host_batch, encode_poll_result};
+use crate::engine::{ClientEngine, HostEvent, PollOutcome};
+use crate::host::batch::{BatchError, decode_host_batch, encode_poll_result_into};
 use std::alloc::{Layout, alloc, dealloc};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -129,29 +129,67 @@ pub unsafe extern "C" fn rclweb_poll(handle: u32, batch_ptr: *const u8, batch_le
     Err(err) => return map_batch_err(err),
   };
 
-  let encoded = ENGINES.with(|engines| {
-    let mut map = engines.borrow_mut();
-    let engine = map.get_mut(&handle)?;
-    let outcome = engine.poll(events);
-    let result =
-      encode_poll_result(&outcome, |lease_id| match engine.lease_payload_view(lease_id) {
-        Some(view) => (view.as_ptr() as u32, view.len() as u32),
-        None => (0, 0),
-      });
-    Some(result)
-  });
-  let Some(outcome) = encoded else {
-    return -6;
-  };
+  run_poll(handle, events)
+}
 
-  let len = outcome.len();
-  if len > i32::MAX as usize {
-    return -5;
-  }
+/// Ingest one external-ptr WebSocket frame without a host-batch header.
+///
+/// Same ownership as [`rclweb_poll`]: `ptr`/`len` is a [`rclweb_alloc`] region
+/// the engine takes (including when this returns an error other than -1).
+/// Skips encoding a 28-byte batch on the sample hot path.
+///
+/// # Safety
+/// `ptr` must be a [`rclweb_alloc`] region of `len` bytes the host has filled,
+/// or null when `len` is 0.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rclweb_poll_ws(
+  handle: u32,
+  buffer_id: u32,
+  ptr: *mut u8,
+  len: u32,
+) -> i32 {
+  let bytes = if len == 0 {
+    Vec::new()
+  } else {
+    if ptr.is_null() {
+      return -1;
+    }
+    // SAFETY: host allocated and filled this region; we take ownership.
+    unsafe { Vec::from_raw_parts(ptr, len as usize, len as usize) }
+  };
+  ENGINES.with(|engines| {
+    let mut map = engines.borrow_mut();
+    let Some(engine) = map.get_mut(&handle) else {
+      return -6;
+    };
+    let outcome = engine.poll_ws_bytes(buffer_id, bytes);
+    encode_outcome(handle, engine, &outcome)
+  })
+}
+
+fn run_poll(handle: u32, events: Vec<HostEvent>) -> i32 {
+  ENGINES.with(|engines| {
+    let mut map = engines.borrow_mut();
+    let Some(engine) = map.get_mut(&handle) else {
+      return -6;
+    };
+    let outcome = engine.poll(events);
+    encode_outcome(handle, engine, &outcome)
+  })
+}
+
+fn encode_outcome(handle: u32, engine: &ClientEngine, outcome: &PollOutcome) -> i32 {
   SCRATCH.with(|scratch| {
-    scratch.borrow_mut().insert(handle, outcome);
-  });
-  len as i32
+    let mut smap = scratch.borrow_mut();
+    let buf = smap.entry(handle).or_insert_with(|| Vec::with_capacity(256));
+    buf.clear();
+    encode_poll_result_into(buf, outcome, |lease_id| match engine.lease_payload_view(lease_id) {
+      Some(view) => (view.as_ptr() as u32, view.len() as u32),
+      None => (0, 0),
+    });
+    let len = buf.len();
+    if len > i32::MAX as usize { -5 } else { len as i32 }
+  })
 }
 
 /// Pointer to the last poll result for `handle`, or null.

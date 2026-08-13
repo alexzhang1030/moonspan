@@ -139,6 +139,7 @@ test("wasm artifact loads and exports the poll ABI", async () => {
   expect(result.outbound.length).toBe(1);
   expect(result.outbound[0]!.bytes.length).toBeGreaterThan(12);
   expect(typeof wasm.rclweb_decode_generated).toBe("function");
+  expect(typeof wasm.rclweb_poll_ws).toBe("function");
   // Result codec round-trip
   const reencoded = encodeHostBatch([]);
   expect(reencoded[0]).toBeDefined();

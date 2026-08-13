@@ -207,6 +207,21 @@ fn scripted_peer_reaches_subscribed_and_sample() {
   // The CDR payload stays reachable as a borrowed view under the lease.
   assert_eq!(engine.lease_payload_view(lease_id), Some(payload.as_slice()));
 
+  let payload2 = ClientEngine::encode_std_msgs_string("pong").unwrap();
+  let sample2 = engine.poll_ws_bytes(0, sample_frame(7, 1, &payload2));
+  let AppEvent::Sample { channel_id: ch2, lease_id: lease2, string_data: data2, .. } = sample2
+    .events
+    .iter()
+    .find(|e| matches!(e, AppEvent::Sample { .. }))
+    .cloned()
+    .expect("poll_ws_bytes sample")
+  else {
+    panic!("expected sample");
+  };
+  assert_eq!(ch2, 7);
+  assert_eq!(data2.as_deref(), Some("pong"));
+  assert_eq!(engine.lease_payload_view(lease2), Some(payload2.as_slice()));
+
   let released = engine.poll(vec![HostEvent::ReleaseLease { lease_id }]);
   assert!(
     released.released_buffers.iter().any(|b| b.buffer_id != 0 || b.len > 0)

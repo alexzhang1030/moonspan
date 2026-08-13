@@ -128,8 +128,14 @@ pub fn parse_frame<'a>(
   bytes: &'a [u8],
   options: Option<&FrameOptions>,
 ) -> Result<DecodedFrame<'a>, ProtocolError> {
-  let default_opts = FrameOptions::default();
-  let opts = options.unwrap_or(&default_opts);
+  let fallback;
+  let opts = match options {
+    Some(opts) => opts,
+    None => {
+      fallback = FrameOptions::default();
+      &fallback
+    }
+  };
 
   // Step 1
   if bytes.len() < FRAME_HEADER_LENGTH {

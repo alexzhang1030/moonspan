@@ -572,29 +572,38 @@ fn decode_opid_payload(
 /// `(ptr, len)` in wasm linear memory (or returns zeros for inline-only hosts).
 pub fn encode_poll_result(
   outcome: &PollOutcome,
-  mut payload_view: impl FnMut(u32) -> (u32, u32),
+  payload_view: impl FnMut(u32) -> (u32, u32),
 ) -> Vec<u8> {
   let mut out = Vec::with_capacity(64);
-  write_u32(&mut out, RESULT_MAGIC);
-  write_u16(&mut out, LAYOUT_VERSION);
-  write_u16(&mut out, 0);
-  write_u32(&mut out, outcome.outbound.len() as u32);
-  write_u32(&mut out, outcome.events.len() as u32);
-  write_u32(&mut out, outcome.released_buffers.len() as u32);
+  encode_poll_result_into(&mut out, outcome, payload_view);
+  out
+}
+
+/// Append an encoded poll result onto `out` (caller typically `clear`s first).
+pub fn encode_poll_result_into(
+  out: &mut Vec<u8>,
+  outcome: &PollOutcome,
+  mut payload_view: impl FnMut(u32) -> (u32, u32),
+) {
+  write_u32(out, RESULT_MAGIC);
+  write_u16(out, LAYOUT_VERSION);
+  write_u16(out, 0);
+  write_u32(out, outcome.outbound.len() as u32);
+  write_u32(out, outcome.events.len() as u32);
+  write_u32(out, outcome.released_buffers.len() as u32);
   match outcome.next_deadline_ms {
-    Some(ms) => write_i64(&mut out, ms as i64),
-    None => write_i64(&mut out, -1),
+    Some(ms) => write_i64(out, ms as i64),
+    None => write_i64(out, -1),
   }
   for msg in &outcome.outbound {
-    encode_outbound(&mut out, msg);
+    encode_outbound(out, msg);
   }
   for event in &outcome.events {
-    encode_app_event(&mut out, event, &mut payload_view);
+    encode_app_event(out, event, &mut payload_view);
   }
   for released in &outcome.released_buffers {
-    encode_released(&mut out, released);
+    encode_released(out, released);
   }
-  out
 }
 
 fn encode_outbound(out: &mut Vec<u8>, msg: &OutboundMessage) {

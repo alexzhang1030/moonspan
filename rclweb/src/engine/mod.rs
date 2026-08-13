@@ -225,28 +225,37 @@ impl ClientEngine {
   /// retained slab (the browser-side controllable copy) without a second
   /// deep copy (copy-budget slot 2).
   pub fn poll(&mut self, events: Vec<HostEvent>) -> PollOutcome {
+    self.run_poll(|this, outcome| {
+      let limit = events.len().min(MAX_HOST_EVENTS_PER_POLL);
+      for event in events.into_iter().take(limit) {
+        this.handle_event(event, outcome);
+        if this.closed {
+          break;
+        }
+      }
+    })
+  }
+
+  /// Ingest one WebSocket frame. Same retain/lease contract as
+  /// `poll(vec![HostEvent::WsBytes { .. }])` without allocating that event vec
+  /// (wasm sample hot path).
+  pub fn poll_ws_bytes(&mut self, buffer_id: u32, bytes: Vec<u8>) -> PollOutcome {
+    self.run_poll(|this, outcome| {
+      this.handle_ws_bytes(buffer_id, Bytes::from(bytes), outcome);
+    })
+  }
+
+  fn run_poll(&mut self, body: impl FnOnce(&mut Self, &mut PollOutcome)) -> PollOutcome {
     #[cfg(not(target_arch = "wasm32"))]
     let started = std::time::Instant::now();
     let mut outcome = PollOutcome::default();
     if self.closed {
       outcome.events.push(AppEvent::Closed { phase: self.session.phase() });
-      self.telemetry.poll_turns = self.telemetry.poll_turns.saturating_add(1);
-      #[cfg(not(target_arch = "wasm32"))]
-      {
-        self.telemetry.poll_nanos_total =
-          self.telemetry.poll_nanos_total.saturating_add(started.elapsed().as_nanos() as u64);
-      }
-      return outcome;
+    } else {
+      body(self, &mut outcome);
+      self.sweep_released(&mut outcome);
+      outcome.next_deadline_ms = self.next_heartbeat_ms;
     }
-    let limit = events.len().min(MAX_HOST_EVENTS_PER_POLL);
-    for event in events.into_iter().take(limit) {
-      self.handle_event(event, &mut outcome);
-      if self.closed {
-        break;
-      }
-    }
-    self.sweep_released(&mut outcome);
-    outcome.next_deadline_ms = self.next_heartbeat_ms;
     self.telemetry.poll_turns = self.telemetry.poll_turns.saturating_add(1);
     #[cfg(not(target_arch = "wasm32"))]
     {
@@ -1121,17 +1130,18 @@ impl ClientEngine {
       return;
     }
 
-    let type_name =
-      self.active_subscribes.get(&frame.channel_id).map(|s| s.type_name.as_str()).unwrap_or("");
     let string_data = if cfg!(target_arch = "wasm32") {
       // Host TextDecoder reads the leased CDR. Embedding the body in the poll
       // result copied every String sample an extra time.
       None
-    } else if type_name == STD_MSGS_STRING || type_name == "std_msgs/String" || type_name.is_empty()
-    {
-      Self::decode_std_msgs_string(payload).ok()
     } else {
-      None
+      let type_name =
+        self.active_subscribes.get(&frame.channel_id).map(|s| s.type_name.as_str()).unwrap_or("");
+      if type_name == STD_MSGS_STRING || type_name == "std_msgs/String" || type_name.is_empty() {
+        Self::decode_std_msgs_string(payload).ok()
+      } else {
+        None
+      }
     };
 
     let lease_id = self.next_lease_id;
@@ -1292,19 +1302,16 @@ impl ClientEngine {
   }
 
   fn sweep_released(&mut self, outcome: &mut PollOutcome) {
-    let reclaim: Vec<u32> = self
-      .retained
-      .iter()
-      .filter(|(_, b)| b.ingest_done && b.lease_refs == 0)
-      .map(|(id, _)| *id)
-      .collect();
-    for id in reclaim {
-      if let Some(buf) = self.retained.remove(&id) {
+    self.retained.retain(|&id, buf| {
+      if buf.ingest_done && buf.lease_refs == 0 {
         outcome
           .released_buffers
           .push(ReleasedBuffer { buffer_id: id, len: buf.bytes.len() as u32 });
+        false
+      } else {
+        true
       }
-    }
+    });
   }
 
   fn fail(&mut self, outcome: &mut PollOutcome, code: u8, message: &str) {
