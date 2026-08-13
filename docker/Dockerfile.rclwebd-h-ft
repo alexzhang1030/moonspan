@@ -1,8 +1,14 @@
-# H-FT (Humble + Fast DDS) runtime image for rclwebd.
+# Humble runtime image for rclwebd (default row H-FT).
 # Digest-pinned base matches docs/support-matrix.md Humble pin.
 # Regenerates vendored rcl bindings against Humble headers before linking so the
 # artifact matches the process support row (ADR 0008: one row per process).
 # Builder compiles only the gateway; the runtime has no Rust toolchain.
+# R4-02 remaining rows: SUPPORT_ROW / RMW_IMPLEMENTATION bake the row identity
+# and RMW_APT_PACKAGES installs the row's RMW into the runtime stage
+# (typesupport and RMW load via dlopen, not link-time):
+#   docker build --build-arg SUPPORT_ROW=H-ZN \
+#     --build-arg RMW_IMPLEMENTATION=rmw_zenoh_cpp \
+#     --build-arg RMW_APT_PACKAGES=ros-humble-rmw-zenoh-cpp …
 ARG ROS_IMAGE=docker.io/library/ros:humble-ros-base-jammy@sha256:7bea3d9aa2483d3ca34c8e30d921b79273b0913bd7dc64bebf51d082b5d107e4
 FROM ${ROS_IMAGE} AS builder
 
@@ -38,9 +44,10 @@ RUN . /opt/ros/humble/setup.sh \
 
 FROM ${ROS_IMAGE}
 
+ARG RMW_APT_PACKAGES=""
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends curl \
+  && apt-get install -y --no-install-recommends curl ${RMW_APT_PACKAGES} \
   && rm -rf /var/lib/apt/lists/* \
   && useradd --system --uid 10001 --create-home --home-dir /var/lib/rclweb rclweb
 
@@ -48,10 +55,12 @@ COPY --from=builder /src/target/release/rclwebd /usr/local/bin/rclwebd
 COPY docker/rclwebd-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh /usr/local/bin/rclwebd
 
+ARG SUPPORT_ROW=H-FT
+ARG RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 ENV RCLWEBD_BIND=0.0.0.0:8794 \
-    RCLWEBD_SUPPORT_ROW=H-FT \
+    RCLWEBD_SUPPORT_ROW=${SUPPORT_ROW} \
     ROS_DOMAIN_ID=0 \
-    RMW_IMPLEMENTATION=rmw_fastrtps_cpp \
+    RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION} \
     ROS_PREFIX=/opt/ros/humble
 
 USER rclweb

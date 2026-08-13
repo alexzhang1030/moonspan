@@ -299,3 +299,35 @@ gateway-h-ft: toolchain-check
         exit 1
     fi
     docker compose -f docker/compose.r4-02-gateway-h-ft.yml up --build
+
+# Remaining-row runtime image (R4-02): row is j-cy, j-zn, h-cy, or h-zn.
+[group('quality')]
+image-rclwebd-row row: toolchain-check
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{root}}"
+    if ! command -v docker >/dev/null 2>&1; then
+        echo "error: docker is required for just image-rclwebd-row" >&2
+        exit 1
+    fi
+    case "{{row}}" in
+        j-cy|j-zn|h-cy|h-zn) ;;
+        *) echo "error: unknown row '{{row}}' (expected j-cy, j-zn, h-cy, or h-zn)" >&2; exit 1 ;;
+    esac
+    docker compose -f docker/compose.r4-02-gateway-rmw.yml build "rclwebd-{{row}}"
+
+# Run a packaged remaining-row gateway (host network; zn rows start rmw_zenohd).
+[group('quality')]
+gateway-row row: toolchain-check
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{root}}"
+    if ! command -v docker >/dev/null 2>&1; then
+        echo "error: docker is required for just gateway-row" >&2
+        exit 1
+    fi
+    case "{{row}}" in
+        j-cy|j-zn|h-cy|h-zn) ;;
+        *) echo "error: unknown row '{{row}}' (expected j-cy, j-zn, h-cy, or h-zn)" >&2; exit 1 ;;
+    esac
+    docker compose -f docker/compose.r4-02-gateway-rmw.yml up --build "rclwebd-{{row}}"

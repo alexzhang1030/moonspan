@@ -1,6 +1,12 @@
-# J-FT (Jazzy + Fast DDS) runtime image for rclwebd.
+# Jazzy runtime image for rclwebd (default row J-FT).
 # Digest-pinned base matches the CDR corpus / R1-05 e2e Jazzy pin.
 # Builder compiles only the gateway; the runtime has no Rust/Bun toolchain.
+# R4-02 remaining rows: SUPPORT_ROW / RMW_IMPLEMENTATION bake the row identity
+# and RMW_APT_PACKAGES installs the row's RMW into the runtime stage
+# (typesupport and RMW load via dlopen, not link-time):
+#   docker build --build-arg SUPPORT_ROW=J-CY \
+#     --build-arg RMW_IMPLEMENTATION=rmw_cyclonedds_cpp \
+#     --build-arg RMW_APT_PACKAGES=ros-jazzy-rmw-cyclonedds-cpp …
 ARG ROS_IMAGE=docker.io/library/ros:jazzy-ros-base-noble@sha256:da725acf8b0f9f30c683e33ffbdcd6482d077af96d6fdc7688c5f4f280b7d923
 FROM ${ROS_IMAGE} AS builder
 
@@ -30,9 +36,10 @@ RUN . /opt/ros/jazzy/setup.sh \
 
 FROM ${ROS_IMAGE}
 
+ARG RMW_APT_PACKAGES=""
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends curl \
+  && apt-get install -y --no-install-recommends curl ${RMW_APT_PACKAGES} \
   && rm -rf /var/lib/apt/lists/* \
   && useradd --system --uid 10001 --create-home --home-dir /var/lib/rclweb rclweb
 
@@ -40,10 +47,12 @@ COPY --from=builder /src/target/release/rclwebd /usr/local/bin/rclwebd
 COPY docker/rclwebd-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh /usr/local/bin/rclwebd
 
+ARG SUPPORT_ROW=J-FT
+ARG RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 ENV RCLWEBD_BIND=0.0.0.0:8794 \
-    RCLWEBD_SUPPORT_ROW=J-FT \
+    RCLWEBD_SUPPORT_ROW=${SUPPORT_ROW} \
     ROS_DOMAIN_ID=0 \
-    RMW_IMPLEMENTATION=rmw_fastrtps_cpp \
+    RMW_IMPLEMENTATION=${RMW_IMPLEMENTATION} \
     ROS_PREFIX=/opt/ros/jazzy
 
 USER rclweb

@@ -1,11 +1,12 @@
 # R4-02: Deployment packaging and observability
 
-Status: In progress (first slice). Production PKI TLS, remaining-row
-images, remote metrics/traces, and orchestrator manifests remain follow-ups.
-This slice makes operations endpoints and J-FT / H-FT runtime images real
-without picking a metrics vendor or a cluster runtime.
+Status: In progress. Production PKI TLS, remote metrics/traces, and
+orchestrator manifests remain follow-ups. The first slice made operations
+endpoints and J-FT / H-FT runtime images real without picking a metrics
+vendor or a cluster runtime; the second extends the runtime images to the
+remaining four rows.
 
-## Outcome (this slice)
+## Outcome (first slice)
 
 | Area | Behavior |
 |---|---|
@@ -19,6 +20,19 @@ without picking a metrics vendor or a cluster runtime.
 
 The binary still defaults to `127.0.0.1:8794` so a host process does not
 listen on every interface. The container entrypoint overrides that.
+
+## Outcome (this slice — remaining-row runtime images)
+
+The Cyclone DDS and Zenoh rows build from the same two Dockerfiles with the
+row identity baked in; no new Dockerfile per row.
+
+| Area | Behavior |
+|---|---|
+| Build args | `SUPPORT_ROW` / `RMW_IMPLEMENTATION` bake `RCLWEBD_SUPPORT_ROW` and the RMW env; `RMW_APT_PACKAGES` installs the row's RMW in the **runtime** stage (RMW and typesupport are dlopen). Defaults keep the J-FT / H-FT images byte-identical in behavior. |
+| Rows | `rclwebd:j-cy`, `rclwebd:j-zn` from `Dockerfile.rclwebd`; `rclwebd:h-cy`, `rclwebd:h-zn` from `Dockerfile.rclwebd-h-ft` (FFI regenerated against Humble). |
+| Zenoh | `*-ZN` rows need a running `rmw_zenohd`. The compose starts a router companion from the same image and sets `ZENOH_ROUTER_CHECK_ATTEMPTS` so the gateway retries while it boots. Existing robot routers are configured via standard `rmw_zenoh` env instead. |
+| Guard | The adapter probe fails start-up when `RMW_IMPLEMENTATION` does not name the row's RMW (R4-03), so a mispaired image/env combination cannot come up healthy. |
+| Commands | `just image-rclwebd-row <row>` builds; `just gateway-row <row>` runs the host-network compose service. |
 
 ## Config
 
@@ -40,9 +54,9 @@ Operator procedure: [deploy](../deploy.md).
 | Ops state + scrape text | [`rclwebd/src/ops.rs`](../../rclwebd/src/ops.rs) |
 | HTTP routes + drain + headers | [`rclwebd/src/ws.rs`](../../rclwebd/src/ws.rs) |
 | Env wiring | [`rclwebd/src/main.rs`](../../rclwebd/src/main.rs), [`GatewayConfig`](../../rclwebd/src/config.rs) |
-| J-FT image | [`docker/Dockerfile.rclwebd`](../../docker/Dockerfile.rclwebd), [`docker/rclwebd-entrypoint.sh`](../../docker/rclwebd-entrypoint.sh) |
-| H-FT image | [`docker/Dockerfile.rclwebd-h-ft`](../../docker/Dockerfile.rclwebd-h-ft) (regenerates FFI against Humble) |
-| Compose | [`docker/compose.r4-02-gateway.yml`](../../docker/compose.r4-02-gateway.yml), [`docker/compose.r4-02-gateway-h-ft.yml`](../../docker/compose.r4-02-gateway-h-ft.yml) |
+| Jazzy image (J-FT default; J-CY / J-ZN via build args) | [`docker/Dockerfile.rclwebd`](../../docker/Dockerfile.rclwebd), [`docker/rclwebd-entrypoint.sh`](../../docker/rclwebd-entrypoint.sh) |
+| Humble image (H-FT default; H-CY / H-ZN via build args) | [`docker/Dockerfile.rclwebd-h-ft`](../../docker/Dockerfile.rclwebd-h-ft) (regenerates FFI against Humble) |
+| Compose | [`docker/compose.r4-02-gateway.yml`](../../docker/compose.r4-02-gateway.yml), [`docker/compose.r4-02-gateway-h-ft.yml`](../../docker/compose.r4-02-gateway-h-ft.yml), [`docker/compose.r4-02-gateway-rmw.yml`](../../docker/compose.r4-02-gateway-rmw.yml) |
 
 ## Acceptance evidence
 
@@ -62,7 +76,6 @@ so SIGTERM can drain.
 ## Still open in R4-02
 
 - Production TLS / reverse-proxy profile (these images speak plaintext HTTP/WS)
-- Remaining-row runtime images (H-CY, H-ZN, J-CY, J-ZN)
 - Remote metrics/trace export (OTLP or equivalent) — scrape format only here
 - Kubernetes / systemd units beyond compose
 - Upgrade, rollback, and soak/fault evidence

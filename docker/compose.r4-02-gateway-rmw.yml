@@ -1,0 +1,86 @@
+# Remaining-row gateway deployment shapes (R4-02 follow-up): Cyclone DDS and
+# Zenoh on Jazzy and Humble. Host network so the RMW sees the robot's ROS
+# domain. One gateway process per row (ADR 0008) — run the one service that
+# matches your row. Zenoh rows need a running rmw_zenohd; the *-zn services
+# depend on a router companion started from the same image.
+# This is not the e2e harness (see compose.r4-03-remaining-rows-e2e.yml).
+services:
+  rclwebd-j-cy:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.rclwebd
+      args:
+        SUPPORT_ROW: "J-CY"
+        RMW_IMPLEMENTATION: "rmw_cyclonedds_cpp"
+        RMW_APT_PACKAGES: "ros-jazzy-rmw-cyclonedds-cpp"
+    image: rclwebd:j-cy
+    network_mode: host
+    environment:
+      RCLWEBD_BIND: "0.0.0.0:8794"
+      RCLWEBD_GATEWAY_INSTANCE_ID: "rclwebd-local"
+      ROS_DOMAIN_ID: "0"
+
+  rclwebd-j-zn:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.rclwebd
+      args:
+        SUPPORT_ROW: "J-ZN"
+        RMW_IMPLEMENTATION: "rmw_zenoh_cpp"
+        RMW_APT_PACKAGES: "ros-jazzy-rmw-zenoh-cpp"
+    image: rclwebd:j-zn
+    network_mode: host
+    depends_on:
+      - zenohd-jazzy
+    environment:
+      RCLWEBD_BIND: "0.0.0.0:8794"
+      RCLWEBD_GATEWAY_INSTANCE_ID: "rclwebd-local"
+      ROS_DOMAIN_ID: "0"
+      # Retry the router check while the companion boots (rmw_zenoh env).
+      ZENOH_ROUTER_CHECK_ATTEMPTS: "30"
+
+  # Zenoh router companion (Jazzy). rmw_zenoh discovers via router gossip.
+  zenohd-jazzy:
+    image: rclwebd:j-zn
+    network_mode: host
+    entrypoint: ["bash", "-c", "set +u && source /opt/ros/jazzy/setup.bash && exec ros2 run rmw_zenoh_cpp rmw_zenohd"]
+
+  rclwebd-h-cy:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.rclwebd-h-ft
+      args:
+        SUPPORT_ROW: "H-CY"
+        RMW_IMPLEMENTATION: "rmw_cyclonedds_cpp"
+        RMW_APT_PACKAGES: "ros-humble-rmw-cyclonedds-cpp"
+    image: rclwebd:h-cy
+    network_mode: host
+    environment:
+      RCLWEBD_BIND: "0.0.0.0:8794"
+      RCLWEBD_GATEWAY_INSTANCE_ID: "rclwebd-local"
+      ROS_DOMAIN_ID: "0"
+
+  rclwebd-h-zn:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.rclwebd-h-ft
+      args:
+        SUPPORT_ROW: "H-ZN"
+        RMW_IMPLEMENTATION: "rmw_zenoh_cpp"
+        RMW_APT_PACKAGES: "ros-humble-rmw-zenoh-cpp"
+    image: rclwebd:h-zn
+    network_mode: host
+    depends_on:
+      - zenohd-humble
+    environment:
+      RCLWEBD_BIND: "0.0.0.0:8794"
+      RCLWEBD_GATEWAY_INSTANCE_ID: "rclwebd-local"
+      ROS_DOMAIN_ID: "0"
+      # Retry the router check while the companion boots (rmw_zenoh env).
+      ZENOH_ROUTER_CHECK_ATTEMPTS: "30"
+
+  # Zenoh router companion (Humble).
+  zenohd-humble:
+    image: rclwebd:h-zn
+    network_mode: host
+    entrypoint: ["bash", "-c", "set +u && source /opt/ros/humble/setup.bash && exec ros2 run rmw_zenoh_cpp rmw_zenohd"]
