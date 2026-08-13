@@ -39,6 +39,9 @@
 //! - `14` SendActionFeedback `{ channel_id, opid[16], len:u32, bytes... }`
 //! - `15` SendActionResult `{ channel_id, opid[16], len:u32, bytes... }`
 //! - `16` SendActionStatus `{ channel_id, opid[16], len:u32, bytes... }`
+//! - `17` SendPointCloud2 `{ channel_id:u32, height:u32, width:u32, point_step:u32,
+//!     row_step:u32, is_bigendian:u8, is_dense:u8, pad:u16, field_count:u32,
+//!     data_len:u32, data... }`
 //!
 //! ## Outbound result (engine → host)
 //!
@@ -110,6 +113,7 @@ pub const CMD_CANCEL_ACTION: u8 = 13;
 pub const CMD_SEND_ACTION_FEEDBACK: u8 = 14;
 pub const CMD_SEND_ACTION_RESULT: u8 = 15;
 pub const CMD_SEND_ACTION_STATUS: u8 = 16;
+pub const CMD_SEND_POINT_CLOUD2: u8 = 17;
 
 pub const APP_BOOTSTRAP_COMPLETE: u8 = 1;
 pub const APP_SESSION_READY: u8 = 2;
@@ -450,6 +454,44 @@ fn decode_command(bytes: &[u8], offset: &mut usize, cmd: u8) -> Result<AppComman
       Ok(AppCommand::Unsubscribe { correlation, channel_id })
     }
     CMD_CLOSE => Ok(AppCommand::Close),
+    CMD_SEND_POINT_CLOUD2 => {
+      if *offset + 32 > bytes.len() {
+        return Err(BatchError::Truncated);
+      }
+      let channel_id = read_u32(bytes, *offset);
+      *offset += 4;
+      let height = read_u32(bytes, *offset);
+      *offset += 4;
+      let width = read_u32(bytes, *offset);
+      *offset += 4;
+      let point_step = read_u32(bytes, *offset);
+      *offset += 4;
+      let row_step = read_u32(bytes, *offset);
+      *offset += 4;
+      let is_bigendian = bytes[*offset] != 0;
+      let is_dense = bytes[*offset + 1] != 0;
+      *offset += 4;
+      let field_count = read_u32(bytes, *offset);
+      *offset += 4;
+      let data_len = read_u32(bytes, *offset) as usize;
+      *offset += 4;
+      if *offset + data_len > bytes.len() {
+        return Err(BatchError::Truncated);
+      }
+      let data = bytes[*offset..*offset + data_len].to_vec();
+      *offset += data_len;
+      Ok(AppCommand::SendPointCloud2 {
+        channel_id,
+        height,
+        width,
+        point_step,
+        row_step,
+        is_bigendian,
+        is_dense,
+        field_count,
+        data,
+      })
+    }
     _ => Err(BatchError::BadKind),
   }
 }
@@ -889,6 +931,28 @@ fn encode_command(out: &mut Vec<u8>, cmd: &AppCommand) {
     AppCommand::SendActionStatus { channel_id, operation_id, status } => {
       encode_opid_payload(out, CMD_SEND_ACTION_STATUS, *channel_id, operation_id, status);
     }
+    AppCommand::SendPointCloud2 {
+      channel_id,
+      height,
+      width,
+      point_step,
+      row_step,
+      is_bigendian,
+      is_dense,
+      field_count,
+      data,
+    } => {
+      out.extend_from_slice(&[CMD_SEND_POINT_CLOUD2, 0, 0, 0]);
+      write_u32(out, *channel_id);
+      write_u32(out, *height);
+      write_u32(out, *width);
+      write_u32(out, *point_step);
+      write_u32(out, *row_step);
+      out.extend_from_slice(&[u8::from(*is_bigendian), u8::from(*is_dense), 0, 0]);
+      write_u32(out, *field_count);
+      write_u32(out, data.len() as u32);
+      out.extend_from_slice(data);
+    }
     AppCommand::Unsubscribe { correlation, channel_id } => {
       out.extend_from_slice(&[CMD_UNSUBSCRIBE, 0, 0, 0]);
       out.extend_from_slice(correlation);
@@ -1059,6 +1123,41 @@ mod tests {
         assert_eq!(*channel_id, 4);
       }
       _ => panic!("expected CancelAction"),
+    }
+  }
+
+  #[test]
+  fn send_point_cloud2_command_round_trip() {
+    let data = vec![1u8, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    let events = vec![HostEvent::Command(AppCommand::SendPointCloud2 {
+      channel_id: 9,
+      height: 1,
+      width: 1,
+      point_step: 12,
+      row_step: 12,
+      is_bigendian: false,
+      is_dense: true,
+      field_count: 3,
+      data: data.clone(),
+    })];
+    let encoded = encode_host_batch_inline(&events);
+    let decoded = decode_host_batch(&encoded, |_, _, _| Err(BatchError::BadKind)).unwrap();
+    match &decoded[0] {
+      HostEvent::Command(AppCommand::SendPointCloud2 {
+        channel_id,
+        width,
+        field_count,
+        data: got,
+        is_dense,
+        ..
+      }) => {
+        assert_eq!(*channel_id, 9);
+        assert_eq!(*width, 1);
+        assert_eq!(*field_count, 3);
+        assert!(*is_dense);
+        assert_eq!(got, &data);
+      }
+      _ => panic!("expected SendPointCloud2"),
     }
   }
 }

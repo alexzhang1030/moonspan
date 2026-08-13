@@ -232,6 +232,60 @@ test("scripted peer: publish → ChannelReady → SendSample outbound", async ()
   await client.close();
 });
 
+function xyzCloud(points: number) {
+  const data = new Uint8Array(points * 12);
+  const view = new DataView(data.buffer);
+  for (let i = 0; i < points; i++) {
+    view.setFloat32(i * 12, i * 0.01, true);
+    view.setFloat32(i * 12 + 4, i * 0.02, true);
+    view.setFloat32(i * 12 + 8, i * 0.03, true);
+  }
+  return {
+    height: 1,
+    width: points,
+    pointStep: 12,
+    rowStep: points * 12,
+    isBigendian: false,
+    isDense: true,
+    fieldCount: 3,
+    data,
+  };
+}
+
+test("scripted peer: publish PointCloud2 increments samplesSent", async () => {
+  const fixtures = scriptedPeerFixtures();
+  const wasmBytes = readFileSync(wasmPath);
+  const client = await connectOfflineForTests(
+    wasmBytes.buffer.slice(
+      wasmBytes.byteOffset,
+      wasmBytes.byteOffset + wasmBytes.byteLength,
+    ),
+  );
+
+  const host = client.host;
+  host.startOffline();
+  host.flushSync();
+  host.ingestBytes(fixtures.serverHello);
+  host.flushSync();
+  host.flushSync();
+  host.ingestBytes(fixtures.sessionReady);
+  host.flushSync();
+
+  const pubPromise = client.session.publish("/points", SENSOR_MSGS_POINT_CLOUD2);
+  host.flushSync();
+  host.ingestBytes(fixtures.channelReady);
+  host.flushSync();
+  const publisher = await pubPromise;
+  expect(publisher.typeName).toBe(SENSOR_MSGS_POINT_CLOUD2);
+
+  await publisher.publish(xyzCloud(4));
+  const telemetry = client.telemetry();
+  expect(telemetry).not.toBeNull();
+  expect(telemetry!.samplesSent).toBe(1);
+
+  await client.close();
+});
+
 function readXyz(data: Uint8Array, index: number): [number, number, number] {
   const view = new DataView(data.buffer, data.byteOffset + index * 12, 12);
   return [

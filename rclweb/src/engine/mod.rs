@@ -22,7 +22,10 @@ pub use types::{
   MAX_OUTBOUND_PER_POLL, OutboundMessage, PollOutcome, ReleasedBuffer, STD_MSGS_STRING,
 };
 
-use crate::cdr::{CdrEndian, CdrError, CdrReader, CdrWriter, PointCloud2View, decode_point_cloud2};
+use crate::cdr::{
+  CdrEndian, CdrError, CdrReader, CdrWriter, PointCloud2View, decode_point_cloud2,
+  encode_point_cloud2_from_sdk_meta,
+};
 use crate::protocol::bootstrap::{
   BufferCapabilities, ClientHello, RequestedLimits, TransportCapabilities,
 };
@@ -349,6 +352,37 @@ impl ClientEngine {
       AppCommand::SendSample { channel_id, string_data } => {
         self.send_sample(*channel_id, string_data, outcome);
       }
+      AppCommand::SendPointCloud2 {
+        channel_id,
+        height,
+        width,
+        point_step,
+        row_step,
+        is_bigendian,
+        is_dense,
+        field_count,
+        data,
+      } => {
+        match encode_point_cloud2_from_sdk_meta(
+          *height,
+          *width,
+          *point_step,
+          *row_step,
+          *is_bigendian,
+          *is_dense,
+          *field_count,
+          data,
+        ) {
+          Ok(payload) => self.send_sample_payload(*channel_id, &payload, outcome),
+          Err(_) => {
+            outcome.events.push(AppEvent::PublishFailed {
+              channel_id: *channel_id,
+              code: 1,
+              message: "cdr_encode_failed".to_owned(),
+            });
+          }
+        }
+      }
       AppCommand::OpenService { correlation, channel_id, name, type_name, domain_id, client } => {
         let kind = if *client { PendingKind::ServiceClient } else { PendingKind::ServiceServer };
         if self.emit_schema_unavailable_if_needed(type_name, *channel_id, kind, outcome) {
@@ -572,19 +606,23 @@ impl ClientEngine {
   }
 
   fn send_sample(&mut self, channel_id: u32, string_data: &str, outcome: &mut PollOutcome) {
-    let Some(pub_ch) = self.active_publishes.get_mut(&channel_id) else {
-      outcome.events.push(AppEvent::PublishFailed {
-        channel_id,
-        code: 25,
-        message: "publish_channel_not_ready".to_owned(),
-      });
-      return;
-    };
     let Ok(payload) = Self::encode_std_msgs_string(string_data) else {
       outcome.events.push(AppEvent::PublishFailed {
         channel_id,
         code: 1,
         message: "cdr_encode_failed".to_owned(),
+      });
+      return;
+    };
+    self.send_sample_payload(channel_id, &payload, outcome);
+  }
+
+  fn send_sample_payload(&mut self, channel_id: u32, payload: &[u8], outcome: &mut PollOutcome) {
+    let Some(pub_ch) = self.active_publishes.get_mut(&channel_id) else {
+      outcome.events.push(AppEvent::PublishFailed {
+        channel_id,
+        code: 25,
+        message: "publish_channel_not_ready".to_owned(),
       });
       return;
     };
@@ -600,7 +638,7 @@ impl ClientEngine {
       priority: 2,
       clock_id: 0,
     };
-    let Ok(bytes) = encode_frame(&header, &[], &payload) else {
+    let Ok(bytes) = encode_frame(&header, &[], payload) else {
       outcome.events.push(AppEvent::PublishFailed {
         channel_id,
         code: 1,

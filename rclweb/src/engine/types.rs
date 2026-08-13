@@ -69,6 +69,21 @@ pub enum AppCommand {
   },
   /// Send one `std_msgs/msg/String` sample on a ready publish channel.
   SendSample { channel_id: u32, string_data: String },
+  /// Send one `sensor_msgs/msg/PointCloud2` sample on a ready publish channel.
+  ///
+  /// `data` is the point payload only (not full CDR). The engine encodes
+  /// header/fields: XYZ float32 when `field_count == 3` and `point_step >= 12`.
+  SendPointCloud2 {
+    channel_id: u32,
+    height: u32,
+    width: u32,
+    point_step: u32,
+    row_step: u32,
+    is_bigendian: bool,
+    is_dense: bool,
+    field_count: u32,
+    data: Vec<u8>,
+  },
   /// Open a SERVICE_CLIENT or SERVICE_SERVER channel.
   OpenService {
     correlation: [u8; 16],

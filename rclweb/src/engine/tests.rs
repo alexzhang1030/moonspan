@@ -272,6 +272,62 @@ fn scripted_peer_publish_sends_ros_sample() {
 }
 
 #[test]
+fn scripted_peer_publish_sends_point_cloud2() {
+  use crate::cdr::{SENSOR_MSGS_POINT_CLOUD2, build_synthetic_xyz_cdr, decode_point_cloud2_le};
+
+  let mut engine = ClientEngine::new();
+  let _ = engine.poll(vec![HostEvent::Command(AppCommand::Start {
+    transferable_arraybuffer: true,
+    webtransport: false,
+  })]);
+  let _ = feed(&mut engine, server_hello_bytes());
+  let auth_corr = corr(0xA1);
+  let _ = engine.poll(vec![HostEvent::Command(AppCommand::Authenticate {
+    correlation: auth_corr,
+    scheme: "token".into(),
+    token: b"anonymous".to_vec(),
+  })]);
+  let _ = feed(&mut engine, session_ready_bytes(0, &auth_corr));
+
+  let pub_corr = corr(0xC4);
+  let opened = engine.poll(vec![HostEvent::Command(AppCommand::Publish {
+    correlation: pub_corr,
+    channel_id: 4,
+    topic: "/points".into(),
+    type_name: SENSOR_MSGS_POINT_CLOUD2.into(),
+    qos_reliability: 1,
+    qos_depth: 5,
+    domain_id: 0,
+  })]);
+  assert_eq!(opened.outbound.len(), 1);
+  let _ = feed(&mut engine, channel_ready_allow_bytes(1, &pub_corr, 4));
+
+  let cdr = build_synthetic_xyz_cdr(4).expect("synthetic");
+  let view = decode_point_cloud2_le(&cdr).expect("decode");
+  let sent = engine.poll(vec![HostEvent::Command(AppCommand::SendPointCloud2 {
+    channel_id: 4,
+    height: view.height,
+    width: view.width,
+    point_step: view.point_step,
+    row_step: view.row_step,
+    is_bigendian: view.is_bigendian,
+    is_dense: view.is_dense,
+    field_count: view.fields.len() as u32,
+    data: view.data.to_vec(),
+  })]);
+  assert_eq!(sent.outbound.len(), 1);
+  assert_eq!(engine.telemetry().samples_sent, 1);
+  let frame = parse_frame(&sent.outbound[0].bytes, None).expect("sample frame");
+  assert_eq!(frame.opcode, OPCODE_ROS_SAMPLE);
+  let FramePayload::Application(payload) = &frame.payload else {
+    panic!("expected application payload");
+  };
+  let round = decode_point_cloud2_le(payload).expect("outbound pc2");
+  assert_eq!(round.width, 4);
+  assert_eq!(round.data, view.data);
+}
+
+#[test]
 fn close_command_terminates() {
   let mut engine = ClientEngine::new();
   let _ = engine.poll(vec![HostEvent::Command(AppCommand::Start {

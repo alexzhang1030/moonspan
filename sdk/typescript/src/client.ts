@@ -91,6 +91,25 @@ function corrTag(tag: number): Uint8Array {
   return new Uint8Array(16).fill(tag & 0xff);
 }
 
+function dispatchPublish(
+  typeName: string,
+  message: SampleMessage,
+  sendString: (data: string) => void,
+  sendCloud: (cloud: PointCloud2) => void,
+): void {
+  if (typeName === SENSOR_MSGS_POINT_CLOUD2) {
+    if (!isPointCloud2(message)) {
+      throw new Error("PointCloud2 publish requires a PointCloud2 message");
+    }
+    sendCloud(message);
+    return;
+  }
+  if (!isStdMsgsString(message)) {
+    throw new Error("String publish requires { data: string }");
+  }
+  sendString(message.data);
+}
+
 type Pending = {
   resolve: (value: unknown) => void;
   reject: (err: Error) => void;
@@ -104,11 +123,11 @@ export type Subscription<T extends SampleMessage = SampleMessage> = {
   unsubscribe(): Promise<void>;
 };
 
-export type Publisher = {
+export type Publisher<T extends SampleMessage = StdMsgsString> = {
   readonly topic: string;
   readonly typeName: string;
   readonly channelId: number;
-  publish(message: StdMsgsString): Promise<void>;
+  publish(message: T): Promise<void>;
   unadvertise(): Promise<void>;
 };
 
@@ -128,6 +147,16 @@ export type RclwebSession = {
     typeName?: string,
     qos?: QosOptions,
   ): Promise<Subscription>;
+  publish(
+    topic: string,
+    typeName: typeof SENSOR_MSGS_POINT_CLOUD2,
+    qos?: QosOptions,
+  ): Promise<Publisher<PointCloud2>>;
+  publish(
+    topic: string,
+    typeName?: typeof STD_MSGS_STRING,
+    qos?: QosOptions,
+  ): Promise<Publisher<StdMsgsString>>;
   publish(
     topic: string,
     typeName?: string,
@@ -310,8 +339,8 @@ class InlineClient implements RclwebClient {
     return {
       subscribe: ((topic, typeName = STD_MSGS_STRING, qos = {}) =>
         this.#subscribe(topic, typeName, qos)) as RclwebSession["subscribe"],
-      publish: (topic, typeName = STD_MSGS_STRING, qos = {}) =>
-        this.#publish(topic, typeName, qos),
+      publish: ((topic, typeName = STD_MSGS_STRING, qos = {}) =>
+        this.#publish(topic, typeName, qos)) as RclwebSession["publish"],
       createServiceClient: (name, typeName = "") =>
         this.#createServiceClient(name, typeName),
       createServiceServer: (name, typeName = "", handler) =>
@@ -458,7 +487,16 @@ class InlineClient implements RclwebClient {
           typeName: event.typeName,
           channelId,
           publish: async (message) => {
-            this.#host.sendSample(channelId, message.data);
+            dispatchPublish(
+              event.typeName,
+              message,
+              (data) => {
+                this.#host.sendSample(channelId, data);
+              },
+              (cloud) => {
+                this.#host.sendPointCloud2(channelId, cloud);
+              },
+            );
             this.#host.flushSync();
           },
           unadvertise: async () => {
@@ -955,8 +993,8 @@ class WorkerClient implements RclwebClient {
     this.#session = {
       subscribe: ((topic, typeName = STD_MSGS_STRING, qos = {}) =>
         this.#subscribe(topic, typeName, qos)) as RclwebSession["subscribe"],
-      publish: (topic, typeName = STD_MSGS_STRING, qos = {}) =>
-        this.#publish(topic, typeName, qos),
+      publish: ((topic, typeName = STD_MSGS_STRING, qos = {}) =>
+        this.#publish(topic, typeName, qos)) as RclwebSession["publish"],
       createServiceClient: (name, typeName = "") =>
         this.#createServiceClient(name, typeName),
       createServiceServer: (name, typeName = "", handler) =>
@@ -1125,6 +1163,21 @@ class WorkerClient implements RclwebClient {
           typeName: msg.typeName,
           channelId,
           publish: async (message) => {
+            if (msg.typeName === SENSOR_MSGS_POINT_CLOUD2) {
+              if (!isPointCloud2(message)) {
+                throw new Error("PointCloud2 publish requires a PointCloud2 message");
+              }
+              await this.#request({
+                type: "sendPointCloud2",
+                requestId: 0,
+                channelId,
+                message,
+              });
+              return;
+            }
+            if (!isStdMsgsString(message)) {
+              throw new Error("String publish requires { data: string }");
+            }
             await this.#request({
               type: "sendSample",
               requestId: 0,

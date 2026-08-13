@@ -346,6 +346,24 @@ export class IoHost {
     });
   }
 
+  sendPointCloud2(channelId: number, cloud: PointCloud2): void {
+    this.#enqueue({
+      type: "command",
+      command: {
+        type: "sendPointCloud2",
+        channelId,
+        height: cloud.height,
+        width: cloud.width,
+        pointStep: cloud.pointStep,
+        rowStep: cloud.rowStep,
+        isBigendian: cloud.isBigendian,
+        isDense: cloud.isDense,
+        fieldCount: cloud.fieldCount,
+        data: cloud.data,
+      },
+    });
+  }
+
   openService(args: {
     correlation: Uint8Array;
     channelId: number;

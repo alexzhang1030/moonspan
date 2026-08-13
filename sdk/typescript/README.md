@@ -17,6 +17,6 @@ sub.onMessage((msg, lease) => {
 });
 ```
 
-`subscribe(..., SENSOR_MSGS_POINT_CLOUD2)` delivers PointCloud2 metadata plus `data: Uint8Array` (borrowed on the inline host, copied on the Worker path). Publish stays String-only.
+`subscribe(..., SENSOR_MSGS_POINT_CLOUD2)` delivers PointCloud2 metadata plus `data: Uint8Array` (borrowed on the inline host, copied on the Worker path). `publish(..., SENSOR_MSGS_POINT_CLOUD2)` encodes that shape in the wasm core.
 
 Host, wasm poll ABI, and test helpers: `@rclweb/sdk/internal` (not a stability promise).

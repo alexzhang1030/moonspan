@@ -11,6 +11,7 @@ import { scriptedPeerFixtures } from "./scripted-peer.ts";
 
 const wasmPath = path.join(import.meta.dir, "..", "wasm", "rclweb.wasm");
 const OPCODE_CONTROL = 1;
+const OPCODE_ROS_SAMPLE = 2;
 const OPCODE_SERVICE_REQUEST = 3;
 const OPCODE_SERVICE_RESPONSE = 4;
 const OPCODE_ACTION_GOAL = 5;
@@ -320,6 +321,82 @@ test("Worker path: PointCloud2 sample copies data across the boundary", async ()
   expect(sample.xyz1[0]).toBeCloseTo(0.01);
   expect(sample.xyz1[1]).toBeCloseTo(0.02);
   expect(sample.xyz1[2]).toBeCloseTo(0.03);
+  await client.close();
+  server.stop(true);
+});
+
+function xyzCloud(points: number) {
+  const data = new Uint8Array(points * 12);
+  const view = new DataView(data.buffer);
+  for (let i = 0; i < points; i++) {
+    view.setFloat32(i * 12, i * 0.01, true);
+    view.setFloat32(i * 12 + 4, i * 0.02, true);
+    view.setFloat32(i * 12 + 8, i * 0.03, true);
+  }
+  return {
+    height: 1,
+    width: points,
+    pointStep: 12,
+    rowStep: points * 12,
+    isBigendian: false,
+    isDense: true,
+    fieldCount: 3,
+    data,
+  };
+}
+
+test("Worker path: publish PointCloud2 emits a ROS_SAMPLE frame", async () => {
+  const fixtures = scriptedPeerFixtures();
+  const wasmUrl = pathToFileUrl(wasmPath);
+  let step: "hello" | "ready" | "channel" | "sample" | "done" = "hello";
+  let sampleFrame: Uint8Array | null = null;
+
+  const server = Bun.serve({
+    port: 0,
+    fetch(req, server) {
+      if (server.upgrade(req)) return undefined;
+      return new Response("expected websocket", { status: 400 });
+    },
+    websocket: {
+      message(ws, message) {
+        const bytes =
+          message instanceof ArrayBuffer
+            ? new Uint8Array(message)
+            : typeof message === "string"
+              ? new TextEncoder().encode(message)
+              : new Uint8Array(message);
+        if (step === "hello" && isHello(bytes)) {
+          step = "ready";
+          ws.send(fixtures.serverHello);
+          return;
+        }
+        if (step === "ready" && bytes[1] === OPCODE_CONTROL) {
+          step = "channel";
+          ws.send(fixtures.sessionReady);
+          return;
+        }
+        if (step === "channel" && bytes[1] === OPCODE_CONTROL) {
+          step = "sample";
+          ws.send(fixtures.channelReady);
+          return;
+        }
+        if (step === "sample" && bytes[1] === OPCODE_ROS_SAMPLE) {
+          sampleFrame = bytes;
+          step = "done";
+        }
+      },
+    },
+  });
+
+  const client = await connect(`ws://127.0.0.1:${server.port}`, { wasmUrl });
+  const pub = await client.session.publish("/points", SENSOR_MSGS_POINT_CLOUD2);
+  await pub.publish(xyzCloud(4));
+  const deadline = Date.now() + 5000;
+  while (sampleFrame == null && Date.now() < deadline) {
+    await Bun.sleep(10);
+  }
+  expect(sampleFrame).not.toBeNull();
+  expect(sampleFrame!.length).toBeGreaterThan(48);
   await client.close();
   server.stop(true);
 });

@@ -129,6 +129,58 @@ pub fn encode_point_cloud2_le(view: &PointCloud2View<'_>) -> Result<Vec<u8>, Cdr
   Ok(writer.to_bytes())
 }
 
+/// Encode PointCloud2 CDR from the SDK metadata shape (no header/fields).
+///
+/// `field_count == 3` and `point_step >= 12` synthesizes XYZ float32 fields
+/// (same layout as [`build_synthetic_xyz_cdr`]). Otherwise one UINT8 blob
+/// field covers `point_step`. Header stamp is zero and `frame_id` is empty.
+/// `data.len()` must equal `row_step * height`.
+#[allow(clippy::too_many_arguments)]
+pub fn encode_point_cloud2_from_sdk_meta(
+  height: u32,
+  width: u32,
+  point_step: u32,
+  row_step: u32,
+  is_bigendian: bool,
+  is_dense: bool,
+  field_count: u32,
+  data: &[u8],
+) -> Result<Vec<u8>, CdrError> {
+  let expected = (row_step as usize)
+    .checked_mul(height as usize)
+    .ok_or_else(|| CdrError::length_overflow(0, u64::from(row_step), u64::from(height)))?;
+  if data.len() != expected {
+    return Err(CdrError::bounds_exceeded(0, expected as u64, data.len() as u64));
+  }
+  let fields = publish_fields(point_step, field_count);
+  let view = PointCloud2View {
+    header: Header { stamp_sec: 0, stamp_nanosec: 0, frame_id: String::new() },
+    height,
+    width,
+    fields,
+    is_bigendian,
+    point_step,
+    row_step,
+    data,
+    is_dense,
+  };
+  encode_point_cloud2_le(&view)
+}
+
+fn publish_fields(point_step: u32, field_count: u32) -> Vec<PointField> {
+  if field_count == 3 && point_step >= 12 {
+    vec![
+      PointField { name: "x".into(), offset: 0, datatype: 7, count: 1 },
+      PointField { name: "y".into(), offset: 4, datatype: 7, count: 1 },
+      PointField { name: "z".into(), offset: 8, datatype: 7, count: 1 },
+    ]
+  } else if field_count == 0 {
+    Vec::new()
+  } else {
+    vec![PointField { name: "data".into(), offset: 0, datatype: 2, count: point_step.max(1) }]
+  }
+}
+
 fn decode_header(reader: &mut CdrReader<'_>, parent: CdrNesting) -> Result<Header, CdrError> {
   let current = reader.enter_nested(parent)?;
   let _time = reader.enter_nested(current)?;
@@ -249,5 +301,26 @@ mod tests {
     let view = decode_point_cloud2_le(&cdr).unwrap();
     let again = encode_point_cloud2_le(&view).unwrap();
     assert_eq!(cdr, again);
+  }
+
+  #[test]
+  fn sdk_meta_encode_preserves_synthetic_xyz_data() {
+    let cdr = build_synthetic_xyz_cdr(4).unwrap();
+    let view = decode_point_cloud2_le(&cdr).unwrap();
+    let again = encode_point_cloud2_from_sdk_meta(
+      view.height,
+      view.width,
+      view.point_step,
+      view.row_step,
+      view.is_bigendian,
+      view.is_dense,
+      view.fields.len() as u32,
+      view.data,
+    )
+    .unwrap();
+    let round = decode_point_cloud2_le(&again).unwrap();
+    assert_eq!(round.data, view.data);
+    assert_eq!(round.width, 4);
+    assert_eq!(round.fields.len(), 3);
   }
 }
