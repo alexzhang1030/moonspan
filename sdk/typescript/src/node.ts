@@ -1,6 +1,7 @@
 /**
  * rclcpp-shaped Node: createPublisher / createSubscription / createClient /
- * createService / createActionClient / createActionServer / createWallTimer.
+ * createService / createActionClient / createActionServer / createWallTimer /
+ * getNodeNames / getTopicNamesAndTypes.
  *
  * TypeScript cannot do `create_publisher<std_msgs::msg::String>(topic, qos)`,
  * so the message type is the first argument (the template parameter as a value):
@@ -11,6 +12,7 @@
 import type {
   ActionClient as SessionActionClient,
   ActionServer as SessionActionServer,
+  GraphView,
   Publisher as SessionPublisher,
   RclwebClient,
   Subscription as SessionSubscription,
@@ -42,6 +44,20 @@ import {
 } from "./types.ts";
 
 export type SubscriptionCallback<T> = (msg: T) => void;
+
+/** rclcpp `get_topic_names_and_types` row. */
+export type NamesAndTypes = {
+  name: string;
+  types: string[];
+};
+
+/** Registry `graph_endpoint_kinds` (kept off the public surface). */
+const TOPIC_PUB = 0;
+const TOPIC_SUB = 1;
+const SERVICE_SERVER = 2;
+const SERVICE_CLIENT = 3;
+const ACTION_SERVER = 4;
+const ACTION_CLIENT = 5;
 
 export class Publisher<T> {
   readonly topic: string;
@@ -244,6 +260,8 @@ export class Node {
   readonly name: string;
   readonly namespace: string;
   #client: RclwebClient;
+  #graph: GraphView;
+  #graphChanges: Array<() => void> = [];
   #publishers: Publisher<unknown>[] = [];
   #subscriptions: Subscription<unknown>[] = [];
   #clients: Client[] = [];
@@ -256,6 +274,13 @@ export class Node {
     this.name = name;
     this.namespace = namespace;
     this.#client = requireClient();
+    this.#graph = this.#client.session.graph();
+    this.#client.session.onGraph((view) => {
+      this.#graph = view;
+      for (const callback of this.#graphChanges) {
+        callback();
+      }
+    });
   }
 
   getName(): string {
@@ -264,6 +289,56 @@ export class Node {
 
   getNamespace(): string {
     return this.namespace;
+  }
+
+  /**
+   * rclcpp `get_node_names`. Fully qualified names from the last GraphSnapshot.
+   */
+  getNodeNames(): string[] {
+    return this.#graph.nodes.map((node) => node.name);
+  }
+
+  /**
+   * rclcpp `get_topic_names_and_types`.
+   */
+  getTopicNamesAndTypes(): NamesAndTypes[] {
+    return namesAndTypes(this.#graph, [TOPIC_PUB, TOPIC_SUB]);
+  }
+
+  /**
+   * rclcpp `get_service_names_and_types`.
+   */
+  getServiceNamesAndTypes(): NamesAndTypes[] {
+    return namesAndTypes(this.#graph, [SERVICE_SERVER, SERVICE_CLIENT]);
+  }
+
+  /**
+   * rclcpp_action `get_action_names_and_types`.
+   */
+  getActionNamesAndTypes(): NamesAndTypes[] {
+    return namesAndTypes(this.#graph, [ACTION_SERVER, ACTION_CLIENT]);
+  }
+
+  /**
+   * rclcpp `count_publishers`. Relative names resolve under this node namespace.
+   */
+  countPublishers(topicName: string): number {
+    return countEndpoints(this.#graph, TOPIC_PUB, resolveName(this.namespace, topicName));
+  }
+
+  /**
+   * rclcpp `count_subscribers`.
+   */
+  countSubscribers(topicName: string): number {
+    return countEndpoints(this.#graph, TOPIC_SUB, resolveName(this.namespace, topicName));
+  }
+
+  /**
+   * Event-loop analog of rclcpp `wait_for_graph_change`: call the getters
+   * from the callback. GraphSnapshot/Delta stay off this surface.
+   */
+  onGraphChange(callback: () => void): void {
+    this.#graphChanges.push(callback);
   }
 
   createPublisher(
@@ -488,6 +563,31 @@ function resolveName(namespace: string, name: string): string {
   if (!namespace || namespace === "/") return `/${name}`;
   const ns = namespace.endsWith("/") ? namespace.slice(0, -1) : namespace;
   return `${ns.startsWith("/") ? ns : `/${ns}`}/${name}`;
+}
+
+function namesAndTypes(graph: GraphView, kinds: number[]): NamesAndTypes[] {
+  const map = new Map<string, string[]>();
+  for (const endpoint of graph.endpoints) {
+    if (endpoint.kind === undefined || !kinds.includes(endpoint.kind)) {
+      continue;
+    }
+    const types = map.get(endpoint.name) ?? [];
+    if (endpoint.type_name && !types.includes(endpoint.type_name)) {
+      types.push(endpoint.type_name);
+    }
+    map.set(endpoint.name, types);
+  }
+  return [...map.entries()].map(([name, types]) => ({ name, types }));
+}
+
+function countEndpoints(graph: GraphView, kind: number, name: string): number {
+  let count = 0;
+  for (const endpoint of graph.endpoints) {
+    if (endpoint.kind === kind && endpoint.name === name) {
+      count += 1;
+    }
+  }
+  return count;
 }
 
 function field(

@@ -62,6 +62,14 @@ v0.1 parks SessionResume (capability 1). R2-01 reconnect means: close the transp
 
 After Authenticate succeeds, `rclwebd` pushes SessionReady and then GraphSnapshot (generation 1, zero correlation) before any OpenChannel. Clients that only drain SessionReady will see GraphSnapshot as the next control frame and mis-attribute ChannelReady. Topic OpenChannel success also emits GraphDelta (generation N+1) when the mock/backend graph gains an endpoint. Drain both before expecting samples.
 
+## Public Node graph hides GraphSnapshot JSON
+
+`GraphView` (`generation`, `domain_id`, numeric endpoint `kind`) is `@rclweb/sdk/internal`. Applications use rclcpp names on `Node`: `getNodeNames`, `getTopicNamesAndTypes`, `getServiceNamesAndTypes`, `getActionNamesAndTypes`, `countPublishers`, `countSubscribers`, and `onGraphChange`. Do not export GraphSnapshot field numbers or `session.onGraph` on `@rclweb/sdk`. [R4-04](../../docs/milestones/r4-04-sdk.md).
+
+## Scripted GraphSnapshot endpoints must be complete control maps
+
+An empty GraphSnapshot endpoint array is valid. A partial endpoint (name/kind/type only) fails control validation (`missing_key` on schema identity, QoS, and encoding), so the engine never emits the app event and SDK graph tests hang. Scripted peers must use the same endpoint map as the gateway: id, node id, name, kind, type name, schema identity, CDR encoding, QoS (kinds 0–3), domain, optional row. Endpoints are sorted by id bytes. Reproduce with `cargo run --locked -p r1_04_fixture_gen`.
+
 ## ROS_RELIABLE on Service/Action frames
 
 R3-01 reliable operation streams (SERVICE_REQUEST/RESPONSE, ACTION_GOAL/CANCEL/RESULT) carry `FLAG_ROS_RELIABLE`. Frame step 7 still rejects that flag on media/recording/asset/control opcodes; the malformed fixture `frame-step7-ros-reliable-opcode` uses MEDIA_CHUNK for that check (not SERVICE_REQUEST).

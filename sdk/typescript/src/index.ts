@@ -18,6 +18,7 @@ export {
   ActionServer,
   WallTimer,
   type SubscriptionCallback,
+  type NamesAndTypes,
 } from "./node.ts";
 export { QoS, KeepLast, type QoSInput } from "./qos.ts";
 export {

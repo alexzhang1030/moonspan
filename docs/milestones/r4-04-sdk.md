@@ -113,6 +113,17 @@ Reconnect is a fresh session on both the I/O Worker path and the inline host. Af
 | Worker | `onPollEnd` posts `{ type: "telemetry", snapshot }` before sample/op events. Main caches it; `telemetry()` stays synchronous. |
 | Tests | [`worker-ops.test.ts`](../../sdk/typescript/test/worker-ops.test.ts): Worker telemetry after a sample; Worker and inline reconnect keep the same subscription / service client. |
 
+## Outcome (this slice — public Node graph)
+
+Graph state is on `Node` with rclcpp names. Applications do not import `@rclweb/sdk/internal` `onGraph` / `GraphView`. Session `onGraph` fans out to every handler so more than one `Node` can listen.
+
+| Area | Behavior |
+|---|---|
+| Node | `getNodeNames`, `getTopicNamesAndTypes`, `getServiceNamesAndTypes`, `getActionNamesAndTypes`, `countPublishers`, `countSubscribers`, `onGraphChange`. |
+| Host | `session.graph()` returns the cached snapshot. `onGraph` is a set of handlers, not last-writer-wins. |
+| Fixture | Scripted GraphSnapshot includes `/talker`, a `/chatter` publisher, and `/add_two_ints`. |
+| Tests | [`node.test.ts`](../../sdk/typescript/test/node.test.ts) asserts names and counts without GraphSnapshot types. |
+
 ## Delivered scope
 
 | Surface | Location |
