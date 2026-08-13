@@ -12,6 +12,7 @@ The product is one Rust core (`rclweb`) for gateway and browser, `rclwebd` at th
 | Support rows | Six rows of corpus data stay committed; live talker e2e covers all six; **Qualified** is a human matrix edit |
 | Bun | 1.3.14, workspace manifests, lockfile, root checks |
 | License | Apache-2.0; OSI-permissive third-party policy ([licensing](../docs/licensing.md)) |
+| First published version | TypeScript package `rclweb@0.0.1` is public; the npm tarball must include `LICENSE` and `NOTICE`. Crates stay `publish = false`. A human still runs `npm publish` from `typescript/` |
 
 ## Open — needs a human ruling
 
@@ -22,7 +23,6 @@ The product is one Rust core (`rclweb`) for gateway and browser, `rclwebd` at th
 | OIDC tenant and SROS2 | Issuer/audience/JWKS tenant record and SROS2 keystore; the gateway only consumes env |
 | ACL matrix content | Reviewed allow-rule set for `RCLWEBD_ACL_MODE=enforce` |
 | Benchmark retention | Storage, retention, access, and integrity policy for perf output |
-| npm publish | Human-chosen version, `"private": false`, `LICENSE` and `NOTICE` in the tarball |
 | Support-matrix **Qualified** | Human edit of [support-matrix.md](../docs/support-matrix.md) |
 | Copyright line | `NOTICE` currently says `Copyright 2026 Alex` |
 

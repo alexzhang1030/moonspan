@@ -52,8 +52,12 @@ Outside this inventory (they are not crate/npm release units):
 Workspace Cargo members inherit `license = "Apache-2.0"`. Bun workspace
 packages declare `"license": "Apache-2.0"`.
 
-An npm publish must include the repository `LICENSE` and `NOTICE` in the
-tarball. This slice does not publish and does not set `"private": false`.
+The first published TypeScript package is `rclweb@0.0.1` (`"private": false`).
+An npm tarball must include the repository `LICENSE` and `NOTICE`.
+`just npm-pack` / the package `prepack` script copies those files into
+`typescript/` (gitignored). `just npm-pack-check` is part of `just check`.
+A human still runs `npm publish` from `typescript/`. Rust crates stay
+`publish = false` (not crates.io).
 
 Per-file SPDX headers are not required. The root `LICENSE` / `NOTICE` and
 the manifest fields are the project convention.

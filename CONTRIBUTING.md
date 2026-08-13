@@ -9,7 +9,7 @@ just test
 just build
 ```
 
-`just check` is the foundation gate (docs, protocol, corpus, license inventory, `cargo fmt`, Clippy with `-D warnings`, TypeScript package typecheck). Do not treat a rust-only loop as a substitute.
+`just check` is the foundation gate (docs, protocol, corpus, license inventory, npm pack members, `cargo fmt`, Clippy with `-D warnings`, TypeScript package typecheck). Do not treat a rust-only loop as a substitute.
 
 ## Rust workspace
 
@@ -47,3 +47,7 @@ under that license unless you state otherwise in writing.
 Third-party crates and npm packages on the published surface must stay
 OSI-permissive. After changing Cargo or Bun dependencies, run
 `just license-inventory` and keep `just license-inventory-check` green.
+
+The first published TypeScript package is `rclweb@0.0.1`. Publish is a
+human step from `typescript/` after `just build` (`npm publish`). Do not
+commit the staged `typescript/LICENSE` / `typescript/NOTICE` copies.

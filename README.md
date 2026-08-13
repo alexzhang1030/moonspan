@@ -40,9 +40,11 @@ just build
 | `just toolchain-check` | Verify pinned tools |
 | `just doctor` | Pins plus rustc/rustfmt/clippy identity |
 | `just fmt` / `just fmt-check` / `just clippy` / `just lint-rust` | Rust format and Clippy (subset of `just check`) |
-| `just check` | Docs, protocol, corpus, and license inventory; Rust fmt/clippy; SDK typecheck |
+| `just check` | Docs, protocol, corpus, license inventory, and npm pack members; Rust fmt/clippy; TypeScript package typecheck |
 | `just test` | Bun and Cargo test suites |
-| `just build` | Native build, fat-LTO `rclweb` wasm staged into the SDK, and SDK build |
+| `just build` | Native build, fat-LTO `rclweb` wasm staged into the TypeScript package, and package build |
+| `just npm-pack` | Copy `LICENSE`/`NOTICE` into `typescript/` and write the npm tarball |
+| `just npm-pack-check` | Verify the tarball is `rclweb@0.0.1` and includes `LICENSE`, `NOTICE`, and wasm |
 | `just poll-latency` | Print wasm poll latency + size |
 | `just e2e` | Docker compose: Jazzy talker → rclwebd (J-FT) → SDK subscribe |
 | `just e2e-h-ft` | Docker compose: Humble talker → rclwebd (H-FT) → SDK subscribe |
@@ -61,8 +63,9 @@ just build
 
 A browser page can subscribe to a live ROS 2 talker in CI (`just e2e`,
 `just e2e-h-ft`, and the Cyclone/Zenoh row lanes). The TypeScript package
-stays `"private": true` / `"version": "0.0.0"` until a human publish.
-Open work lives in [tasks/plan.md](./tasks/plan.md).
+is `rclweb@0.0.1` and public. A human publishes it from `typescript/`
+after `just build` (`npm publish`). Support-matrix **Qualified** remains
+a human matrix edit. Open work lives in [tasks/plan.md](./tasks/plan.md).
 
 ## Start here
 

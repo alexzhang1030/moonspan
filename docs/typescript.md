@@ -8,11 +8,19 @@ bytes and the wasm core owns protocol, CDR, and ROS state
 ([architecture](./architecture.md), [ADR 0004](./adr/0004-browser-wasm-host-boundary.md),
 [ADR 0013](./adr/0013-typescript-package-rclweb.md)).
 
-The package lives at [`typescript/`](../typescript/) and is consumed from this repository's Bun workspace. It stays `"private": true` and `"version": "0.0.0"` until a human release review. This slice does not publish to npm. The package is Apache-2.0 ([licensing](./licensing.md)).
+The package lives at [`typescript/`](../typescript/). The first published version is `0.0.1`. The package is public (`"private": false`). It is Apache-2.0 ([licensing](./licensing.md)).
 
-## Install (workspace)
+## Install
 
-Root `package.json` already lists `typescript` as a workspace. Examples depend on `"rclweb": "workspace:*"`. After `just setup`:
+From npm, after the package is on the registry:
+
+```bash
+npm install rclweb
+# or
+bun add rclweb
+```
+
+From this repository's Bun workspace, examples depend on `"rclweb": "workspace:*"`. After `just setup`:
 
 ```ts
 import { init, Node, std_msgs, sensor_msgs, rclweb_cdr_interfaces } from "rclweb";
@@ -163,7 +171,20 @@ See [examples/README.md](../examples/README.md).
 
 ## Version and release
 
-Independent package versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). R2WP wire version is a separate identity ([ADR 0005](./adr/0005-r2wp-wire-versioning.md)). This package does not bump to `1.0.0`, set `"private": false`, or publish. npm publish waits on a human release review. An npm tarball must include the repository `LICENSE` and `NOTICE`.
+Independent package versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). R2WP wire version is a separate identity ([ADR 0005](./adr/0005-r2wp-wire-versioning.md)). The first published version is `0.0.1`. The package is public.
+
+An npm tarball must include the repository `LICENSE` and `NOTICE`. Those files live at the repository root; `just npm-pack` / the package `prepack` script copies them into `typescript/` (gitignored). `just npm-pack-check` is part of `just check`.
+
+Publish (human, from a clean tree after `just build`):
+
+```bash
+just build
+just npm-pack-check
+cd typescript
+npm publish
+```
+
+This repository does not run `npm publish` in CI. Rust crates stay `publish = false` (not crates.io).
 
 ## Related
 

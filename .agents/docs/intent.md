@@ -23,6 +23,7 @@ A production edge + browser path: one Rust core ([ADR 0010](../../docs/adr/0010-
 - `rclwebd` owns ROS attachment, identity, policy, scheduling, schema, audit, and operations at the edge.
 - Supported profiles carry conformance, performance, security, and deployment evidence.
 - The TypeScript package `rclweb` exposes an rclcpp-shaped public application contract (`init` / `Node`).
+- The first published package version is `0.0.1`. The npm tarball must include the repository `LICENSE` and `NOTICE`. Rust crates stay off crates.io (`publish = false`).
 - The repository is Apache-2.0; third-party crates on the published surface stay OSI-permissive ([licensing](../../docs/licensing.md)).
 
 ## Non-goals
