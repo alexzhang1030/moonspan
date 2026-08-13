@@ -31,7 +31,8 @@ copyleft crate cannot leak into a later release.
 ## Inventory
 
 [`docs/third-party.md`](./third-party.md) is generated from `Cargo.lock` and
-the Bun workspace manifests:
+the Bun workspace manifests. Declared npm packages are read from the
+declaring workspace `node_modules/` first, then the root hoist:
 
 ```bash
 just license-inventory

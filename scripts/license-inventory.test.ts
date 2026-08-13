@@ -1,7 +1,12 @@
 import { describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import {
+  installedPackageManifest,
   licenseDiagnostics,
   licenseExpressionAllowed,
+  modelFromBunWorkspace,
   normalizeLicenseExpression,
   renderInventoryMarkdown,
   splitTopLevel,
@@ -87,5 +92,46 @@ describe("renderInventoryMarkdown", () => {
     expect(text).toContain("[licensing](./licensing.md)");
     expect(text).toContain("No external npm dependencies");
     expect(text.endsWith("\n")).toBe(true);
+  });
+});
+
+describe("installedPackageManifest", () => {
+  test("prefers the declaring workspace node_modules over a missing root hoist", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "rclweb-license-"));
+    const nested = path.join(root, "typescript", "node_modules", "tsdown", "package.json");
+    mkdirSync(path.dirname(nested), { recursive: true });
+    writeFileSync(nested, JSON.stringify({ name: "tsdown", version: "0.22.14", license: "MIT" }));
+    expect(installedPackageManifest(root, "typescript", "tsdown")).toBe(nested);
+    expect(installedPackageManifest(root, ".", "tsdown")).toBeUndefined();
+  });
+
+  test("reads a scoped package under node_modules/@scope/name", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "rclweb-license-scope-"));
+    const nested = path.join(root, "node_modules", "@foo", "bar", "package.json");
+    mkdirSync(path.dirname(nested), { recursive: true });
+    writeFileSync(nested, "{}");
+    expect(installedPackageManifest(root, ".", "@foo/bar")).toBe(nested);
+  });
+});
+
+describe("modelFromBunWorkspace", () => {
+  test("reads license from a workspace-nested install", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "rclweb-license-ws-"));
+    writeFileSync(
+      path.join(root, "package.json"),
+      JSON.stringify({ name: "root", private: true, workspaces: ["pkg"] }),
+    );
+    mkdirSync(path.join(root, "pkg"));
+    writeFileSync(
+      path.join(root, "pkg", "package.json"),
+      JSON.stringify({ name: "pkg", devDependencies: { tsdown: "0.22.14" } }),
+    );
+    const nested = path.join(root, "pkg", "node_modules", "tsdown", "package.json");
+    mkdirSync(path.dirname(nested), { recursive: true });
+    writeFileSync(nested, JSON.stringify({ name: "tsdown", version: "0.22.14", license: "MIT" }));
+    expect(modelFromBunWorkspace(root)).toEqual({
+      bunWorkspace: ["root", "pkg"],
+      bunExternal: [{ name: "tsdown", version: "0.22.14", license: "MIT" }],
+    });
   });
 });

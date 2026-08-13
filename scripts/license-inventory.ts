@@ -7,7 +7,7 @@
  *          every third-party license on the workspace graph is allowed
  */
 import { spawnSync } from "node:child_process";
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 export const INVENTORY_REL = "docs/third-party.md";
@@ -363,6 +363,32 @@ function declaredDeps(manifest: BunManifest): { name: string; spec: string }[] {
   return out;
 }
 
+/** package.json for a declared npm dep: workspace node_modules first, then root hoist. */
+export function installedPackageManifest(
+  root: string,
+  workspaceRel: string,
+  depName: string,
+): string | undefined {
+  const rel = path.join("node_modules", ...depName.split("/"), "package.json");
+  const candidates = [path.join(root, workspaceRel, rel), path.join(root, rel)];
+  const seen = new Set<string>();
+  for (const candidate of candidates) {
+    if (seen.has(candidate)) continue;
+    seen.add(candidate);
+    if (existsSync(candidate)) return candidate;
+  }
+  return undefined;
+}
+
+function licenseFromManifest(pkg: BunManifest & { license?: unknown; version?: unknown }): {
+  license: string;
+  version?: string;
+} {
+  const license = typeof pkg.license === "string" ? pkg.license : "";
+  const version = typeof pkg.version === "string" ? pkg.version : undefined;
+  return { license, version };
+}
+
 export function modelFromBunWorkspace(root: string): { bunExternal: InventoryRow[]; bunWorkspace: string[] } {
   const rootManifest = readJson(path.join(root, "package.json"));
   const rels = new Set<string>();
@@ -376,23 +402,23 @@ export function modelFromBunWorkspace(root: string): { bunExternal: InventoryRow
   const bunWorkspace = manifests.map((m) => m.manifest.name || m.rel).filter(Boolean);
   const bunExternal: InventoryRow[] = [];
   const seen = new Set<string>();
-  for (const { manifest } of manifests) {
+  for (const { rel, manifest } of manifests) {
     for (const dep of declaredDeps(manifest)) {
       if (dep.spec.startsWith("workspace:")) continue;
       const key = `${dep.name}@${dep.spec}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      const installed = path.join(root, "node_modules", dep.name, "package.json");
+      const installed = installedPackageManifest(root, rel, dep.name);
       let license = "";
       let version = dep.spec;
-      try {
-        const pkg = readJson(installed);
-        license = typeof (pkg as { license?: unknown }).license === "string" ? (pkg as { license: string }).license : "";
-        if (typeof (pkg as { version?: unknown }).version === "string") {
-          version = (pkg as { version: string }).version;
+      if (installed) {
+        try {
+          const pkg = licenseFromManifest(readJson(installed));
+          license = pkg.license;
+          if (pkg.version) version = pkg.version;
+        } catch {
+          license = "";
         }
-      } catch {
-        license = "";
       }
       bunExternal.push({ name: dep.name, version, license });
     }
