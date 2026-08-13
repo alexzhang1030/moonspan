@@ -2,6 +2,9 @@
  * Main ↔ I/O Worker message protocol.
  * Application-facing only — no R2WP field knowledge on either side beyond
  * opaque binary frames the Worker already owns.
+ *
+ * Service/action CDR bytes are copied out of wasm in the Worker and the lease
+ * is released there. Main never sees payload pointers.
  */
 
 export type MainToWorker =
@@ -51,6 +54,72 @@ export type MainToWorker =
       channelId: number;
       correlation: number[];
     }
+  | {
+      type: "openService";
+      requestId: number;
+      channelId: number;
+      name: string;
+      typeName: string;
+      client: boolean;
+      correlation: number[];
+    }
+  | {
+      type: "callService";
+      requestId: number;
+      channelId: number;
+      operationId: number[];
+      request: Uint8Array;
+    }
+  | {
+      type: "sendServiceResponse";
+      requestId: number;
+      channelId: number;
+      operationId: number[];
+      response: Uint8Array;
+    }
+  | {
+      type: "openAction";
+      requestId: number;
+      channelId: number;
+      name: string;
+      typeName: string;
+      client: boolean;
+      correlation: number[];
+    }
+  | {
+      type: "sendActionGoal";
+      requestId: number;
+      channelId: number;
+      operationId: number[];
+      goal: Uint8Array;
+    }
+  | {
+      type: "cancelAction";
+      requestId: number;
+      channelId: number;
+      operationId: number[];
+    }
+  | {
+      type: "sendActionFeedback";
+      requestId: number;
+      channelId: number;
+      operationId: number[];
+      feedback: Uint8Array;
+    }
+  | {
+      type: "sendActionResult";
+      requestId: number;
+      channelId: number;
+      operationId: number[];
+      result: Uint8Array;
+    }
+  | {
+      type: "sendActionStatus";
+      requestId: number;
+      channelId: number;
+      operationId: number[];
+      status: Uint8Array;
+    }
   | { type: "releaseLease"; leaseId: number }
   | { type: "close"; requestId: number };
 
@@ -91,6 +160,87 @@ export type WorkerToMain =
       channelId: number;
       leaseId: number;
       data: string;
+    }
+  | {
+      type: "serviceReady";
+      requestId: number;
+      channelId: number;
+      name: string;
+      typeName: string;
+      client: boolean;
+    }
+  | {
+      type: "serviceFailed";
+      requestId: number;
+      channelId: number;
+      code: number;
+      message: string;
+    }
+  | {
+      type: "serviceResponse";
+      requestId: number;
+      channelId: number;
+      operationId: number[];
+      payload: Uint8Array;
+    }
+  | {
+      type: "serviceRequest";
+      channelId: number;
+      operationId: number[];
+      payload: Uint8Array;
+    }
+  | {
+      type: "actionReady";
+      requestId: number;
+      channelId: number;
+      name: string;
+      typeName: string;
+      client: boolean;
+    }
+  | {
+      type: "actionFailed";
+      requestId: number;
+      channelId: number;
+      code: number;
+      message: string;
+    }
+  | {
+      type: "actionGoal";
+      channelId: number;
+      operationId: number[];
+      payload: Uint8Array;
+    }
+  | {
+      type: "actionFeedback";
+      channelId: number;
+      operationId: number[];
+      payload: Uint8Array;
+    }
+  | {
+      type: "actionResult";
+      requestId: number;
+      channelId: number;
+      operationId: number[];
+      payload: Uint8Array;
+    }
+  | {
+      type: "actionStatus";
+      channelId: number;
+      operationId: number[];
+      payload: Uint8Array;
+    }
+  | {
+      type: "graphSnapshot";
+      generation: number;
+      nodesJson: string;
+      endpointsJson: string;
+    }
+  | { type: "graphDelta"; generation: number }
+  | {
+      type: "operationCancelled";
+      channelId: number;
+      code: number;
+      message: string;
     }
   | { type: "error"; requestId?: number; message: string }
   | { type: "ack"; requestId: number }

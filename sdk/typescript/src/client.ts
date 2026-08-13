@@ -893,12 +893,23 @@ function opidKey(channelId: number, operationId: Uint8Array): string {
   return hex;
 }
 
+function asPayload(value: Uint8Array | number[]): Uint8Array {
+  return value instanceof Uint8Array ? value : Uint8Array.from(value);
+}
+
 class WorkerClient implements RclwebClient {
   #worker: Worker;
   #pending = new Map<number, Pending>();
   #nextRequest = 1;
   #nextChannel = 1;
   #handlers = new Map<number, SubscriptionHandler>();
+  #serviceHandlers = new Map<number, ServiceServerHandler>();
+  #actionFeedback = new Map<number, ActionFeedbackHandler>();
+  #actionStatus = new Map<number, ActionStatusHandler>();
+  #actionServerHandlers = new Map<number, ActionServerHandlers>();
+  #inflightByChannel = new Map<number, Set<number>>();
+  #graphHandler: GraphHandler | null = null;
+  #graph: GraphView = { generation: 0, nodes: [], endpoints: [] };
   #session: RclwebSession;
 
   private constructor(worker: Worker) {
@@ -908,30 +919,39 @@ class WorkerClient implements RclwebClient {
         this.#subscribe(topic, typeName, qos),
       publish: (topic, typeName = STD_MSGS_STRING, qos = {}) =>
         this.#publish(topic, typeName, qos),
-      createServiceClient: async () => {
-        throw new Error("createServiceClient requires inline host (options.inline)");
+      createServiceClient: (name, typeName = "") =>
+        this.#createServiceClient(name, typeName),
+      createServiceServer: (name, typeName = "", handler) =>
+        this.#createServiceServer(name, typeName, handler),
+      createActionClient: (name, typeName = "") =>
+        this.#createActionClient(name, typeName),
+      createActionServer: (name, typeName = "", handlers = {}) =>
+        this.#createActionServer(name, typeName, handlers),
+      onGraph: (handler) => {
+        this.#graphHandler = handler;
+        if (this.#graph.generation > 0) handler(this.#graph);
       },
-      createServiceServer: async () => {
-        throw new Error("createServiceServer requires inline host (options.inline)");
-      },
-      createActionClient: async () => {
-        throw new Error("createActionClient requires inline host (options.inline)");
-      },
-      createActionServer: async () => {
-        throw new Error("createActionServer requires inline host (options.inline)");
-      },
-      onGraph: () => {
-        throw new Error("onGraph requires inline host (options.inline)");
-      },
-      getParameters: async () => {
-        throw new Error("getParameters requires inline host (options.inline)");
-      },
-      setParameters: async () => {
-        throw new Error("setParameters requires inline host (options.inline)");
-      },
-      listParameters: async () => {
-        throw new Error("listParameters requires inline host (options.inline)");
-      },
+      getParameters: (node, requestCdr = new Uint8Array()) =>
+        this.#paramService(
+          node,
+          "get_parameters",
+          "rcl_interfaces/srv/GetParameters",
+          requestCdr,
+        ),
+      setParameters: (node, requestCdr = new Uint8Array()) =>
+        this.#paramService(
+          node,
+          "set_parameters",
+          "rcl_interfaces/srv/SetParameters",
+          requestCdr,
+        ),
+      listParameters: (node, requestCdr = new Uint8Array()) =>
+        this.#paramService(
+          node,
+          "list_parameters",
+          "rcl_interfaces/srv/ListParameters",
+          requestCdr,
+        ),
     };
     worker.onmessage = (ev: MessageEvent<WorkerToMain>) => {
       this.#onWorker(ev.data);
@@ -1118,6 +1138,245 @@ class WorkerClient implements RclwebClient {
         );
         break;
       }
+      case "serviceReady": {
+        const p = this.#pending.get(msg.requestId);
+        if (!p) break;
+        const channelId = msg.channelId;
+        if (msg.client) {
+          const client: ServiceClient = {
+            name: msg.name,
+            typeName: msg.typeName,
+            channelId,
+            call: (request) => this.#callService(channelId, request),
+            close: async () => {
+              await this.#request({
+                type: "unsubscribe",
+                requestId: 0,
+                channelId,
+                correlation: [...corrTag(0xc5)],
+              });
+            },
+          };
+          p.resolve(client);
+        } else {
+          const server: ServiceServer = {
+            name: msg.name,
+            typeName: msg.typeName,
+            channelId,
+            close: async () => {
+              this.#serviceHandlers.delete(channelId);
+              await this.#request({
+                type: "unsubscribe",
+                requestId: 0,
+                channelId,
+                correlation: [...corrTag(0xc6)],
+              });
+            },
+          };
+          p.resolve(server);
+        }
+        this.#pending.delete(msg.requestId);
+        break;
+      }
+      case "serviceFailed": {
+        const p = this.#pending.get(msg.requestId);
+        if (!p) break;
+        p.reject(new Error(`service failed (${msg.code}): ${msg.message}`));
+        this.#pending.delete(msg.requestId);
+        break;
+      }
+      case "serviceResponse": {
+        this.#clearInflight(msg.channelId, msg.requestId);
+        const p = this.#pending.get(msg.requestId);
+        if (p) {
+          p.resolve(asPayload(msg.payload));
+          this.#pending.delete(msg.requestId);
+        }
+        break;
+      }
+      case "serviceRequest": {
+        const handler = this.#serviceHandlers.get(msg.channelId);
+        if (!handler) break;
+        const opid = Uint8Array.from(msg.operationId);
+        void Promise.resolve(handler(asPayload(msg.payload), opid)).then(
+          (response) => {
+            this.#worker.postMessage({
+              type: "sendServiceResponse",
+              requestId: this.#nextRequest++,
+              channelId: msg.channelId,
+              operationId: [...opid],
+              response,
+            } satisfies MainToWorker);
+          },
+        );
+        break;
+      }
+      case "actionReady": {
+        const p = this.#pending.get(msg.requestId);
+        if (!p) break;
+        const channelId = msg.channelId;
+        if (msg.client) {
+          const client: ActionClient = {
+            name: msg.name,
+            typeName: msg.typeName,
+            channelId,
+            sendGoal: (goal) => this.#sendActionGoal(channelId, goal),
+            cancel: (opid) => {
+              void this.#request({
+                type: "cancelAction",
+                requestId: 0,
+                channelId,
+                operationId: [...opid],
+              });
+            },
+            onFeedback: (handler) => {
+              this.#actionFeedback.set(channelId, handler);
+            },
+            onStatus: (handler) => {
+              this.#actionStatus.set(channelId, handler);
+            },
+            close: async () => {
+              this.#actionFeedback.delete(channelId);
+              this.#actionStatus.delete(channelId);
+              await this.#request({
+                type: "unsubscribe",
+                requestId: 0,
+                channelId,
+                correlation: [...corrTag(0xc7)],
+              });
+            },
+          };
+          p.resolve(client);
+        } else {
+          const server: ActionServer = {
+            name: msg.name,
+            typeName: msg.typeName,
+            channelId,
+            sendFeedback: (opid, feedback) => {
+              void this.#request({
+                type: "sendActionFeedback",
+                requestId: 0,
+                channelId,
+                operationId: [...opid],
+                feedback,
+              });
+            },
+            sendResult: (opid, result) => {
+              void this.#request({
+                type: "sendActionResult",
+                requestId: 0,
+                channelId,
+                operationId: [...opid],
+                result,
+              });
+            },
+            sendStatus: (opid, status) => {
+              void this.#request({
+                type: "sendActionStatus",
+                requestId: 0,
+                channelId,
+                operationId: [...opid],
+                status,
+              });
+            },
+            close: async () => {
+              this.#actionServerHandlers.delete(channelId);
+              await this.#request({
+                type: "unsubscribe",
+                requestId: 0,
+                channelId,
+                correlation: [...corrTag(0xc8)],
+              });
+            },
+          };
+          p.resolve(server);
+        }
+        this.#pending.delete(msg.requestId);
+        break;
+      }
+      case "actionFailed": {
+        const p = this.#pending.get(msg.requestId);
+        if (!p) break;
+        p.reject(new Error(`action failed (${msg.code}): ${msg.message}`));
+        this.#pending.delete(msg.requestId);
+        break;
+      }
+      case "actionGoal": {
+        const handlers = this.#actionServerHandlers.get(msg.channelId);
+        if (handlers?.onGoal) {
+          void handlers.onGoal(
+            asPayload(msg.payload),
+            Uint8Array.from(msg.operationId),
+          );
+        }
+        break;
+      }
+      case "actionFeedback": {
+        this.#actionFeedback.get(msg.channelId)?.(
+          asPayload(msg.payload),
+          Uint8Array.from(msg.operationId),
+        );
+        break;
+      }
+      case "actionResult": {
+        this.#clearInflight(msg.channelId, msg.requestId);
+        const p = this.#pending.get(msg.requestId);
+        if (p) {
+          p.resolve(asPayload(msg.payload));
+          this.#pending.delete(msg.requestId);
+        }
+        break;
+      }
+      case "actionStatus": {
+        this.#actionStatus.get(msg.channelId)?.(
+          asPayload(msg.payload),
+          Uint8Array.from(msg.operationId),
+        );
+        break;
+      }
+      case "graphSnapshot": {
+        let nodes: GraphView["nodes"] = [];
+        let endpoints: GraphView["endpoints"] = [];
+        try {
+          nodes = JSON.parse(msg.nodesJson) as GraphView["nodes"];
+          endpoints = JSON.parse(msg.endpointsJson) as GraphView["endpoints"];
+        } catch {
+          // keep empty on malformed JSON from the engine
+        }
+        this.#graph = {
+          generation: msg.generation,
+          nodes,
+          endpoints,
+        };
+        this.#graphHandler?.(this.#graph);
+        break;
+      }
+      case "graphDelta": {
+        this.#graph = {
+          ...this.#graph,
+          generation: msg.generation,
+        };
+        this.#graphHandler?.(this.#graph);
+        break;
+      }
+      case "operationCancelled": {
+        const inflight = this.#inflightByChannel.get(msg.channelId);
+        if (inflight) {
+          for (const requestId of inflight) {
+            const p = this.#pending.get(requestId);
+            if (p) {
+              p.reject(
+                new Error(
+                  `operation cancelled (${msg.code}): ${msg.message}`,
+                ),
+              );
+              this.#pending.delete(requestId);
+            }
+          }
+          this.#inflightByChannel.delete(msg.channelId);
+        }
+        break;
+      }
       case "error": {
         if (msg.requestId != null) {
           const p = this.#pending.get(msg.requestId);
@@ -1198,12 +1457,177 @@ class WorkerClient implements RclwebClient {
       } satisfies MainToWorker);
     });
   }
+
+  #createServiceClient(name: string, typeName: string): Promise<ServiceClient> {
+    const channelId = this.#nextChannel++;
+    const requestId = this.#nextRequest++;
+    return new Promise((resolve, reject) => {
+      this.#pending.set(requestId, {
+        resolve: (value) => resolve(value as ServiceClient),
+        reject,
+      });
+      this.#worker.postMessage({
+        type: "openService",
+        requestId,
+        channelId,
+        name,
+        typeName,
+        client: true,
+        correlation: [...corrTag(0xe0 + (channelId & 0x0f))],
+      } satisfies MainToWorker);
+    });
+  }
+
+  #createServiceServer(
+    name: string,
+    typeName: string,
+    handler: ServiceServerHandler,
+  ): Promise<ServiceServer> {
+    const channelId = this.#nextChannel++;
+    const requestId = this.#nextRequest++;
+    this.#serviceHandlers.set(channelId, handler);
+    return new Promise((resolve, reject) => {
+      this.#pending.set(requestId, {
+        resolve: (value) => resolve(value as ServiceServer),
+        reject,
+      });
+      this.#worker.postMessage({
+        type: "openService",
+        requestId,
+        channelId,
+        name,
+        typeName,
+        client: false,
+        correlation: [...corrTag(0xe1 + (channelId & 0x0f))],
+      } satisfies MainToWorker);
+    });
+  }
+
+  #callService(channelId: number, request: Uint8Array): Promise<Uint8Array> {
+    const operationId = crypto.getRandomValues(new Uint8Array(16));
+    const requestId = this.#nextRequest++;
+    this.#trackInflight(channelId, requestId);
+    return new Promise((resolve, reject) => {
+      this.#pending.set(requestId, {
+        resolve: (value) => resolve(value as Uint8Array),
+        reject,
+      });
+      this.#worker.postMessage({
+        type: "callService",
+        requestId,
+        channelId,
+        operationId: [...operationId],
+        request,
+      } satisfies MainToWorker);
+    });
+  }
+
+  #createActionClient(name: string, typeName: string): Promise<ActionClient> {
+    const channelId = this.#nextChannel++;
+    const requestId = this.#nextRequest++;
+    return new Promise((resolve, reject) => {
+      this.#pending.set(requestId, {
+        resolve: (value) => resolve(value as ActionClient),
+        reject,
+      });
+      this.#worker.postMessage({
+        type: "openAction",
+        requestId,
+        channelId,
+        name,
+        typeName,
+        client: true,
+        correlation: [...corrTag(0xe2 + (channelId & 0x0f))],
+      } satisfies MainToWorker);
+    });
+  }
+
+  #createActionServer(
+    name: string,
+    typeName: string,
+    handlers: ActionServerHandlers,
+  ): Promise<ActionServer> {
+    const channelId = this.#nextChannel++;
+    const requestId = this.#nextRequest++;
+    this.#actionServerHandlers.set(channelId, handlers);
+    return new Promise((resolve, reject) => {
+      this.#pending.set(requestId, {
+        resolve: (value) => resolve(value as ActionServer),
+        reject,
+      });
+      this.#worker.postMessage({
+        type: "openAction",
+        requestId,
+        channelId,
+        name,
+        typeName,
+        client: false,
+        correlation: [...corrTag(0xe3 + (channelId & 0x0f))],
+      } satisfies MainToWorker);
+    });
+  }
+
+  #sendActionGoal(
+    channelId: number,
+    goal: Uint8Array,
+  ): { operationId: Uint8Array; result: Promise<Uint8Array> } {
+    const operationId = crypto.getRandomValues(new Uint8Array(16));
+    const requestId = this.#nextRequest++;
+    this.#trackInflight(channelId, requestId);
+    const result = new Promise<Uint8Array>((resolve, reject) => {
+      this.#pending.set(requestId, {
+        resolve: (value) => resolve(value as Uint8Array),
+        reject,
+      });
+      this.#worker.postMessage({
+        type: "sendActionGoal",
+        requestId,
+        channelId,
+        operationId: [...operationId],
+        goal,
+      } satisfies MainToWorker);
+    });
+    return { operationId, result };
+  }
+
+  async #paramService(
+    node: string,
+    suffix: string,
+    typeName: string,
+    requestCdr: Uint8Array,
+  ): Promise<Uint8Array> {
+    const name = node.endsWith("/")
+      ? `${node}${suffix}`
+      : `${node}/${suffix}`;
+    const client = await this.#createServiceClient(name, typeName);
+    try {
+      return await client.call(requestCdr);
+    } finally {
+      await client.close();
+    }
+  }
+
+  #trackInflight(channelId: number, requestId: number): void {
+    let set = this.#inflightByChannel.get(channelId);
+    if (!set) {
+      set = new Set();
+      this.#inflightByChannel.set(channelId, set);
+    }
+    set.add(requestId);
+  }
+
+  #clearInflight(channelId: number, requestId: number): void {
+    const set = this.#inflightByChannel.get(channelId);
+    if (!set) return;
+    set.delete(requestId);
+    if (set.size === 0) this.#inflightByChannel.delete(channelId);
+  }
 }
 
 /**
  * Open a session to an rclwebd WebSocket endpoint.
  *
- * `connect(url) → session.subscribe|publish(topic, type, qos?) → typed events`.
+ * `connect(url)` → session subscribe/publish/service/action/graph.
  */
 export async function connect(
   url: string,

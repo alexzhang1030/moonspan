@@ -36,9 +36,9 @@ const client = await connect("ws://127.0.0.1:8794/ws", {
 
 `connect` currently authenticates as scheme `token` / `anonymous`. The gateway default is Authenticate `off` ([R4-01](./milestones/r4-01-oidc-sros2-audit.md)). There is no application credential API on `ConnectOptions` yet.
 
-## Session (Worker path)
+## Session
 
-The default browser path supports subscribe, publish, reconnect, and close.
+The default browser path (I/O Worker) and `options.inline: true` share the same session methods.
 
 ```ts
 const sub = await client.session.subscribe("/chatter", STD_MSGS_STRING);
@@ -53,22 +53,18 @@ await pub.publish({ data: "hello from the browser" });
 
 Typed sample events are `std_msgs/msg/String` (`{ data: string }`). QoS on OpenChannel is reliability (`1` RELIABLE default, `2` BEST_EFFORT) plus KEEP_LAST depth (default `5`).
 
-**Release every lease.** The engine reclaims a retained inbound slab only when every lease on it is released. Dropping a sample without `lease.release()` pins wasm memory ([gotcha](../.agents/docs/gotchas.md#every-sample-lease-has-exactly-one-owner)).
-
-`client.reconnect()` starts a fresh session and re-opens tracked channels. `client.close()` tears the session down. `client.telemetry()` returns copy/poll counters on the inline host and `null` on the Worker path.
-
-## Session (inline host)
-
-`options.inline: true` runs wasm on the calling thread. Repository tests, `just e2e`, and `just e2e-h-ft` use this. The inline host also implements services, actions, graph, and parameter wrappers as raw CDR bytes:
+**Release every lease.** The engine reclaims a retained inbound slab only when every lease on it is released. Dropping a sample without `lease.release()` pins wasm memory ([gotcha](../.agents/docs/gotchas.md#every-sample-lease-has-exactly-one-owner)). String samples still use the lease protocol across the Worker. Service and action CDR bytes are copied in the Worker and the lease is released there before the payload reaches main.
 
 | Method | Notes |
 |---|---|
 | `createServiceClient` / `createServiceServer` | Request and response are `Uint8Array` CDR |
 | `createActionClient` / `createActionServer` | Goal, feedback, result, and status are `Uint8Array` CDR |
-| `onGraph` | Snapshot plus deltas after SessionReady |
+| `onGraph` | Snapshot plus deltas after SessionReady. Replays the last view if one already arrived. |
 | `getParameters` / `setParameters` / `listParameters` | Sugar over `rcl_interfaces` service names |
 
-The Worker path throws if those methods are called. Extending the Worker message protocol to carry them is a follow-up in R4-04, not this slice.
+`options.inline: true` runs wasm on the calling thread. Repository tests, `just e2e`, and `just e2e-h-ft` use this. Browsers should leave it false.
+
+`client.reconnect()` starts a fresh session and re-opens tracked topic channels. `client.close()` tears the session down. `client.telemetry()` returns copy/poll counters on the inline host and `null` on the Worker path.
 
 ## Public vs internal
 
@@ -90,7 +86,7 @@ See [examples/README.md](../examples/README.md).
 
 ## Version and release
 
-Independent SDK versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). R2WP wire version is a separate identity ([ADR 0005](./adr/0005-r2wp-wire-versioning.md)). This slice freezes the candidate public export list and the docs; it does not bump to `1.0.0`, set `"private": false`, or publish. Remaining R4-04 work: Worker coverage for services/actions/graph, generated typed messages beyond String, npm publish after D-06, and a human release review.
+Independent SDK versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). R2WP wire version is a separate identity ([ADR 0005](./adr/0005-r2wp-wire-versioning.md)). The candidate public export list stays frozen; this package does not bump to `1.0.0`, set `"private": false`, or publish. Remaining R4-04 work: typed sample events beyond String, npm publish after D-06, and a human release review.
 
 ## Related
 
