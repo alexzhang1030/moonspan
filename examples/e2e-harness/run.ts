@@ -1,6 +1,8 @@
 /**
  * Headless live-subscribe harness: init → Node subscribe /chatter → assert samples.
- * Gate is process exit 0. H-FT live e2e sets `RCLWEB_SUPPORT_ROW`.
+ * Gate is process exit 0. Non-J-FT lanes set `RCLWEB_SUPPORT_ROW`; the harness
+ * asserts the gateway's /configz support row matches so a lane cannot silently
+ * exercise the wrong row/RMW.
  */
 import path from "node:path";
 import { init, Node, shutdown, std_msgs } from "@rclweb/sdk";
@@ -42,8 +44,30 @@ async function waitHealthy(url: string, deadlineMs: number): Promise<void> {
   throw new Error(`gateway not healthy at ${url}: ${last}`);
 }
 
+async function assertGatewayRow(expectedRow: string): Promise<void> {
+  const configzUrl = new URL("/configz", healthUrl).toString();
+  const res = await fetch(configzUrl);
+  if (!res.ok) {
+    throw new Error(`GET ${configzUrl} failed: status ${res.status}`);
+  }
+  const config = (await res.json()) as {
+    support_row_id?: string;
+    ros_distro?: string;
+    rmw_identifier?: string;
+  };
+  if (config.support_row_id !== expectedRow) {
+    throw new Error(
+      `gateway support row is ${config.support_row_id ?? "unknown"}, expected ${expectedRow}`,
+    );
+  }
+  console.log(
+    `gateway row ok: ${config.support_row_id} (${config.ros_distro} / ${config.rmw_identifier})`,
+  );
+}
+
 async function main(): Promise<void> {
   await waitHealthy(healthUrl, timeoutMs);
+  await assertGatewayRow(supportRow);
 
   await init(gatewayUrl, {
     inline: true,

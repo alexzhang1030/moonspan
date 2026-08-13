@@ -33,7 +33,8 @@ pub use backend::{
 };
 pub use budgets::{Disposition, DispositionCounters, SampleWriteQueue};
 pub use config::{
-  ActiveTransport, GatewayConfig, SUPPORT_ROW_H_FT, SUPPORT_ROW_J_FT, SupportRow, parse_support_row,
+  ActiveTransport, GatewayConfig, SUPPORT_ROW_H_CY, SUPPORT_ROW_H_FT, SUPPORT_ROW_H_ZN,
+  SUPPORT_ROW_J_CY, SUPPORT_ROW_J_FT, SUPPORT_ROW_J_ZN, SupportRow, parse_support_row,
 };
 pub use connection::{Transport, TransportError, run_connection};
 pub use local_dev_tls::{LocalDevTls, TlsAdvertisement};

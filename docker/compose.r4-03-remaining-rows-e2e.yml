@@ -1,0 +1,70 @@
+# R4-03 remaining-row live e2e lanes: Cyclone DDS and Zenoh on Jazzy and Humble.
+# Reuses the J-FT / H-FT e2e images with RMW_APT_PACKAGES adding both alternate
+# RMWs, so each distro builds one image and runs two rows (one gateway process
+# per row, ADR 0008). The entrypoints start rmw_zenohd for the *-ZN rows.
+services:
+  e2e-j-cy:
+    build: &jazzy-rmw-build
+      context: ..
+      dockerfile: docker/Dockerfile.r1-e2e
+      args:
+        RMW_APT_PACKAGES: "ros-jazzy-rmw-cyclonedds-cpp ros-jazzy-rmw-zenoh-cpp"
+    image: rclweb-e2e-jazzy-rmw
+    environment:
+      ROS_DOMAIN_ID: "0"
+      RCLWEBD_BIND: "127.0.0.1:8794"
+      RCLWEBD_SUPPORT_ROW: "J-CY"
+      RMW_IMPLEMENTATION: "rmw_cyclonedds_cpp"
+      RCLWEB_GATEWAY_URL: "ws://127.0.0.1:8794/ws"
+      RCLWEB_HEALTH_URL: "http://127.0.0.1:8794/healthz"
+      RCLWEB_SUPPORT_ROW: "J-CY"
+      RCLWEB_MIN_SAMPLES: "3"
+      RCLWEB_TIMEOUT_MS: "60000"
+
+  e2e-j-zn:
+    build: *jazzy-rmw-build
+    image: rclweb-e2e-jazzy-rmw
+    environment:
+      ROS_DOMAIN_ID: "0"
+      RCLWEBD_BIND: "127.0.0.1:8794"
+      RCLWEBD_SUPPORT_ROW: "J-ZN"
+      RMW_IMPLEMENTATION: "rmw_zenoh_cpp"
+      RCLWEB_GATEWAY_URL: "ws://127.0.0.1:8794/ws"
+      RCLWEB_HEALTH_URL: "http://127.0.0.1:8794/healthz"
+      RCLWEB_SUPPORT_ROW: "J-ZN"
+      RCLWEB_MIN_SAMPLES: "3"
+      RCLWEB_TIMEOUT_MS: "60000"
+
+  e2e-h-cy:
+    build: &humble-rmw-build
+      context: ..
+      dockerfile: docker/Dockerfile.r3-03-h-ft-e2e
+      args:
+        RMW_APT_PACKAGES: "ros-humble-rmw-cyclonedds-cpp ros-humble-rmw-zenoh-cpp"
+    image: rclweb-e2e-humble-rmw
+    environment:
+      ROS_DOMAIN_ID: "0"
+      RCLWEBD_BIND: "127.0.0.1:8794"
+      RCLWEBD_SUPPORT_ROW: "H-CY"
+      ROS_PREFIX: "/opt/ros/humble"
+      RMW_IMPLEMENTATION: "rmw_cyclonedds_cpp"
+      RCLWEB_GATEWAY_URL: "ws://127.0.0.1:8794/ws"
+      RCLWEB_HEALTH_URL: "http://127.0.0.1:8794/healthz"
+      RCLWEB_SUPPORT_ROW: "H-CY"
+      RCLWEB_MIN_SAMPLES: "3"
+      RCLWEB_TIMEOUT_MS: "60000"
+
+  e2e-h-zn:
+    build: *humble-rmw-build
+    image: rclweb-e2e-humble-rmw
+    environment:
+      ROS_DOMAIN_ID: "0"
+      RCLWEBD_BIND: "127.0.0.1:8794"
+      RCLWEBD_SUPPORT_ROW: "H-ZN"
+      ROS_PREFIX: "/opt/ros/humble"
+      RMW_IMPLEMENTATION: "rmw_zenoh_cpp"
+      RCLWEB_GATEWAY_URL: "ws://127.0.0.1:8794/ws"
+      RCLWEB_HEALTH_URL: "http://127.0.0.1:8794/healthz"
+      RCLWEB_SUPPORT_ROW: "H-ZN"
+      RCLWEB_MIN_SAMPLES: "3"
+      RCLWEB_TIMEOUT_MS: "60000"

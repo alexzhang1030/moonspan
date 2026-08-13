@@ -38,6 +38,22 @@ pub const SUPPORT_ROW_J_FT: SupportRow =
 pub const SUPPORT_ROW_H_FT: SupportRow =
   SupportRow { id: "H-FT", ros_distro: "humble", rmw_identifier: "rmw_fastrtps_cpp" };
 
+/// Jazzy + Cyclone DDS (R4-03 remaining-row live lane).
+pub const SUPPORT_ROW_J_CY: SupportRow =
+  SupportRow { id: "J-CY", ros_distro: "jazzy", rmw_identifier: "rmw_cyclonedds_cpp" };
+
+/// Jazzy + Zenoh (R4-03 remaining-row live lane).
+pub const SUPPORT_ROW_J_ZN: SupportRow =
+  SupportRow { id: "J-ZN", ros_distro: "jazzy", rmw_identifier: "rmw_zenoh_cpp" };
+
+/// Humble + Cyclone DDS (R4-03 remaining-row live lane).
+pub const SUPPORT_ROW_H_CY: SupportRow =
+  SupportRow { id: "H-CY", ros_distro: "humble", rmw_identifier: "rmw_cyclonedds_cpp" };
+
+/// Humble + Zenoh (R4-03 remaining-row live lane).
+pub const SUPPORT_ROW_H_ZN: SupportRow =
+  SupportRow { id: "H-ZN", ros_distro: "humble", rmw_identifier: "rmw_zenoh_cpp" };
+
 /// Deprecated alias for [`SUPPORT_ROW_J_FT`].id — prefer `config.support_row.id`.
 #[deprecated(note = "use GatewayConfig::support_row.id or SUPPORT_ROW_J_FT.id")]
 pub const SUPPORT_ROW_ID: &str = SUPPORT_ROW_J_FT.id;
@@ -50,12 +66,16 @@ pub const ROS_DISTRO: &str = SUPPORT_ROW_J_FT.ros_distro;
 #[deprecated(note = "use GatewayConfig::support_row.rmw_identifier")]
 pub const RMW_IDENTIFIER: &str = SUPPORT_ROW_J_FT.rmw_identifier;
 
-/// Parse `RCLWEBD_SUPPORT_ROW` (`J-FT` default; `H-FT` accepted).
+/// Parse `RCLWEBD_SUPPORT_ROW` (`J-FT` default; all six Phase 1 rows accepted).
 #[must_use]
 pub fn parse_support_row(id: &str) -> Option<SupportRow> {
   match id.trim() {
     "J-FT" => Some(SUPPORT_ROW_J_FT),
+    "J-CY" => Some(SUPPORT_ROW_J_CY),
+    "J-ZN" => Some(SUPPORT_ROW_J_ZN),
     "H-FT" => Some(SUPPORT_ROW_H_FT),
+    "H-CY" => Some(SUPPORT_ROW_H_CY),
+    "H-ZN" => Some(SUPPORT_ROW_H_ZN),
     _ => None,
   }
 }
@@ -161,4 +181,35 @@ pub fn new_session_id() -> [u8; 32] {
     out[chunk * 8..(chunk + 1) * 8].copy_from_slice(&entropy64().to_be_bytes());
   }
   out
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn parse_accepts_all_six_phase1_rows() {
+    let expected = [
+      ("J-FT", "jazzy", "rmw_fastrtps_cpp", "rep2011-rihs"),
+      ("J-CY", "jazzy", "rmw_cyclonedds_cpp", "rep2011-rihs"),
+      ("J-ZN", "jazzy", "rmw_zenoh_cpp", "rep2011-rihs"),
+      ("H-FT", "humble", "rmw_fastrtps_cpp", "rclweb-schema-v1"),
+      ("H-CY", "humble", "rmw_cyclonedds_cpp", "rclweb-schema-v1"),
+      ("H-ZN", "humble", "rmw_zenoh_cpp", "rclweb-schema-v1"),
+    ];
+    for (id, distro, rmw, scheme) in expected {
+      let row = parse_support_row(id).unwrap_or_else(|| panic!("row {id} must parse"));
+      assert_eq!(row.id, id);
+      assert_eq!(row.ros_distro, distro);
+      assert_eq!(row.rmw_identifier, rmw);
+      assert_eq!(row.schema_scheme(), scheme);
+    }
+  }
+
+  #[test]
+  fn parse_rejects_unknown_rows() {
+    assert!(parse_support_row("").is_none());
+    assert!(parse_support_row("J-XX").is_none());
+    assert!(parse_support_row("j-ft").is_none());
+  }
 }

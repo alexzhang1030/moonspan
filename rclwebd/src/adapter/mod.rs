@@ -114,6 +114,7 @@ impl AdapterProbe {
     &self,
     expected_row: &str,
     expected_distro: &str,
+    expected_rmw: &str,
   ) -> Result<(), AdapterStatus> {
     if self.abi_major != ABI_MAJOR {
       return Err(AdapterStatus::ProfileMismatch);
@@ -122,6 +123,9 @@ impl AdapterProbe {
       return Err(AdapterStatus::ProfileMismatch);
     }
     if self.support_row_id != expected_row || self.ros_distro != expected_distro {
+      return Err(AdapterStatus::ProfileMismatch);
+    }
+    if self.rmw_implementation != expected_rmw {
       return Err(AdapterStatus::ProfileMismatch);
     }
     Ok(())
@@ -156,8 +160,24 @@ mod tests {
   fn probe_accepts_matching_row() {
     let probe = AdapterProbe::for_row("J-FT", "jazzy", "rmw_fastrtps_cpp");
     assert_eq!(probe.abi_version, ABI_VERSION_STRING);
-    assert!(probe.check_compatible("J-FT", "jazzy").is_ok());
-    assert_eq!(probe.check_compatible("H-FT", "jazzy"), Err(AdapterStatus::ProfileMismatch));
+    assert!(probe.check_compatible("J-FT", "jazzy", "rmw_fastrtps_cpp").is_ok());
+    assert_eq!(
+      probe.check_compatible("H-FT", "jazzy", "rmw_fastrtps_cpp"),
+      Err(AdapterStatus::ProfileMismatch)
+    );
+  }
+
+  #[test]
+  fn probe_rejects_rmw_mismatch() {
+    // A J-CY process whose environment loaded Fast DDS is a mispaired lane,
+    // not a working Cyclone row.
+    let probe = AdapterProbe::for_row("J-CY", "jazzy", "rmw_fastrtps_cpp");
+    assert_eq!(
+      probe.check_compatible("J-CY", "jazzy", "rmw_cyclonedds_cpp"),
+      Err(AdapterStatus::ProfileMismatch)
+    );
+    let ok = AdapterProbe::for_row("J-CY", "jazzy", "rmw_cyclonedds_cpp");
+    assert!(ok.check_compatible("J-CY", "jazzy", "rmw_cyclonedds_cpp").is_ok());
   }
 
   #[test]

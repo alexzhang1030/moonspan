@@ -5,7 +5,8 @@
 //! - `RCLWEBD_GATEWAY_INSTANCE_ID` — stable deployment id (default: random per process)
 //! - `RCLWEBD_POLICY_REVISION` — SessionReady policy revision (default `r1-dev`)
 //! - `ROS_DOMAIN_ID` — ROS domain to attach (default 0)
-//! - `RCLWEBD_SUPPORT_ROW` — support row id (`J-FT` default; `H-FT` accepted)
+//! - `RCLWEBD_SUPPORT_ROW` — support row id (`J-FT` default; any Phase 1 row:
+//!   `J-FT` / `J-CY` / `J-ZN` / `H-FT` / `H-CY` / `H-ZN`)
 //! - `RCLWEBD_LOCAL_DEV_TLS` — `1`/`true` enables ADR 0011 local-dev TLS
 //! - `RCLWEBD_OFFER_WEBTRANSPORT` — `1`/`true` AND-negotiates WT + starts accept
 //! - `RCLWEBD_AUTH_MODE` — `off` (default) or `oidc` (JWT; requires issuer/keys)
@@ -17,8 +18,10 @@
 //!
 //! The `ros` feature links whatever ROS prefix is on `ROS_PREFIX` /
 //! `AMENT_PREFIX_PATH` (default `/opt/ros/jazzy`). Pair `RCLWEBD_SUPPORT_ROW`
-//! with that prefix: `J-FT` ↔ Jazzy, `H-FT` ↔ Humble. The H-FT live compose
-//! regenerates FFI bindings against Humble before linking.
+//! with that prefix (`J-*` ↔ Jazzy, `H-*` ↔ Humble) and set
+//! `RMW_IMPLEMENTATION` to the row's RMW (`*-CY` ↔ `rmw_cyclonedds_cpp`,
+//! `*-ZN` ↔ `rmw_zenoh_cpp`; default Fast DDS). The Humble live composes
+//! regenerate FFI bindings against Humble before linking.
 
 use rclwebd::ros::RclBackend;
 use rclwebd::{
@@ -42,8 +45,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::env::var("ROS_DOMAIN_ID").ok().map(|v| v.parse()).transpose()?.unwrap_or(0);
 
   let support_row = match std::env::var("RCLWEBD_SUPPORT_ROW") {
-    Ok(raw) => parse_support_row(&raw)
-      .ok_or_else(|| format!("unsupported RCLWEBD_SUPPORT_ROW={raw:?}; expected J-FT or H-FT"))?,
+    Ok(raw) => parse_support_row(&raw).ok_or_else(|| {
+      format!(
+        "unsupported RCLWEBD_SUPPORT_ROW={raw:?}; expected one of \
+         J-FT, J-CY, J-ZN, H-FT, H-CY, H-ZN"
+      )
+    })?,
     Err(_) => SUPPORT_ROW_J_FT,
   };
   if let Ok(distro) = std::env::var("ROS_DISTRO") {
