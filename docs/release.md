@@ -28,15 +28,26 @@ as soon as this workflow is on the default branch.
    npm trust github rcl-web --file release.yml --repo alexzhang1030/rclweb --allow-publish
    ```
 
-3. First crates.io publish (OIDC cannot create a crate that does not exist):
+3. First crates.io publish (OIDC cannot create a crate that does not exist).
+   If cargo says `crates-io is replaced with remote registry`, pass
+   `--registry crates-io` (a local `[source.crates-io] replace-with`
+   mirror). `rclwebd` cannot pack until the **sparse index** lists
+   `rclweb` — cargo's “waiting for … to be available” after the first
+   upload is not enough.
 
    ```bash
    just build
    bun run scripts/cargo-publish.ts --stage
-   cargo login
-   cargo publish -p rclweb --locked
-   cargo publish -p rclwebd --locked
+   cargo login --registry crates-io
+   cargo publish -p rclweb --locked --registry crates-io
+   until curl -fsS https://index.crates.io/rc/lw/rclweb | grep -q '"vers":"0.0.1"'; do sleep 10; done
+   cargo publish -p rclwebd --locked --registry crates-io
    ```
+
+   If `rclwebd` still says `no matching package named rclweb`, the
+   replace-with mirror does not have the new crate yet. Comment out
+   `[source.crates-io] replace-with` in `~/.cargo/config.toml` for that
+   one command, then put it back.
 
 4. On [crates.io](https://crates.io) → each of `rclweb` and `rclwebd` →
    **Settings → Trusted Publishing**:

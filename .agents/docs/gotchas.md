@@ -149,6 +149,10 @@ Cargo omits gitignored files from the package. npm can ship staged copies via `f
 
 Trusted publishing on crates.io requires the crate to already exist. `rclweb` / `rclwebd` first land with a human `cargo publish` after `scripts/cargo-publish.ts --stage`. Then add the trusted publisher (`release.yml`, environment blank). The release workflow refuses the crates job with a short error while `GET /api/v1/crates/rclweb` is 404. [release](../../docs/release.md).
 
+## Publishing rclwebd waits for the sparse index
+
+`rclwebd` depends on `rclweb` with `path` + `version`. `cargo publish -p rclwebd` rewrites that to a crates.io dep and reads the **sparse index**, not the HTTP “crate is published” wait that finishes the first upload. Publishing both in one breath fails with `no matching package named rclweb` / `failed to prepare local package for uploading`. Wait until `https://index.crates.io/rc/lw/rclweb` lists the new `vers`, then publish `rclwebd`. A local `[source.crates-io] replace-with` (mirror) also requires `--registry crates-io`, and the mirror may lag further — disable replace-with for that one publish if the official index already has the crate. Paid on the 0.0.1 bootstrap (2026-08-13): `rclweb` uploaded at 11:02:42Z; immediate `rclwebd` pack failed. [release](../../docs/release.md).
+
 ## npm OIDC identity is the workflow file
 
 npm trusted publishing matches owner + repo + workflow **filename**. A GitHub `environment:` is optional and must stay off the npm job unless the npmjs.com Environment field is the same string. The first draft put `environment: release` on the job and `--provenance` on `npm publish` — that is the old token/deploy model. Official publish is `id-token: write` + `actions/setup-node@v6` + `npm publish`. Provenance is automatic. [ADR 0016](../../docs/adr/0016-oidc-trusted-publish.md).
