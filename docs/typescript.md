@@ -175,16 +175,7 @@ Independent package versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). 
 
 An npm tarball must include the tsdown `dist/` bundle, `wasm/rclweb.wasm`, and the repository `LICENSE` and `NOTICE`. It must not include `src/`. `just npm-pack` / `prepack` copies the license files and runs tsdown. `just npm-pack-check` is part of `just check`.
 
-Publish (human, from a clean tree after `just build`):
-
-```bash
-just build
-just npm-pack-check
-cd typescript
-npm publish
-```
-
-This repository does not run `npm publish` in CI. Rust crates stay `publish = false` (not crates.io). Unscoped `rclweb` stays blocked vs `rrweb`; do not retry that name.
+Publish is GitHub OIDC from [`.github/workflows/release.yml`](../.github/workflows/release.yml) ([release](./release.md), [ADR 0016](./adr/0016-oidc-trusted-publish.md)). `just npm-pack-check` is part of `just check`. Unscoped `rclweb` stays blocked vs `rrweb`; do not retry that name.
 
 ## Related
 

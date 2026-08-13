@@ -4,7 +4,12 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-publish = false
+repository.workspace = true
+homepage.workspace = true
+description = "rclweb edge gateway: R2WP over WebSocket/WebTransport and serialized ROS 2 attachment"
+readme = "README.md"
+keywords = ["ros", "ros2", "r2wp", "gateway", "websocket"]
+categories = ["network-programming", "command-line-utilities"]
 
 [lints]
 workspace = true
@@ -25,7 +30,7 @@ bytes.workspace = true
 jsonwebtoken.workspace = true
 libloading = { workspace = true, optional = true }
 rcgen.workspace = true
-rclweb = { path = "../rclweb" }
+rclweb.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true

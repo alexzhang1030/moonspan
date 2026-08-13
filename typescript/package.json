@@ -40,6 +40,10 @@
     "build": "bun --bun tsdown",
     "prepack": "bun ../scripts/npm-pack.ts --stage && bun --bun tsdown"
   },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "devDependencies": {
     "tsdown": "0.22.14",
     "typescript": "5.9.3"

@@ -7,8 +7,11 @@ version = "0.0.1"
 edition = "2024"
 rust-version = "1.97.1"
 license = "Apache-2.0"
+repository = "https://github.com/alexzhang1030/rclweb"
+homepage = "https://github.com/alexzhang1030/rclweb"
 
 [workspace.dependencies]
+rclweb = { path = "rclweb", version = "0.0.1" }
 axum = { version = "0.8.9", features = ["ws"] }
 base64 = "0.22"
 bytes = "1.12.1"

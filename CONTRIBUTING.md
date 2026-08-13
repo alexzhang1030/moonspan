@@ -49,7 +49,8 @@ OSI-permissive. After changing Cargo or Bun dependencies, run
 `just license-inventory` and keep `just license-inventory-check` green.
 
 The current TypeScript package is `rcl-web@0.0.2` (`0.0.1` on npm shipped
-source). Publish is a human step from `typescript/` after `just build`
-(`npm publish`). Do not commit the staged `typescript/LICENSE` /
-`typescript/NOTICE` copies. Do not retry unscoped `rclweb` on npm
-(blocked as too similar to `rrweb`).
+source). Publish is GitHub OIDC ([release](./docs/release.md)). Do not
+commit the staged `typescript/LICENSE` / `typescript/NOTICE` copies.
+Crate `LICENSE` / `NOTICE` copies are committed and must match the root
+files. Do not retry unscoped `rclweb` on npm (blocked as too similar to
+`rrweb`).

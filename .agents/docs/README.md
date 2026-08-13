@@ -17,6 +17,7 @@ Documentation describes the product. It is not a delivery-phase ledger. Historic
 | Traps already paid for | [Gotchas](./gotchas.md) |
 | Evidence and gate authority | [Validation](./validation.md) |
 | TypeScript package | [`rcl-web`](../../docs/typescript.md), [ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md), [ADR 0015](../../docs/adr/0015-tsdown-ship-bundle.md) |
+| Publish | [Release](../../docs/release.md), [ADR 0016](../../docs/adr/0016-oidc-trusted-publish.md) |
 | License | [Licensing](../../docs/licensing.md) |
 | Studio visual system | [DESIGN.md](./DESIGN.md) |
 
@@ -37,9 +38,9 @@ Documentation describes the product. It is not a delivery-phase ledger. Historic
 | Area | Context |
 |---|---|
 | `protocol/**` | [Architecture](./architecture.md), [R2WP](../../docs/protocol/r2wp.md), [normative subset](../../protocol/r2wp-v0.md#normative-scope-v01-subset) |
-| `rclweb/**` | [Architecture](./architecture.md), [technology stack](./technology-stack.md), [`rclweb` core](../../docs/runtime/core.md), [CDR](../../docs/runtime/cdr.md), [generated types](../../docs/runtime/generated-types.md) |
+| `rclweb/**` | [Architecture](./architecture.md), [technology stack](./technology-stack.md), [`rclweb` core](../../docs/runtime/core.md), [CDR](../../docs/runtime/cdr.md), [generated types](../../docs/runtime/generated-types.md). crates.io publish ([release](../../docs/release.md)) |
 | `rclweb/generated/metadata/**`, `scripts/generated-types.ts` | [generated types](../../docs/runtime/generated-types.md); sectioned-root join gotcha in [gotchas](./gotchas.md#sectioned-corpus-roots-are-graph-endpoints-without-source-rows) |
-| `rclwebd/**` | [Architecture](./architecture.md), [`rclwebd`](../../docs/gateway/rclwebd.md), [security](../../docs/security.md), [deploy](../../docs/deploy.md), [ADR 0011](../../docs/adr/0011-local-dev-webtransport-tls.md) |
+| `rclwebd/**` | [Architecture](./architecture.md), [`rclwebd`](../../docs/gateway/rclwebd.md), [security](../../docs/security.md), [deploy](../../docs/deploy.md), [ADR 0011](../../docs/adr/0011-local-dev-webtransport-tls.md). crates.io publish ([release](../../docs/release.md)) |
 | `rclwebd/src/local_dev_tls.rs`, `wt.rs` | [ADR 0011](../../docs/adr/0011-local-dev-webtransport-tls.md), [gotchas](./gotchas.md#webtransport-local-certs-are-14-days-by-browser-rule) |
 | `rclwebd/src/config.rs` | [ADR 0008](../../docs/adr/0008-one-adapter-row-per-gateway-process.md), [gotchas](./gotchas.md#one-gateway-process-binds-one-support-row) |
 | `rclwebd/src/ros/**` | [technology stack](./technology-stack.md), [adapter ABI](../../docs/gateway/rclwebd.md) |
@@ -52,9 +53,11 @@ Documentation describes the product. It is not a delivery-phase ledger. Historic
 | `typescript/**` | [`rcl-web`](../../docs/typescript.md), [ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md). Current version is `0.0.2` (`0.0.1` on npm shipped source). npm blocks unscoped `rclweb` vs `rrweb` ([gotchas](./gotchas.md#unscoped-rclweb-is-blocked-on-npm-as-too-similar-to-rrweb)). Reconnect is a fresh session ([gotchas](./gotchas.md#reconnect-is-a-fresh-session-not-sessionresume)); Worker `telemetry()` is the last poll snapshot ([gotchas](./gotchas.md#worker-telemetry-is-the-last-poll-snapshot)); pack copies LICENSE/NOTICE ([gotchas](./gotchas.md#npm-pack-copies-license-and-notice-do-not-commit-them)) |
 | `scripts/license-inventory.ts` | OSI-permissive inventory; workspace npm deps are read from the declaring package first ([gotchas](./gotchas.md#license-inventory-looks-in-the-declaring-workspace-first)) |
 | `scripts/npm-pack.ts`, `typescript/tsdown.config.mjs` | tsdown ship bundle + LICENSE/NOTICE; tarball must not include `src/` ([ADR 0015](../../docs/adr/0015-tsdown-ship-bundle.md), [gotchas](./gotchas.md#npm-pack-ships-the-tsdown-dist-not-typescript-source)) |
+| `scripts/cargo-publish.ts` | Crate LICENSE/NOTICE copies must match the root ([gotchas](./gotchas.md#crate-licensenotice-copies-are-committed)); fixture crates stay private ([release](../../docs/release.md)) |
 | `typescript/src/index.ts`, `internal.ts` | Public `init`/`Node` vs host/ABI ([`rcl-web`](../../docs/typescript.md#public-vs-internal)); graph getters hide GraphSnapshot JSON ([gotchas](./gotchas.md#public-node-graph-hides-graphsnapshot-json)) |
 | `examples/**` | [`rcl-web`](../../docs/typescript.md), [examples README](../../examples/README.md) |
 | `.github/workflows/ci.yml` | [Validation](../../docs/validation.md); do not wrap cargo tests in Docker ([gotchas](./gotchas.md#do-not-wrap-cargo-tests-in-a-docker-mock-lane)) |
+| `.github/workflows/release.yml` | npm trusted publishing + crates.io ([release](../../docs/release.md), [ADR 0016](../../docs/adr/0016-oidc-trusted-publish.md)). npm identity is the workflow filename, not a GitHub environment ([gotchas](./gotchas.md#npm-oidc-identity-is-the-workflow-file)). Do not set `NODE_AUTH_TOKEN` ([gotchas](./gotchas.md#do-not-put-nodeauthtoken-on-the-npm-oidc-job)). First crates.io publish is manual ([gotchas](./gotchas.md#cratesio-oidc-cannot-create-the-first-crate)) |
 | `pixi.toml` | Optional RoboStack J-FT ([technology stack](./technology-stack.md#optional-local-ros-prefix), [gotchas](./gotchas.md#pixi-ros-test-must-pin-rosprefix-over-a-host-optros)) |
 | `scripts/build-wasm.ts` | Fat-LTO wasm ship ([gotchas](./gotchas.md#release-wasm-inherits-native-release-settings)) |
 | Support matrix | Human matrix edit; no committed measurement JSON ([gotchas](./gotchas.md#do-not-commit-measurement-json)) |

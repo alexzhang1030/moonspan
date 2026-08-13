@@ -4,7 +4,12 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-publish = false
+repository.workspace = true
+homepage.workspace = true
+description = "R2WP protocol, CDR, and ROS session core for rclweb (native + wasm32)"
+readme = "README.md"
+keywords = ["ros", "ros2", "r2wp", "cdr", "wasm"]
+categories = ["network-programming", "wasm"]
 
 [lib]
 crate-type = ["cdylib", "rlib"]

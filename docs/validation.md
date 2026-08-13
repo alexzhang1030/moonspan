@@ -56,7 +56,7 @@ A row becomes **Qualified** only when a human updates the [support matrix](./sup
 
 ## Foundation CI
 
-[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) installs the pinned toolchains with SHA-pinned setup actions (`oven-sh/setup-bun`, `extractions/setup-just` with one retry, `dtolnay/rust-toolchain`) and runs `just check`, `just test`, and `just build` (`foundation` job), including the `rclweb` wasm32 build. Live jobs run the digest-pinned talker lanes (Jazzy, Humble, and the Cyclone/Zenoh rows). Those jobs do not upload or commit measurement JSON. E2e images copy Bun from digest-pinned `oven/bun` (must match `.bun-version`); they must not pipe `bun.sh/install`. Operations tests (`/livez`, `/readyz`, drain, `/metrics`) run in foundation via `just test`; runtime images are Docker artifacts, not foundation jobs.
+[`.github/workflows/ci.yml`](../.github/workflows/ci.yml) installs the pinned toolchains with SHA-pinned setup actions (`oven-sh/setup-bun`, `extractions/setup-just` with one retry, `dtolnay/rust-toolchain`) and runs `just check`, `just test`, and `just build` (`foundation` job), including the `rclweb` wasm32 build. Live jobs run the digest-pinned talker lanes (Jazzy, Humble, and the Cyclone/Zenoh rows). Those jobs do not upload or commit measurement JSON. E2e images copy Bun from digest-pinned `oven/bun` (must match `.bun-version`); they must not pipe `bun.sh/install`. Operations tests (`/livez`, `/readyz`, drain, `/metrics`) run in foundation via `just test`; runtime images are Docker artifacts, not foundation jobs. Registry publish is a separate [release](./release.md) workflow (OIDC; not foundation).
 
 ## Qualification scenarios
 

@@ -139,7 +139,17 @@ npm-pack: toolchain-check
 npm-pack-check: toolchain-check
     cd "{{root}}" && bun run scripts/npm-pack.ts --check
 
-# Docs, protocol, corpus, and license inventory; npm pack members; Rust fmt/clippy; tsdown ship bundle.
+# Stage LICENSE/NOTICE into rclweb/ and rclwebd/ for cargo publish.
+[group('quality')]
+cargo-publish: toolchain-check
+    cd "{{root}}" && bun run scripts/cargo-publish.ts --stage
+
+# Verify published crates pack with LICENSE/NOTICE; fixture crates stay private.
+[group('quality')]
+cargo-publish-check: toolchain-check
+    cd "{{root}}" && bun run scripts/cargo-publish.ts --check
+
+# Docs, protocol, corpus, and license inventory; npm/crate pack members; Rust fmt/clippy; tsdown ship bundle.
 [group('quality')]
 check: toolchain-check
     #!/usr/bin/env bash
@@ -149,6 +159,7 @@ check: toolchain-check
     cargo run --locked -p protocol-fixtures -- --check
     bun run scripts/license-inventory.ts --check
     bun run scripts/npm-pack.ts --check
+    bun run scripts/cargo-publish.ts --check
     just fmt-check
     just clippy
     bun run --filter rcl-web check

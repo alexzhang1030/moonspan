@@ -21,6 +21,7 @@ ADRs capture accepted decisions that carry significant reversal cost. Technical 
 | [0013](./0013-typescript-package-rclweb.md) | Accepted | TypeScript package lives at `typescript/`; no `@rclweb/sdk` and no `sdk/` tree. The unscoped `rclweb` publish name is superseded by [0014](./0014-typescript-package-rcl-web.md). |
 | [0014](./0014-typescript-package-rcl-web.md) | Accepted | TypeScript package publishes and imports as unscoped `rcl-web` after npm rejected `rclweb` as too similar to `rrweb`. |
 | [0015](./0015-tsdown-ship-bundle.md) | Accepted | `rcl-web` npm tarball is the tsdown ESM + `.d.ts` bundle, not TypeScript source. |
+| [0016](./0016-oidc-trusted-publish.md) | Accepted | Publish `rcl-web` and the `rclweb` / `rclwebd` crates via GitHub OIDC trusted publishing. |
 
 ## Convention
 
@@ -32,3 +33,4 @@ ADRs capture accepted decisions that carry significant reversal cost. Technical 
 - ADR 0013 supersedes the `@rclweb/sdk` / `sdk/typescript/` naming in ADR 0010 and ADR 0003.
 - ADR 0014 supersedes the unscoped `rclweb` publish and import name in ADR 0013. The `typescript/` location and the rejection of `@rclweb/sdk` stand.
 - ADR 0015 supersedes Bun as the npm ship bundler in ADR 0002. Bun workspaces, lockfile, scripts, and tests stand.
+- ADR 0016 supersedes human `npm publish` and `publish = false` on the product crates. Fixture crates stay private.
