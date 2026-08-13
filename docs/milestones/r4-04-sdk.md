@@ -37,14 +37,14 @@ Subscribe delivers `sensor_msgs/msg/PointCloud2` as metadata plus a `data` Typed
 
 | Area | Behavior |
 |---|---|
-| Host types | `SENSOR_MSGS_POINT_CLOUD2` and the wire `PointCloud2` shape live on `@rclweb/sdk/internal`. The public Node API maps `sensor_msgs.msg.PointCloud2`. |
+| Host types | Session `subscribe`/`publish` take `std_msgs.msg.String` / `sensor_msgs.msg.PointCloud2`. The wire PointCloud2 shape (camelCase meta + `data`) stays inside the host. |
 | Inline | [`IoHost.decodePointCloud2`](../../sdk/typescript/src/host.ts) returns a view into wasm memory. Tests assert `data.buffer === engineMemory()`. |
 | Worker | [`io-worker.ts`](../../sdk/typescript/src/worker/io-worker.ts) copies `data`, releases the lease, and transfers the ArrayBuffer. |
 | Fixtures | [`scripts/fixture-gen`](../../scripts/fixture-gen/) emits `pointCloud2Sample` (four XYZ points). |
 
 ## Outcome (this slice — PointCloud2 publish)
 
-The host `publish(..., SENSOR_MSGS_POINT_CLOUD2)` path sends a typed PointCloud2. The wasm core encodes CDR (XYZ float32 fields when `fieldCount === 3` and `pointStep >= 12`; empty header). The I/O Worker carries the same `sendPointCloud2` command as the inline host. The public `Node.createPublisher(sensor_msgs.msg.PointCloud2, ...)` wraps that path.
+The host `publish(..., sensor_msgs.msg.PointCloud2)` path sends a typed PointCloud2. The wasm core encodes CDR (XYZ float32 fields when `fieldCount === 3` and `pointStep >= 12`; empty header). The I/O Worker carries the same `sendPointCloud2` command as the inline host. The public `Node.createPublisher(sensor_msgs.msg.PointCloud2, ...)` wraps that path.
 
 | Area | Behavior |
 |---|---|
@@ -58,7 +58,8 @@ The host `publish(..., SENSOR_MSGS_POINT_CLOUD2)` path sends a typed PointCloud2
 The public package matches rclcpp usage: `init(url)` → `new Node(name)` →
 `createPublisher` / `createSubscription` with `std_msgs.msg.String` and
 `sensor_msgs.msg.PointCloud2`. Callbacks receive owned messages; applications
-do not see sample leases, `connect`, or type-name string constants. `connect`
+do not see sample leases or `connect`. Message types are `std_msgs.msg.String`
+and `sensor_msgs.msg.PointCloud2`, not all-caps constants. `connect`
 and the session/lease host live on `@rclweb/sdk/internal`.
 
 | Area | Behavior |

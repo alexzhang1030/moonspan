@@ -1,9 +1,5 @@
 /** Host/session message and lease types. Application code uses `@rclweb/sdk` `Node`. */
 
-export const STD_MSGS_STRING = "std_msgs/msg/String" as const;
-
-export const SENSOR_MSGS_POINT_CLOUD2 = "sensor_msgs/msg/PointCloud2" as const;
-
 /** Default KEEP_LAST depth when callers omit QoS depth (matches core). */
 export const DEFAULT_QOS_DEPTH = 5;
 

@@ -10,6 +10,12 @@
 
 import { IoHost } from "./host.ts";
 import type { AppEvent } from "./wasm/abi.ts";
+import {
+  PointCloud2 as PointCloud2Msg,
+  String as StdMsgsStringMsg,
+  typeNameOf,
+  type TypeNameLike,
+} from "./interfaces.ts";
 import type {
   ActionClient,
   ActionFeedbackHandler,
@@ -31,8 +37,6 @@ import type {
 } from "./types.ts";
 import {
   DEFAULT_QOS_DEPTH,
-  SENSOR_MSGS_POINT_CLOUD2,
-  STD_MSGS_STRING,
   isPointCloud2,
   isStdMsgsString,
 } from "./types.ts";
@@ -60,13 +64,7 @@ export type {
   StdMsgsString,
   SubscriptionHandler,
 } from "./types.ts";
-export {
-  DEFAULT_QOS_DEPTH,
-  SENSOR_MSGS_POINT_CLOUD2,
-  STD_MSGS_STRING,
-  isPointCloud2,
-  isStdMsgsString,
-};
+export { DEFAULT_QOS_DEPTH, isPointCloud2, isStdMsgsString };
 
 function defaultWasmUrl(): string {
   return new URL("../wasm/rclweb.wasm", import.meta.url).href;
@@ -99,7 +97,7 @@ function dispatchPublish(
   sendString: (data: string) => void,
   sendCloud: (cloud: PointCloud2) => void,
 ): void {
-  if (typeName === SENSOR_MSGS_POINT_CLOUD2) {
+  if (typeName === PointCloud2Msg.typeName) {
     if (!isPointCloud2(message)) {
       throw new Error("PointCloud2 publish requires a PointCloud2 message");
     }
@@ -136,32 +134,32 @@ export type Publisher<T extends SampleMessage = StdMsgsString> = {
 export type RclwebSession = {
   subscribe(
     topic: string,
-    typeName: typeof SENSOR_MSGS_POINT_CLOUD2,
+    type: typeof PointCloud2Msg,
     qos?: QosOptions,
   ): Promise<Subscription<PointCloud2>>;
   subscribe(
     topic: string,
-    typeName?: typeof STD_MSGS_STRING,
+    type?: typeof StdMsgsStringMsg | TypeNameLike,
     qos?: QosOptions,
   ): Promise<Subscription<StdMsgsString>>;
   subscribe(
     topic: string,
-    typeName?: string,
+    type?: TypeNameLike,
     qos?: QosOptions,
   ): Promise<Subscription>;
   publish(
     topic: string,
-    typeName: typeof SENSOR_MSGS_POINT_CLOUD2,
+    type: typeof PointCloud2Msg,
     qos?: QosOptions,
   ): Promise<Publisher<PointCloud2>>;
   publish(
     topic: string,
-    typeName?: typeof STD_MSGS_STRING,
+    type?: typeof StdMsgsStringMsg | TypeNameLike,
     qos?: QosOptions,
   ): Promise<Publisher<StdMsgsString>>;
   publish(
     topic: string,
-    typeName?: string,
+    type?: TypeNameLike,
     qos?: QosOptions,
   ): Promise<Publisher>;
   createServiceClient(name: string, typeName?: string): Promise<ServiceClient>;
@@ -339,10 +337,10 @@ class InlineClient implements RclwebClient {
 
   get session(): RclwebSession {
     return {
-      subscribe: ((topic, typeName = STD_MSGS_STRING, qos = {}) =>
-        this.#subscribe(topic, typeName, qos)) as RclwebSession["subscribe"],
-      publish: ((topic, typeName = STD_MSGS_STRING, qos = {}) =>
-        this.#publish(topic, typeName, qos)) as RclwebSession["publish"],
+      subscribe: ((topic, type: TypeNameLike = StdMsgsStringMsg, qos = {}) =>
+        this.#subscribe(topic, typeNameOf(type), qos)) as RclwebSession["subscribe"],
+      publish: ((topic, type: TypeNameLike = StdMsgsStringMsg, qos = {}) =>
+        this.#publish(topic, typeNameOf(type), qos)) as RclwebSession["publish"],
       createServiceClient: (name, typeName = "") =>
         this.#createServiceClient(name, typeName),
       createServiceServer: (name, typeName = "", handler) =>
@@ -993,10 +991,10 @@ class WorkerClient implements RclwebClient {
   private constructor(worker: Worker) {
     this.#worker = worker;
     this.#session = {
-      subscribe: ((topic, typeName = STD_MSGS_STRING, qos = {}) =>
-        this.#subscribe(topic, typeName, qos)) as RclwebSession["subscribe"],
-      publish: ((topic, typeName = STD_MSGS_STRING, qos = {}) =>
-        this.#publish(topic, typeName, qos)) as RclwebSession["publish"],
+      subscribe: ((topic, type: TypeNameLike = StdMsgsStringMsg, qos = {}) =>
+        this.#subscribe(topic, typeNameOf(type), qos)) as RclwebSession["subscribe"],
+      publish: ((topic, type: TypeNameLike = StdMsgsStringMsg, qos = {}) =>
+        this.#publish(topic, typeNameOf(type), qos)) as RclwebSession["publish"],
       createServiceClient: (name, typeName = "") =>
         this.#createServiceClient(name, typeName),
       createServiceServer: (name, typeName = "", handler) =>
@@ -1165,7 +1163,7 @@ class WorkerClient implements RclwebClient {
           typeName: msg.typeName,
           channelId,
           publish: async (message) => {
-            if (msg.typeName === SENSOR_MSGS_POINT_CLOUD2) {
+            if (msg.typeName === PointCloud2Msg.typeName) {
               if (!isPointCloud2(message)) {
                 throw new Error("PointCloud2 publish requires a PointCloud2 message");
               }

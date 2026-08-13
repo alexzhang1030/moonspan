@@ -12,6 +12,13 @@ export type MessageType<T> = {
   new (): T;
 };
 
+/** A ROS type: the message class, or a `{ typeName }` / wire name string. */
+export type TypeNameLike = string | { readonly typeName: string };
+
+export function typeNameOf(type: TypeNameLike): string {
+  return typeof type === "string" ? type : type.typeName;
+}
+
 export class Time {
   static readonly typeName = "builtin_interfaces/msg/Time" as const;
   sec = 0;

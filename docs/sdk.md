@@ -70,7 +70,7 @@ node.createSubscription(sensor_msgs.msg.PointCloud2, "points", 10, (msg) => {
 });
 ```
 
-TypeScript cannot write `create_publisher<std_msgs::msg::String>(topic, qos)`, so the message type is the first argument. `10` is KeepLast(10) + reliable, same as rclcpp. `new QoS(10).bestEffort()` and `KeepLast(10)` are the object form.
+TypeScript cannot write `create_publisher<std_msgs::msg::String>(topic, qos)`, so the message type is the first argument (`std_msgs.msg.String`, not an all-caps constant). `10` is KeepLast(10) + reliable, same as rclcpp. `new QoS(10).bestEffort()` and `KeepLast(10)` are the object form.
 
 Message field names follow the ROS IDL (`data`, `point_step`, `is_bigendian`, `frame_id`). Callbacks receive an owned message; there is no lease to release. `createWallTimer(periodMs, callback)` matches `create_wall_timer`. Relative names (`"chatter"`) resolve under the node namespace like rclcpp.
 

@@ -31,13 +31,7 @@ export type {
   Subscription,
   SubscriptionHandler,
 } from "./client.ts";
-export {
-  DEFAULT_QOS_DEPTH,
-  SENSOR_MSGS_POINT_CLOUD2,
-  STD_MSGS_STRING,
-  isPointCloud2,
-  isStdMsgsString,
-} from "./client.ts";
+export { DEFAULT_QOS_DEPTH, isPointCloud2, isStdMsgsString } from "./client.ts";
 
 export {
   encodeHostBatch,

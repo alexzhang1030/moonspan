@@ -22,8 +22,6 @@ import {
 } from "./interfaces.ts";
 import { qosToOptions, type QoSInput } from "./qos.ts";
 import {
-  SENSOR_MSGS_POINT_CLOUD2,
-  STD_MSGS_STRING,
   isPointCloud2,
   isStdMsgsString,
   type PointCloud2 as WirePointCloud2,
@@ -318,26 +316,26 @@ function field(
 }
 
 function fromWire(typeName: string, wire: SampleMessage): unknown {
-  if (typeName === STD_MSGS_STRING && isStdMsgsString(wire)) {
+  if (typeName === StdMsgsStringMsg.typeName && isStdMsgsString(wire)) {
     const msg = new StdMsgsStringMsg();
     msg.data = wire.data;
     return msg;
   }
-  if (typeName === SENSOR_MSGS_POINT_CLOUD2 && isPointCloud2(wire)) {
+  if (typeName === PointCloud2.typeName && isPointCloud2(wire)) {
     return wireToRos(wire);
   }
   throw new Error(`unsupported message type ${typeName}`);
 }
 
 function toWire(typeName: string, message: unknown): SampleMessage {
-  if (typeName === STD_MSGS_STRING) {
+  if (typeName === StdMsgsStringMsg.typeName) {
     const data = (message as { data?: unknown }).data;
     if (typeof data !== "string") {
       throw new Error("std_msgs.msg.String publish requires .data: string");
     }
     return { data };
   }
-  if (typeName === SENSOR_MSGS_POINT_CLOUD2) {
+  if (typeName === PointCloud2.typeName) {
     return rosToWire(message as PointCloud2);
   }
   throw new Error(`unsupported message type ${typeName}`);
