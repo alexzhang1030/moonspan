@@ -30,7 +30,7 @@ third-party rcl binding, no `Instant` on wasm, no permessage-deflate, J-FT row.
 | Write queue + dispositions | [`rclwebd/src/budgets.rs`](../../rclwebd/src/budgets.rs) |
 | Connection admit / flush | [`rclwebd/src/connection.rs`](../../rclwebd/src/connection.rs) |
 | Telemetry dispositions | [`rclwebd/src/telemetry.rs`](../../rclwebd/src/telemetry.rs) |
-| SDK publish + reconnect | [`sdk/typescript/src/`](../../sdk/typescript/src/) |
+| SDK publish + reconnect | [`typescript/src/`](../../typescript/src/) |
 
 ## Acceptance evidence
 
@@ -38,7 +38,7 @@ third-party rcl binding, no `Instant` on wasm, no permessage-deflate, J-FT row.
 cargo test --locked -p rclweb
 cargo test --locked -p rclwebd --test client_engine_collision --test ws_gateway
 bun run scripts/build-wasm.ts
-bun test sdk/typescript/test
+bun test typescript/test
 just check && just test && just build
 ```
 

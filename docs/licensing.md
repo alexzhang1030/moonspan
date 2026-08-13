@@ -22,7 +22,7 @@ The published surface is:
 
 - the `rclweb` crate (native and `wasm32-unknown-unknown`)
 - the `rclwebd` binary, including optional `ros` and `webtransport`
-- the TypeScript package (today `@rclweb/sdk`; no external npm dependencies)
+- the TypeScript package `rclweb` at `typescript/` (no external npm dependencies)
 
 Do not add GPL, AGPL, LGPL, or other copyleft licenses to that graph. The
 same allowlist applies to workspace `dev-dependency` crates so a test-only

@@ -8,6 +8,6 @@
     "start": "bun run ./run.ts"
   },
   "dependencies": {
-    "@rclweb/sdk": "workspace:*"
+    "rclweb": "workspace:*"
   }
 }

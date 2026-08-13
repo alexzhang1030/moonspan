@@ -9,7 +9,7 @@ Delivery sequence for a single Rust core (`rclweb`) serving both the gateway and
 | R-D1 | Ruled (owner, 2026-08-12) | Single Rust core, native for `rclwebd`, wasm32 for the browser |
 | R-D2 | Standing recommendation | Phase 1 gates one support row, J-FT (Jazzy + Fast DDS); all six rows of corpus data stay committed |
 | R-D3 | Standing recommendation | Protocol v0.1 normative subset per the [scope declaration](../protocol/r2wp-v0.md#normative-scope-v01-subset); the rest is parked |
-| R-D4 | Ruled (owner, 2026-08-12) | Project name `rclweb`; core crate `rclweb`, gateway `rclwebd`, SDK `@rclweb/sdk` |
+| R-D4 | Ruled (owner, 2026-08-13) | Project name `rclweb`; core crate `rclweb`, gateway `rclwebd`, TypeScript package `rclweb` at `typescript/` ([ADR 0013](../docs/adr/0013-typescript-package-rclweb.md)). The 2026-08-12 form named the package `@rclweb/sdk` at `sdk/typescript/`. |
 
 ## Phases
 
@@ -78,7 +78,7 @@ Gate: N2 subset demonstrated; conformance green on two rows and two transports.
 | R4-01 | Active | OIDC identity, SROS2/ACL, audit — Authenticate off-by-default / opt-in `oidc` + audit JSON; channel ACLs off-by-default / opt-in `enforce` (default-deny, wire code 12); tenant/keystore and matrix content remain D-04 / human input |
 | R4-02 | Active | Deployment packaging and observability — `/livez` `/readyz` `/configz` `/metrics` `POST /drain`, runtime images for all six rows (CY/ZN via build args, zenoh router companion); PKI/orchestrators/remote export remain follow-ups |
 | R4-03 | Active | Support matrix against live gates — no committed measurement JSON; live lanes cover all six rows (J-CY/J-ZN/H-CY/H-ZN via `e2e-ros-talker-jazzy-rmw` / `e2e-ros-talker-humble-rmw`); human Qualified promotion remains a follow-up |
-| R4-04 | Active | SDK stabilization, docs, examples, and release — rclcpp-shaped `init`/`Node`, Worker URL, subscribe-chatter on `dist/`, Worker session ops, PointCloud2 and Phase 1 corpus msg/srv/action types, reconnect reopens service/action, Worker telemetry, public Node graph; D-06 is Apache-2.0; npm publish / `1.0.0` remain follow-ups |
+| R4-04 | Active | TypeScript package stabilization, docs, examples, and release — unscoped `rclweb` at `typescript/` ([ADR 0013](../docs/adr/0013-typescript-package-rclweb.md)), rclcpp-shaped `init`/`Node`, Worker URL, subscribe-chatter on `dist/`, Worker session ops, PointCloud2 and Phase 1 corpus msg/srv/action types, reconnect reopens service/action, Worker telemetry, public Node graph; D-06 is Apache-2.0; npm publish / `1.0.0` remain follow-ups |
 
 Gate: release review. U0 (Studio) follows the release as before.
 

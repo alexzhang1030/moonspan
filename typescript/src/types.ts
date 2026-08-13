@@ -1,4 +1,4 @@
-/** Host/session message and lease types. Application code uses `@rclweb/sdk` `Node`. */
+/** Host/session message and lease types. Application code uses `rclweb` `Node`. */
 
 import type { GeneratedMsg } from "./generated-value.ts";
 

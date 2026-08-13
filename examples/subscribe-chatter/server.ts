@@ -1,6 +1,6 @@
 /**
- * Demo server: serves the built SDK and a page that connects to rclwebd.
- * Build first (`just build` or `bun run --filter @rclweb/sdk build`), then:
+ * Demo server: serves the built `rclweb` bundle and a page that connects to rclwebd.
+ * Build first (`just build` or `bun run --filter rclweb build`), then:
  * `RCLWEB_GATEWAY_URL=ws://127.0.0.1:8794/ws bun run start`
  */
 import { serve } from "bun";
@@ -10,14 +10,14 @@ const port = Number(process.env.PORT ?? "4173");
 const gatewayUrl =
   process.env.RCLWEB_GATEWAY_URL ?? "ws://127.0.0.1:8794/ws";
 const root = import.meta.dir;
-const sdkWasm = path.resolve(root, "../../sdk/typescript/wasm/rclweb.wasm");
-const sdkDist = path.resolve(root, "../../sdk/typescript/dist");
+const sdkWasm = path.resolve(root, "../../typescript/wasm/rclweb.wasm");
+const sdkDist = path.resolve(root, "../../typescript/dist");
 const sdkIndex = path.join(sdkDist, "index.js");
 
 if (!(await Bun.file(sdkIndex).exists())) {
   console.error(
-    "subscribe-chatter needs the SDK browser bundle at sdk/typescript/dist/index.js.\n" +
-      "Run `just build` (or `bun run --filter @rclweb/sdk build`) first.",
+    "subscribe-chatter needs the rclweb browser bundle at typescript/dist/index.js.\n" +
+      "Run `just build` (or `bun run --filter rclweb build`) first.",
   );
   process.exit(1);
 }
@@ -122,7 +122,7 @@ const html = `<!doctype html>
 <body>
   <main>
     <h1>rclweb</h1>
-    <p class="lede">Live <code>/chatter</code> through <code>@rclweb/sdk</code>.</p>
+    <p class="lede">Live <code>/chatter</code> through <code>rclweb</code>.</p>
     <button id="go" type="button">Connect</button>
     <form id="compose" hidden>
       <input id="out" type="text" maxlength="200" placeholder="Publish to /chatter" autocomplete="off" />

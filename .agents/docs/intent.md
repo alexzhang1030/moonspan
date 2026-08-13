@@ -26,7 +26,7 @@ The mainline is one Rust core for gateway and browser ([ADR 0010](../../docs/adr
 - R2WP carries CDR and control data over bounded, observable transports.
 - `rclwebd` owns ROS attachment, identity, policy, scheduling, schema, audit, and operations at the edge.
 - Supported profiles carry conformance, performance, security, and deployment evidence.
-- The SDK exposes an rclcpp-shaped public application contract (`init` / `Node`) ([SDK](../../docs/sdk.md)).
+- The TypeScript package `rclweb` exposes an rclcpp-shaped public application contract (`init` / `Node`) ([`rclweb`](../../docs/typescript.md)).
 - The repository is Apache-2.0; third-party crates on the published surface stay OSI-permissive ([licensing](../../docs/licensing.md)).
 
 ## Non-goals and posture

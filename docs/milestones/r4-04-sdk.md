@@ -4,17 +4,17 @@ Status: In progress. npm publish and a `1.0.0` version remain follow-ups.
 [D-06](../../tasks/plan.md#kickoff-decision-register) is Apache-2.0
 ([licensing](../licensing.md)). This task does not publish the package.
 
-The candidate application contract is [`docs/sdk.md`](../sdk.md). The
+The candidate application contract is [`docs/typescript.md`](../typescript.md). The
 package stays `"private": true` and `"version": "0.0.0"`.
 
 ## Outcome (first slice — public surface)
 
 | Area | Behavior |
 |---|---|
-| Public exports | `@rclweb/sdk` is `init`, `Node`, ROS message types, QoS, and local-dev TLS helpers. A test pins the runtime export list. |
-| Internal | `@rclweb/sdk/internal` holds `connect`, session/leases, `IoHost`, the wasm poll ABI, buffer strategies, and `connectOfflineForTests`. Not a stability promise. |
+| Public exports | `rclweb` is `init`, `Node`, ROS message types, QoS, and local-dev TLS helpers. A test pins the runtime export list. |
+| Internal | `rclweb/internal` holds `connect`, session/leases, `IoHost`, the wasm poll ABI, buffer strategies, and `connectOfflineForTests`. Not a stability promise. |
 | Worker URL | Source loads `io-worker.ts`; the browser bundle loads `io-worker.js`. A hardcoded `.ts` URL broke `dist/`. |
-| Docs | [SDK](../sdk.md) is the application contract. Package README points here. |
+| Docs | [`rclweb`](../typescript.md) is the application contract. Package README points here. |
 | Demo | [`examples/subscribe-chatter`](../../examples/subscribe-chatter/) serves `dist/` on the Worker path and can publish `/chatter`. |
 
 ## Outcome (second slice — Worker operations)
@@ -27,10 +27,10 @@ roots copy packed host-value bytes; untyped channels stay CDR.
 
 | Area | Behavior |
 |---|---|
-| Messages | [`sdk/typescript/src/worker/messages.ts`](../../sdk/typescript/src/worker/messages.ts) carries open/call/goal/graph events as application values. |
-| Worker | [`io-worker.ts`](../../sdk/typescript/src/worker/io-worker.ts) copies payloads and releases leases before `postMessage`. |
-| Client | [`WorkerClient`](../../sdk/typescript/src/client.ts) no longer throws `requires inline host` for those methods. |
-| Tests | [`sdk/typescript/test/worker-ops.test.ts`](../../sdk/typescript/test/worker-ops.test.ts) drives subscribe, graph, service echo, action echo, and PointCloud2 without `inline: true`. |
+| Messages | [`typescript/src/worker/messages.ts`](../../typescript/src/worker/messages.ts) carries open/call/goal/graph events as application values. |
+| Worker | [`io-worker.ts`](../../typescript/src/worker/io-worker.ts) copies payloads and releases leases before `postMessage`. |
+| Client | [`WorkerClient`](../../typescript/src/client.ts) no longer throws `requires inline host` for those methods. |
+| Tests | [`typescript/test/worker-ops.test.ts`](../../typescript/test/worker-ops.test.ts) drives subscribe, graph, service echo, action echo, and PointCloud2 without `inline: true`. |
 
 ## Outcome (this slice — typed PointCloud2 samples)
 
@@ -39,8 +39,8 @@ Subscribe delivers `sensor_msgs/msg/PointCloud2` as metadata plus a `data` Typed
 | Area | Behavior |
 |---|---|
 | Host types | Session `subscribe`/`publish` take `std_msgs.msg.String` / `sensor_msgs.msg.PointCloud2`. The wire PointCloud2 shape (camelCase meta + `data`) stays inside the host. |
-| Inline | [`IoHost.decodePointCloud2`](../../sdk/typescript/src/host.ts) returns a view into wasm memory. Tests assert `data.buffer === engineMemory()`. |
-| Worker | [`io-worker.ts`](../../sdk/typescript/src/worker/io-worker.ts) copies `data`, releases the lease, and transfers the ArrayBuffer. |
+| Inline | [`IoHost.decodePointCloud2`](../../typescript/src/host.ts) returns a view into wasm memory. Tests assert `data.buffer === engineMemory()`. |
+| Worker | [`io-worker.ts`](../../typescript/src/worker/io-worker.ts) copies `data`, releases the lease, and transfers the ArrayBuffer. |
 | Fixtures | [`scripts/fixture-gen`](../../scripts/fixture-gen/) emits `pointCloud2Sample` (four XYZ points). |
 
 ## Outcome (this slice — PointCloud2 publish)
@@ -51,7 +51,7 @@ The host `publish(..., sensor_msgs.msg.PointCloud2)` path sends a typed PointClo
 |---|---|
 | Command | Poll ABI `CMD_SEND_POINT_CLOUD2` (17): header, fields, and the `data` field, not full CDR. |
 | Engine | [`encode_point_cloud2_from_sdk_meta`](../../rclweb/src/cdr/point_cloud2.rs) then the existing ROS_SAMPLE send path. |
-| Client | [`Publisher.publish`](../../sdk/typescript/src/client.ts) accepts `StdMsgsString \| PointCloud2` from the channel type. |
+| Client | [`Publisher.publish`](../../typescript/src/client.ts) accepts `StdMsgsString \| PointCloud2` from the channel type. |
 | Tests | Engine outbound decode, inline `samplesSent`, Worker scripted peer captures `OPCODE_ROS_SAMPLE`. |
 
 ## Outcome (this slice — rclcpp-shaped Node)
@@ -61,15 +61,15 @@ The public package matches rclcpp usage: `init(url)` → `new Node(name)` →
 `sensor_msgs.msg.PointCloud2`. Callbacks receive owned messages; applications
 do not see sample leases or `connect`. Message types are `std_msgs.msg.String`
 and `sensor_msgs.msg.PointCloud2`, not all-caps constants. `connect`
-and the session/lease host live on `@rclweb/sdk/internal`.
+and the session/lease host live on `rclweb/internal`.
 
 | Area | Behavior |
 |---|---|
-| Context | [`init` / `ok` / `spin` / `shutdown`](../../sdk/typescript/src/context.ts). The extra argument versus `rclcpp::init` is the gateway URL. |
-| Node | [`Node`](../../sdk/typescript/src/node.ts): `createPublisher`, `createSubscription`, `createClient`, `createService`, `createActionClient`, `createActionServer`, `createWallTimer`. `10` is KeepLast(10) + reliable. |
-| Messages | [`std_msgs` / `sensor_msgs` / `rclweb_cdr_interfaces`](../../sdk/typescript/src/interfaces.ts) classes with ROS IDL field names. |
+| Context | [`init` / `ok` / `spin` / `shutdown`](../../typescript/src/context.ts). The extra argument versus `rclcpp::init` is the gateway URL. |
+| Node | [`Node`](../../typescript/src/node.ts): `createPublisher`, `createSubscription`, `createClient`, `createService`, `createActionClient`, `createActionServer`, `createWallTimer`. `10` is KeepLast(10) + reliable. |
+| Messages | [`std_msgs` / `sensor_msgs` / `rclweb_cdr_interfaces`](../../typescript/src/interfaces.ts) classes with ROS IDL field names. |
 | Demo / e2e | subscribe-chatter and the e2e harness use `init` + `Node`. |
-| Tests | [`node.test.ts`](../../sdk/typescript/test/node.test.ts) covers subscribe/publish without leases. Host 0-copy tests stay on `internal`. |
+| Tests | [`node.test.ts`](../../typescript/test/node.test.ts) covers subscribe/publish without leases. Host 0-copy tests stay on `internal`. |
 
 ## Outcome (this slice — PointCloud2 header and fields)
 
@@ -111,36 +111,36 @@ Reconnect is a fresh session on both the I/O Worker path and the inline host. Af
 |---|---|
 | IDs | Re-open uses the original channel id. Do not allocate a new id on reconnect. |
 | Worker | `onPollEnd` posts `{ type: "telemetry", snapshot }` before sample/op events. Main caches it; `telemetry()` stays synchronous. |
-| Tests | [`worker-ops.test.ts`](../../sdk/typescript/test/worker-ops.test.ts): Worker telemetry after a sample; Worker and inline reconnect keep the same subscription / service client. |
+| Tests | [`worker-ops.test.ts`](../../typescript/test/worker-ops.test.ts): Worker telemetry after a sample; Worker and inline reconnect keep the same subscription / service client. |
 
 ## Outcome (this slice — public Node graph)
 
-Graph state is on `Node` with rclcpp names. Applications do not import `@rclweb/sdk/internal` `onGraph` / `GraphView`. Session `onGraph` fans out to every handler so more than one `Node` can listen.
+Graph state is on `Node` with rclcpp names. Applications do not import `rclweb/internal` `onGraph` / `GraphView`. Session `onGraph` fans out to every handler so more than one `Node` can listen.
 
 | Area | Behavior |
 |---|---|
 | Node | `getNodeNames`, `getTopicNamesAndTypes`, `getServiceNamesAndTypes`, `getActionNamesAndTypes`, `countPublishers`, `countSubscribers`, `onGraphChange`. |
 | Host | `session.graph()` returns the cached snapshot. `onGraph` is a set of handlers, not last-writer-wins. |
 | Fixture | Scripted GraphSnapshot includes `/talker`, a `/chatter` publisher, and `/add_two_ints`. |
-| Tests | [`node.test.ts`](../../sdk/typescript/test/node.test.ts) asserts names and counts without GraphSnapshot types. |
+| Tests | [`node.test.ts`](../../typescript/test/node.test.ts) asserts names and counts without GraphSnapshot types. |
 
 ## Delivered scope
 
 | Surface | Location |
 |---|---|
-| Public entry | [`sdk/typescript/src/index.ts`](../../sdk/typescript/src/index.ts) (`init` / `Node`) |
-| Node API | [`node.ts`](../../sdk/typescript/src/node.ts), [`context.ts`](../../sdk/typescript/src/context.ts), [`interfaces.ts`](../../sdk/typescript/src/interfaces.ts) |
-| Internal entry | [`sdk/typescript/src/internal.ts`](../../sdk/typescript/src/internal.ts) (`connect` / leases) |
-| Worker URL | [`resolveIoWorkerUrl`](../../sdk/typescript/src/client.ts) |
-| Worker ops | [`sdk/typescript/src/worker/`](../../sdk/typescript/src/worker/) |
-| Application docs | [`docs/sdk.md`](../sdk.md) |
+| Public entry | [`typescript/src/index.ts`](../../typescript/src/index.ts) (`init` / `Node`) |
+| Node API | [`node.ts`](../../typescript/src/node.ts), [`context.ts`](../../typescript/src/context.ts), [`interfaces.ts`](../../typescript/src/interfaces.ts) |
+| Internal entry | [`typescript/src/internal.ts`](../../typescript/src/internal.ts) (`connect` / leases) |
+| Worker URL | [`resolveIoWorkerUrl`](../../typescript/src/client.ts) |
+| Worker ops | [`typescript/src/worker/`](../../typescript/src/worker/) |
+| Application docs | [`docs/typescript.md`](../typescript.md) |
 | Demo | [`examples/subscribe-chatter`](../../examples/subscribe-chatter/) |
 
 ## Acceptance evidence
 
 ```bash
 just check && just test && just build
-bun test sdk/typescript/test
+bun test typescript/test
 ```
 
 ## Still open in R4-04

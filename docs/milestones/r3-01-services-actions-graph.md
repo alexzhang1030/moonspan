@@ -27,7 +27,7 @@ third-party rcl binding, SessionResume stays parked, J-FT row.
 | Engine + poll ABI cmds 8–16 / events 11–23 | [`rclweb/src/engine/`](../../rclweb/src/engine/), [`rclweb/src/host/batch.rs`](../../rclweb/src/host/batch.rs) |
 | Gateway graph + service/action attach | [`rclwebd/src/connection.rs`](../../rclwebd/src/connection.rs), [`rclwebd/src/control.rs`](../../rclwebd/src/control.rs), [`rclwebd/src/backend.rs`](../../rclwebd/src/backend.rs) |
 | MockBackend echo + graph view | [`rclwebd/tests/common/mod.rs`](../../rclwebd/tests/common/mod.rs) |
-| SDK service/action/graph/parameters | [`sdk/typescript/src/`](../../sdk/typescript/src/) |
+| SDK service/action/graph/parameters | [`typescript/src/`](../../typescript/src/) |
 | Normative re-freeze | [`protocol/r2wp-v0.md`](../../protocol/r2wp-v0.md) |
 
 ## Acceptance evidence
@@ -35,7 +35,7 @@ third-party rcl binding, SessionResume stays parked, J-FT row.
 ```bash
 cargo test --locked -p rclweb --lib
 cargo test --locked -p rclwebd --test ws_gateway --test client_engine_collision
-bun test sdk/typescript/test
+bun test typescript/test
 just check && just test && just build
 ```
 

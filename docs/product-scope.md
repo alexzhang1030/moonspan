@@ -9,7 +9,7 @@ rclweb gives browser applications typed, secure, and measurable access to ROS 2.
 | R2WP | Versioned binary protocol for ROS data and control over WebTransport and binary WebSocket |
 | `rclweb` core | Rust core for protocol, CDR, ROS state, types, QoS, and operations — native in the gateway, wasm32 in the browser |
 | `rclwebd` | Rust edge gateway for ROS attachment, scheduling, identity, policy, audit, and operations |
-| Browser SDK | TypeScript APIs, Worker hosts, typed data, sessions, telemetry, and examples ([SDK](./sdk.md)) |
+| TypeScript package | TypeScript APIs, Worker hosts, typed data, sessions, telemetry, and examples ([`rclweb`](./typescript.md)) |
 | Qualification package | Fixtures, conformance, benchmarks, security evidence, deployment assets, and release records |
 
 Delivery follows a dependency chain: contracts and fixtures, core data path, ROS semantics, production qualification, and release.

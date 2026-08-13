@@ -124,7 +124,7 @@ license-inventory: toolchain-check
 license-inventory-check: toolchain-check
     cd "{{root}}" && bun run scripts/license-inventory.ts --check
 
-# Docs, protocol, corpus, and license inventory; Rust fmt/clippy; SDK typecheck.
+# Docs, protocol, corpus, and license inventory; Rust fmt/clippy; TypeScript package typecheck.
 [group('quality')]
 check: toolchain-check
     #!/usr/bin/env bash
@@ -135,9 +135,9 @@ check: toolchain-check
     bun run scripts/license-inventory.ts --check
     just fmt-check
     just clippy
-    bun run --filter @rclweb/sdk check
+    bun run --filter rclweb check
 
-# Bun tests (root scripts and SDK) and Cargo workspace tests.
+# Bun tests (root scripts and TypeScript package) and Cargo workspace tests.
 [group('quality')]
 test: toolchain-check
     #!/usr/bin/env bash
@@ -178,7 +178,7 @@ ros-test-pixi: toolchain-check
     pixi install --locked
     pixi run just ros-test
 
-# Cargo native build, rclweb wasm32 (fat LTO) staged into the SDK, and SDK build.
+# Cargo native build, rclweb wasm32 (fat LTO) staged into typescript/, and package build.
 [group('quality')]
 build: toolchain-check
     #!/usr/bin/env bash
@@ -186,7 +186,7 @@ build: toolchain-check
     cd "{{root}}"
     cargo build --locked --workspace
     bun run scripts/build-wasm.ts
-    bun run --filter @rclweb/sdk build
+    bun run --filter rclweb build
 
 # Measure wasm poll latency (R-D1). Prints to stdout; does not write into the repo.
 [group('quality')]

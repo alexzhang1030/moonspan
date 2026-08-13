@@ -6,7 +6,7 @@
 import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { loadWasm, pollEngine } from "../sdk/typescript/src/wasm/abi.ts";
+import { loadWasm, pollEngine } from "../typescript/src/wasm/abi.ts";
 
 const root = path.resolve(import.meta.dir, "..");
 
@@ -18,7 +18,7 @@ if (build.status !== 0) {
   process.exit(build.status ?? 1);
 }
 
-const wasmPath = path.join(root, "sdk/typescript/wasm/rclweb.wasm");
+const wasmPath = path.join(root, "typescript/wasm/rclweb.wasm");
 const wasmBytes = readFileSync(wasmPath);
 const wasm = await loadWasm(
   wasmBytes.buffer.slice(

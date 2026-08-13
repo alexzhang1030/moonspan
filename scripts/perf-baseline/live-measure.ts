@@ -1,7 +1,7 @@
 /**
  * Live bridge latency probe (docker compose lane).
  * Compares loopback subscribe latency for stamped std_msgs/String on:
- * - rclwebd (R2WP / @rclweb/sdk)
+ * - rclwebd (R2WP / rclweb)
  * - foxglove_bridge (Foxglove WS protocol)
  * - rosbridge_suite (rosbridge JSON)
  *
@@ -10,7 +10,7 @@
  */
 
 import path from "node:path";
-import { init, Node, shutdown, std_msgs } from "@rclweb/sdk";
+import { init, Node, shutdown, std_msgs } from "rclweb";
 import { summarize } from "./stats.ts";
 
 const topic = process.env.RCLWEB_PERF_TOPIC ?? "/bench/stamp";
@@ -37,7 +37,7 @@ async function measureRclweb(): Promise<PathResult> {
   const repoRoot = path.resolve(import.meta.dir, "../..");
   const wasmUrl =
     process.env.RCLWEB_WASM_URL ??
-    pathToFileUrl(path.join(repoRoot, "sdk/typescript/wasm/rclweb.wasm"));
+    pathToFileUrl(path.join(repoRoot, "typescript/wasm/rclweb.wasm"));
   try {
     await init(rclwebUrl, { inline: true, wasmUrl });
     const node = new Node("perf_measure");

@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Build the rclweb wasm artifact (fat LTO) and stage it into the SDK package.
+ * Build the rclweb wasm artifact (fat LTO) and stage it into the TypeScript package.
  * Prints size to stdout (R-D1 reopen input). Does not write into the repo.
  */
 import { mkdir, copyFile, stat } from "node:fs/promises";
@@ -27,9 +27,9 @@ const artifact = path.join(
   profile,
   "rclweb.wasm",
 );
-const sdkWasmDir = path.join(root, "sdk", "typescript", "wasm");
-await mkdir(sdkWasmDir, { recursive: true });
-const staged = path.join(sdkWasmDir, "rclweb.wasm");
+const wasmDir = path.join(root, "typescript", "wasm");
+await mkdir(wasmDir, { recursive: true });
+const staged = path.join(wasmDir, "rclweb.wasm");
 await copyFile(artifact, staged);
 
 const info = await stat(staged);
