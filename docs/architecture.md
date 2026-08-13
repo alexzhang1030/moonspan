@@ -20,7 +20,7 @@ Robot edge
 ROS 2 domains for that support row
 ```
 
-J-FT and H-FT are delivery-gated. Corpus data for all six rows (H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN) stays committed; remaining rows enter through the [support matrix](./support-matrix.md). One gateway process binds one row and may expose multiple domain IDs. Applications combine independent SDK sessions across rows.
+All six Phase 1 rows (H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN) are delivery-gated with live talker e2e lanes and committed corpus data; promotion to **Qualified** is a human edit of the [support matrix](./support-matrix.md). One gateway process binds one row and may expose multiple domain IDs. Applications combine independent SDK sessions across rows.
 
 `gateway_instance_id` identifies a logical gateway deployment. `support_row_id` identifies the immutable ROS distribution and RMW profile of its artifact. `domain_id` identifies a ROS domain within that row. These values remain attached to graph, schema, channel, policy, audit, telemetry, and evidence records.
 

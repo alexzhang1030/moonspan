@@ -143,3 +143,45 @@ jobs:
           set -euo pipefail
           docker compose -f docker/compose.r3-03-h-ft-e2e.yml build
           docker compose -f docker/compose.r3-03-h-ft-e2e.yml run --rm e2e-h-ft
+
+  e2e-jazzy-rmw:
+    name: e2e-ros-talker-jazzy-rmw
+    runs-on: ubuntu-24.04
+    # One Jazzy image with Cyclone DDS + Zenoh; J-CY and J-ZN run serially
+    # (one gateway process per support row, ADR 0008).
+    timeout-minutes: 60
+    needs: foundation
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Build and run J-CY / J-ZN e2e compose (Jazzy talker → SDK)
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f docker/compose.r4-03-remaining-rows-e2e.yml build e2e-j-cy
+          docker compose -f docker/compose.r4-03-remaining-rows-e2e.yml run --rm e2e-j-cy
+          docker compose -f docker/compose.r4-03-remaining-rows-e2e.yml run --rm e2e-j-zn
+
+  e2e-humble-rmw:
+    name: e2e-ros-talker-humble-rmw
+    runs-on: ubuntu-24.04
+    # One Humble image (bindgen + rcl link) with Cyclone DDS + Zenoh; H-CY and
+    # H-ZN run serially (one gateway process per support row, ADR 0008).
+    timeout-minutes: 90
+    needs: foundation
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Build and run H-CY / H-ZN e2e compose (Humble talker → SDK)
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f docker/compose.r4-03-remaining-rows-e2e.yml build e2e-h-cy
+          docker compose -f docker/compose.r4-03-remaining-rows-e2e.yml run --rm e2e-h-cy
+          docker compose -f docker/compose.r4-03-remaining-rows-e2e.yml run --rm e2e-h-zn

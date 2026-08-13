@@ -1,5 +1,7 @@
 # R1-05 end-to-end image: Jazzy (J-FT) + Rust + Bun + repo build.
 # Digest-pinned base matches the CDR corpus Jazzy pin.
+# RMW_APT_PACKAGES adds alternate RMW rows (R4-03: rmw_cyclonedds_cpp /
+# rmw_zenoh_cpp); empty keeps the Fast DDS-only J-FT image.
 #
 # Bun comes from the official oven/bun image (must match .bun-version), not
 # bun.sh/install / GitHub zip curls.
@@ -7,6 +9,7 @@ ARG BUN_IMAGE=docker.io/oven/bun:1.3.14@sha256:e10577f0db68676a7024391c6e5cb4b87
 FROM ${BUN_IMAGE} AS bun
 FROM docker.io/library/ros:jazzy-ros-base-noble@sha256:da725acf8b0f9f30c683e33ffbdcd6482d077af96d6fdc7688c5f4f280b7d923
 
+ARG RMW_APT_PACKAGES=""
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
   && apt-get install -y --no-install-recommends \
@@ -16,6 +19,7 @@ RUN apt-get update \
     git \
     pkg-config \
     python3 \
+    ${RMW_APT_PACKAGES} \
   && rm -rf /var/lib/apt/lists/*
 
 # Rust (pinned to repo toolchain channel)

@@ -231,6 +231,27 @@ e2e-h-ft: toolchain-check
     docker compose -f docker/compose.r3-03-h-ft-e2e.yml build
     docker compose -f docker/compose.r3-03-h-ft-e2e.yml run --rm e2e-h-ft
 
+# Live remaining-row lane (R4-03): row is j-cy, j-zn, h-cy, or h-zn.
+[group('quality')]
+e2e-row row: toolchain-check
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{root}}"
+    if ! command -v docker >/dev/null 2>&1; then
+        echo "error: docker is required for just e2e-row" >&2
+        exit 1
+    fi
+    case "{{row}}" in
+        j-cy|j-zn|h-cy|h-zn) ;;
+        *) echo "error: unknown row '{{row}}' (expected j-cy, j-zn, h-cy, or h-zn)" >&2; exit 1 ;;
+    esac
+    docker compose -f docker/compose.r4-03-remaining-rows-e2e.yml build "e2e-{{row}}"
+    docker compose -f docker/compose.r4-03-remaining-rows-e2e.yml run --rm "e2e-{{row}}"
+
+# All four remaining-row live lanes (R4-03): J-CY, J-ZN, H-CY, H-ZN.
+[group('quality')]
+e2e-remaining-rows: (e2e-row "j-cy") (e2e-row "j-zn") (e2e-row "h-cy") (e2e-row "h-zn")
+
 # J-FT runtime image for rclwebd (R4-02). Requires Docker; not a CI foundation job.
 [group('quality')]
 image-rclwebd: toolchain-check

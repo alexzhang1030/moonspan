@@ -408,9 +408,12 @@ fn check_adapter_probe() -> Result<(), BackendError> {
     std::env::var("RCLWEBD_SUPPORT_ROW").unwrap_or_else(|_| SUPPORT_ROW_J_FT.id.to_owned());
   let row = parse_support_row(&row_raw).unwrap_or(SUPPORT_ROW_J_FT);
   let distro = std::env::var("ROS_DISTRO").unwrap_or_else(|_| row.ros_distro.to_owned());
+  // Unset RMW_IMPLEMENTATION makes the rmw_implementation shim load the
+  // distro default (Fast DDS), so probe that — CY/ZN rows must set the env
+  // explicitly or the probe fails instead of silently running Fast DDS.
   let rmw = std::env::var("RMW_IMPLEMENTATION").unwrap_or_else(|_| "rmw_fastrtps_cpp".to_owned());
   let probe = AdapterProbe::for_row(row.id, &distro, &rmw);
-  if let Err(status) = probe.check_compatible(row.id, row.ros_distro) {
+  if let Err(status) = probe.check_compatible(row.id, row.ros_distro, row.rmw_identifier) {
     return Err(BackendError::new(
       status.wire_code(),
       format!(
