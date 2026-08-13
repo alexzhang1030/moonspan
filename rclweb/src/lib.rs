@@ -22,6 +22,7 @@ pub use cdr::{
   PointField, REPRESENTATION_CDR_BE, REPRESENTATION_CDR_LE, SENSOR_MSGS_POINT_CLOUD2,
   WRITER_INITIAL_SIZE_HINT, build_synthetic_xyz_cdr, decode_point_cloud2, decode_point_cloud2_le,
   encode_point_cloud2, encode_point_cloud2_from_sdk_meta, encode_point_cloud2_le,
+  point_cloud2_host_meta_len, write_point_cloud2_host_meta,
 };
 pub use engine::{
   AppCommand, AppEvent, ClientEngine, DEFAULT_QOS_DEPTH, DEMO_BUNDLE_HASH, DEMO_SCHEMA_HASH,

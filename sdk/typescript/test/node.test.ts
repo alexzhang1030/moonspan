@@ -190,8 +190,86 @@ test("PointCloud2 callback uses ROS field names and owns data", async () => {
   expect(cloud.point_step).toBe(12);
   expect(cloud.fields.length).toBe(3);
   expect(cloud.fields[0]!.name).toBe("x");
+  expect(cloud.fields[0]!.offset).toBe(0);
+  expect(cloud.fields[0]!.datatype).toBe(sensor_msgs.msg.PointField.FLOAT32);
   expect(cloud.data.byteLength).toBe(48);
-  expect(cloud.header.frame_id).toBe("");
+  expect(cloud.header.frame_id).toBe("map");
+  expect(cloud.header.stamp.sec).toBe(1);
+  expect(cloud.header.stamp.nanosec).toBe(2);
+  server.stop(true);
+});
+
+test("Node publish sends PointCloud2 header and fields", async () => {
+  let sampleFrame: Uint8Array | null = null;
+  const fixtures = scriptedPeerFixtures();
+  let step: "hello" | "ready" | "channel" | "sample" | "done" = "hello";
+  const server = Bun.serve({
+    port: 0,
+    fetch(req, server) {
+      if (server.upgrade(req)) return undefined;
+      return new Response("expected websocket", { status: 400 });
+    },
+    websocket: {
+      message(ws, message) {
+        const bytes =
+          message instanceof ArrayBuffer
+            ? new Uint8Array(message)
+            : typeof message === "string"
+              ? new TextEncoder().encode(message)
+              : new Uint8Array(message);
+        if (step === "hello" && isHello(bytes)) {
+          step = "ready";
+          ws.send(fixtures.serverHello);
+          return;
+        }
+        if (step === "ready" && bytes[1] === OPCODE_CONTROL) {
+          step = "channel";
+          ws.send(fixtures.sessionReady);
+          return;
+        }
+        if (step === "channel" && bytes[1] === OPCODE_CONTROL) {
+          step = "sample";
+          ws.send(fixtures.channelReady);
+          return;
+        }
+        if (bytes[1] === OPCODE_ROS_SAMPLE) {
+          sampleFrame = bytes;
+          step = "done";
+        }
+      },
+    },
+  });
+
+  await init(`ws://127.0.0.1:${server.port}`, {
+    wasmUrl: pathToFileUrl(wasmPath),
+  });
+  const node = new Node("cloud_talker");
+  const publisher = node.createPublisher(sensor_msgs.msg.PointCloud2, "points", 10);
+  const cloud = new sensor_msgs.msg.PointCloud2();
+  cloud.header.frame_id = "camera";
+  cloud.header.stamp.sec = 9;
+  cloud.header.stamp.nanosec = 8;
+  cloud.height = 1;
+  cloud.width = 1;
+  cloud.point_step = 16;
+  cloud.row_step = 16;
+  cloud.is_dense = false;
+  cloud.fields = [
+    Object.assign(new sensor_msgs.msg.PointField(), {
+      name: "rgb",
+      offset: 0,
+      datatype: sensor_msgs.msg.PointField.UINT32,
+      count: 1,
+    }),
+  ];
+  cloud.data = new Uint8Array(16);
+  publisher.publish(cloud);
+  const deadline = Date.now() + 5000;
+  while (sampleFrame == null && Date.now() < deadline) {
+    await Bun.sleep(10);
+  }
+  expect(sampleFrame).not.toBeNull();
+  expect(sampleFrame!.length).toBeGreaterThan(4);
   server.stop(true);
 });
 

@@ -354,25 +354,28 @@ impl ClientEngine {
       }
       AppCommand::SendPointCloud2 {
         channel_id,
+        header,
         height,
         width,
+        fields,
         point_step,
         row_step,
         is_bigendian,
         is_dense,
-        field_count,
         data,
       } => {
-        match encode_point_cloud2_from_sdk_meta(
-          *height,
-          *width,
-          *point_step,
-          *row_step,
-          *is_bigendian,
-          *is_dense,
-          *field_count,
+        let view = PointCloud2View {
+          header: header.clone(),
+          height: *height,
+          width: *width,
+          fields: fields.clone(),
+          is_bigendian: *is_bigendian,
+          point_step: *point_step,
+          row_step: *row_step,
           data,
-        ) {
+          is_dense: *is_dense,
+        };
+        match encode_point_cloud2_from_sdk_meta(&view) {
           Ok(payload) => self.send_sample_payload(*channel_id, &payload, outcome),
           Err(_) => {
             outcome.events.push(AppEvent::PublishFailed {

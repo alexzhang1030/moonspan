@@ -87,13 +87,21 @@ export type HostCommand =
   | {
       type: "sendPointCloud2";
       channelId: number;
+      stampSec: number;
+      stampNanosec: number;
+      frameId: string;
       height: number;
       width: number;
       pointStep: number;
       rowStep: number;
       isBigendian: boolean;
       isDense: boolean;
-      fieldCount: number;
+      fields: Array<{
+        name: string;
+        offset: number;
+        datatype: number;
+        count: number;
+      }>;
       data: Uint8Array;
     }
   | {
@@ -310,6 +318,10 @@ function writeU16Into(out: Uint8Array, offset: number, value: number): number {
   out[offset + 1] = (value >>> 8) & 0xff;
   return offset + 2;
 }
+function writeI32Into(out: Uint8Array, offset: number, value: number): number {
+  return writeU32Into(out, offset, value | 0);
+}
+
 function writeU32Into(out: Uint8Array, offset: number, value: number): number {
   out[offset] = value & 0xff;
   out[offset + 1] = (value >>> 8) & 0xff;
@@ -357,6 +369,8 @@ type PreparedCommand = {
   stringData?: Uint8Array;
   name?: Uint8Array;
   payload?: Uint8Array;
+  frameId?: Uint8Array;
+  fieldNames?: Uint8Array[];
 };
 
 function prepareCommand(command: HostCommand): PreparedCommand {
@@ -377,7 +391,12 @@ function prepareCommand(command: HostCommand): PreparedCommand {
     case "sendSample":
       return { cmd: command, stringData: te.encode(command.stringData) };
     case "sendPointCloud2":
-      return { cmd: command, payload: command.data };
+      return {
+        cmd: command,
+        payload: command.data,
+        frameId: te.encode(command.frameId),
+        fieldNames: command.fields.map((field) => te.encode(field.name)),
+      };
     case "openService":
     case "openAction":
       return {
@@ -413,8 +432,16 @@ function commandEncodedSize(prepared: PreparedCommand): number {
       return 4 + 16 + 4 + 4 + 2 + prepared.topic!.length + 2 + prepared.typeName!.length;
     case "sendSample":
       return 4 + 4 + 4 + prepared.stringData!.length;
-    case "sendPointCloud2":
-      return 4 + 32 + prepared.payload!.length;
+    case "sendPointCloud2": {
+      const names = prepared.fieldNames!;
+      let fieldsSize = 0;
+      for (const name of names) {
+        fieldsSize += 11 + name.length;
+      }
+      // cmd(4) + channel..stamp_nanosec(32) + frame_id_len(2) + frame_id +
+      // field_count(4) + fields + data_len(4) + data
+      return 4 + 32 + 2 + prepared.frameId!.length + 4 + fieldsSize + 4 + prepared.payload!.length;
+    }
     case "openService":
     case "openAction":
       return 4 + 16 + 4 + 4 + 2 + prepared.name!.length + 2 + prepared.typeName!.length;
@@ -527,7 +554,24 @@ function writeCommand(out: Uint8Array, offset: number, prepared: PreparedCommand
       out[offset++] = command.isDense ? 1 : 0;
       out[offset++] = 0;
       out[offset++] = 0;
-      offset = writeU32Into(out, offset, command.fieldCount >>> 0);
+      offset = writeI32Into(out, offset, command.stampSec);
+      offset = writeU32Into(out, offset, command.stampNanosec >>> 0);
+      const frameId = prepared.frameId!;
+      offset = writeU16Into(out, offset, frameId.length);
+      out.set(frameId, offset);
+      offset += frameId.length;
+      offset = writeU32Into(out, offset, command.fields.length);
+      const names = prepared.fieldNames!;
+      for (let i = 0; i < command.fields.length; i++) {
+        const field = command.fields[i]!;
+        const name = names[i]!;
+        offset = writeU16Into(out, offset, name.length);
+        out.set(name, offset);
+        offset += name.length;
+        offset = writeU32Into(out, offset, field.offset >>> 0);
+        out[offset++] = field.datatype & 0xff;
+        offset = writeU32Into(out, offset, field.count >>> 0);
+      }
       const data = prepared.payload!;
       offset = writeU32Into(out, offset, data.length);
       out.set(data, offset);
@@ -1123,6 +1167,7 @@ export type WasmExports = {
     payloadPtr: number,
     payloadLen: number,
     outPtr: number,
+    outLen: number,
   ): number;
 };
 
@@ -1145,7 +1190,15 @@ export type PointCloud2Meta = {
   dataLen: number;
   isBigendian: boolean;
   isDense: boolean;
-  fieldCount: number;
+  stampSec: number;
+  stampNanosec: number;
+  frameId: string;
+  fields: Array<{
+    name: string;
+    offset: number;
+    datatype: number;
+    count: number;
+  }>;
 };
 
 export async function loadWasm(wasmBytes: ArrayBuffer): Promise<WasmExports> {
@@ -1200,6 +1253,7 @@ export function readTelemetry(
 /**
  * Decode PointCloud2 metadata from a leased CDR payload in wasm memory.
  * Point `data` stays as an offset/len into the payload — never copied.
+ * Header stamp/`frame_id` and PointField entries are copied (small).
  */
 export function decodePointCloud2Meta(
   wasm: WasmExports,
@@ -1210,16 +1264,47 @@ export function decodePointCloud2Meta(
   if (!decode) {
     throw new Error("wasm missing export rclweb_point_cloud2_meta");
   }
-  const outPtr = wasm.rclweb_alloc(40);
+  let cap = 4096;
+  let outPtr = wasm.rclweb_alloc(cap);
   if (outPtr === 0) {
     throw new Error("rclweb_alloc failed for point_cloud2 meta");
   }
   try {
-    const rc = decode(payloadPtr, payloadLen, outPtr);
-    if (rc !== 0) {
+    let rc = decode(payloadPtr, payloadLen, outPtr, cap);
+    if (rc === -4) {
+      const need = new DataView(wasm.memory.buffer, outPtr, 4).getUint32(0, true);
+      wasm.rclweb_free(outPtr, cap);
+      cap = need;
+      outPtr = wasm.rclweb_alloc(cap);
+      if (outPtr === 0) {
+        throw new Error("rclweb_alloc failed for point_cloud2 meta retry");
+      }
+      rc = decode(payloadPtr, payloadLen, outPtr, cap);
+    }
+    if (rc < 42) {
       throw new Error(`rclweb_point_cloud2_meta failed with code ${rc}`);
     }
-    const view = new DataView(wasm.memory.buffer, outPtr, 40);
+    const view = new DataView(wasm.memory.buffer, outPtr, rc);
+    const fieldCount = view.getUint32(28, true);
+    let o = 40;
+    const frameIdLen = view.getUint16(o, true);
+    o += 2;
+    const frameId = td.decode(new Uint8Array(wasm.memory.buffer, outPtr + o, frameIdLen));
+    o += frameIdLen;
+    const fields: PointCloud2Meta["fields"] = [];
+    for (let i = 0; i < fieldCount; i++) {
+      const nameLen = view.getUint16(o, true);
+      o += 2;
+      const name = td.decode(new Uint8Array(wasm.memory.buffer, outPtr + o, nameLen));
+      o += nameLen;
+      const offset = view.getUint32(o, true);
+      o += 4;
+      const datatype = view.getUint8(o);
+      o += 1;
+      const count = view.getUint32(o, true);
+      o += 4;
+      fields.push({ name, offset, datatype, count });
+    }
     return {
       height: view.getUint32(0, true),
       width: view.getUint32(4, true),
@@ -1229,10 +1314,15 @@ export function decodePointCloud2Meta(
       dataLen: view.getUint32(20, true),
       isBigendian: view.getUint8(24) !== 0,
       isDense: view.getUint8(25) !== 0,
-      fieldCount: view.getUint32(28, true),
+      stampSec: view.getInt32(32, true),
+      stampNanosec: view.getUint32(36, true),
+      frameId,
+      fields,
     };
   } finally {
-    wasm.rclweb_free(outPtr, 40);
+    if (outPtr !== 0) {
+      wasm.rclweb_free(outPtr, cap);
+    }
   }
 }
 

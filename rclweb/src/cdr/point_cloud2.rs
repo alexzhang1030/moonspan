@@ -129,56 +129,80 @@ pub fn encode_point_cloud2_le(view: &PointCloud2View<'_>) -> Result<Vec<u8>, Cdr
   Ok(writer.to_bytes())
 }
 
-/// Encode PointCloud2 CDR from the SDK metadata shape (no header/fields).
+/// Encode PointCloud2 CDR from an SDK view (header, fields, and `data`).
 ///
-/// `field_count == 3` and `point_step >= 12` synthesizes XYZ float32 fields
-/// (same layout as [`build_synthetic_xyz_cdr`]). Otherwise one UINT8 blob
-/// field covers `point_step`. Header stamp is zero and `frame_id` is empty.
-/// `data.len()` must equal `row_step * height`.
-#[allow(clippy::too_many_arguments)]
-pub fn encode_point_cloud2_from_sdk_meta(
-  height: u32,
-  width: u32,
-  point_step: u32,
-  row_step: u32,
-  is_bigendian: bool,
-  is_dense: bool,
-  field_count: u32,
-  data: &[u8],
-) -> Result<Vec<u8>, CdrError> {
-  let expected = (row_step as usize)
-    .checked_mul(height as usize)
-    .ok_or_else(|| CdrError::length_overflow(0, u64::from(row_step), u64::from(height)))?;
-  if data.len() != expected {
-    return Err(CdrError::bounds_exceeded(0, expected as u64, data.len() as u64));
+/// `data.len()` must equal `row_step * height`. Fields and header are written
+/// as given — this does not synthesize XYZ or empty `frame_id`.
+pub fn encode_point_cloud2_from_sdk_meta(view: &PointCloud2View<'_>) -> Result<Vec<u8>, CdrError> {
+  let expected = (view.row_step as usize).checked_mul(view.height as usize).ok_or_else(|| {
+    CdrError::length_overflow(0, u64::from(view.row_step), u64::from(view.height))
+  })?;
+  if view.data.len() != expected {
+    return Err(CdrError::bounds_exceeded(0, expected as u64, view.data.len() as u64));
   }
-  let fields = publish_fields(point_step, field_count);
-  let view = PointCloud2View {
-    header: Header { stamp_sec: 0, stamp_nanosec: 0, frame_id: String::new() },
-    height,
-    width,
-    fields,
-    is_bigendian,
-    point_step,
-    row_step,
-    data,
-    is_dense,
-  };
-  encode_point_cloud2_le(&view)
+  encode_point_cloud2_le(view)
 }
 
-fn publish_fields(point_step: u32, field_count: u32) -> Vec<PointField> {
-  if field_count == 3 && point_step >= 12 {
-    vec![
-      PointField { name: "x".into(), offset: 0, datatype: 7, count: 1 },
-      PointField { name: "y".into(), offset: 4, datatype: 7, count: 1 },
-      PointField { name: "z".into(), offset: 8, datatype: 7, count: 1 },
-    ]
-  } else if field_count == 0 {
-    Vec::new()
-  } else {
-    vec![PointField { name: "data".into(), offset: 0, datatype: 2, count: point_step.max(1) }]
+/// Bytes needed for [`write_point_cloud2_host_meta`]: 40-byte numeric prefix,
+/// `u16` `frame_id` length, `frame_id`, then each field
+/// (`u16` name length, name, `offset:u32`, `datatype:u8`, `count:u32`).
+pub fn point_cloud2_host_meta_len(view: &PointCloud2View<'_>) -> usize {
+  42 + view.header.frame_id.len() + view.fields.iter().map(|f| 11 + f.name.len()).sum::<usize>()
+}
+
+/// Write PointCloud2 host metadata (not the point payload) into `out`.
+///
+/// Layout:
+/// `height:u32, width:u32, point_step:u32, row_step:u32, data_offset:u32,
+/// data_len:u32, is_bigendian:u8, is_dense:u8, pad:u16, field_count:u32,
+/// stamp_sec:i32, stamp_nanosec:u32, frame_id_len:u16, frame_id...,
+/// then fields: name_len:u16, name..., offset:u32, datatype:u8, count:u32`.
+///
+/// `data_offset` is relative to the CDR payload pointer. Returns `None` when
+/// `out` is too small or a string exceeds `u16`.
+pub fn write_point_cloud2_host_meta(
+  view: &PointCloud2View<'_>,
+  data_offset: u32,
+  out: &mut [u8],
+) -> Option<usize> {
+  let need = point_cloud2_host_meta_len(view);
+  if out.len() < need {
+    return None;
   }
+  out[0..4].copy_from_slice(&view.height.to_le_bytes());
+  out[4..8].copy_from_slice(&view.width.to_le_bytes());
+  out[8..12].copy_from_slice(&view.point_step.to_le_bytes());
+  out[12..16].copy_from_slice(&view.row_step.to_le_bytes());
+  out[16..20].copy_from_slice(&data_offset.to_le_bytes());
+  out[20..24].copy_from_slice(&(view.data.len() as u32).to_le_bytes());
+  out[24] = u8::from(view.is_bigendian);
+  out[25] = u8::from(view.is_dense);
+  out[26] = 0;
+  out[27] = 0;
+  out[28..32].copy_from_slice(&(view.fields.len() as u32).to_le_bytes());
+  out[32..36].copy_from_slice(&view.header.stamp_sec.to_le_bytes());
+  out[36..40].copy_from_slice(&view.header.stamp_nanosec.to_le_bytes());
+  let frame_id = view.header.frame_id.as_bytes();
+  let frame_len = u16::try_from(frame_id.len()).ok()?;
+  out[40..42].copy_from_slice(&frame_len.to_le_bytes());
+  out[42..42 + frame_id.len()].copy_from_slice(frame_id);
+  let mut o = 42 + frame_id.len();
+  for field in &view.fields {
+    let name = field.name.as_bytes();
+    let name_len = u16::try_from(name.len()).ok()?;
+    out[o..o + 2].copy_from_slice(&name_len.to_le_bytes());
+    o += 2;
+    out[o..o + name.len()].copy_from_slice(name);
+    o += name.len();
+    out[o..o + 4].copy_from_slice(&field.offset.to_le_bytes());
+    o += 4;
+    out[o] = field.datatype;
+    o += 1;
+    out[o..o + 4].copy_from_slice(&field.count.to_le_bytes());
+    o += 4;
+  }
+  debug_assert_eq!(o, need);
+  Some(o)
 }
 
 fn decode_header(reader: &mut CdrReader<'_>, parent: CdrNesting) -> Result<Header, CdrError> {
@@ -307,20 +331,58 @@ mod tests {
   fn sdk_meta_encode_preserves_synthetic_xyz_data() {
     let cdr = build_synthetic_xyz_cdr(4).unwrap();
     let view = decode_point_cloud2_le(&cdr).unwrap();
-    let again = encode_point_cloud2_from_sdk_meta(
-      view.height,
-      view.width,
-      view.point_step,
-      view.row_step,
-      view.is_bigendian,
-      view.is_dense,
-      view.fields.len() as u32,
-      view.data,
-    )
-    .unwrap();
+    let again = encode_point_cloud2_from_sdk_meta(&view).unwrap();
     let round = decode_point_cloud2_le(&again).unwrap();
     assert_eq!(round.data, view.data);
     assert_eq!(round.width, 4);
-    assert_eq!(round.fields.len(), 3);
+    assert_eq!(round.fields, view.fields);
+    assert_eq!(round.header.frame_id, "map");
+    assert_eq!(round.header.stamp_sec, 1);
+    assert_eq!(round.header.stamp_nanosec, 2);
+  }
+
+  #[test]
+  fn sdk_meta_encode_preserves_custom_fields_and_header() {
+    let data = vec![0u8; 16];
+    let view = PointCloud2View {
+      header: Header { stamp_sec: 9, stamp_nanosec: 8, frame_id: "camera".into() },
+      height: 1,
+      width: 1,
+      fields: vec![PointField { name: "rgb".into(), offset: 0, datatype: 6, count: 1 }],
+      is_bigendian: false,
+      point_step: 16,
+      row_step: 16,
+      data: &data,
+      is_dense: false,
+    };
+    let cdr = encode_point_cloud2_from_sdk_meta(&view).unwrap();
+    let round = decode_point_cloud2_le(&cdr).unwrap();
+    assert_eq!(round.header.frame_id, "camera");
+    assert_eq!(round.header.stamp_sec, 9);
+    assert_eq!(round.header.stamp_nanosec, 8);
+    assert_eq!(round.fields.len(), 1);
+    assert_eq!(round.fields[0].name, "rgb");
+    assert_eq!(round.fields[0].datatype, 6);
+    assert!(!round.is_dense);
+  }
+
+  #[test]
+  fn host_meta_writes_header_and_fields() {
+    let cdr = build_synthetic_xyz_cdr(4).unwrap();
+    let view = decode_point_cloud2_le(&cdr).unwrap();
+    let data_offset = (view.data.as_ptr() as usize).saturating_sub(cdr.as_ptr() as usize) as u32;
+    let mut buf = vec![0u8; point_cloud2_host_meta_len(&view)];
+    let n = write_point_cloud2_host_meta(&view, data_offset, &mut buf).unwrap();
+    assert_eq!(n, buf.len());
+    assert_eq!(u32::from_le_bytes(buf[0..4].try_into().unwrap()), 1);
+    assert_eq!(u32::from_le_bytes(buf[4..8].try_into().unwrap()), 4);
+    assert_eq!(i32::from_le_bytes(buf[32..36].try_into().unwrap()), 1);
+    assert_eq!(u32::from_le_bytes(buf[36..40].try_into().unwrap()), 2);
+    let frame_len = u16::from_le_bytes(buf[40..42].try_into().unwrap()) as usize;
+    assert_eq!(&buf[42..42 + frame_len], b"map");
+    let mut o = 42 + frame_len;
+    let name_len = u16::from_le_bytes(buf[o..o + 2].try_into().unwrap()) as usize;
+    o += 2;
+    assert_eq!(&buf[o..o + name_len], b"x");
   }
 }

@@ -52,6 +52,7 @@ node.createSubscription(std_msgs.msg.String, "chatter", 10, (msg) => {
 
 const cloudPub = node.createPublisher(sensor_msgs.msg.PointCloud2, "points", 10);
 const cloud = new sensor_msgs.msg.PointCloud2();
+cloud.header.frame_id = "map";
 cloud.height = 1;
 cloud.width = 4;
 cloud.point_step = 12;
@@ -74,7 +75,7 @@ TypeScript cannot write `create_publisher<std_msgs::msg::String>(topic, qos)`, s
 
 Message field names follow the ROS IDL (`data`, `point_step`, `is_bigendian`, `frame_id`). Callbacks receive an owned message; there is no lease to release. `createWallTimer(periodMs, callback)` matches `create_wall_timer`. Relative names (`"chatter"`) resolve under the node namespace like rclcpp.
 
-Typed samples are `std_msgs/msg/String` and `sensor_msgs/msg/PointCloud2`. Other inbound types are dropped. PointCloud2 encode lives in the wasm core.
+Typed samples are `std_msgs/msg/String` and `sensor_msgs/msg/PointCloud2`. Other inbound types are dropped. PointCloud2 encode lives in the wasm core and round-trips header stamp/`frame_id` and the PointField list.
 
 ## Services
 

@@ -8,14 +8,24 @@ export type StdMsgsString = {
 };
 
 /** Host/session wire shape for PointCloud2. Application code uses `sensor_msgs.msg.PointCloud2`. */
+export type PointCloud2Field = {
+  name: string;
+  offset: number;
+  datatype: number;
+  count: number;
+};
+
 export type PointCloud2 = {
+  stampSec: number;
+  stampNanosec: number;
+  frameId: string;
   height: number;
   width: number;
+  fields: PointCloud2Field[];
+  isBigendian: boolean;
   pointStep: number;
   rowStep: number;
-  isBigendian: boolean;
   isDense: boolean;
-  fieldCount: number;
   data: Uint8Array;
 };
 

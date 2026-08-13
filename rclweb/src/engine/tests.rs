@@ -306,13 +306,14 @@ fn scripted_peer_publish_sends_point_cloud2() {
   let view = decode_point_cloud2_le(&cdr).expect("decode");
   let sent = engine.poll(vec![HostEvent::Command(AppCommand::SendPointCloud2 {
     channel_id: 4,
+    header: view.header.clone(),
     height: view.height,
     width: view.width,
+    fields: view.fields.clone(),
     point_step: view.point_step,
     row_step: view.row_step,
     is_bigendian: view.is_bigendian,
     is_dense: view.is_dense,
-    field_count: view.fields.len() as u32,
     data: view.data.to_vec(),
   })]);
   assert_eq!(sent.outbound.len(), 1);
@@ -325,6 +326,9 @@ fn scripted_peer_publish_sends_point_cloud2() {
   let round = decode_point_cloud2_le(payload).expect("outbound pc2");
   assert_eq!(round.width, 4);
   assert_eq!(round.data, view.data);
+  assert_eq!(round.header.frame_id, "map");
+  assert_eq!(round.header.stamp_sec, 1);
+  assert_eq!(round.fields, view.fields);
 }
 
 #[test]

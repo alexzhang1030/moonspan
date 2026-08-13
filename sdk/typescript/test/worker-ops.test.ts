@@ -304,6 +304,8 @@ test("Worker path: PointCloud2 sample copies data across the boundary", async ()
   const sample = await new Promise<{
     width: number;
     dataLen: number;
+    frameId: string;
+    field0: string;
     xyz1: [number, number, number];
   }>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error("pc2 timeout")), 5000);
@@ -313,12 +315,16 @@ test("Worker path: PointCloud2 sample copies data across the boundary", async ()
       resolve({
         width: msg.width,
         dataLen: msg.data.length,
+        frameId: msg.frameId,
+        field0: msg.fields[0]?.name ?? "",
         xyz1: readXyz(msg.data, 1),
       });
     });
   });
   expect(sample.width).toBe(4);
   expect(sample.dataLen).toBe(48);
+  expect(sample.frameId).toBe("map");
+  expect(sample.field0).toBe("x");
   expect(sample.xyz1[0]).toBeCloseTo(0.01);
   expect(sample.xyz1[1]).toBeCloseTo(0.02);
   expect(sample.xyz1[2]).toBeCloseTo(0.03);
@@ -335,13 +341,20 @@ function xyzCloud(points: number) {
     view.setFloat32(i * 12 + 8, i * 0.03, true);
   }
   return {
+    stampSec: 1,
+    stampNanosec: 2,
+    frameId: "map",
     height: 1,
     width: points,
+    fields: [
+      { name: "x", offset: 0, datatype: 7, count: 1 },
+      { name: "y", offset: 4, datatype: 7, count: 1 },
+      { name: "z", offset: 8, datatype: 7, count: 1 },
+    ],
     pointStep: 12,
     rowStep: points * 12,
     isBigendian: false,
     isDense: true,
-    fieldCount: 3,
     data,
   };
 }
