@@ -83,20 +83,20 @@ test("createBufferStrategy factory", () => {
 
 test("wsBytes poll uses external path and records one engine copy", async () => {
   const wasm = await loadWasm(loadWasmBytes());
-  const handle = wasm.rclweb_engine_new();
-  expect(handle).toBeGreaterThan(0);
-  try {
-    // Bootstrap start so engine is alive; garbage WS bytes will fail
-    // bootstrap parse but still count as a retained copy.
-    pollEngine(wasm, handle, [
-      {
-        type: "command",
-        command: { type: "start", transferableArrayBuffer: true },
-      },
-    ]);
-    // 32 KiB is the medium-message validation target; 64 KiB was the
-    // old inline/external split. Both must take the one-copy path.
-    for (const size of [128, 32 * 1024, LARGE_FRAME_INLINE_THRESHOLD]) {
+  // 32 KiB is the medium-message validation target; 64 KiB was the
+  // old inline/external split. Both must take the one-copy path.
+  // Each size gets a fresh engine: garbage bootstrap bytes fail the
+  // session, so a second poll on the same handle would not ingest.
+  for (const size of [128, 32 * 1024, LARGE_FRAME_INLINE_THRESHOLD]) {
+    const handle = wasm.rclweb_engine_new();
+    expect(handle).toBeGreaterThan(0);
+    try {
+      pollEngine(wasm, handle, [
+        {
+          type: "command",
+          command: { type: "start", transferableArrayBuffer: true },
+        },
+      ]);
       const frame = new Uint8Array(size);
       frame[0] = 0x00;
       frame[1] = 0x01;
@@ -109,8 +109,8 @@ test("wsBytes poll uses external path and records one engine copy", async () => 
       expect(after.bytesCopiedIntoEngine - before.bytesCopiedIntoEngine).toBe(
         frame.length,
       );
+    } finally {
+      wasm.rclweb_engine_free(handle);
     }
-  } finally {
-    wasm.rclweb_engine_free(handle);
   }
 });
