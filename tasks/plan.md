@@ -1,98 +1,43 @@
-# rclweb implementation plan
+# Open work
 
-Delivery sequence for a single Rust core (`rclweb`) serving both the gateway and the browser, a walking skeleton before breadth, and process proportional to product. Architecture: [docs/architecture.md](../docs/architecture.md). Decision: [ADR 0010](../docs/adr/0010-restructure-single-rust-core.md).
+The product is one Rust core (`rclweb`) for gateway and browser, `rclwebd` at the edge, and the TypeScript package `rclweb`. Architecture: [docs/architecture.md](../docs/architecture.md). This file lists what is still open. It is not a phase ledger.
 
-## Rulings
+## Settled
 
-| ID | State | Ruling |
-|---|---|---|
-| R-D1 | Ruled (owner, 2026-08-12) | Single Rust core, native for `rclwebd`, wasm32 for the browser |
-| R-D2 | Standing recommendation | Phase 1 gates one support row, J-FT (Jazzy + Fast DDS); all six rows of corpus data stay committed |
-| R-D3 | Standing recommendation | Protocol v0.1 normative subset per the [scope declaration](../protocol/r2wp-v0.md#normative-scope-v01-subset); the rest is parked |
-| R-D4 | Ruled (owner, 2026-08-13) | Project name `rclweb`; core crate `rclweb`, gateway `rclwebd`, TypeScript package `rclweb` at `typescript/` ([ADR 0013](../docs/adr/0013-typescript-package-rclweb.md)). The 2026-08-12 form named the package `@rclweb/sdk` at `sdk/typescript/`. |
+| Topic | Ruling |
+|---|---|
+| Core language | One Rust core, native for `rclwebd`, wasm32 for the browser ([ADR 0010](../docs/adr/0010-restructure-single-rust-core.md)) |
+| Names | Core crate `rclweb`, gateway `rclwebd`, TypeScript package `rclweb` at `typescript/` ([ADR 0013](../docs/adr/0013-typescript-package-rclweb.md)) |
+| Protocol subset | v0.1 normative subset per [r2wp-v0](../protocol/r2wp-v0.md#normative-scope-v01-subset) |
+| Support rows | Six rows of corpus data stay committed; live talker e2e covers all six; **Qualified** is a human matrix edit |
+| Bun | 1.3.14, workspace manifests, lockfile, root checks |
+| License | Apache-2.0; OSI-permissive third-party policy ([licensing](../docs/licensing.md)) |
 
-## Phases
+## Open — needs a human ruling
 
-```text
-R0 stop-loss and renames
-  -> R1 walking skeleton (live end-to-end subscribe)
-  -> R2 data-plane hardening
-  -> R3 semantics and breadth
-  -> R4 productionization and release
-       -> U0 Studio prototype (unchanged, post-release)
-```
+| Topic | What would close it |
+|---|---|
+| Qualification environment | Reviewed environment manifest and artifact storage |
+| Owners | Named workstream, integration, and review owners |
+| OIDC tenant and SROS2 | Issuer/audience/JWKS tenant record and SROS2 keystore; the gateway only consumes env |
+| ACL matrix content | Reviewed allow-rule set for `RCLWEBD_ACL_MODE=enforce` |
+| Benchmark retention | Storage, retention, access, and integrity policy for perf output |
+| npm publish | Human-chosen version, `"private": false`, `LICENSE` and `NOTICE` in the tarball |
+| Support-matrix **Qualified** | Human edit of [support-matrix.md](../docs/support-matrix.md) |
+| Copyright line | `NOTICE` currently says `Copyright 2026 Alex` |
 
-Each phase closes on its gate evidence plus human approval.
+## Open — engineering follow-ups
 
-### R0 — Stop-loss and renames
-
-| ID | State | Deliverable |
-|---|---|---|
-| R0-01 | Complete | One implementation per side; baseline tagged |
-| R0-02 | Complete | Extract the `rclweb` core crate (protocol module + fixtures oracle), thin `rclwebd` over it, wasm32 build in the command surface |
-| R0-03 | Complete | Rename project to rclweb (packages, tooling, CI, docs); declare the protocol v0.1 normative scope |
-| R0-04 | Complete | Rewrite plan/checklist, add ADR 0010, refresh PCR records and docs tree |
-
-Gate: `just check`, `just test`, `just build` green on the shrunk repository. Humble scheme `rclweb-schema-v1`, corpus id `rclweb-ros-cdr-v1`, and conformance ROS package `rclweb_cdr_interfaces` follow the project name ([ADR 0012](../docs/adr/0012-rclweb-schema-identifiers.md)).
-
-### R1 — Walking skeleton
-
-A browser page subscribes to a live ROS 2 topic end-to-end on row J-FT over binary WebSocket.
-
-| ID | State | Deliverable |
-|---|---|---|
-| R1-01 | Complete | Port the CDR core to `rclweb` in Rust against the frozen [CDR contract](../docs/runtime/cdr.md); pass the committed corpus (56 fixtures, semantic decode, exact re-encode, tail-slack, adversarial cases) |
-| R1-02 | Complete | Session/channel state machine for the v0.1 subset (bootstrap, authenticate, session ready, channel open/ready/close, data, error, heartbeat) |
-| R1-03 | Complete | Gateway WebSocket endpoint (tokio/axum) and serialized-only rcl FFI attachment (init, node, serialized publish/take, wait set, graph); demo types' C typesupport linked statically; no third-party rcl binding |
-| R1-04 | Complete | Wasm host boundary per ADR 0004: poll ABI, I/O Worker, transferable `ArrayBuffer` path; SDK `connect` → `subscribe` → typed events with borrowed data views |
-| R1-05 | Complete | End-to-end evidence: docker-compose integration test against a real ROS 2 talker in CI; committed demo under `examples/`; recorded wasm artifact size and poll latency (R-D1 reopen inputs); copy counters in telemetry |
-
-Gate: live sample flows in CI; demo reviewed; copy budget holds (two controllable payload copies).
-
-### R2 — Data-plane hardening
-
-| ID | State | Deliverable |
-|---|---|---|
-| R2-01 | Complete | Publish direction; QoS subset (reliability, depth); queue/byte budgets with stable dispositions; reconnect |
-| R2-02 | Complete | Large-message path (PointCloud2) measured on both buffer strategies; no permessage-deflate on data channels |
-| R2-03 | Complete | Adversarial and malformed fixtures regenerated by one small script for the v0.1 subset; fuzzing on frame/control/CDR decoders |
-| R2-04 | Complete | Performance baseline versus Foxglove bridge and rosbridge on fixed workloads (PointCloud2 1 MB @ 10 Hz; ten image topics; one thousand small topics) with environment identity — host + protocol-cost evidence committed; live compose lane evidence-gated |
-
-Gate: PointCloud2 at target rate with recorded evidence; adversarial suite green.
-
-### R3 — Semantics and breadth
-
-| ID | State | Deliverable |
-|---|---|---|
-| R3-01 | Complete | Services, actions, parameters, and graph events; re-freeze their parked protocol sections |
-| R3-02 | Complete | Generated types for the nine corpus roots and the dual-scheme schema registry (recycles the frozen [generated-types contract](../docs/runtime/generated-types.md), retargeted to Rust codegen) |
-| R3-03 | Complete | Second support row (H-FT) gated; WebTransport as second transport |
-| R3-04 | Complete | Versioned serialized adapter ABI per ADR 0006; dynamic (dlopen) typesupport resolution replaces R1 static links; live service and action client/server on `RclBackend` |
-
-Gate: N2 subset demonstrated; conformance green on two rows and two transports.
-
-### R4 — Productionization
-
-| ID | State | Deliverable |
-|---|---|---|
-| R4-01 | Active | OIDC identity, SROS2/ACL, audit — Authenticate off-by-default / opt-in `oidc` + audit JSON; channel ACLs off-by-default / opt-in `enforce` (default-deny, wire code 12); tenant/keystore and matrix content remain D-04 / human input |
-| R4-02 | Active | Deployment packaging and observability — `/livez` `/readyz` `/configz` `/metrics` `POST /drain`, runtime images for all six rows (CY/ZN via build args, zenoh router companion); PKI/orchestrators/remote export remain follow-ups |
-| R4-03 | Active | Support matrix against live gates — no committed measurement JSON; live lanes cover all six rows (J-CY/J-ZN/H-CY/H-ZN via `e2e-ros-talker-jazzy-rmw` / `e2e-ros-talker-humble-rmw`); human Qualified promotion remains a follow-up |
-| R4-04 | Active | TypeScript package stabilization, docs, examples, and release — unscoped `rclweb` at `typescript/` ([ADR 0013](../docs/adr/0013-typescript-package-rclweb.md)), rclcpp-shaped `init`/`Node`, Worker URL, subscribe-chatter on `dist/`, Worker session ops, PointCloud2 and Phase 1 corpus msg/srv/action types, reconnect reopens service/action, Worker telemetry, public Node graph; D-06 is Apache-2.0; npm publish / `1.0.0` remain follow-ups |
-
-Gate: release review. U0 (Studio) follows the release as before.
+| Topic | Notes |
+|---|---|
+| Audit sink | Integrity, retention, and export beyond stderr JSON lines ([security](../docs/security.md)) |
+| SROS2 enclave | Enclave identity, keystore provenance, browser-to-ROS mapping |
+| Production TLS | Runtime images speak plaintext HTTP/WS; PKI stays a follow-up ([deploy](../docs/deploy.md)) |
+| Remote telemetry | `/metrics` is scrape-only; no OTLP export yet |
+| Orchestrators | Kubernetes / systemd units beyond compose |
+| Soak / upgrade | Rollback, soak, and fault evidence |
+| Studio | Post-release UI prototype ([studio-ui](../docs/prototypes/studio-ui.md)) |
 
 ## Definition of done
 
-Every task provides acceptance evidence, focused tests, explicit budgets where resources are involved, updated documentation and PCR context, and a passing root command surface. Task IDs stay at two levels.
-
-## Kickoff decision register
-
-| ID | Decision | Closure artifact | State |
-|---|---|---|---|
-| D-01 | Reference robot, artifact storage, and qualification environment | Reviewed environment manifest and storage record | Partial |
-| D-02 | Named workstream, integration, and review owners | Ownership record | Open |
-| D-03 | Bun version and workspace convention | Project pins, workspace manifests, lockfile, and root checks | Resolved 2026-08-11 with Bun 1.3.14 |
-| D-04 | OIDC provider and SROS2 reference environment | Identity tenant and SROS2 environment record | Open (R4 entry). Gateway consumes issuer/audience/JWKS from env; it does not pick a vendor. |
-| D-05 | Benchmark artifact retention and publication | Storage, retention, access, and integrity policy | Open (R2 entry) |
-| D-06 | Repository license and third-party licensing policy | License, notice, dependency inventory, and compliance policy | Resolved 2026-08-13: Apache License 2.0; OSI-permissive third-party policy ([licensing](../docs/licensing.md)) |
+A change updates the authoritative document with the code, keeps fixtures and the implementation in one review unit, and stays green on `just check`, `just test`, and `just build`.

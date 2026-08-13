@@ -1,4 +1,4 @@
-# Authoritative ROS CDR corpus (M0-04)
+# Authoritative ROS CDR corpus
 
 Pinned Humble and Jazzy CDR fixtures for the six support rows:
 
@@ -11,7 +11,7 @@ Pinned Humble and Jazzy CDR fixtures for the six support rows:
 | J-CY | jazzy | `rmw_cyclonedds_cpp` |
 | J-ZN | jazzy | `rmw_zenoh_cpp` |
 
-This corpus is the oracle for `rclweb::cdr` ([R1-01](../../docs/milestones/r1-01-cdr-rust-port.md)). J-FT and H-FT are delivery-gated; the other four rows stay committed. Humble identity is `rclweb-schema-v1` (SHA-256 of canonical bundle bytes); the corpus id is `rclweb-ros-cdr-v1`; interfaces live in `rclweb_cdr_interfaces` ([ADR 0012](../../docs/adr/0012-rclweb-schema-identifiers.md)). Those strings are part of the bundle hash — renaming them rehashes Humble `SchemaKey.value` without changing CDR payload bytes.
+This corpus is the oracle for `rclweb::cdr`. All six rows stay committed; live talker e2e covers each row. Humble identity is `rclweb-schema-v1` (SHA-256 of canonical bundle bytes); the corpus id is `rclweb-ros-cdr-v1`; interfaces live in `rclweb_cdr_interfaces` ([ADR 0012](../../docs/adr/0012-rclweb-schema-identifiers.md)). Those strings are part of the bundle hash — renaming them rehashes Humble `SchemaKey.value` without changing CDR payload bytes.
 
 ## Layout
 
@@ -35,7 +35,7 @@ bun run test:cdr-corpus        # focused helper suite
 bun run cdr-tail-slack:check   # verify top-level tail-slack evidence artifact
 bun run cdr-tail-slack:write   # regenerate tail-slack.json from committed binaries
 bun run test:cdr-tail-slack    # focused tail-slack helper suite
-bun run generated-types:check  # M1-02b metadata byte-identity check
+bun run generated-types:check  # metadata byte-identity check
 bun run generated-types:write  # regenerate rclweb/generated/metadata/
 bun run test:generated-types   # focused generated-types helper suite
 just cdr-corpus-check

@@ -3,8 +3,8 @@
 The repository is licensed under the [Apache License, Version 2.0](../LICENSE).
 Copyright 2026 Alex. See [NOTICE](../NOTICE).
 
-This is the [D-06](../tasks/plan.md#kickoff-decision-register) closure:
-license text, notice, dependency inventory, and third-party compliance policy.
+This is the license closure: license text, notice, dependency inventory,
+and third-party compliance policy.
 The copyright line uses the repository owner's git display name. Correct
 [NOTICE](../NOTICE) if a different legal name should appear.
 

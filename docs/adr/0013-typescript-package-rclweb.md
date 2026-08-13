@@ -38,9 +38,8 @@ Owner ruling (2026-08-13): call the package `rclweb`; do not publish it as
 
 - Examples and scripts depend on `"rclweb": "workspace:*"`.
 - `just build` stages `typescript/wasm/rclweb.wasm` and `typescript/dist/`.
-- Historical milestone filenames that contain `sdk` (R1-04, R4-04) stay; they
-  are task IDs, not the package name.
-- npm publish still waits on a human-chosen version. D-06 is Apache-2.0.
+- Historical task IDs that contain `sdk` are not the package name.
+- npm publish still waits on a human-chosen version. The repository is Apache-2.0.
 
 ## Revisit triggers
 
@@ -50,5 +49,4 @@ Owner ruling (2026-08-13): call the package `rclweb`; do not publish it as
 
 ## Source
 
-Owner direction 2026-08-13, updating ruling R-D4 in
-[tasks/plan.md](../../tasks/plan.md).
+Owner direction 2026-08-13.

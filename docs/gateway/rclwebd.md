@@ -1,8 +1,8 @@
 # `rclwebd` edge gateway
 
-`rclwebd` is rclweb's controlled edge boundary between browser sessions and ROS 2 domains. It links the shared [`rclweb` core](../runtime/core.md) for R2WP parsing/encoding and owns transport, scheduling, sessions, schemas, policy, audit, telemetry, and recovery. ROS attachment goes through a versioned serialized adapter ABI ([ADR 0006](../adr/0006-edge-ros-c-abi-boundary.md)) with dynamic (dlopen) typesupport ([R3-04](../milestones/r3-04-adapter-abi-typesupport.md)).
+`rclwebd` is rclweb's controlled edge boundary between browser sessions and ROS 2 domains. It links the shared [`rclweb` core](../runtime/core.md) for R2WP parsing and encoding, and owns transport, scheduling, sessions, schemas, policy, audit, telemetry, and recovery. ROS attachment goes through a versioned serialized adapter ABI ([ADR 0006](../adr/0006-edge-ros-c-abi-boundary.md)) with dynamic (dlopen) typesupport.
 
-R1-03 delivered the binary WebSocket endpoint (tokio/axum, `GET /ws` + `GET /healthz`) and serialized subscribe/publish over the rcl FFI for the walking skeleton ([milestone note](../milestones/r1-03-gateway-ws-rcl.md)). R2-01 hardens the data plane: effective budgets on ChannelReady/SessionReady, best-effort latest-wins write-queue admission with stable disposition counters on `/telemetryz`, and fresh-session reconnect ([milestone note](../milestones/r2-01-data-plane-hardening.md)). R2-02 lands the large-message / PointCloud2 borrowed-view path and both host buffer strategies ([milestone note](../milestones/r2-02-large-message-path.md)). R2-03+ continues adversarial fixtures and baselines. R3 adds the remaining ROS semantics (services/actions/graph, generated types, H-FT + WebTransport, adapter ABI). R4 qualifies identity, policy, compatibility, deployment, and operations. Authenticate is `off` by default (R1–R3 accept-all, SessionReady subject `anonymous`) or opt-in `oidc` (JWT) per [R4-01](../milestones/r4-01-oidc-sros2-audit.md); set `RCLWEBD_AUTH_MODE=oidc` to enable. Operations endpoints and the J-FT runtime image are [R4-02](../milestones/r4-02-deployment-observability.md) / [deploy](../deploy.md).
+The binary WebSocket endpoint is tokio/axum (`GET /ws` plus `GET /healthz`). Serialized subscribe and publish use the rcl FFI. ChannelReady and SessionReady carry effective budgets. Best-effort channels use latest-wins write-queue admission with disposition counters on `/telemetryz`. Reconnect is a fresh session. Large-message / PointCloud2 traffic uses borrowed views. Authenticate is `off` by default (SessionReady subject `anonymous`) or opt-in `oidc` (JWT); set `RCLWEBD_AUTH_MODE=oidc` to enable. Operations endpoints and runtime images are in [deploy](../deploy.md).
 
 ## Environment contract
 
@@ -16,9 +16,9 @@ Default builds (`just check` / `just test` / `just build`) compile the gateway w
 - bridge serialized topics, Service, Action, Parameter, and Clock operations;
 - schedule channels under explicit resource budgets;
 - emit stable failure and disposition reasons;
-- expose health, readiness, metrics, logs, audit, and compatibility state ([R4-02](../milestones/r4-02-deployment-observability.md): `/livez`, `/readyz`, `/configz`, `/metrics`, `POST /drain`; `/healthz` remains liveness).
+- expose health, readiness, metrics, logs, audit, and compatibility state (`/livez`, `/readyz`, `/configz`, `/metrics`, `POST /drain`; `/healthz` remains liveness).
 
-## Component plan
+## Components
 
 | Component | Role |
 |---|---|
@@ -33,17 +33,17 @@ Default builds (`just check` / `just test` / `just build`) compile the gateway w
 
 ## Support-row binding
 
-One `rclwebd` process binds one adapter support row; Phase 1 defaults to J-FT. `RCLWEBD_SUPPORT_ROW` accepts all six Phase 1 rows (J-FT / J-CY / J-ZN / H-FT / H-CY / H-ZN); pair it with the matching ROS prefix and set `RMW_IMPLEMENTATION` to the row's RMW — the adapter probe fails start-up on a mismatch. R3-03 delivery-gated H-FT (SessionReady fields 8/18/19, rclweb OpenChannel) with mock + corpus evidence and a Humble-linked live talker e2e; R4-03 added live Cyclone DDS and Zenoh lanes for the remaining rows ([support matrix](../support-matrix.md)). The process may open multiple ROS domain IDs within that row. Applications use independent sessions across rows.
+One `rclwebd` process binds one adapter support row; the default is J-FT. `RCLWEBD_SUPPORT_ROW` accepts all six rows (J-FT / J-CY / J-ZN / H-FT / H-CY / H-ZN); pair it with the matching ROS prefix and set `RMW_IMPLEMENTATION` to the row's RMW — the adapter probe fails start-up on a mismatch. SessionReady fields 8/18/19 and Humble `rclweb-schema-v1` OpenChannel are proven on the mock gateway and the corpus; live talker e2e covers all six rows ([support matrix](../support-matrix.md)). The process may open multiple ROS domain IDs within that row. Applications use independent sessions across rows.
 
 `support_row_id` is fixed for the running artifact. `gateway_instance_id` identifies the logical deployment and supports resume across ordinary restart or in-place upgrade when state is preserved. Startup validates the configured row, ROS distribution, RMW, adapter ABI, and artifact profile. A mismatch keeps readiness closed with `adapter_profile_mismatch`.
 
-Local-dev WebTransport TLS (opt-in auto-minted short-lived certs + `serverCertificateHashes`, rotate before the browser 14-day ceiling) is specified in [ADR 0011](../adr/0011-local-dev-webtransport-tls.md). R3-03 wires `RCLWEBD_LOCAL_DEV_TLS` / `RCLWEBD_OFFER_WEBTRANSPORT` / `GET /local-dev/tls`, hello AND-negotiation, and an optional `--features webtransport` accept loop ([milestone](../milestones/r3-03-h-ft-webtransport.md#outcome-webtransport)).
+Local-dev WebTransport TLS (opt-in auto-minted short-lived certs + `serverCertificateHashes`, rotate before the browser 14-day ceiling) is specified in [ADR 0011](../adr/0011-local-dev-webtransport-tls.md). The gateway wires `RCLWEBD_LOCAL_DEV_TLS` / `RCLWEBD_OFFER_WEBTRANSPORT` / `GET /local-dev/tls`, hello AND-negotiation, and an optional `--features webtransport` accept loop.
 
 Graph, schema, channel, policy, telemetry, audit, and evidence records retain gateway, support-row, and domain provenance.
 
 ## ROS adapter surface
 
-Per the owner constraint recorded in [ADR 0010](../adr/0010-restructure-single-rust-core.md), the gateway neither embeds a client library nor depends on a third-party rcl binding: it binds the serialized-only rcl surface directly (init, node, serialized publish/take, wait set, graph, service, action client/server — under `rclwebd/src/ros/`, unsafe code confined there, one dedicated ROS thread owning every rcl entity). The versioned C ABI packaging of that surface is [ADR 0006](../adr/0006-edge-ros-c-abi-boundary.md) / [R3-04](../milestones/r3-04-adapter-abi-typesupport.md). The surface covers:
+Per the owner constraint recorded in [ADR 0010](../adr/0010-restructure-single-rust-core.md), the gateway neither embeds a client library nor depends on a third-party rcl binding: it binds the serialized-only rcl surface directly (init, node, serialized publish/take, wait set, graph, service, action client/server — under `rclwebd/src/ros/`, unsafe code confined there, one dedicated ROS thread owning every rcl entity). The versioned C ABI packaging of that surface is [ADR 0006](../adr/0006-edge-ros-c-abi-boundary.md). The surface covers:
 
 - lifecycle and domain attachment;
 - graph snapshots, deltas, endpoint QoS, and liveliness;
@@ -89,7 +89,7 @@ Resume validates identity, wire version, capabilities, gateway instance, support
 
 The gateway is the trust boundary for OIDC identity, SROS2, operation ACLs, resource policy, and audit. Compatibility endpoints such as Foxglove and rosbridge have independent sessions, policy, and telemetry.
 
-Operations expose liveness (`/livez`, `/healthz`), readiness (`/readyz`), configuration validation (`/configz`), metrics (`/telemetryz` JSON and `/metrics` Prometheus text), logs, audit output, drain (`POST /drain` then SIGTERM), and bounded recovery. Deployment artifacts cover the J-FT runtime image and host-network compose ([deploy](../deploy.md)); proxy and TLS configuration, identity, SROS2, remaining-row images, and orchestrator units remain follow-ups.
+Operations expose liveness (`/livez`, `/healthz`), readiness (`/readyz`), configuration validation (`/configz`), metrics (`/telemetryz` JSON and `/metrics` Prometheus text), logs, audit output, drain (`POST /drain` then SIGTERM), and bounded recovery. Deployment artifacts cover the six-row runtime images and host-network compose ([deploy](../deploy.md)); proxy and TLS configuration, identity, SROS2, and orchestrator units remain follow-ups.
 
 ## Validation
 

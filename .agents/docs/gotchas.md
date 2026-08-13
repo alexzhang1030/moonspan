@@ -4,19 +4,19 @@ Traps already paid for in this repository, each with its why.
 
 ## One gateway process binds one support row
 
-`rclwebd` carries a single [`SupportRow`](../../rclwebd/src/config.rs) for the process lifetime ([ADR 0008](../../docs/adr/0008-one-adapter-row-per-gateway-process.md)). `RCLWEBD_SUPPORT_ROW` selects any Phase 1 row (`J-FT` default; `J-CY`, `J-ZN`, `H-FT`, `H-CY`, `H-ZN`). Mixing rows in one process is unsupported — run separate gateways and compose SDK sessions. `H-*` OpenChannel uses `rclweb-schema-v1`; `J-*` uses `rep2011-rihs`. Wrong-row OpenChannel fails with wire code 25 (`support_row_mismatch`). Pair the row with the linked ROS prefix (`J-*` ↔ `/opt/ros/jazzy`, `H-*` ↔ `/opt/ros/humble`); the Humble live images regenerate vendored FFI against Humble before `cargo build --features ros` so layouts match that distro. Startup probes adapter ABI `serialized-adapter-v1` against the row/distro ([R3-04](../../docs/milestones/r3-04-adapter-abi-typesupport.md)) **and** requires `RMW_IMPLEMENTATION` to name the row's RMW — unset means the shim loads Fast DDS, so a `*-CY` / `*-ZN` row without the env fails start-up instead of silently running Fast DDS ([R4-03](../../docs/milestones/r4-03-support-matrix.md)). Zenoh rows additionally need `ros2 run rmw_zenoh_cpp rmw_zenohd` running before any node (router-gossip discovery); the e2e entrypoints start it and wait for tcp/7447.
+`rclwebd` carries a single [`SupportRow`](../../rclwebd/src/config.rs) for the process lifetime ([ADR 0008](../../docs/adr/0008-one-adapter-row-per-gateway-process.md)). `RCLWEBD_SUPPORT_ROW` selects any of the six rows (`J-FT` default; `J-CY`, `J-ZN`, `H-FT`, `H-CY`, `H-ZN`). Mixing rows in one process is unsupported — run separate gateways and compose TypeScript sessions. `H-*` OpenChannel uses `rclweb-schema-v1`; `J-*` uses `rep2011-rihs`. Wrong-row OpenChannel fails with wire code 25 (`support_row_mismatch`). Pair the row with the linked ROS prefix (`J-*` ↔ `/opt/ros/jazzy`, `H-*` ↔ `/opt/ros/humble`); the Humble live images regenerate vendored FFI against Humble before `cargo build --features ros` so layouts match that distro. Startup probes adapter ABI `serialized-adapter-v1` against the row/distro **and** requires `RMW_IMPLEMENTATION` to name the row's RMW — unset means the shim loads Fast DDS, so a `*-CY` / `*-ZN` row without the env fails start-up instead of silently running Fast DDS. Zenoh rows additionally need `ros2 run rmw_zenoh_cpp rmw_zenohd` running before any node (router-gossip discovery); the e2e entrypoints start it and wait for tcp/7447.
 
 ## Authenticate defaults to off
 
-R4-01 can evaluate Authenticate, but `RCLWEBD_AUTH_MODE` defaults to `off`: any credential is accepted, SessionReady field 21 stays `anonymous`, and no audit line is emitted — same as R1–R3. `dev` is an alias for `off`. Opt in with `oidc` plus issuer/audience/keys; missing keys fail process start, bad JWT is wire code 26. Do not treat a green e2e lane as proof that identity is on. Tenant choice remains D-04 ([R4-01](../../docs/milestones/r4-01-oidc-sros2-audit.md)). Landed in [`301c987`](https://github.com/alexzhang1030/rclweb/commit/301c987) (#18).
+`RCLWEBD_AUTH_MODE` defaults to `off`: any credential is accepted, SessionReady field 21 stays `anonymous`, and no audit line is emitted. `dev` is an alias for `off`. Opt in with `oidc` plus issuer/audience/keys; missing keys fail process start, bad JWT is wire code 26. Do not treat a green e2e lane as proof that identity is on. The named OIDC tenant remains [open work](../../tasks/plan.md). Landed in [`301c987`](https://github.com/alexzhang1030/rclweb/commit/301c987) (#18).
 
 ## ACLs default to off; enforce is default-deny
 
-`RCLWEBD_ACL_MODE` defaults to `off`: every OpenChannel is admitted, same as R1–R3 — a green e2e lane proves nothing about authorization. `enforce` flips to **default-deny**: only `{subjects, operations, names}` allow rules admit a channel (wire code 12 `permission_denied` otherwise), and a missing/invalid policy fails process start. There are no deny rules — express policy as allows. The subject is whatever Authenticate produced (`anonymous` when auth is off), so ACLs work without OIDC but only distinguish users with it. The policy body never appears on `/configz` (rule count only). Rule *content* is the reviewed policy matrix — a human input ([R4-01](../../docs/milestones/r4-01-oidc-sros2-audit.md)).
+`RCLWEBD_ACL_MODE` defaults to `off`: every OpenChannel is admitted — a green e2e lane proves nothing about authorization. `enforce` flips to **default-deny**: only `{subjects, operations, names}` allow rules admit a channel (wire code 12 `permission_denied` otherwise), and a missing/invalid policy fails process start. There are no deny rules — express policy as allows. The subject is whatever Authenticate produced (`anonymous` when auth is off), so ACLs work without OIDC but only distinguish users with it. The policy body never appears on `/configz` (rule count only). Rule *content* is the reviewed policy matrix — a human input ([security](../../docs/security.md)).
 
 ## `/healthz` is liveness, not readiness
 
-`GET /healthz` must stay HTTP 200 with body `ok` (when local-dev TLS is off) even while the process is draining. The R1-05 e2e harness treats that exact body as “gateway is up”. Load balancers and deploy hooks must probe `GET /readyz` (503 after `POST /drain` / SIGTERM) and must not treat `/healthz` as admission. `/livez` is the JSON liveness twin. [R4-02](../../docs/milestones/r4-02-deployment-observability.md).
+`GET /healthz` must stay HTTP 200 with body `ok` (when local-dev TLS is off) even while the process is draining. The e2e harness treats that exact body as “gateway is up”. Load balancers and deploy hooks must probe `GET /readyz` (503 after `POST /drain` / SIGTERM) and must not treat `/healthz` as admission. `/livez` is the JSON liveness twin. [Deploy](../../docs/deploy.md).
 
 ## Gateway tests must not install ctrl_c on `serve`
 
@@ -28,7 +28,7 @@ R4-01 can evaluate Authenticate, but `RCLWEBD_AUTH_MODE` defaults to `off`: any 
 
 ## Typesupport is dlopen, not link-time
 
-R3-04 dropped the R1 static link of `std_msgs` / `sensor_msgs` typesupport from `rclwebd/build.rs`. At runtime the ROS thread `dlopen`s `lib{pkg}__rosidl_typesupport_c.so` and `lib{pkg}__rosidl_generator_c.so` under `ROS_PREFIX/lib` (or `AMENT_PREFIX_PATH`). A missing package yields wire code 10 (`schema_unavailable`) the same as the old static miss — install the interface package in the image/environment rather than adding a link line. Service/action live paths also need those packages (for example `example_interfaces` for the AddTwoInts and Fibonacci loopbacks in `just ros-test`).
+`rclwebd/build.rs` does not statically link `std_msgs` / `sensor_msgs` typesupport. At runtime the ROS thread `dlopen`s `lib{pkg}__rosidl_typesupport_c.so` and `lib{pkg}__rosidl_generator_c.so` under `ROS_PREFIX/lib` (or `AMENT_PREFIX_PATH`). A missing package yields wire code 10 (`schema_unavailable`) — install the interface package in the image/environment rather than adding a link line. Service/action live paths also need those packages (for example `example_interfaces` for the AddTwoInts and Fibonacci loopbacks in `just ros-test`).
 
 ## Same-thread ROS loopback must pump
 
@@ -40,15 +40,15 @@ R3-04 dropped the R1 static link of `std_msgs` / `sensor_msgs` typesupport from 
 
 ## Every sample lease has exactly one owner
 
-The engine reclaims a retained inbound slab only when every lease on it is released (`sweep_released` in `rclweb/src/engine/mod.rs` frees a buffer once ingest is done and its lease refcount hits zero). Any host or SDK code path that drops a sample without delivering it MUST release the lease at the drop site — otherwise the slab is pinned forever. The original R1-04 SDK leaked on three drop paths: the Worker's non-String sample branch and the no-handler branch in both `InlineClient` and `WorkerClient`. The no-handler race is reachable in normal operation because `subscribed` and the first samples can arrive in the same poll flush, before the application has called `onMessage`. Fixed in this change, with regression coverage in `typescript/test/sdk-poll.test.ts` (no-handler sample: `leasesReleased` must equal `samplesEmitted`). PointCloud2 delivery on the Worker copies `data` and releases at that copy site. Generated corpus messages are copied as host-value objects and released the same way. Unknown non-String types still drop-and-release. The public `Node` API releases after the user callback ([Public Node releases leases](#public-node-releases-leases)); `rclweb/internal` `connect` still requires an explicit `lease.release()`.
+The engine reclaims a retained inbound slab only when every lease on it is released (`sweep_released` in `rclweb/src/engine/mod.rs` frees a buffer once ingest is done and its lease refcount hits zero). Any host or package code path that drops a sample without delivering it MUST release the lease at the drop site — otherwise the slab is pinned forever. An earlier host leaked on three drop paths: the Worker's non-String sample branch and the no-handler branch in both `InlineClient` and `WorkerClient`. The no-handler race is reachable in normal operation because `subscribed` and the first samples can arrive in the same poll flush, before the application has called `onMessage`. Fixed, with regression coverage in `typescript/test/sdk-poll.test.ts` (no-handler sample: `leasesReleased` must equal `samplesEmitted`). PointCloud2 delivery on the Worker copies `data` and releases at that copy site. Generated corpus messages are copied as host-value objects and released the same way. Unknown non-String types still drop-and-release. The public `Node` API releases after the user callback ([Public Node releases leases](#public-node-releases-leases)); `rclweb/internal` `connect` still requires an explicit `lease.release()`.
 
 ## Public Node releases leases
 
-`rclweb` is rclcpp-shaped (`init` / `Node` / `createSubscription`). Message types are `std_msgs.msg.String` / `sensor_msgs.msg.PointCloud2` / `rclweb_cdr_interfaces.msg.*`, not all-caps constants. The callback receives an owned message; `Node` copies PointCloud2 `data` and calls `lease.release()` after the callback returns. Applications must not import `rclweb/internal` `connect` unless they are hosting the poll ABI — that path still requires an explicit release. [R4-04](../../docs/milestones/r4-04-sdk.md).
+`rclweb` is rclcpp-shaped (`init` / `Node` / `createSubscription`). Message types are `std_msgs.msg.String` / `sensor_msgs.msg.PointCloud2` / `rclweb_cdr_interfaces.msg.*`, not all-caps constants. The callback receives an owned message; `Node` copies PointCloud2 `data` and calls `lease.release()` after the callback returns. Applications must not import `rclweb/internal` `connect` unless they are hosting the poll ABI — that path still requires an explicit release. [`rclweb`](../../docs/typescript.md).
 
 ## encodeHostBatch large-frame encoder
 
-Spread-pushing a byte array into a `number[]` (`out.push(...bytes)`) throws a RangeError on large frames — every element becomes a call argument, and hundreds of KB / ~1 MiB (R2-02 PointCloud2 scale) exceeds the engine's argument/call-stack limit. `encodeHostBatch` in `typescript/src/wasm/abi.ts` is a two-pass preallocated `Uint8Array` encoder (size, then write). Do not reintroduce `push(...bytes)` or per-byte `number[]` builders on the data path. Large WS frames (≥64 KiB) also take the external-ptr poll path so the engine can own the wasm allocation without a second deep copy.
+Spread-pushing a byte array into a `number[]` (`out.push(...bytes)`) throws a RangeError on large frames — every element becomes a call argument, and hundreds of KB / ~1 MiB (PointCloud2 scale) exceeds the engine's argument/call-stack limit. `encodeHostBatch` in `typescript/src/wasm/abi.ts` is a two-pass preallocated `Uint8Array` encoder (size, then write). Do not reintroduce `push(...bytes)` or per-byte `number[]` builders on the data path. Large WS frames (≥64 KiB) also take the external-ptr poll path so the engine can own the wasm allocation without a second deep copy.
 
 ## WebTransport local certs are ≤14 days by browser rule
 
@@ -56,11 +56,11 @@ Spread-pushing a byte array into a `number[]` (`out.push(...bytes)`) throws a Ra
 
 ## Reconnect is a fresh session, not SessionResume
 
-v0.1 parks SessionResume (capability 1). R2-01 reconnect means: close the transport, allocate a new client engine, re-run ClientHello → Authenticate → SessionReady, then re-open channels **with the same client-assigned channel IDs**. Subscribe, publish, service, and action objects keep working; in-flight service calls and action results reject with `"session reconnected"`. The SDK `reconnect()` / `ConnectOptions.reconnect` path implements that on both the I/O Worker and the inline host. Do not invent resume tokens, allocate new channel IDs, or expect `gateway_instance_id` alone to restore channel state.
+v0.1 parks SessionResume (capability 1). Reconnect means: close the transport, allocate a new client engine, re-run ClientHello → Authenticate → SessionReady, then re-open channels **with the same client-assigned channel IDs**. Subscribe, publish, service, and action objects keep working; in-flight service calls and action results reject with `"session reconnected"`. The package `reconnect()` / `ConnectOptions.reconnect` path implements that on both the I/O Worker and the inline host. Do not invent resume tokens, allocate new channel IDs, or expect `gateway_instance_id` alone to restore channel state.
 
 ## Worker telemetry is the last poll snapshot
 
-`WorkerClient.telemetry()` used to return `null` because engine counters lived only inside the Worker. `IoHost` now posts a telemetry message at the end of each poll, before sample/op events, and main caches the latest snapshot. The API stays synchronous. Do not block delivery on a telemetry round-trip, and do not read wasm counters from the main thread. [R4-04](../../docs/milestones/r4-04-sdk.md).
+`WorkerClient.telemetry()` used to return `null` because engine counters lived only inside the Worker. `IoHost` now posts a telemetry message at the end of each poll, before sample/op events, and main caches the latest snapshot. The API stays synchronous. Do not block delivery on a telemetry round-trip, and do not read wasm counters from the main thread.
 
 ## GraphSnapshot follows SessionReady on the gateway
 
@@ -68,33 +68,33 @@ After Authenticate succeeds, `rclwebd` pushes SessionReady and then GraphSnapsho
 
 ## Public Node graph hides GraphSnapshot JSON
 
-`GraphView` (`generation`, `domain_id`, numeric endpoint `kind`) is `rclweb/internal`. Applications use rclcpp names on `Node`: `getNodeNames`, `getTopicNamesAndTypes`, `getServiceNamesAndTypes`, `getActionNamesAndTypes`, `countPublishers`, `countSubscribers`, and `onGraphChange`. Do not export GraphSnapshot field numbers or `session.onGraph` on `rclweb`. [R4-04](../../docs/milestones/r4-04-sdk.md).
+`GraphView` (`generation`, `domain_id`, numeric endpoint `kind`) is `rclweb/internal`. Applications use rclcpp names on `Node`: `getNodeNames`, `getTopicNamesAndTypes`, `getServiceNamesAndTypes`, `getActionNamesAndTypes`, `countPublishers`, `countSubscribers`, and `onGraphChange`. Do not export GraphSnapshot field numbers or `session.onGraph` on `rclweb`.
 
 ## Scripted GraphSnapshot endpoints must be complete control maps
 
-An empty GraphSnapshot endpoint array is valid. A partial endpoint (name/kind/type only) fails control validation (`missing_key` on schema identity, QoS, and encoding), so the engine never emits the app event and SDK graph tests hang. Scripted peers must use the same endpoint map as the gateway: id, node id, name, kind, type name, schema identity, CDR encoding, QoS (kinds 0–3), domain, optional row. Endpoints are sorted by id bytes. Reproduce with `cargo run --locked -p r1_04_fixture_gen`.
+An empty GraphSnapshot endpoint array is valid. A partial endpoint (name/kind/type only) fails control validation (`missing_key` on schema identity, QoS, and encoding), so the engine never emits the app event and graph tests hang. Scripted peers must use the same endpoint map as the gateway: id, node id, name, kind, type name, schema identity, CDR encoding, QoS (kinds 0–3), domain, optional row. Endpoints are sorted by id bytes. Reproduce with `cargo run --locked -p r1_04_fixture_gen`.
 
 ## ROS_RELIABLE on Service/Action frames
 
-R3-01 reliable operation streams (SERVICE_REQUEST/RESPONSE, ACTION_GOAL/CANCEL/RESULT) carry `FLAG_ROS_RELIABLE`. Frame step 7 still rejects that flag on media/recording/asset/control opcodes; the malformed fixture `frame-step7-ros-reliable-opcode` uses MEDIA_CHUNK for that check (not SERVICE_REQUEST).
+Reliable operation streams (SERVICE_REQUEST/RESPONSE, ACTION_GOAL/CANCEL/RESULT) carry `FLAG_ROS_RELIABLE`. Frame step 7 still rejects that flag on media/recording/asset/control opcodes; the malformed fixture `frame-step7-ros-reliable-opcode` uses MEDIA_CHUNK for that check (not SERVICE_REQUEST).
 
 ## Service/action poll events carry payload views
 
-App events 13–14 and 17–20 include `lease_id` plus `payload_ptr`/`payload_len` (same lease model as Sample). The abbreviated command layouts omit those ptr fields; without them the wasm host cannot copy request/response bodies. TS must release the lease after `IoHost.copyPayload`. The I/O Worker copies those bytes and releases the lease before `postMessage` so main never holds a wasm pointer ([R4-04](../../docs/milestones/r4-04-sdk.md)).
+App events 13–14 and 17–20 include `lease_id` plus `payload_ptr`/`payload_len` (same lease model as Sample). The abbreviated command layouts omit those ptr fields; without them the wasm host cannot copy request/response bodies. TS must release the lease after `IoHost.copyPayload`. The I/O Worker copies those bytes and releases the lease before `postMessage` so main never holds a wasm pointer.
 
 ## Worker PointCloud2 copies `data`, inline borrows it
 
-`rclweb_point_cloud2_meta` returns metadata plus an offset/len into the leased CDR. On `options.inline: true` the host hands a TypedArray into wasm memory (copy-budget 0 wasm→application; valid until `lease.release()`). The I/O Worker cannot share that memory with main without SAB, so it copies only the `data` field, releases the lease, and transfers the ArrayBuffer — same class of boundary copy as service/action CDR. The public `Node` callback always owns a copy and never sees the lease. Do not copy the whole CDR payload, and do not keep the lease outstanding after a Worker copy (a 1 MiB cloud would then pin wasm *and* hold a JS copy). [R4-04](../../docs/milestones/r4-04-sdk.md), [architecture](../../docs/architecture.md#performance-contracts).
+`rclweb_point_cloud2_meta` returns metadata plus an offset/len into the leased CDR. On `options.inline: true` the host hands a TypedArray into wasm memory (copy-budget 0 wasm→application; valid until `lease.release()`). The I/O Worker cannot share that memory with main without SAB, so it copies only the `data` field, releases the lease, and transfers the ArrayBuffer — same class of boundary copy as service/action CDR. The public `Node` callback always owns a copy and never sees the lease. Do not copy the whole CDR payload, and do not keep the lease outstanding after a Worker copy (a 1 MiB cloud would then pin wasm *and* hold a JS copy). [Architecture](../../docs/architecture.md#performance-contracts).
 
 ## PointCloud2 header and fields travel on the host command
 
-`CMD_SEND_POINT_CLOUD2` carries stamp, `frame_id`, and the PointField list with the point `data`. Do not reintroduce XYZ synthesis from `field_count == 3` — that dropped `frame_id` and made republish lie. Inbound `rclweb_point_cloud2_meta` writes the same header/fields after the numeric prefix; point `data` stays an offset/len view. [R4-04](../../docs/milestones/r4-04-sdk.md).
+`CMD_SEND_POINT_CLOUD2` carries stamp, `frame_id`, and the PointField list with the point `data`. Do not reintroduce XYZ synthesis from `field_count == 3` — that dropped `frame_id` and made republish lie. Inbound `rclweb_point_cloud2_meta` writes the same header/fields after the numeric prefix; point `data` stays an offset/len view.
 
 ## Generated corpus messages use a packed host layout
 
-Phase 1 msg roots (`PrimitiveScalars`, `Collections`, `NestedSample`) and the sectioned service/action types (`EchoNested_{Request,Response}`, `MeasureSequence_{Goal,Result,Feedback}`) cross the poll ABI as packed little-endian host-value bytes, not CDR and not JSON. Topics use `CMD_SEND_GENERATED` / `rclweb_decode_generated`. Service and action poll cmds stay opaque payload bytes: if the OpenChannel parent is generated, the engine converts host-value ↔ CDR with the generated codecs; otherwise the payload stays CDR (`AddTwoInts`, Fibonacci). Do not put that layout, CMD 18, or `rclweb_decode_generated` on `rclweb`. Applications use `rclweb_cdr_interfaces.msg.*` / `.srv.EchoNested` / `.action.MeasureSequence`. `int64` / `uint64` are `bigint`. The I/O Worker must key inbound samples **and** service/action channels by `typeName` — guessing PointCloud2 for every non-String sample drops generated CDR, and guessing CDR for EchoNested breaks `Node` decode. [R4-04](../../docs/milestones/r4-04-sdk.md).
+Generated msg roots (`PrimitiveScalars`, `Collections`, `NestedSample`) and the sectioned service/action types (`EchoNested_{Request,Response}`, `MeasureSequence_{Goal,Result,Feedback}`) cross the poll ABI as packed little-endian host-value bytes, not CDR and not JSON. Topics use `CMD_SEND_GENERATED` / `rclweb_decode_generated`. Service and action poll cmds stay opaque payload bytes: if the OpenChannel parent is generated, the engine converts host-value ↔ CDR with the generated codecs; otherwise the payload stays CDR (`AddTwoInts`, Fibonacci). Do not put that layout, CMD 18, or `rclweb_decode_generated` on `rclweb`. Applications use `rclweb_cdr_interfaces.msg.*` / `.srv.EchoNested` / `.action.MeasureSequence`. `int64` / `uint64` are `bigint`. The I/O Worker must key inbound samples **and** service/action channels by `typeName` — guessing PointCloud2 for every non-String sample drops generated CDR, and guessing CDR for EchoNested breaks `Node` decode.
 
-## Phase 1 schema metadata JSON shape
+## Schema metadata JSON shape
 
 `rclweb/generated/metadata/` is produced by `scripts/generated-types.ts`. Rust embeds four files via `include_str!`:
 
@@ -107,7 +107,7 @@ Do not rename those array keys without updating both the Bun generator and `rclw
 
 ## Sectioned corpus roots are graph endpoints without source rows
 
-Canonical CDR bundles for `*_Request` / `*_Response` / `*_Goal` / `*_Result` / `*_Feedback` store interface text under the parent `.srv` / `.action` type, while `dependency_graph` edges use the sectioned `root_type_name` as `from`. M1-02b join validation must accept `root_type_name` as a known endpoint alongside `sources[].type_name`; requiring every `from` to appear in `sources` rejects the committed Phase 1 corpus.
+Canonical CDR bundles for `*_Request` / `*_Response` / `*_Goal` / `*_Result` / `*_Feedback` store interface text under the parent `.srv` / `.action` type, while `dependency_graph` edges use the sectioned `root_type_name` as `from`. Join validation must accept `root_type_name` as a known endpoint alongside `sources[].type_name`; requiring every `from` to appear in `sources` rejects the committed corpus.
 
 ## GitHub Releases downloads need retries
 
@@ -119,7 +119,7 @@ Foundation CI installs Bun with SHA-pinned `oven-sh/setup-bun` (`.bun-version`) 
 
 ## Worker URL follows the script extension
 
-`new Worker(new URL("./worker/io-worker.ts", import.meta.url))` is correct for Bun workspace source and wrong after `bun build` writes `dist/index.js`. The sibling in `dist/` is `io-worker.js`. `resolveIoWorkerUrl` picks `.ts` vs `.js` from the loading script. Do not hardcode `.ts`. [R4-04](../../docs/milestones/r4-04-sdk.md).
+`new Worker(new URL("./worker/io-worker.ts", import.meta.url))` is correct for Bun workspace source and wrong after `bun build` writes `dist/index.js`. The sibling in `dist/` is `io-worker.js`. `resolveIoWorkerUrl` picks `.ts` vs `.js` from the loading script. Do not hardcode `.ts`.
 
 ## Bundle files are named by type
 
@@ -127,8 +127,8 @@ Canonical bundles live at `conformance/cdr/fixtures/bundles/<type with / → .>.
 
 ## Do not commit measurement JSON
 
-The owner deleted `docs/evidence/*.json`. Nothing in CI read those files. `just build` used to rewrite `recordedAt` on a wasm-size file, dirtying the tree. Qualification is a human edit of the [support matrix](../../docs/support-matrix.md). Measurement recipes (`just poll-latency`, `just large-message`, `just perf-baseline`) print to stdout. Do not add an evidence-check job. [R4-03](../../docs/milestones/r4-03-support-matrix.md).
+The owner deleted `docs/evidence/*.json`. Nothing in CI read those files. `just build` used to rewrite `recordedAt` on a wasm-size file, dirtying the tree. Qualification is a human edit of the [support matrix](../../docs/support-matrix.md). Measurement recipes (`just poll-latency`, `just large-message`, `just perf-baseline`) print to stdout. Do not add an evidence-check job.
 
 ## Do not wrap cargo tests in a Docker mock lane
 
-R3-03 added `docker/compose.r3-03-h-ft.yml` whose image only re-ran `cargo test` inside `rust:1.97.1`. Foundation already runs those tests via `just test`. The CI job was `workflow_dispatch`-only, so it never gated. Live Humble remains [`docker/compose.r3-03-h-ft-e2e.yml`](../../docker/compose.r3-03-h-ft-e2e.yml). Do not add a compose file whose only command is cargo tests the workspace already runs.
+`docker/compose.r3-03-h-ft.yml` once existed whose image only re-ran `cargo test` inside `rust:1.97.1`. Foundation already runs those tests via `just test`. The CI job was `workflow_dispatch`-only, so it never gated. Live Humble remains [`docker/compose.r3-03-h-ft-e2e.yml`](../../docker/compose.r3-03-h-ft-e2e.yml). Do not add a compose file whose only command is cargo tests the workspace already runs.
