@@ -15,22 +15,23 @@ Accepted
 The owner asked for npm OIDC publish of the TypeScript package, and for
 the crates to be published as well.
 
-npm and crates.io both accept GitHub Actions as a trusted publisher
-([npm trusted publishers](https://docs.npmjs.com/trusted-publishers),
-[crates.io trusted publishing](https://crates.io/docs/trusted-publishing)).
-Neither uses a long-lived `NPM_TOKEN` / `CARGO_REGISTRY_TOKEN` in GitHub
-secrets after bootstrap.
+npm trusted publishing is [documented](https://docs.npmjs.com/trusted-publishers):
+the CLI detects a GitHub Actions OIDC environment and exchanges the ID
+token. Provenance is automatic. A GitHub environment is optional and
+must stay blank unless the job sets `environment:`. crates.io has its
+own trusted-publishing flow
+([docs](https://crates.io/docs/trusted-publishing)).
 
 ## Decision
 
 - `rcl-web` publishes from [`.github/workflows/release.yml`](../../.github/workflows/release.yml)
-  with GitHub OIDC (`id-token: write`). No `NODE_AUTH_TOKEN`.
+  with `id-token: write` and `npm publish`. No `NODE_AUTH_TOKEN`. No
+  `--provenance`. No GitHub `environment:` on the npm job.
+- npm's trusted-publisher identity is owner + repo + workflow filename
+  `release.yml`. Environment on npmjs.com stays blank.
 - `rclweb` and `rclwebd` publish to crates.io. Fixture crates
   (`protocol-fixtures`, `r1_04_fixture_gen`) and `fuzz/` stay
   `publish = false`.
-- The workflow filename `release.yml` and the GitHub environment
-  `release` are the trusted-publisher identity. Renaming either
-  requires updating npm and crates.io.
 - crates.io requires a one-time human `cargo publish` before OIDC can
   be configured. After that, the same workflow publishes both crates
   (`rclweb` first).
@@ -41,23 +42,29 @@ secrets after bootstrap.
 ## Rationale
 
 Owner ruling (2026-08-13): use npm OIDC to publish the package; crates
-are also published.
+are also published. A first draft treated npm like a deploy environment
+(`environment: release` + `--provenance`). That is not npm trusted
+publishing. Official publish is `id-token: write` + `actions/setup-node@v6`
++ `npm publish`.
 
 ## Consequences
 
-- [docs/release.md](../release.md) is the runbook (npm trusted publisher,
-  crates.io bootstrap, environment `release`).
+- [docs/release.md](../release.md) is the runbook (npm trusted publisher
+  with blank environment, `npm trust github`, crates.io bootstrap).
 - `just cargo-publish-check` is part of `just check`.
 - `rclwebd` depends on `rclweb` with a path + version so the crates.io
   tarball can resolve the core crate.
+- `actions/setup-node` `registry-url` writes `_authToken=${NODE_AUTH_TOKEN}`.
+  An empty token line skips OIDC; the job deletes that line.
 
 ## Revisit triggers
 
-- npm or crates.io reject the OIDC publisher (filename, environment, or
-  runner class).
+- npm or crates.io reject the OIDC publisher (filename or runner class).
 - A required crate cannot ship because of path-only deps or ROS-link
   requirements.
 
 ## Source
 
-Owner direction 2026-08-13 after `rcl-web@0.0.2` landed on npm.
+Owner direction 2026-08-13 after `rcl-web@0.0.2` landed on npm. Owner
+correction the same day: npm OIDC is the trusted-publisher flow, not a
+GitHub environment plus `--provenance`.

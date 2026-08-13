@@ -1,6 +1,7 @@
-# Publish rcl-web (npm OIDC) and rclweb / rclwebd (crates.io OIDC).
-# Workflow filename is part of the trusted-publisher contract — do not rename
-# without updating npmjs.com and crates.io. See docs/release.md.
+# Publish rcl-web (npm trusted publishing) and rclweb / rclwebd (crates.io).
+# npm OIDC identity is this filename only — do not rename without updating
+# npmjs.com. No GitHub environment on the npm job (leave Environment blank
+# on the trusted publisher). See docs/release.md.
 name: release
 
 on:
@@ -31,7 +32,6 @@ jobs:
     if: github.event_name == 'push' || inputs.npm
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    environment: release
     permissions:
       id-token: write
       contents: read
@@ -75,16 +75,27 @@ jobs:
         shell: bash
         run: just build
 
-      - name: Set up Node for npm OIDC publish
+      - name: Set up Node for npm trusted publishing
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version: "24"
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
 
-      - name: Install npm CLI for trusted publishing
+      - name: Install npm CLI ≥ 11.5.1
         shell: bash
         run: npm install -g npm@latest
+
+      - name: Drop empty _authToken so npm uses OIDC
+        shell: bash
+        run: |
+          set -euo pipefail
+          unset NODE_AUTH_TOKEN NPM_TOKEN || true
+          for f in ${NPM_CONFIG_USERCONFIG:-} "${HOME}/.npmrc"; do
+            if [[ -f "${f}" ]]; then
+              sed -i '/_authToken/d' "${f}"
+            fi
+          done
 
       - name: Refuse a version already on npm
         working-directory: typescript
@@ -103,17 +114,16 @@ jobs:
             exit 1
           fi
 
-      - name: Publish rcl-web (OIDC, no token)
+      - name: Publish rcl-web
         working-directory: typescript
         shell: bash
-        run: npm publish --access public --provenance
+        run: npm publish
 
   publish-crates:
     name: publish-crates
     if: github.event_name == 'push' || inputs.crates
     runs-on: ubuntu-24.04
     timeout-minutes: 30
-    environment: release
     permissions:
       id-token: write
       contents: read

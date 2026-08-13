@@ -5,7 +5,7 @@ Authoritative detail lives in the [open-work list](./plan.md) and the topic docu
 ## Ready for a human
 
 - [ ] Promote support-matrix rows from live e2e to **Qualified**
-- [ ] Configure npm + crates.io trusted publishers and the GitHub `release` environment ([release](../docs/release.md))
+- [ ] Configure the npm trusted publisher for `rcl-web` (environment blank) and crates.io trusted publishers after the first cargo publish ([release](../docs/release.md))
 - [ ] First crates.io publish of `rclweb` / `rclwebd` `0.0.1` (human `cargo publish`; then OIDC)
 - [ ] Name the OIDC tenant and SROS2 reference environment
 - [ ] Supply the reviewed ACL policy matrix

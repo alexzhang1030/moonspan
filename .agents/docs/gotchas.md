@@ -147,11 +147,15 @@ Cargo omits gitignored files from the package. npm can ship staged copies via `f
 
 ## crates.io OIDC cannot create the first crate
 
-Trusted publishing on crates.io requires the crate to already exist. `rclweb` / `rclwebd` first land with a human `cargo publish` after `scripts/cargo-publish.ts --stage`. Then add the trusted publisher (`release.yml`, environment `release`). The release workflow refuses the crates job with a short error while `GET /api/v1/crates/rclweb` is 404. [release](../../docs/release.md).
+Trusted publishing on crates.io requires the crate to already exist. `rclweb` / `rclwebd` first land with a human `cargo publish` after `scripts/cargo-publish.ts --stage`. Then add the trusted publisher (`release.yml`, environment blank). The release workflow refuses the crates job with a short error while `GET /api/v1/crates/rclweb` is 404. [release](../../docs/release.md).
+
+## npm OIDC identity is the workflow file
+
+npm trusted publishing matches owner + repo + workflow **filename**. A GitHub `environment:` is optional and must stay off the npm job unless the npmjs.com Environment field is the same string. The first draft put `environment: release` on the job and `--provenance` on `npm publish` — that is the old token/deploy model. Official publish is `id-token: write` + `actions/setup-node@v6` + `npm publish`. Provenance is automatic. [ADR 0016](../../docs/adr/0016-oidc-trusted-publish.md).
 
 ## Do not put NODE_AUTH_TOKEN on the npm OIDC job
 
-`npm publish` with trusted publishing uses the GitHub OIDC token. Setting `NODE_AUTH_TOKEN` / `NPM_TOKEN` forces the legacy token path and the publish fails or silently ignores the trusted publisher. The release job must not set those. Use `actions/setup-node` + `npm install -g npm@latest` (CLI ≥ 11.5.1) and `npm publish --access public --provenance`. [ADR 0016](../../docs/adr/0016-oidc-trusted-publish.md).
+`npm publish` with trusted publishing uses the GitHub OIDC token. Setting `NODE_AUTH_TOKEN` / `NPM_TOKEN` forces the legacy token path. `actions/setup-node` `registry-url` also writes `_authToken=${NODE_AUTH_TOKEN}`; an empty token line makes the CLI skip OIDC (ENEEDAUTH / E404). The release job must not set those tokens and must delete the `_authToken` line before `npm publish`. CLI ≥ 11.5.1 (`npm install -g npm@latest`). [ADR 0016](../../docs/adr/0016-oidc-trusted-publish.md).
 
 ## Do not commit measurement JSON
 
