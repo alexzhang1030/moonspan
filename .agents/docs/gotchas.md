@@ -165,6 +165,10 @@ npm trusted publishing matches owner + repo + workflow **filename**. A GitHub `e
 
 The owner deleted `docs/evidence/*.json`. Nothing in CI read those files. `just build` used to rewrite `recordedAt` on a wasm-size file, dirtying the tree. Qualification is a human edit of the [support matrix](../../docs/support-matrix.md). Measurement recipes (`just poll-latency`, `just large-message`, `just perf-baseline`) print to stdout. `just perf-baseline` leads with latency / CPU / RSS. Do not add an evidence-check job.
 
+## process.memoryUsage can return EINTR
+
+Bun on Linux can throw `SystemError: Failed to get memory usage` with errno 4 (`EINTR`), especially right after `Bun.gc(true)`. The perf-baseline harness retries (`scripts/perf-baseline/resources.ts`). Do not treat one failed snapshot as a leak, and do not skip RSS because of it.
+
 ## Do not wrap cargo tests in a Docker mock lane
 
 `docker/compose.r3-03-h-ft.yml` once existed whose image only re-ran `cargo test` inside `rust:1.97.1`. Foundation already runs those tests via `just test`. The CI job was `workflow_dispatch`-only, so it never gated. Live Humble remains [`docker/compose.r3-03-h-ft-e2e.yml`](../../docker/compose.r3-03-h-ft-e2e.yml). Do not add a compose file whose only command is cargo tests the workspace already runs.

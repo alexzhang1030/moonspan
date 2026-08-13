@@ -21,6 +21,7 @@ import {
   measureAllProtocolCosts,
 } from "./perf-baseline/protocol-cost.ts";
 import { summarize, percentile } from "./perf-baseline/stats.ts";
+import { snapshotMemory } from "./perf-baseline/resources.ts";
 import {
   POINT_PAYLOAD_BYTES,
   WORKLOADS,
@@ -51,6 +52,14 @@ describe("stats", () => {
     expect(s.n).toBe(5);
     expect(s.min).toBe(1);
     expect(s.max).toBe(5);
+  });
+});
+
+describe("resources", () => {
+  test("snapshotMemory returns RSS", () => {
+    const m = snapshotMemory();
+    expect(m.rssBytes).toBeGreaterThan(0);
+    expect(m.heapUsedBytes).toBeGreaterThan(0);
   });
 });
 

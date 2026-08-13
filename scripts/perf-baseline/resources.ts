@@ -2,7 +2,8 @@
  * CPU and memory snapshots for perf-baseline probes.
  *
  * These are process-local (the Bun harness). They are not container cgroup
- * figures and not a CI gate.
+ * figures and not a CI gate. `process.memoryUsage` is retried on EINTR
+ * ([gotcha](../../.agents/docs/gotchas.md#processmemoryusage-can-return-eintr)).
  */
 
 export type MemorySnapshot = {
@@ -22,18 +23,40 @@ export function tryGc(): void {
   bun?.gc?.(true);
 }
 
+function isEintr(err: unknown): boolean {
+  const e = err as { errno?: number; code?: string };
+  return e.errno === 4 || e.code === "EINTR";
+}
+
+function withEintrRetry<T>(label: string, fn: () => T): T {
+  let last: unknown;
+  for (let i = 0; i < 8; i++) {
+    try {
+      return fn();
+    } catch (err) {
+      last = err;
+      if (!isEintr(err)) throw err;
+    }
+  }
+  throw last instanceof Error
+    ? last
+    : new Error(`${label} failed after EINTR retries`);
+}
+
 export function snapshotMemory(): MemorySnapshot {
-  const m = process.memoryUsage();
-  return { rssBytes: m.rss, heapUsedBytes: m.heapUsed };
+  return withEintrRetry("memoryUsage", () => {
+    const m = process.memoryUsage();
+    return { rssBytes: m.rss, heapUsedBytes: m.heapUsed };
+  });
 }
 
 export function cpuStart(): CpuUsage {
-  return process.cpuUsage();
+  return withEintrRetry("cpuUsage", () => process.cpuUsage());
 }
 
 /** User + system microseconds since `start`. */
 export function cpuDeltaUs(start: CpuUsage): number {
-  const d = process.cpuUsage(start);
+  const d = withEintrRetry("cpuUsage-delta", () => process.cpuUsage(start));
   return d.user + d.system;
 }
 
