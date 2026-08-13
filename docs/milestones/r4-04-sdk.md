@@ -11,8 +11,8 @@ package stays `"private": true` and `"version": "0.0.0"`.
 
 | Area | Behavior |
 |---|---|
-| Public exports | `@rclweb/sdk` is `connect`, session types, String and PointCloud2 constants, sample type guards, and local-dev TLS helpers. A test pins the runtime export list. |
-| Internal | `@rclweb/sdk/internal` holds `IoHost`, the wasm poll ABI, buffer strategies, and `connectOfflineForTests`. Not a stability promise. |
+| Public exports | `@rclweb/sdk` is `init`, `Node`, ROS message types, QoS, and local-dev TLS helpers. A test pins the runtime export list. |
+| Internal | `@rclweb/sdk/internal` holds `connect`, session/leases, `IoHost`, the wasm poll ABI, buffer strategies, and `connectOfflineForTests`. Not a stability promise. |
 | Worker URL | Source loads `io-worker.ts`; the browser bundle loads `io-worker.js`. A hardcoded `.ts` URL broke `dist/`. |
 | Docs | [SDK](../sdk.md) is the application contract. Package README points here. |
 | Demo | [`examples/subscribe-chatter`](../../examples/subscribe-chatter/) serves `dist/` on the Worker path and can publish `/chatter`. |
@@ -37,14 +37,14 @@ Subscribe delivers `sensor_msgs/msg/PointCloud2` as metadata plus a `data` Typed
 
 | Area | Behavior |
 |---|---|
-| Public types | `SENSOR_MSGS_POINT_CLOUD2`, `PointCloud2`, `isPointCloud2` / `isStdMsgsString`. `subscribe(..., SENSOR_MSGS_POINT_CLOUD2)` types `onMessage` as PointCloud2. |
+| Host types | `SENSOR_MSGS_POINT_CLOUD2` and the wire `PointCloud2` shape live on `@rclweb/sdk/internal`. The public Node API maps `sensor_msgs.msg.PointCloud2`. |
 | Inline | [`IoHost.decodePointCloud2`](../../sdk/typescript/src/host.ts) returns a view into wasm memory. Tests assert `data.buffer === engineMemory()`. |
 | Worker | [`io-worker.ts`](../../sdk/typescript/src/worker/io-worker.ts) copies `data`, releases the lease, and transfers the ArrayBuffer. |
 | Fixtures | [`scripts/fixture-gen`](../../scripts/fixture-gen/) emits `pointCloud2Sample` (four XYZ points). |
 
 ## Outcome (this slice — PointCloud2 publish)
 
-`publish(..., SENSOR_MSGS_POINT_CLOUD2)` sends a typed PointCloud2. The wasm core encodes CDR (XYZ float32 fields when `fieldCount === 3` and `pointStep >= 12`; empty header). The I/O Worker carries the same `sendPointCloud2` command as the inline host.
+The host `publish(..., SENSOR_MSGS_POINT_CLOUD2)` path sends a typed PointCloud2. The wasm core encodes CDR (XYZ float32 fields when `fieldCount === 3` and `pointStep >= 12`; empty header). The I/O Worker carries the same `sendPointCloud2` command as the inline host. The public `Node.createPublisher(sensor_msgs.msg.PointCloud2, ...)` wraps that path.
 
 | Area | Behavior |
 |---|---|
@@ -53,12 +53,29 @@ Subscribe delivers `sensor_msgs/msg/PointCloud2` as metadata plus a `data` Typed
 | Client | [`Publisher.publish`](../../sdk/typescript/src/client.ts) accepts `StdMsgsString \| PointCloud2` from the channel type. |
 | Tests | Engine outbound decode, inline `samplesSent`, Worker scripted peer captures `OPCODE_ROS_SAMPLE`. |
 
+## Outcome (this slice — rclcpp-shaped Node)
+
+The public package matches rclcpp usage: `init(url)` → `new Node(name)` →
+`createPublisher` / `createSubscription` with `std_msgs.msg.String` and
+`sensor_msgs.msg.PointCloud2`. Callbacks receive owned messages; applications
+do not see sample leases, `connect`, or type-name string constants. `connect`
+and the session/lease host live on `@rclweb/sdk/internal`.
+
+| Area | Behavior |
+|---|---|
+| Context | [`init` / `ok` / `spin` / `shutdown`](../../sdk/typescript/src/context.ts). The extra argument versus `rclcpp::init` is the gateway URL. |
+| Node | [`Node`](../../sdk/typescript/src/node.ts): `createPublisher`, `createSubscription`, `createClient`, `createService`, `createWallTimer`. `10` is KeepLast(10) + reliable. |
+| Messages | [`std_msgs` / `sensor_msgs`](../../sdk/typescript/src/interfaces.ts) classes with ROS IDL field names. |
+| Demo / e2e | subscribe-chatter and the e2e harness use `init` + `Node`. |
+| Tests | [`node.test.ts`](../../sdk/typescript/test/node.test.ts) covers subscribe/publish without leases. Host 0-copy tests stay on `internal`. |
+
 ## Delivered scope
 
 | Surface | Location |
 |---|---|
-| Public entry | [`sdk/typescript/src/index.ts`](../../sdk/typescript/src/index.ts) |
-| Internal entry | [`sdk/typescript/src/internal.ts`](../../sdk/typescript/src/internal.ts) |
+| Public entry | [`sdk/typescript/src/index.ts`](../../sdk/typescript/src/index.ts) (`init` / `Node`) |
+| Node API | [`node.ts`](../../sdk/typescript/src/node.ts), [`context.ts`](../../sdk/typescript/src/context.ts), [`interfaces.ts`](../../sdk/typescript/src/interfaces.ts) |
+| Internal entry | [`sdk/typescript/src/internal.ts`](../../sdk/typescript/src/internal.ts) (`connect` / leases) |
 | Worker URL | [`resolveIoWorkerUrl`](../../sdk/typescript/src/client.ts) |
 | Worker ops | [`sdk/typescript/src/worker/`](../../sdk/typescript/src/worker/) |
 | Application docs | [`docs/sdk.md`](../sdk.md) |
@@ -74,5 +91,6 @@ bun test sdk/typescript/test
 ## Still open in R4-04
 
 - Typed sample events beyond String and PointCloud2
+- Generated TypeScript service/action request types (createClient still takes CDR)
 - npm publish, `"private": false`, and a human-chosen version
 - D-06 repository license on the package

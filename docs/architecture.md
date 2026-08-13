@@ -28,7 +28,7 @@ J-FT and H-FT are delivery-gated. Corpus data for all six rows (H-FT, H-CY, H-ZN
 
 | Unit | Responsibility | Boundary |
 |---|---|---|
-| Browser SDK | Public typed API, sessions, Workers, telemetry, and buffer ownership | Versioned TypeScript API and events |
+| Browser SDK | Public rclcpp-shaped API (`init` / `Node`), sessions, Workers, telemetry, and buffer ownership | Versioned TypeScript API |
 | I/O Worker | Transport, reconnect, and buffer transfer | Byte batches to and from the core |
 | `rclweb` core | R2WP codecs, CDR, session/channel state, graph, QoS, clocks, and ROS operations | Host poll ABI (wasm) and Rust API (native) |
 | `rclwebd` | ROS attachment, sessions, schema cache, scheduling, policy, audit, and operations | R2WP and the serialized rcl surface |
@@ -44,7 +44,7 @@ Inbound samples follow this path:
 2. `rclwebd` applies policy, budgets, scheduling, and deployment provenance on headers only; it never parses or copies the CDR body (`Bytes` fan-out, vectored writes).
 3. R2WP carries the sample over binary WebSocket or WebTransport.
 4. The I/O Worker transfers a bounded batch to the core Worker; one copy into wasm linear memory.
-5. The core resolves the schema and emits typed SDK events whose bulk fields are borrowed views under the lease model.
+5. The core resolves the schema and emits typed host events whose bulk fields are borrowed views under the lease model. The public `Node` API copies those fields into an owned ROS message and releases the lease after the callback.
 
 Outbound operations follow the reverse path after validation in the core and policy at the gateway.
 
@@ -60,9 +60,9 @@ The sample path is copy discipline and drop discipline, with counters in telemet
 | Gateway framing | 0 | Header and payload as separate chunks; `bytes::Bytes` + vectored writes; the gateway never parses or moves the CDR body |
 | Gateway fan-out | 0 | Per-client policy on headers; one framed payload shared via `Bytes::clone` |
 | Worker → wasm linear memory | 1 (inherent) | One whole-payload copy in; Wasm cannot view external `ArrayBuffer`s |
-| Wasm → application | 0 | TypedArray views into wasm memory under the lease model |
+| Wasm → application | 0 | TypedArray views into wasm memory under the lease model (`@rclweb/sdk/internal`) |
 
-The 0-copy view holds on the thread that owns wasm (the I/O Worker, or the calling thread when `options.inline: true`). Bulk fields that cross to the main thread are copied at that boundary: PointCloud2 `data` and service/action CDR. Shared wasm memory remains the parked path to 0-copy on the Worker ([ADR 0004](./adr/0004-browser-wasm-host-boundary.md)).
+The 0-copy view holds on the thread that owns wasm (the I/O Worker, or the calling thread when `options.inline: true`). The public `Node` callback copies PointCloud2 `data` so the application never holds a lease (rclcpp-owned message). Bulk fields that cross to the main thread on the Worker path are copied at that boundary: PointCloud2 `data` and service/action CDR. Shared wasm memory remains the parked path to 0-copy on the Worker ([ADR 0004](./adr/0004-browser-wasm-host-boundary.md)).
 
 **CDR is O(1) for blob-heavy types.** Decoding PointCloud2 is metadata reads plus an (offset, length) for `data`. Codecs keep the borrowed-view contract; they do not materialize `Vec<u8>` for bulk payloads.
 

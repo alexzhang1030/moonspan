@@ -1,6 +1,11 @@
 # Browser SDK
 
-`@rclweb/sdk` is the application contract for rclweb. Applications call `connect`, then session operations. The SDK does not parse R2WP: the I/O Worker owns transport bytes and the wasm core owns protocol, CDR, and ROS state ([architecture](./architecture.md), [ADR 0004](./adr/0004-browser-wasm-host-boundary.md)).
+`@rclweb/sdk` is the application contract for rclweb. If you can write
+[rclcpp](https://docs.ros.org/en/humble/p/rclcpp/), you can write this
+SDK: `init` → `Node` → `createPublisher` / `createSubscription` with ROS
+message types. The SDK does not parse R2WP: the I/O Worker owns transport
+bytes and the wasm core owns protocol, CDR, and ROS state
+([architecture](./architecture.md), [ADR 0004](./adr/0004-browser-wasm-host-boundary.md)).
 
 The package lives at [`sdk/typescript/`](../sdk/typescript/) and is consumed from this repository's Bun workspace. It stays `"private": true` and `"version": "0.0.0"` until a human release review. This slice does not publish to npm and does not pick [D-06](../tasks/plan.md#kickoff-decision-register) licensing.
 
@@ -9,92 +14,88 @@ The package lives at [`sdk/typescript/`](../sdk/typescript/) and is consumed fro
 Root `package.json` already lists `sdk/*` as a workspace. Examples depend on `"@rclweb/sdk": "workspace:*"`. After `just setup`:
 
 ```ts
-import { connect, SENSOR_MSGS_POINT_CLOUD2, STD_MSGS_STRING } from "@rclweb/sdk";
+import { init, Node, std_msgs, sensor_msgs } from "@rclweb/sdk";
 ```
 
 `just build` stages `sdk/typescript/wasm/rclweb.wasm` and emits `sdk/typescript/dist/` (gitignored). The workspace export map points at TypeScript source so Bun tests and scripts do not need `dist/`. Browser pages should load the built `dist/index.js` (see [subscribe-chatter](../examples/subscribe-chatter/README.md)).
 
-## Connect
+## init and Node
+
+The one extra argument versus `rclcpp::init(argc, argv)` is the gateway URL.
 
 ```ts
-const client = await connect("ws://127.0.0.1:8794/ws", {
-  wasmUrl: "/wasm/rclweb.wasm", // optional; default is next to the SDK script
-});
+await init("ws://127.0.0.1:8794/ws");
+const node = new Node("minimal_publisher");
 ```
 
-| Option | Default | Role |
-|---|---|---|
-| `inline` | `false` | Run the host on the calling thread. Bun tests and the e2e harness use this. Browsers should leave it false (I/O Worker). |
-| `wasmUrl` | sibling `../wasm/rclweb.wasm` | URL of the staged wasm artifact |
-| `workerUrl` | sibling `./worker/io-worker.ts` or `.js` | Override the I/O Worker module. Source loads `.ts`; the browser bundle loads `.js` |
-| `reconnect` | off | Fresh-session reconnect on transport close (SessionResume stays parked) |
-| `reconnectAttempts` | `3` | Cap for automatic reconnect |
-| `transport` | `"websocket"` | `"webtransport"` needs `globalThis.WebTransport` plus certificate hashes ([ADR 0011](./adr/0011-local-dev-webtransport-tls.md)) |
-| `serverCertificateHashes` | none | SPKI hashes for `new WebTransport(...)` |
-| `fetchLocalDevTls` | off | Fetch `{httpOrigin}/local-dev/tls` when hashes are omitted |
-| `localDevTlsOrigin` | derived from the WT URL | HTTP origin of the advertise endpoint (ports often differ) |
-
-`connect` currently authenticates as scheme `token` / `anonymous`. The gateway default is Authenticate `off` ([R4-01](./milestones/r4-01-oidc-sros2-audit.md)). There is no application credential API on `ConnectOptions` yet.
-
-## Session
-
-The default browser path (I/O Worker) and `options.inline: true` share the same session methods.
-
-```ts
-const sub = await client.session.subscribe("/chatter", STD_MSGS_STRING);
-sub.onMessage((msg, lease) => {
-  console.log(msg.data);
-  lease.release();
-});
-
-const points = await client.session.subscribe("/points", SENSOR_MSGS_POINT_CLOUD2);
-points.onMessage((cloud, lease) => {
-  // cloud.data is Uint8Array. Borrowed on the inline host; copied on the Worker path.
-  console.log(cloud.width, cloud.data.byteLength);
-  lease.release();
-});
-
-const pub = await client.session.publish("/chatter", STD_MSGS_STRING);
-await pub.publish({ data: "hello from the browser" });
-
-const cloudPub = await client.session.publish("/points", SENSOR_MSGS_POINT_CLOUD2);
-await cloudPub.publish({
-  height: 1,
-  width: cloud.width,
-  pointStep: 12,
-  rowStep: cloud.data.byteLength,
-  isBigendian: false,
-  isDense: true,
-  fieldCount: 3,
-  data: cloud.data.slice(),
-});
-```
-
-Typed inbound samples are `std_msgs/msg/String` (`{ data: string }`) and `sensor_msgs/msg/PointCloud2` (metadata plus `data: Uint8Array`). Other inbound types are dropped and their leases released. Publish accepts the same two types; PointCloud2 encode lives in the wasm core (`fieldCount === 3` and `pointStep >= 12` synthesizes XYZ float32 fields, empty header). QoS on OpenChannel is reliability (`1` RELIABLE default, `2` BEST_EFFORT) plus KEEP_LAST depth (default `5`).
-
-**Release every lease.** The engine reclaims a retained inbound slab only when every lease on it is released. Dropping a sample without `lease.release()` pins wasm memory ([gotcha](../.agents/docs/gotchas.md#every-sample-lease-has-exactly-one-owner)).
-
-- **Inline host:** PointCloud2 `data` is a TypedArray view into wasm memory (0 copies, copy-budget slot). The view is valid until `lease.release()`.
-- **I/O Worker:** wasm memory is not shared with main. The Worker copies the PointCloud2 `data` field (not the whole CDR), releases the lease, and `postMessage`s the owned bytes — same pattern as service/action CDR. `lease.release()` on main is then a no-op. String samples still hold the lease until main releases.
-- Shared wasm memory (SAB) remains the parked path to 0-copy PointCloud2 on the Worker ([ADR 0004](./adr/0004-browser-wasm-host-boundary.md)).
-
-| Method | Notes |
+| Call | rclcpp analog |
 |---|---|
-| `createServiceClient` / `createServiceServer` | Request and response are `Uint8Array` CDR |
-| `createActionClient` / `createActionServer` | Goal, feedback, result, and status are `Uint8Array` CDR |
-| `onGraph` | Snapshot plus deltas after SessionReady. Replays the last view if one already arrived. |
-| `getParameters` / `setParameters` / `listParameters` | Sugar over `rcl_interfaces` service names |
+| `init(url)` | `rclcpp::init` — connect a context to the gateway |
+| `new Node(name, namespace?)` | `rclcpp::Node` |
+| `ok()` / `shutdown()` / `spin(node)` | `rclcpp::ok` / `shutdown` / `spin` |
 
-`options.inline: true` runs wasm on the calling thread. Repository tests, `just e2e`, and `just e2e-h-ft` use this. Browsers should leave it false.
+`spin` waits until `shutdown()`. The browser event loop already delivers callbacks; you do not need to spin for messages to arrive.
 
-`client.reconnect()` starts a fresh session and re-opens tracked topic channels. `client.close()` tears the session down. `client.telemetry()` returns copy/poll counters on the inline host and `null` on the Worker path.
+`init` currently authenticates as scheme `token` / `anonymous`. The gateway default is Authenticate `off` ([R4-01](./milestones/r4-01-oidc-sros2-audit.md)). Optional `InitOptions` (`inline`, `wasmUrl`, `transport`, WebTransport hashes) are for tests and local-dev TLS — applications leave them unset.
+
+## Publisher and subscription
+
+```ts
+const publisher = node.createPublisher(std_msgs.msg.String, "chatter", 10);
+const message = new std_msgs.msg.String();
+message.data = "hello from the browser";
+publisher.publish(message);
+
+node.createSubscription(std_msgs.msg.String, "chatter", 10, (msg) => {
+  console.log(msg.data);
+});
+
+const cloudPub = node.createPublisher(sensor_msgs.msg.PointCloud2, "points", 10);
+const cloud = new sensor_msgs.msg.PointCloud2();
+cloud.height = 1;
+cloud.width = 4;
+cloud.point_step = 12;
+cloud.row_step = 48;
+cloud.is_dense = true;
+cloud.fields = [
+  Object.assign(new sensor_msgs.msg.PointField(), { name: "x", offset: 0, datatype: sensor_msgs.msg.PointField.FLOAT32, count: 1 }),
+  Object.assign(new sensor_msgs.msg.PointField(), { name: "y", offset: 4, datatype: sensor_msgs.msg.PointField.FLOAT32, count: 1 }),
+  Object.assign(new sensor_msgs.msg.PointField(), { name: "z", offset: 8, datatype: sensor_msgs.msg.PointField.FLOAT32, count: 1 }),
+];
+cloud.data = new Uint8Array(48);
+cloudPub.publish(cloud);
+
+node.createSubscription(sensor_msgs.msg.PointCloud2, "points", 10, (msg) => {
+  console.log(msg.width, msg.point_step, msg.data.byteLength);
+});
+```
+
+TypeScript cannot write `create_publisher<std_msgs::msg::String>(topic, qos)`, so the message type is the first argument. `10` is KeepLast(10) + reliable, same as rclcpp. `new QoS(10).bestEffort()` and `KeepLast(10)` are the object form.
+
+Message field names follow the ROS IDL (`data`, `point_step`, `is_bigendian`, `frame_id`). Callbacks receive an owned message; there is no lease to release. `createWallTimer(periodMs, callback)` matches `create_wall_timer`. Relative names (`"chatter"`) resolve under the node namespace like rclcpp.
+
+Typed samples are `std_msgs/msg/String` and `sensor_msgs/msg/PointCloud2`. Other inbound types are dropped. PointCloud2 encode lives in the wasm core.
+
+## Services
+
+```ts
+const client = node.createClient({ typeName: "example_interfaces/srv/AddTwoInts" }, "add_two_ints");
+await client.waitForService();
+const response = await client.sendRequest(requestCdr);
+
+node.createService({ typeName: "example_interfaces/srv/AddTwoInts" }, "add_two_ints", (request) => {
+  return responseCdr;
+});
+```
+
+`createClient` / `createService` match rclcpp names. Request and response stay CDR bytes until generated TypeScript service types exist.
 
 ## Public vs internal
 
 | Import | Stability | Contents |
 |---|---|---|
-| `@rclweb/sdk` | Candidate application contract | `connect`, session types, String and PointCloud2 constants, sample type guards, local-dev TLS helpers |
-| `@rclweb/sdk/internal` | Repository only | `IoHost`, wasm poll ABI, buffer strategies, `connectOfflineForTests` |
+| `@rclweb/sdk` | Candidate application contract | `init`, `Node`, ROS message types, QoS, local-dev TLS helpers |
+| `@rclweb/sdk/internal` | Repository only | `connect` / session, `IoHost`, wasm poll ABI, buffer strategies, sample leases. Not a stability promise. |
 
 Do not import the internal submodule from application code. A test asserts the public runtime export list; adding a host or ABI symbol to `@rclweb/sdk` is a contract change.
 
@@ -102,14 +103,14 @@ Do not import the internal submodule from application code. A test asserts the p
 
 | Path | Role |
 |---|---|
-| [`examples/subscribe-chatter`](../examples/subscribe-chatter/) | Browser page: Worker `connect` → subscribe and publish `/chatter` |
+| [`examples/subscribe-chatter`](../examples/subscribe-chatter/) | Browser page: `init` → `Node` subscribe and publish `/chatter` |
 | [`examples/e2e-harness`](../examples/e2e-harness/) | Headless inline-host subscribe used by `just e2e` / `just e2e-h-ft` |
 
 See [examples/README.md](../examples/README.md).
 
 ## Version and release
 
-Independent SDK versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). R2WP wire version is a separate identity ([ADR 0005](./adr/0005-r2wp-wire-versioning.md)). The candidate public export list stays frozen; this package does not bump to `1.0.0`, set `"private": false`, or publish. Remaining R4-04 work: npm publish after D-06, and a human release review. Typed samples beyond String and PointCloud2 are still open.
+Independent SDK versioning is [ADR 0003](./adr/0003-monorepo-ownership.md). R2WP wire version is a separate identity ([ADR 0005](./adr/0005-r2wp-wire-versioning.md)). This package does not bump to `1.0.0`, set `"private": false`, or publish. Remaining R4-04 work: npm publish after D-06, typed samples beyond String and PointCloud2, and a human release review.
 
 ## Related
 

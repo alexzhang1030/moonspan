@@ -41,4 +41,5 @@ public-SDK demo ([docs/sdk.md](../../docs/sdk.md)).
 
 The page loads `sdk/typescript/dist/index.js` (Worker path, not
 `inline: true`). `just build` must have produced `dist/` first; the
-server exits with a short error if that file is missing.
+server exits with a short error if that file is missing. The page uses
+`init` + `Node` like rclcpp.

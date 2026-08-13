@@ -10,7 +10,7 @@
  */
 
 import path from "node:path";
-import { connect, STD_MSGS_STRING } from "@rclweb/sdk";
+import { init, Node, shutdown, std_msgs } from "@rclweb/sdk";
 import { summarize } from "./stats.ts";
 
 const topic = process.env.RCLWEB_PERF_TOPIC ?? "/bench/stamp";
@@ -39,27 +39,26 @@ async function measureRclweb(): Promise<PathResult> {
     process.env.RCLWEB_WASM_URL ??
     pathToFileUrl(path.join(repoRoot, "sdk/typescript/wasm/rclweb.wasm"));
   try {
-    const client = await connect(rclwebUrl, { inline: true, wasmUrl });
-    const sub = await client.session.subscribe(topic, STD_MSGS_STRING);
+    await init(rclwebUrl, { inline: true, wasmUrl });
+    const node = new Node("perf_measure");
     const samples: number[] = [];
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(
         () => reject(new Error("rclweb timeout")),
         timeoutMs,
       );
-      sub.onMessage((msg, lease) => {
+      node.createSubscription(std_msgs.msg.String, topic, 10, (msg) => {
         const sent = Number(msg.data);
         if (Number.isFinite(sent) && sent > 0) {
           samples.push(Date.now() - sent);
         }
-        lease.release();
         if (samples.length >= minSamples) {
           clearTimeout(timer);
           resolve();
         }
       });
     });
-    await client.close();
+    await shutdown();
     return {
       system: "rclwebd",
       status: "measured",

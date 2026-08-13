@@ -36,7 +36,11 @@ R3-04 dropped the R1 static link of `std_msgs` / `sensor_msgs` typesupport from 
 
 ## Every sample lease has exactly one owner
 
-The engine reclaims a retained inbound slab only when every lease on it is released (`sweep_released` in `rclweb/src/engine/mod.rs` frees a buffer once ingest is done and its lease refcount hits zero). Any host or SDK code path that drops a sample without delivering it MUST release the lease at the drop site — otherwise the slab is pinned forever. The original R1-04 SDK leaked on three drop paths: the Worker's non-String sample branch and the no-handler branch in both `InlineClient` and `WorkerClient`. The no-handler race is reachable in normal operation because `subscribed` and the first samples can arrive in the same poll flush, before the application has called `onMessage`. Fixed in this change, with regression coverage in `sdk/typescript/test/sdk-poll.test.ts` (no-handler sample: `leasesReleased` must equal `samplesEmitted`). PointCloud2 delivery on the Worker copies `data` and releases at that copy site (unknown non-String types still drop-and-release).
+The engine reclaims a retained inbound slab only when every lease on it is released (`sweep_released` in `rclweb/src/engine/mod.rs` frees a buffer once ingest is done and its lease refcount hits zero). Any host or SDK code path that drops a sample without delivering it MUST release the lease at the drop site — otherwise the slab is pinned forever. The original R1-04 SDK leaked on three drop paths: the Worker's non-String sample branch and the no-handler branch in both `InlineClient` and `WorkerClient`. The no-handler race is reachable in normal operation because `subscribed` and the first samples can arrive in the same poll flush, before the application has called `onMessage`. Fixed in this change, with regression coverage in `sdk/typescript/test/sdk-poll.test.ts` (no-handler sample: `leasesReleased` must equal `samplesEmitted`). PointCloud2 delivery on the Worker copies `data` and releases at that copy site (unknown non-String types still drop-and-release). The public `Node` API releases after the user callback ([Public Node releases leases](#public-node-releases-leases)); `@rclweb/sdk/internal` `connect` still requires an explicit `lease.release()`.
+
+## Public Node releases leases
+
+`@rclweb/sdk` is rclcpp-shaped (`init` / `Node` / `createSubscription`). The callback receives an owned message; `Node` copies PointCloud2 `data` and calls `lease.release()` after the callback returns. Applications must not import `@rclweb/sdk/internal` `connect` unless they are hosting the poll ABI — that path still requires an explicit release. [R4-04](../../docs/milestones/r4-04-sdk.md).
 
 ## encodeHostBatch large-frame encoder
 
@@ -64,11 +68,11 @@ App events 13–14 and 17–20 include `lease_id` plus `payload_ptr`/`payload_le
 
 ## Worker PointCloud2 copies `data`, inline borrows it
 
-`rclweb_point_cloud2_meta` returns metadata plus an offset/len into the leased CDR. On `options.inline: true` the SDK hands the application a TypedArray into wasm memory (copy-budget 0 wasm→application; valid until `lease.release()`). The I/O Worker cannot share that memory with main without SAB, so it copies only the `data` field, releases the lease, and transfers the ArrayBuffer — same class of boundary copy as service/action CDR. Do not copy the whole CDR payload, and do not keep the lease outstanding after that copy (a 1 MiB cloud would then pin wasm *and* hold a JS copy). [R4-04](../../docs/milestones/r4-04-sdk.md), [architecture](../../docs/architecture.md#performance-contracts).
+`rclweb_point_cloud2_meta` returns metadata plus an offset/len into the leased CDR. On `options.inline: true` the host hands a TypedArray into wasm memory (copy-budget 0 wasm→application; valid until `lease.release()`). The I/O Worker cannot share that memory with main without SAB, so it copies only the `data` field, releases the lease, and transfers the ArrayBuffer — same class of boundary copy as service/action CDR. The public `Node` callback always owns a copy and never sees the lease. Do not copy the whole CDR payload, and do not keep the lease outstanding after a Worker copy (a 1 MiB cloud would then pin wasm *and* hold a JS copy). [R4-04](../../docs/milestones/r4-04-sdk.md), [architecture](../../docs/architecture.md#performance-contracts).
 
 ## PointCloud2 publish synthesizes fields
 
-The public `PointCloud2` type has no Header or PointField list. Outbound encode (`encode_point_cloud2_from_sdk_meta`) uses XYZ float32 fields when `fieldCount === 3` and `pointStep >= 12`, otherwise one UINT8 blob field. Stamp is zero and `frame_id` is empty. Republishing a received cloud round-trips `data` and the numeric meta, not header/fields. [R4-04](../../docs/milestones/r4-04-sdk.md).
+The public `sensor_msgs.msg.PointCloud2` class has Header and PointField list (ROS IDL names). The host command still sends numeric meta plus `data`; outbound encode (`encode_point_cloud2_from_sdk_meta`) uses XYZ float32 fields when `fields.length === 3` and `point_step >= 12`, otherwise one UINT8 blob field. Stamp is zero and `frame_id` is empty on the wire. Republishing a received cloud round-trips `data` and the numeric meta, not header stamp/`frame_id`. [R4-04](../../docs/milestones/r4-04-sdk.md).
 
 ## Phase 1 schema metadata JSON shape
 

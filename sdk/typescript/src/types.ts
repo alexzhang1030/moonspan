@@ -1,4 +1,4 @@
-/** Public SDK message and lease types. Protocol bytes stay inside the Worker. */
+/** Host/session message and lease types. Application code uses `@rclweb/sdk` `Node`. */
 
 export const STD_MSGS_STRING = "std_msgs/msg/String" as const;
 
@@ -11,18 +11,7 @@ export type StdMsgsString = {
   data: string;
 };
 
-/**
- * `sensor_msgs/msg/PointCloud2` as delivered to `onMessage` and accepted by
- * `publish`.
- *
- * `data` is a TypedArray view into wasm memory on the inline host (0 copies,
- * valid until `lease.release()`). On the I/O Worker path the Worker copies
- * only the `data` field and releases the lease before `postMessage`.
- *
- * Publish encodes in the wasm core. `fieldCount === 3` and `pointStep >= 12`
- * synthesizes XYZ float32 fields; the header stamp is zero and `frame_id`
- * is empty. Header and PointField descriptors are not part of this type.
- */
+/** Host/session wire shape for PointCloud2. Application code uses `sensor_msgs.msg.PointCloud2`. */
 export type PointCloud2 = {
   height: number;
   width: number;

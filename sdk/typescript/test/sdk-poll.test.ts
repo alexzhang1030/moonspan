@@ -1,8 +1,9 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { SENSOR_MSGS_POINT_CLOUD2, STD_MSGS_STRING } from "../src/index.ts";
 import {
+  SENSOR_MSGS_POINT_CLOUD2,
+  STD_MSGS_STRING,
   connectOfflineForTests,
   decodePollResult,
   encodeHostBatch,
@@ -34,28 +35,47 @@ test("sdk package identity and privacy", () => {
 test("public runtime exports stay application-facing", async () => {
   const sdk = await import("../src/index.ts");
   expect(Object.keys(sdk).sort()).toEqual([
-    "DEFAULT_QOS_DEPTH",
-    "SENSOR_MSGS_POINT_CLOUD2",
-    "STD_MSGS_STRING",
-    "connect",
+    "Client",
+    "Header",
+    "KeepLast",
+    "Node",
+    "PointCloud2",
+    "PointField",
+    "Publisher",
+    "QoS",
+    "Service",
+    "String",
+    "Subscription",
+    "Time",
+    "WallTimer",
+    "builtin_interfaces",
     "decodeCertificateHashValue",
     "fetchLocalDevTlsHashes",
     "httpOriginFromWebTransportUrl",
-    "isPointCloud2",
-    "isStdMsgsString",
+    "init",
+    "ok",
+    "sensor_msgs",
+    "shutdown",
+    "spin",
+    "std_msgs",
   ]);
+  expect(sdk).not.toHaveProperty("connect");
   expect(sdk).not.toHaveProperty("loadWasm");
   expect(sdk).not.toHaveProperty("IoHost");
   expect(sdk).not.toHaveProperty("connectOfflineForTests");
   expect(sdk).not.toHaveProperty("encodeHostBatch");
+  expect(sdk).not.toHaveProperty("STD_MSGS_STRING");
 });
 
 test("workspace export map resolves public and internal subpaths", async () => {
   const pub = await import("@rclweb/sdk");
   const intern = await import("@rclweb/sdk/internal");
-  expect(typeof pub.connect).toBe("function");
+  expect(typeof pub.init).toBe("function");
+  expect(typeof pub.Node).toBe("function");
+  expect(pub.std_msgs.msg.String.typeName).toBe("std_msgs/msg/String");
   expect(typeof intern.resolveIoWorkerUrl).toBe("function");
-  expect(intern).not.toHaveProperty("connect");
+  expect(typeof intern.connect).toBe("function");
+  expect(intern).not.toHaveProperty("init");
 });
 
 test("I/O Worker URL follows the loading script extension", () => {

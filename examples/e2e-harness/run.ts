@@ -1,9 +1,9 @@
 /**
- * Headless live-subscribe harness: connect (inline) → subscribe /chatter → assert samples.
+ * Headless live-subscribe harness: init → Node subscribe /chatter → assert samples.
  * Gate is process exit 0. H-FT live e2e sets `RCLWEB_SUPPORT_ROW`.
  */
 import path from "node:path";
-import { connect, STD_MSGS_STRING } from "@rclweb/sdk";
+import { init, Node, shutdown, std_msgs } from "@rclweb/sdk";
 
 const gatewayUrl =
   process.env.RCLWEB_GATEWAY_URL ?? "ws://127.0.0.1:8794/ws";
@@ -45,21 +45,19 @@ async function waitHealthy(url: string, deadlineMs: number): Promise<void> {
 async function main(): Promise<void> {
   await waitHealthy(healthUrl, timeoutMs);
 
-  const client = await connect(gatewayUrl, {
+  await init(gatewayUrl, {
     inline: true,
     wasmUrl,
   });
-
-  const sub = await client.session.subscribe("/chatter", STD_MSGS_STRING);
+  const node = new Node("e2e_harness");
   const samples: string[] = [];
   const samplePromise = new Promise<void>((resolve, reject) => {
     const timer = setTimeout(
       () => reject(new Error(`timeout waiting for ${minSamples} samples`)),
       timeoutMs,
     );
-    sub.onMessage((msg, lease) => {
+    node.createSubscription(std_msgs.msg.String, "/chatter", 10, (msg) => {
       samples.push(msg.data);
-      lease.release();
       if (samples.length >= minSamples) {
         clearTimeout(timer);
         resolve();
@@ -67,18 +65,9 @@ async function main(): Promise<void> {
     });
   });
   await samplePromise;
-
-  const engineTelemetry = client.telemetry();
-  await client.close();
+  await shutdown();
 
   console.log(`e2e ok (${supportRow}): ${samples.length} samples`);
-  if (
-    engineTelemetry &&
-    engineTelemetry.copiesIntoEngine > 0 &&
-    engineTelemetry.samplesEmitted < minSamples
-  ) {
-    throw new Error("telemetry samples_emitted below minSamples");
-  }
 }
 
 await main();
