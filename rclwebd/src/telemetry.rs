@@ -9,7 +9,9 @@ pub static PROCESS_TELEMETRY: GatewayTelemetry = GatewayTelemetry::new();
 /// Controllable-copy and disposition counters at the edge.
 #[derive(Debug)]
 pub struct GatewayTelemetry {
-  /// Times a serialized payload was copied into a framed sample buffer.
+  /// Times a serialized payload was copied into a framed sample buffer
+  /// (mock inject / `from_payload`). Live ROS take steals the prefixed
+  /// buffer and does not increment this.
   pub payload_copies: AtomicU64,
   /// Bytes copied in those operations.
   pub bytes_copied: AtomicU64,
@@ -72,7 +74,7 @@ impl GatewayTelemetry {
       payload_copies: self.payload_copies.load(Ordering::Relaxed),
       bytes_copied: self.bytes_copied.load(Ordering::Relaxed),
       samples_framed: self.samples_framed.load(Ordering::Relaxed),
-      controllable_copies_per_sample: 1,
+      controllable_copies_per_sample: 0,
       delivered: self.delivered.load(Ordering::Relaxed),
       sequence_gap: self.sequence_gap.load(Ordering::Relaxed),
       stale_sequence: self.stale_sequence.load(Ordering::Relaxed),
@@ -92,7 +94,9 @@ pub struct GatewayTelemetrySnapshot {
   pub payload_copies: u64,
   pub bytes_copied: u64,
   pub samples_framed: u64,
-  /// Structural: framing reuses the buffer from [`super::SubscriptionSample::from_payload`].
+  /// Structural: live take writes CDR into a header-prefixed buffer; framing
+  /// fills the R2WP header in place (0 extra payload copies). Mock inject
+  /// still copies into that layout via [`super::SubscriptionSample::from_payload`].
   pub controllable_copies_per_sample: u8,
   pub delivered: u64,
   pub sequence_gap: u64,

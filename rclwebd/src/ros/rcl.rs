@@ -10,6 +10,7 @@
 
 use super::ffi::bindings as b;
 use super::typesupport::{ActionTypeSupport, MessageTypeSupport, ServiceTypeSupport};
+use crate::backend::SAMPLE_HEADER_PREFIX;
 use crate::qos::EffectiveQos;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_void;
@@ -371,6 +372,9 @@ impl SerializedSubscription {
 
   /// Take one serialized message into `scratch`. `Ok(true)` when a message
   /// was taken, `Ok(false)` when the queue is empty.
+  ///
+  /// After `Ok(true)`, [`TakeBuffer::steal_prefixed_frame`] yields the
+  /// header-reserved buffer without copying the CDR body.
   pub fn take_serialized(&mut self, scratch: &mut TakeBuffer) -> Result<bool, RclError> {
     // SAFETY: scratch owns an initialized uint8 array that rcl resizes
     // with its stored allocator as needed.
@@ -1175,21 +1179,122 @@ impl ActionServer {
   }
 }
 
-/// Reused take buffer (rmw copies into it; rcl grows it as needed).
+/// Heap storage for a take/serialize buffer. rmw sees only the payload region
+/// after a reserved R2WP header prefix; allocator callbacks resize this Vec.
+struct PrefixedStorage {
+  vec: Vec<u8>,
+}
+
+impl PrefixedStorage {
+  fn ensure_payload_capacity(&mut self, payload_cap: usize) -> bool {
+    let Some(need) = SAMPLE_HEADER_PREFIX.checked_add(payload_cap) else {
+      return false;
+    };
+    if self.vec.capacity() < need {
+      let additional = need.saturating_sub(self.vec.len());
+      if self.vec.try_reserve(additional).is_err() {
+        return false;
+      }
+    }
+    if self.vec.len() < SAMPLE_HEADER_PREFIX {
+      self.vec.resize(SAMPLE_HEADER_PREFIX, 0);
+    }
+    // SAFETY: capacity >= need. Bytes past the prefix are written by rmw
+    // (or by rmw_serialize) before we expose `buffer_length` of them.
+    unsafe {
+      self.vec.set_len(need);
+    }
+    true
+  }
+
+  fn payload_ptr(&mut self) -> *mut u8 {
+    if self.vec.len() < SAMPLE_HEADER_PREFIX {
+      return std::ptr::null_mut();
+    }
+    // SAFETY: len >= PREFIX, so offset PREFIX is in bounds or one-past-end.
+    unsafe { self.vec.as_mut_ptr().add(SAMPLE_HEADER_PREFIX) }
+  }
+}
+
+/// # Safety
+/// `state` is the `PrefixedStorage` heap pointer stored on the matching
+/// [`TakeBuffer`]; only the ROS thread uses it.
+unsafe fn storage_from_state<'a>(state: *mut c_void) -> Option<&'a mut PrefixedStorage> {
+  if state.is_null() {
+    return None;
+  }
+  Some(unsafe { &mut *state.cast::<PrefixedStorage>() })
+}
+
+unsafe extern "C" fn prefixed_allocate(size: usize, state: *mut c_void) -> *mut c_void {
+  // SAFETY: rmw/rcutils pass the allocator state we stored in TakeBuffer::new.
+  let Some(storage) = (unsafe { storage_from_state(state) }) else {
+    return std::ptr::null_mut();
+  };
+  if !storage.ensure_payload_capacity(size) {
+    return std::ptr::null_mut();
+  }
+  storage.payload_ptr().cast()
+}
+
+unsafe extern "C" fn prefixed_deallocate(_pointer: *mut c_void, state: *mut c_void) {
+  // SAFETY: same state contract as `prefixed_allocate`.
+  let Some(storage) = (unsafe { storage_from_state(state) }) else {
+    return;
+  };
+  storage.vec.clear();
+}
+
+unsafe extern "C" fn prefixed_reallocate(
+  pointer: *mut c_void,
+  size: usize,
+  state: *mut c_void,
+) -> *mut c_void {
+  if size == 0 {
+    unsafe { prefixed_deallocate(pointer, state) };
+    return std::ptr::null_mut();
+  }
+  unsafe { prefixed_allocate(size, state) }
+}
+
+unsafe extern "C" fn prefixed_zero_allocate(
+  number_of_elements: usize,
+  size_of_element: usize,
+  state: *mut c_void,
+) -> *mut c_void {
+  let size = match number_of_elements.checked_mul(size_of_element) {
+    Some(size) => size,
+    None => return std::ptr::null_mut(),
+  };
+  let ptr = unsafe { prefixed_allocate(size, state) };
+  if !ptr.is_null() && size > 0 {
+    // SAFETY: allocate reserved `size` payload bytes at ptr.
+    unsafe { std::ptr::write_bytes(ptr.cast::<u8>(), 0, size) };
+  }
+  ptr
+}
+
+/// Reused take/serialize buffer. rmw copies CDR into the region after a
+/// reserved [`SAMPLE_HEADER_PREFIX`]; [`Self::steal_prefixed_frame`] takes
+/// that Vec so framing never copies the body again.
 pub struct TakeBuffer {
+  inner: Box<PrefixedStorage>,
   array: b::rcl_serialized_message_t,
 }
 
 impl TakeBuffer {
   pub fn new() -> Result<Self, RclError> {
-    // SAFETY: zero-initialized array + init with capacity 0.
-    unsafe {
-      let mut array = b::rcutils_get_zero_initialized_uint8_array();
-      let alloc = allocator();
-      let ret = b::rcutils_uint8_array_init(&mut array, 0, &alloc);
-      check(ret, "rcutils_uint8_array_init")?;
-      Ok(Self { array })
-    }
+    let mut inner = Box::new(PrefixedStorage { vec: Vec::new() });
+    let state = std::ptr::from_mut::<PrefixedStorage>(inner.as_mut()).cast();
+    let mut array = unsafe { b::rcutils_get_zero_initialized_uint8_array() };
+    array.allocator = b::rcutils_allocator_t {
+      allocate: Some(prefixed_allocate),
+      deallocate: Some(prefixed_deallocate),
+      reallocate: Some(prefixed_reallocate),
+      zero_allocate: Some(prefixed_zero_allocate),
+      state,
+    };
+    Ok(Self { inner, array })
   }
 
   #[must_use]
@@ -1197,15 +1302,32 @@ impl TakeBuffer {
     if self.array.buffer.is_null() || self.array.buffer_length == 0 {
       return &[];
     }
-    // SAFETY: rcl maintains buffer/buffer_length as a valid region.
+    // SAFETY: rcl/rmw maintain buffer/buffer_length as a valid region.
     unsafe { std::slice::from_raw_parts(self.array.buffer, self.array.buffer_length) }
   }
 
-  pub fn fini(mut self) {
-    // SAFETY: array was initialized in `new`.
-    unsafe {
-      let _ = b::rcutils_uint8_array_fini(&mut self.array);
+  /// Take ownership of the header-prefixed frame buffer after a successful
+  /// serialized take. The prefix is zeroed; the CDR body stays in place.
+  #[must_use]
+  pub fn steal_prefixed_frame(&mut self) -> Vec<u8> {
+    let payload_len = self.array.buffer_length;
+    let mut stolen = std::mem::take(&mut self.inner.vec);
+    let total = SAMPLE_HEADER_PREFIX.saturating_add(payload_len);
+    if stolen.len() < total {
+      stolen.resize(total, 0);
+    } else {
+      stolen.truncate(total);
     }
+    stolen[..SAMPLE_HEADER_PREFIX].fill(0);
+    self.array.buffer = std::ptr::null_mut();
+    self.array.buffer_length = 0;
+    self.array.buffer_capacity = 0;
+    stolen
+  }
+
+  pub fn fini(self) {
+    // Vec-backed; Drop releases storage. Do not `rcutils_uint8_array_fini`
+    // — the buffer is not an rcutils default-allocator allocation.
   }
 }
 

@@ -8,6 +8,10 @@
 
 #![deny(unsafe_code)]
 
+#[cfg(all(target_family = "wasm", not(target_feature = "atomics")))]
+#[global_allocator]
+static TALC: talc::wasm::WasmDynamicTalc = talc::wasm::new_wasm_dynamic_allocator();
+
 pub mod cdr;
 pub mod engine;
 pub mod host;
@@ -53,7 +57,7 @@ pub use protocol::{
   TransportCapabilities, decode_control_message, decode_deterministic_cbor, decode_extension_area,
   encode_bootstrap_error, encode_client_hello, encode_control_frame, encode_deterministic_cbor,
   encode_extension_area, encode_frame, encode_server_hello, parse_bootstrap, parse_frame,
-  validate_control_message, write_frame_header,
+  parse_frame_declared, retain_declared_len, validate_control_message, write_frame_header,
 };
 pub use session::{
   ChannelEntry, ChannelResult, ChannelState, ChannelTable, OperationKind, Role, Session,
@@ -73,6 +77,6 @@ mod tests {
   #[test]
   fn crate_identity() {
     assert_eq!(env!("CARGO_PKG_NAME"), "rclweb");
-    assert_eq!(env!("CARGO_PKG_VERSION"), "0.0.2");
+    assert_eq!(env!("CARGO_PKG_VERSION"), "0.0.3");
   }
 }

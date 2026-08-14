@@ -7,6 +7,7 @@
 
 use crate::qos::EffectiveQos;
 use crate::telemetry::GatewayTelemetry;
+use bytes::Bytes;
 use tokio::sync::mpsc;
 
 /// Opaque backend entity handle (publisher, subscription, service, or action).
@@ -19,8 +20,8 @@ pub const SAMPLE_HEADER_PREFIX: usize = rclweb::FRAME_HEADER_LENGTH;
 ///
 /// `frame_buf` holds `SAMPLE_HEADER_PREFIX` reserved zero bytes followed by
 /// the serialized CDR payload, so the connection can fill the R2WP frame
-/// header in place and send without another payload copy (one controllable
-/// gateway copy total: rcl take buffer → this buffer).
+/// header in place. Live ROS take writes CDR into that layout (rmw copy
+/// only); [`Self::from_payload`] copies a borrowed slice into it (mock inject).
 #[derive(Debug)]
 pub struct SubscriptionSample {
   pub channel_id: u32,
@@ -28,8 +29,17 @@ pub struct SubscriptionSample {
 }
 
 impl SubscriptionSample {
+  /// Adopt an already-prefixed frame buffer (header zeros + CDR). No payload
+  /// copy — live ROS take writes CDR after the reserved prefix and steals
+  /// this Vec.
+  #[must_use]
+  pub fn from_prefixed_buffer(channel_id: u32, frame_buf: Vec<u8>) -> Self {
+    debug_assert!(frame_buf.len() >= SAMPLE_HEADER_PREFIX);
+    Self { channel_id, frame_buf }
+  }
+
   /// Build a sample buffer from a serialized payload (the one controllable
-  /// gateway copy).
+  /// gateway copy). Live ROS take uses [`Self::from_prefixed_buffer`] instead.
   #[must_use]
   pub fn from_payload(channel_id: u32, payload: &[u8]) -> Self {
     Self::from_payload_with_telemetry(channel_id, payload, None)
@@ -222,10 +232,13 @@ pub trait RosBackend: Send + Sync + 'static {
   ) -> impl Future<Output = Result<EntityId, BackendError>> + Send;
 
   /// Publish one serialized CDR payload on a previously created publisher.
+  ///
+  /// `payload` is a `Bytes` subslice of the inbound R2WP frame so the
+  /// connection does not copy CDR before the ROS thread borrows it.
   fn publish(
     &self,
     entity: EntityId,
-    payload: Vec<u8>,
+    payload: Bytes,
   ) -> impl Future<Output = Result<(), BackendError>> + Send;
 
   /// Destroy a publisher, subscription, service, or action entity (idempotent).
@@ -249,7 +262,7 @@ pub trait RosBackend: Send + Sync + 'static {
     &self,
     entity: EntityId,
     operation_id: [u8; 16],
-    request: Vec<u8>,
+    request: Bytes,
   ) -> impl Future<Output = Result<Vec<u8>, BackendError>> + Send;
 
   /// Reply on a service server entity for an inbound request.
@@ -257,7 +270,7 @@ pub trait RosBackend: Send + Sync + 'static {
     &self,
     entity: EntityId,
     operation_id: [u8; 16],
-    response: Vec<u8>,
+    response: Bytes,
   ) -> impl Future<Output = Result<(), BackendError>> + Send;
 
   /// Opaque action client entity.
@@ -278,7 +291,7 @@ pub trait RosBackend: Send + Sync + 'static {
     &self,
     entity: EntityId,
     operation_id: [u8; 16],
-    request: Vec<u8>,
+    request: Bytes,
   ) -> impl Future<Output = Result<Vec<u8>, BackendError>> + Send;
 
   /// Cancel on an action client; mock returns the cancel response payload.
@@ -286,7 +299,7 @@ pub trait RosBackend: Send + Sync + 'static {
     &self,
     entity: EntityId,
     operation_id: [u8; 16],
-    request: Vec<u8>,
+    request: Bytes,
   ) -> impl Future<Output = Result<Vec<u8>, BackendError>> + Send;
 
   /// Forward feedback from an ActionServer (browser) toward ROS.
@@ -294,7 +307,7 @@ pub trait RosBackend: Send + Sync + 'static {
     &self,
     entity: EntityId,
     operation_id: [u8; 16],
-    payload: Vec<u8>,
+    payload: Bytes,
   ) -> impl Future<Output = Result<(), BackendError>> + Send;
 
   /// Forward result from an ActionServer (browser) toward ROS.
@@ -302,7 +315,7 @@ pub trait RosBackend: Send + Sync + 'static {
     &self,
     entity: EntityId,
     operation_id: [u8; 16],
-    payload: Vec<u8>,
+    payload: Bytes,
   ) -> impl Future<Output = Result<(), BackendError>> + Send;
 
   /// Forward status from an ActionServer (browser) toward ROS.
@@ -310,9 +323,33 @@ pub trait RosBackend: Send + Sync + 'static {
     &self,
     entity: EntityId,
     operation_id: [u8; 16],
-    payload: Vec<u8>,
+    payload: Bytes,
   ) -> impl Future<Output = Result<(), BackendError>> + Send;
 
   /// Current graph view for GraphSnapshot / GraphDelta.
   fn graph_view(&self) -> impl Future<Output = Result<GraphView, BackendError>> + Send;
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn from_prefixed_buffer_keeps_payload_in_place() {
+    let mut frame_buf = vec![0u8; SAMPLE_HEADER_PREFIX + 4];
+    frame_buf[SAMPLE_HEADER_PREFIX..].copy_from_slice(b"abcd");
+    let ptr = frame_buf[SAMPLE_HEADER_PREFIX..].as_ptr();
+    let sample = SubscriptionSample::from_prefixed_buffer(7, frame_buf);
+    assert_eq!(sample.channel_id, 7);
+    assert_eq!(sample.payload(), b"abcd");
+    assert_eq!(sample.payload().as_ptr(), ptr, "steal must not copy CDR");
+  }
+
+  #[test]
+  fn from_payload_reserves_header_prefix() {
+    let sample = SubscriptionSample::from_payload(3, b"xy");
+    assert_eq!(sample.frame_buf.len(), SAMPLE_HEADER_PREFIX + 2);
+    assert!(sample.frame_buf[..SAMPLE_HEADER_PREFIX].iter().all(|b| *b == 0));
+    assert_eq!(sample.payload(), b"xy");
+  }
 }

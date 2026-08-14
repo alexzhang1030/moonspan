@@ -1,6 +1,7 @@
 /**
  * Shared I/O + wasm poll host used by the Worker and the inline (test) path.
  * Owns the transport (WebSocket or WebTransport) and transferable ingest.
+ * Idle-queue ROS_SAMPLE does not enter a poll batch (ADR 0017).
  */
 
 import {
@@ -11,15 +12,22 @@ import {
   type WasmExports,
   decodeGeneratedBytes,
   decodePointCloud2Meta,
+  decodeStdMsgsStringAt,
   loadWasm,
   pointCloud2DataView,
   pollEngine,
-  readTelemetry,
+  readTelemetryAt,
+  tryPinHostSample,
 } from "./wasm/abi.ts";
+import { decodePointCloud2Cdr, decodeStdMsgsStringCdr } from "./cdr-le.ts";
 import {
   decodeGeneratedHostValue,
   type GeneratedMsg,
 } from "./generated-value.ts";
+import {
+  PointCloud2 as PointCloud2Msg,
+  isGeneratedMsgType,
+} from "./interfaces.ts";
 import type { PointCloud2, ServerCertificateHash } from "./types.ts";
 import {
   decodeCertificateHashValue,
@@ -79,6 +87,7 @@ export class IoHost {
   #lastTelemetry: EngineTelemetrySnapshot | null = null;
   #suppressCloseHandler = false;
   #connectOptions: HostConnectOptions = {};
+  #telemetryPtr = 0;
 
   private constructor(wasm: WasmExports, handle: number, callbacks: HostCallbacks) {
     this.#wasm = wasm;
@@ -119,7 +128,7 @@ export class IoHost {
     this.#sink = {
       send: (bytes) => {
         if (ws.readyState === WebSocket.OPEN) {
-          ws.send(bytes.slice().buffer);
+          ws.send(bytes);
         }
       },
       close: () => ws.close(),
@@ -140,11 +149,7 @@ export class IoHost {
         this.#callbacks.onTransportError("non-binary websocket message");
         return;
       }
-      this.#enqueue({
-        type: "wsBytes",
-        bufferId: 0,
-        bytes: new Uint8Array(data),
-      });
+      this.#ingestWsBytes(new Uint8Array(data));
     });
     ws.addEventListener("error", () => {
       this.#callbacks.onTransportError("websocket error");
@@ -202,7 +207,7 @@ export class IoHost {
           const len = new Uint8Array(4);
           new DataView(len.buffer).setUint32(0, bytes.byteLength, false);
           await writer.write(len);
-          await writer.write(bytes.slice());
+          await writer.write(bytes);
         },
         close: () => {
           try {
@@ -257,11 +262,7 @@ export class IoHost {
           if (pending.length < 4 + len) break;
           const frame = pending.slice(4, 4 + len);
           pending = pending.slice(4 + len);
-          this.#enqueue({
-            type: "wsBytes",
-            bufferId: 0,
-            bytes: frame,
-          });
+          this.#ingestWsBytes(frame);
         }
       }
     } catch (err) {
@@ -273,7 +274,7 @@ export class IoHost {
 
   /** Feed scripted bytes (tests) as if they arrived on the WebSocket. */
   ingestBytes(bytes: Uint8Array): void {
-    this.#enqueue({ type: "wsBytes", bufferId: 0, bytes });
+    this.#ingestWsBytes(bytes);
   }
 
   /** Start bootstrap without a live socket (scripted-peer tests). */
@@ -510,7 +511,42 @@ export class IoHost {
     });
   }
 
-  copyPayload(payloadPtr: number, payloadLen: number): Uint8Array {
+  /**
+   * Fill `stringData` from the leased CDR when wasm omitted it (wasm ingest
+   * no longer copies the String body through the poll result).
+   */
+  fillStringSample(
+    event: Extract<AppEvent, { type: "sample" }>,
+    typeName: string | undefined,
+  ): void {
+    if (event.stringData != null) return;
+    if (
+      typeName &&
+      (isGeneratedMsgType(typeName) ||
+        typeName === PointCloud2Msg.typeName ||
+        typeName === "sensor_msgs/PointCloud2")
+    ) {
+      return;
+    }
+    if (event.hostPayload) {
+      event.stringData = decodeStdMsgsStringCdr(event.hostPayload);
+      return;
+    }
+    event.stringData = decodeStdMsgsStringAt(
+      this.#wasm,
+      event.payloadPtr,
+      event.payloadLen,
+    );
+  }
+
+  copyPayload(
+    payloadPtr: number,
+    payloadLen: number,
+    hostPayload?: Uint8Array,
+  ): Uint8Array {
+    if (hostPayload) {
+      return hostPayload.slice();
+    }
     return new Uint8Array(
       this.#wasm.memory.buffer,
       payloadPtr,
@@ -524,13 +560,18 @@ export class IoHost {
   }
 
   /**
-   * Borrowed PointCloud2 view into wasm memory. Valid while the sample lease
+   * Borrowed PointCloud2 view. Host-retained samples view the WebSocket
+   * buffer; wasm-backed samples view linear memory. Valid while the lease
    * is outstanding. Returns null when the payload is not PointCloud2 CDR.
    */
   decodePointCloud2(
     payloadPtr: number,
     payloadLen: number,
+    hostPayload?: Uint8Array,
   ): PointCloud2 | null {
+    if (hostPayload) {
+      return decodePointCloud2Cdr(hostPayload);
+    }
     try {
       const meta = decodePointCloud2Meta(this.#wasm, payloadPtr, payloadLen);
       return assemblePointCloud2(
@@ -544,19 +585,17 @@ export class IoHost {
 
   /**
    * Owned copy of PointCloud2 metadata plus the `data` field only.
-   * Used on the I/O Worker path so main never holds a wasm pointer.
+   * Used on the I/O Worker path so main never holds a wasm pointer or a
+   * Worker-local WebSocket buffer.
    */
   copyPointCloud2(
     payloadPtr: number,
     payloadLen: number,
+    hostPayload?: Uint8Array,
   ): PointCloud2 | null {
-    try {
-      const meta = decodePointCloud2Meta(this.#wasm, payloadPtr, payloadLen);
-      const view = pointCloud2DataView(this.#wasm, payloadPtr, meta);
-      return assemblePointCloud2(meta, view.slice());
-    } catch {
-      return null;
-    }
+    const borrowed = this.decodePointCloud2(payloadPtr, payloadLen, hostPayload);
+    if (!borrowed) return null;
+    return { ...borrowed, data: borrowed.data.slice() };
   }
 
   /**
@@ -567,14 +606,16 @@ export class IoHost {
     typeName: string,
     payloadPtr: number,
     payloadLen: number,
+    hostPayload?: Uint8Array,
   ): GeneratedMsg | null {
     try {
-      const bytes = decodeGeneratedBytes(
-        this.#wasm,
+      const bytes = this.#decodeGeneratedBytes(
         typeName,
         payloadPtr,
         payloadLen,
+        hostPayload,
       );
+      if (!bytes) return null;
       return decodeGeneratedHostValue(typeName, bytes) as GeneratedMsg;
     } catch {
       return null;
@@ -589,16 +630,43 @@ export class IoHost {
     typeName: string,
     payloadPtr: number,
     payloadLen: number,
+    hostPayload?: Uint8Array,
   ): Uint8Array | null {
     try {
-      return decodeGeneratedBytes(
-        this.#wasm,
+      return this.#decodeGeneratedBytes(
         typeName,
         payloadPtr,
         payloadLen,
+        hostPayload,
       );
     } catch {
       return null;
+    }
+  }
+
+  #decodeGeneratedBytes(
+    typeName: string,
+    payloadPtr: number,
+    payloadLen: number,
+    hostPayload?: Uint8Array,
+  ): Uint8Array | null {
+    if (!hostPayload) {
+      return decodeGeneratedBytes(this.#wasm, typeName, payloadPtr, payloadLen);
+    }
+    const len = hostPayload.length;
+    const ptr = this.#wasm.rclweb_alloc(len);
+    if (ptr === 0 && len !== 0) {
+      throw new Error("rclweb_alloc failed for host-retained generated CDR");
+    }
+    try {
+      if (len !== 0) {
+        new Uint8Array(this.#wasm.memory.buffer, ptr, len).set(hostPayload);
+      }
+      return decodeGeneratedBytes(this.#wasm, typeName, ptr, len);
+    } finally {
+      if (len !== 0) {
+        this.#wasm.rclweb_free(ptr, len);
+      }
     }
   }
 
@@ -653,6 +721,10 @@ export class IoHost {
     this.#pending = [];
     this.#flushScheduled = false;
     this.#disposed = true;
+    if (this.#telemetryPtr !== 0) {
+      this.#wasm.rclweb_free(this.#telemetryPtr, 56);
+      this.#telemetryPtr = 0;
+    }
     if (this.#handle !== 0) {
       this.#wasm.rclweb_engine_free(this.#handle);
       this.#handle = 0;
@@ -663,6 +735,23 @@ export class IoHost {
     if (this.#disposed) return;
     this.#pending.push(event);
     this.#scheduleFlush();
+  }
+
+  /**
+   * No-extension ROS_SAMPLE on an idle queue skips the poll batch: pin the
+   * WS buffer and emit the sample. A sample that arrives while control is
+   * already queued stays ordered behind that flush (ADR 0017).
+   */
+  #ingestWsBytes(bytes: Uint8Array): void {
+    if (this.#disposed || this.#handle === 0) return;
+    if (this.#pending.length === 0) {
+      const event = tryPinHostSample(this.#handle, bytes);
+      if (event) {
+        this.#callbacks.onEvent(event);
+        return;
+      }
+    }
+    this.#enqueue({ type: "wsBytes", bufferId: 0, bytes });
   }
 
   #scheduleFlush(): void {
@@ -690,8 +779,11 @@ export class IoHost {
     const batch = this.#pending;
     this.#pending = [];
     const result = pollEngine(this.#wasm, this.#handle, batch);
-    this.#lastTelemetry = readTelemetry(this.#wasm, this.#handle);
-    this.#callbacks.onPollEnd?.(this.#lastTelemetry);
+    const onPollEnd = this.#callbacks.onPollEnd;
+    if (onPollEnd) {
+      this.#lastTelemetry = this.#readTelemetry();
+      onPollEnd(this.#lastTelemetry);
+    }
     for (const msg of result.outbound) {
       const sink = this.#sink;
       if (sink) {
@@ -730,11 +822,21 @@ export class IoHost {
       return this.#lastTelemetry;
     }
     try {
-      this.#lastTelemetry = readTelemetry(this.#wasm, this.#handle);
+      this.#lastTelemetry = this.#readTelemetry();
     } catch {
       // keep last known
     }
     return this.#lastTelemetry;
+  }
+
+  #readTelemetry(): EngineTelemetrySnapshot {
+    if (this.#telemetryPtr === 0) {
+      this.#telemetryPtr = this.#wasm.rclweb_alloc(56);
+      if (this.#telemetryPtr === 0) {
+        throw new Error("rclweb_alloc failed for telemetry");
+      }
+    }
+    return readTelemetryAt(this.#wasm, this.#handle, this.#telemetryPtr);
   }
 }
 

@@ -118,6 +118,39 @@ fn opcode_allows_ros_reliable(opcode: u8) -> bool {
   )
 }
 
+/// Application-data opcodes whose CDR body may stay on the host (ADR 0017).
+/// CONTROL_CBOR still requires the inline CBOR payload.
+pub fn opcode_allows_host_retain(opcode: u8) -> bool {
+  (OPCODE_ROS_SAMPLE..=OPCODE_ASSET_CHUNK).contains(&opcode)
+}
+
+/// Header-declared frame size: `32 + extension_len + payload_len`.
+#[must_use]
+pub fn frame_declared_total(bytes: &[u8]) -> Option<usize> {
+  if bytes.len() < FRAME_HEADER_LENGTH {
+    return None;
+  }
+  let payload_len = u32::from_be_bytes(bytes[24..28].try_into().ok()?) as usize;
+  let extension_len = u16::from_be_bytes(bytes[28..30].try_into().ok()?) as usize;
+  FRAME_HEADER_LENGTH.checked_add(extension_len)?.checked_add(payload_len)
+}
+
+/// Declared size used when retaining a complete frame or a header+extension prefix.
+#[must_use]
+pub fn retain_declared_len(bytes: &[u8]) -> usize {
+  let Some(total) = frame_declared_total(bytes) else {
+    return bytes.len();
+  };
+  if bytes.len() == total {
+    return total;
+  }
+  let extension_len = u16::from_be_bytes([bytes[28], bytes[29]]) as usize;
+  if bytes.len() == FRAME_HEADER_LENGTH + extension_len {
+    return total;
+  }
+  bytes.len()
+}
+
 fn checked_add(a: usize, b: usize, offset: usize) -> Result<usize, ProtocolError> {
   a.checked_add(b)
     .ok_or_else(|| ProtocolError::message_too_large_frame("payload_too_large", offset, 4))
@@ -128,8 +161,28 @@ pub fn parse_frame<'a>(
   bytes: &'a [u8],
   options: Option<&FrameOptions>,
 ) -> Result<DecodedFrame<'a>, ProtocolError> {
-  let default_opts = FrameOptions::default();
-  let opts = options.unwrap_or(&default_opts);
+  parse_frame_declared(bytes, bytes.len(), options)
+}
+
+/// Parse a selected-version frame whose header-declared size may exceed `bytes`.
+///
+/// `declared_total` is the size the header claims (`32 + ext + payload`). The
+/// gateway and public `parse_frame` always pass `bytes.len()`. The wasm host
+/// may pass only the header+extension prefix for application-data opcodes
+/// (ADR 0017); the CDR body stays in the JS buffer.
+pub fn parse_frame_declared<'a>(
+  bytes: &'a [u8],
+  declared_total: usize,
+  options: Option<&FrameOptions>,
+) -> Result<DecodedFrame<'a>, ProtocolError> {
+  let fallback;
+  let opts = match options {
+    Some(opts) => opts,
+    None => {
+      fallback = FrameOptions::default();
+      &fallback
+    }
+  };
 
   // Step 1
   if bytes.len() < FRAME_HEADER_LENGTH {
@@ -166,7 +219,12 @@ pub fn parse_frame<'a>(
   // Step 4
   let after_header = checked_add(FRAME_HEADER_LENGTH, extension_len as usize, 0)?;
   let expected_total = checked_add(after_header, payload_len as usize, 0)?;
-  if bytes.len() != expected_total {
+  if declared_total != expected_total {
+    return Err(ProtocolError::malformed_frame("exact_total_mismatch", 0, 4));
+  }
+  let host_retain_prefix =
+    bytes.len() == after_header && payload_len > 0 && opcode_allows_host_retain(opcode);
+  if bytes.len() != expected_total && !host_retain_prefix {
     return Err(ProtocolError::malformed_frame("exact_total_mismatch", 0, 4));
   }
 
@@ -268,6 +326,8 @@ pub fn parse_frame<'a>(
       Ok(msg) => FramePayload::Control(msg),
       Err(e) => return Err(map_control_error(e, payload_start)),
     }
+  } else if host_retain_prefix {
+    FramePayload::Application(&[])
   } else {
     FramePayload::Application(&bytes[payload_start..payload_end])
   };
@@ -341,6 +401,26 @@ mod unit_tests {
       FramePayload::Application(p) => assert!(p.is_empty()),
       _ => panic!("expected application payload"),
     }
+  }
+
+  #[test]
+  fn prefix_only_sample_parses_with_empty_payload_view() {
+    let mut bytes = vec![0u8; FRAME_HEADER_LENGTH];
+    bytes[0] = 0;
+    bytes[1] = OPCODE_ROS_SAMPLE;
+    bytes[4..8].copy_from_slice(&1u32.to_be_bytes());
+    bytes[24..28].copy_from_slice(&4u32.to_be_bytes());
+    bytes[30] = 2;
+    bytes[31] = 0;
+    let declared = FRAME_HEADER_LENGTH + 4;
+    let frame = parse_frame_declared(&bytes, declared, None).expect("prefix sample");
+    assert_eq!(frame.payload_len, 4);
+    match frame.payload {
+      FramePayload::Application(p) => assert!(p.is_empty()),
+      _ => panic!("expected application payload"),
+    }
+    let err = parse_frame(&bytes, None).unwrap_err();
+    assert_eq!(err.reason, "exact_total_mismatch");
   }
 
   #[test]

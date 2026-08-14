@@ -9,7 +9,7 @@ rclweb turns design targets into release authority through reproducible conforma
 | Wire agreement | CDR, schemas, graph, QoS, and ROS time agree for the gated rows (`just test`, committed corpus) |
 | Live path | Talker → `rclwebd` → TypeScript subscribe in CI (`just e2e`, `just e2e-h-ft`, `just e2e-row`) |
 | Browser runtime | Wasm core plus real ROS operations (subscribe, publish, service, action, graph, parameters) |
-| Release | Identity, policy, deployment, reviewed matrix, and package `rcl-web@0.0.3` |
+| Release | Identity, policy, deployment, reviewed matrix, and package `rcl-web@0.0.4` |
 
 ## Live path
 
@@ -22,7 +22,7 @@ ROS talker
   -> typed event in a demo page or harness
 ```
 
-`just e2e` / `just e2e-h-ft` / `just e2e-row` are the live gates. `just poll-latency`, `just large-message`, and `just perf-baseline` print measurements to stdout. Do not commit that output.
+`just e2e` / `just e2e-h-ft` / `just e2e-row` are the live gates. `just perf-baseline` prints latency / CPU / RSS to stdout. Do not commit that output. Details: [performance](./performance.md).
 
 ## Engineering targets
 

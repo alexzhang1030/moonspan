@@ -181,11 +181,11 @@ impl RosBackend for MockBackend {
     Ok(entity)
   }
 
-  async fn publish(&self, entity: EntityId, payload: Vec<u8>) -> Result<(), BackendError> {
+  async fn publish(&self, entity: EntityId, payload: Bytes) -> Result<(), BackendError> {
     if !self.inner.lock().unwrap().publishers.contains_key(&entity) {
       return Err(BackendError::new(13, "unknown publisher entity"));
     }
-    self.published.lock().unwrap().push((entity, payload));
+    self.published.lock().unwrap().push((entity, payload.to_vec()));
     Ok(())
   }
 
@@ -230,7 +230,7 @@ impl RosBackend for MockBackend {
     &self,
     entity: EntityId,
     _operation_id: [u8; 16],
-    request: Vec<u8>,
+    request: Bytes,
   ) -> Result<Vec<u8>, BackendError> {
     let inner = self.inner.lock().unwrap();
     let Some(service) = inner.services.get(&entity) else {
@@ -250,7 +250,7 @@ impl RosBackend for MockBackend {
     &self,
     entity: EntityId,
     operation_id: [u8; 16],
-    response: Vec<u8>,
+    response: Bytes,
   ) -> Result<(), BackendError> {
     let mut inner = self.inner.lock().unwrap();
     let Some(service) = inner.services.get(&entity) else {
@@ -259,7 +259,7 @@ impl RosBackend for MockBackend {
     if service.sink.is_none() {
       return Err(BackendError::new(13, "response on service client entity"));
     }
-    inner.service_responses.push((entity, operation_id, response));
+    inner.service_responses.push((entity, operation_id, response.to_vec()));
     Ok(())
   }
 
@@ -295,7 +295,7 @@ impl RosBackend for MockBackend {
     &self,
     entity: EntityId,
     _operation_id: [u8; 16],
-    request: Vec<u8>,
+    request: Bytes,
   ) -> Result<Vec<u8>, BackendError> {
     let inner = self.inner.lock().unwrap();
     let Some(action) = inner.actions.get(&entity) else {
@@ -314,26 +314,26 @@ impl RosBackend for MockBackend {
     &self,
     entity: EntityId,
     _operation_id: [u8; 16],
-    request: Vec<u8>,
+    request: Bytes,
   ) -> Result<Vec<u8>, BackendError> {
     let inner = self.inner.lock().unwrap();
     if !inner.actions.contains_key(&entity) {
       return Err(BackendError::new(13, "unknown action client entity"));
     }
-    Ok(request)
+    Ok(request.to_vec())
   }
 
   async fn send_action_feedback(
     &self,
     entity: EntityId,
     operation_id: [u8; 16],
-    payload: Vec<u8>,
+    payload: Bytes,
   ) -> Result<(), BackendError> {
     let mut inner = self.inner.lock().unwrap();
     if !inner.actions.contains_key(&entity) {
       return Err(BackendError::new(13, "unknown action server entity"));
     }
-    inner.action_feedback.push((entity, operation_id, payload));
+    inner.action_feedback.push((entity, operation_id, payload.to_vec()));
     Ok(())
   }
 
@@ -341,13 +341,13 @@ impl RosBackend for MockBackend {
     &self,
     entity: EntityId,
     operation_id: [u8; 16],
-    payload: Vec<u8>,
+    payload: Bytes,
   ) -> Result<(), BackendError> {
     let mut inner = self.inner.lock().unwrap();
     if !inner.actions.contains_key(&entity) {
       return Err(BackendError::new(13, "unknown action server entity"));
     }
-    inner.action_results.push((entity, operation_id, payload));
+    inner.action_results.push((entity, operation_id, payload.to_vec()));
     Ok(())
   }
 
@@ -355,13 +355,13 @@ impl RosBackend for MockBackend {
     &self,
     entity: EntityId,
     operation_id: [u8; 16],
-    payload: Vec<u8>,
+    payload: Bytes,
   ) -> Result<(), BackendError> {
     let mut inner = self.inner.lock().unwrap();
     if !inner.actions.contains_key(&entity) {
       return Err(BackendError::new(13, "unknown action server entity"));
     }
-    inner.action_status.push((entity, operation_id, payload));
+    inner.action_status.push((entity, operation_id, payload.to_vec()));
     Ok(())
   }
 

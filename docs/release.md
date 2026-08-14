@@ -62,8 +62,8 @@ Bump the version in the tree (`typescript/package.json` and/or
 merge to `main`, then either:
 
 ```bash
-git tag v0.0.3
-git push origin v0.0.3
+git tag v0.0.4
+git push origin v0.0.4
 ```
 
 or run **Actions → release → Run workflow** (`npm` / `crates` checkboxes).
@@ -75,7 +75,7 @@ token; provenance is automatic — do not pass `--provenance`. Do not set
 The crates job stages `LICENSE` / `NOTICE`, publishes `rclweb`, then
 retries `rclwebd` until crates.io's index sees the new core crate.
 
-This cut: `rcl-web@0.0.3` and crates `0.0.2`. First OIDC automatic
+This cut: `rcl-web@0.0.4` and crates `0.0.3`. First OIDC automatic
 publish landed 2026-08-13 from tag `v0.0.3` on `e8365a8`
 ([release run](https://github.com/alexzhang1030/rclweb/actions/runs/31713576156)).
 The GitHub Release is a separate step from the tag

@@ -13,6 +13,7 @@ use crate::backend::{
   RosBackend, ServiceRequest, SubscriptionSample,
 };
 use crate::config::{SUPPORT_ROW_J_FT, parse_support_row};
+use bytes::Bytes;
 use std::collections::HashMap;
 use std::sync::mpsc::{SyncSender, sync_channel};
 use std::thread::JoinHandle;
@@ -39,7 +40,7 @@ enum Command {
   },
   Publish {
     entity: EntityId,
-    payload: Vec<u8>,
+    payload: Bytes,
     reply: oneshot::Sender<Result<(), BackendError>>,
   },
   CreateClient {
@@ -54,13 +55,13 @@ enum Command {
   Call {
     entity: EntityId,
     operation_id: [u8; 16], // wire correlation; rcl uses rmw request ids internally
-    request: Vec<u8>,
+    request: Bytes,
     reply: oneshot::Sender<Result<Vec<u8>, BackendError>>,
   },
   SendServiceResponse {
     entity: EntityId,
     operation_id: [u8; 16],
-    response: Vec<u8>,
+    response: Bytes,
     reply: oneshot::Sender<Result<(), BackendError>>,
   },
   CreateActionClient {
@@ -70,13 +71,13 @@ enum Command {
   SendActionGoal {
     entity: EntityId,
     operation_id: [u8; 16],
-    request: Vec<u8>,
+    request: Bytes,
     reply: oneshot::Sender<Result<Vec<u8>, BackendError>>,
   },
   CancelAction {
     entity: EntityId,
     operation_id: [u8; 16],
-    request: Vec<u8>,
+    request: Bytes,
     reply: oneshot::Sender<Result<Vec<u8>, BackendError>>,
   },
   CreateActionServer {
@@ -87,13 +88,13 @@ enum Command {
   SendActionFeedback {
     entity: EntityId,
     operation_id: [u8; 16],
-    payload: Vec<u8>,
+    payload: Bytes,
     reply: oneshot::Sender<Result<(), BackendError>>,
   },
   SendActionResult {
     entity: EntityId,
     operation_id: [u8; 16],
-    payload: Vec<u8>,
+    payload: Bytes,
     reply: oneshot::Sender<Result<(), BackendError>>,
   },
   SendActionStatus {
@@ -179,7 +180,7 @@ impl RosBackend for RclBackend {
     Self::await_reply(rx).await?
   }
 
-  async fn publish(&self, entity: EntityId, payload: Vec<u8>) -> Result<(), BackendError> {
+  async fn publish(&self, entity: EntityId, payload: Bytes) -> Result<(), BackendError> {
     let (reply, rx) = oneshot::channel();
     self.send(Command::Publish { entity, payload, reply })?;
     Self::await_reply(rx).await?
@@ -212,7 +213,7 @@ impl RosBackend for RclBackend {
     &self,
     entity: EntityId,
     operation_id: [u8; 16],
-    request: Vec<u8>,
+    request: Bytes,
   ) -> Result<Vec<u8>, BackendError> {
     let (reply, rx) = oneshot::channel();
     self.send(Command::Call { entity, operation_id, request, reply })?;
@@ -223,7 +224,7 @@ impl RosBackend for RclBackend {
     &self,
     entity: EntityId,
     operation_id: [u8; 16],
-    response: Vec<u8>,
+    response: Bytes,
   ) -> Result<(), BackendError> {
     let (reply, rx) = oneshot::channel();
     self.send(Command::SendServiceResponse { entity, operation_id, response, reply })?;
@@ -250,7 +251,7 @@ impl RosBackend for RclBackend {
     &self,
     entity: EntityId,
     operation_id: [u8; 16],
-    request: Vec<u8>,
+    request: Bytes,
   ) -> Result<Vec<u8>, BackendError> {
     let (reply, rx) = oneshot::channel();
     self.send(Command::SendActionGoal { entity, operation_id, request, reply })?;
@@ -261,7 +262,7 @@ impl RosBackend for RclBackend {
     &self,
     entity: EntityId,
     operation_id: [u8; 16],
-    request: Vec<u8>,
+    request: Bytes,
   ) -> Result<Vec<u8>, BackendError> {
     let (reply, rx) = oneshot::channel();
     self.send(Command::CancelAction { entity, operation_id, request, reply })?;
@@ -272,7 +273,7 @@ impl RosBackend for RclBackend {
     &self,
     entity: EntityId,
     operation_id: [u8; 16],
-    payload: Vec<u8>,
+    payload: Bytes,
   ) -> Result<(), BackendError> {
     let (reply, rx) = oneshot::channel();
     self.send(Command::SendActionFeedback { entity, operation_id, payload, reply })?;
@@ -283,7 +284,7 @@ impl RosBackend for RclBackend {
     &self,
     entity: EntityId,
     operation_id: [u8; 16],
-    payload: Vec<u8>,
+    payload: Bytes,
   ) -> Result<(), BackendError> {
     let (reply, rx) = oneshot::channel();
     self.send(Command::SendActionResult { entity, operation_id, payload, reply })?;
@@ -294,7 +295,7 @@ impl RosBackend for RclBackend {
     &self,
     entity: EntityId,
     _operation_id: [u8; 16],
-    _payload: Vec<u8>,
+    _payload: Bytes,
   ) -> Result<(), BackendError> {
     let (reply, rx) = oneshot::channel();
     self.send(Command::SendActionStatus { entity, reply })?;
@@ -732,9 +733,7 @@ impl Worker {
         SERVICE_CALL_TIMEOUT,
         || {
           self.drain_commands(commands);
-          self
-            .pump_services_and_subscriptions()
-            .map_err(|err| super::rcl::RclError { ret: err.code as i32, message: err.message })
+          self.pump_all_services_and_subscriptions().map_err(map_pump_error)
         },
       )
       .map_err(map_rcl_error);
@@ -784,7 +783,7 @@ impl Worker {
         ACTION_CALL_TIMEOUT,
         || {
           self.drain_commands(commands);
-          self.pump_services_and_subscriptions().map_err(map_pump_error)?;
+          self.pump_all_services_and_subscriptions().map_err(map_pump_error)?;
           self.pump_action_servers().map_err(map_pump_error)
         },
       )
@@ -910,19 +909,28 @@ impl Worker {
     Ok(())
   }
 
-  fn pump_services_and_subscriptions(&mut self) -> Result<(), BackendError> {
-    for index in 0..self.subscriptions.len() {
+  /// Drain every subscription/service without a wait-set filter. Same-thread
+  /// service/action loopback must pump the matching server while the client
+  /// call blocks on this thread.
+  fn pump_all_services_and_subscriptions(&mut self) -> Result<(), BackendError> {
+    let all_subs: Vec<usize> = (0..self.subscriptions.len()).collect();
+    self.pump_ready_subscriptions(&all_subs);
+    let svc_entities: Vec<EntityId> = self.services.keys().copied().collect();
+    let all_svc: Vec<usize> = (0..svc_entities.len()).collect();
+    self.pump_ready_services(&svc_entities, &all_svc);
+    Ok(())
+  }
+
+  fn pump_ready_subscriptions(&mut self, ready: &[usize]) {
+    for &index in ready {
       let Some(entry) = self.subscriptions.get_mut(index) else {
         continue;
       };
       loop {
         match entry.subscription.take_serialized(&mut self.take) {
           Ok(true) => {
-            let sample = SubscriptionSample::from_payload_with_telemetry(
-              entry.channel_id,
-              self.take.as_slice(),
-              Some(&crate::telemetry::PROCESS_TELEMETRY),
-            );
+            let frame_buf = self.take.steal_prefixed_frame();
+            let sample = SubscriptionSample::from_prefixed_buffer(entry.channel_id, frame_buf);
             let _ = entry.sink.try_send(sample);
           }
           Ok(false) => break,
@@ -933,8 +941,16 @@ impl Worker {
         }
       }
     }
+  }
 
-    for entry in self.services.values_mut() {
+  fn pump_ready_services(&mut self, order: &[EntityId], ready: &[usize]) {
+    for &index in ready {
+      let Some(&entity) = order.get(index) else {
+        continue;
+      };
+      let Some(entry) = self.services.get_mut(&entity) else {
+        continue;
+      };
       loop {
         match entry.service.take_request(entry.service_ts.request) {
           Ok(Some((header, cdr))) => {
@@ -951,7 +967,6 @@ impl Worker {
         }
       }
     }
-    Ok(())
   }
 
   fn pump_action_servers(&mut self) -> Result<(), BackendError> {
@@ -1056,16 +1071,18 @@ impl Worker {
     self.resize_wait_set_if_needed()?;
     let sub_handles: Vec<&SerializedSubscription> =
       self.subscriptions.iter().map(|entry| &entry.subscription).collect();
+    let svc_entities: Vec<EntityId> = self.services.keys().copied().collect();
     let svc_handles: Vec<&SerializedService> =
-      self.services.values().map(|entry| &entry.service).collect();
-    let _ready = self
+      svc_entities.iter().map(|id| &self.services[id].service).collect();
+    let ready = self
       .wait_set
       .wait(&sub_handles, &svc_handles, &self.guard, WAIT_TIMEOUT_NS)
       .map_err(map_rcl_error)?;
     drop(sub_handles);
     drop(svc_handles);
 
-    self.pump_services_and_subscriptions()?;
+    self.pump_ready_subscriptions(&ready.subscriptions);
+    self.pump_ready_services(&svc_entities, &ready.services);
     self.pump_action_servers()?;
     Ok(())
   }

@@ -56,13 +56,13 @@ Jazzy obtains native type descriptions and uses `rep2011-rihs`. Humble combines 
 
 ## Data path
 
-1. The adapter polls ROS and places serialized events into a bounded exchange.
-2. Rust resolves graph and schema state, attaches provenance, applies policy, and admits work to channel queues.
+1. The adapter polls ROS (`rcl_wait` ready indices) and takes serialized events into a header-prefixed buffer.
+2. Rust resolves graph and schema state, attaches provenance, applies policy, and admits work to channel queues. Framing fills the reserved R2WP header in place.
 3. The scheduler chooses control, stream, or datagram work according to reliability, priority, and deadline.
 4. Transport completion releases or recycles each buffer through its recorded owner.
-5. Browser operations follow the reverse path after policy and schema validation.
+5. Browser operations follow the reverse path after policy and schema validation. Inbound CDR stays a `Bytes` subslice of the received frame.
 
-The first implementation targets a measurable one-copy gateway path. Further sharing requires allocator, lifetime, and safety evidence.
+The inherent rmw copy is the framed payload. Further sharing (vectored writes, buffer recycling into the take pool) needs allocator, lifetime, and safety evidence.
 
 ## Scheduler and schema state
 

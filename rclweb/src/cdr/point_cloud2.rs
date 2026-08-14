@@ -126,7 +126,7 @@ pub fn decode_point_cloud2_le(bytes: &[u8]) -> Result<PointCloud2View<'_>, CdrEr
 pub fn encode_point_cloud2_le(view: &PointCloud2View<'_>) -> Result<Vec<u8>, CdrError> {
   let mut writer = CdrWriter::new_default(CdrEndian::Little)?;
   encode_point_cloud2(&mut writer, view)?;
-  Ok(writer.to_bytes())
+  Ok(writer.into_bytes())
 }
 
 /// Encode PointCloud2 CDR from an SDK view (header, fields, and `data`).

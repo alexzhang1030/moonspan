@@ -134,7 +134,7 @@ npm-pack: toolchain-check
     bun run scripts/npm-pack.ts --stage
     bun pm pack --cwd typescript
 
-# Verify the npm tarball is rcl-web@0.0.3 with the tsdown dist, LICENSE, NOTICE, and wasm.
+# Verify the npm tarball is rcl-web@0.0.4 with the tsdown dist, LICENSE, NOTICE, and wasm.
 [group('quality')]
 npm-pack-check: toolchain-check
     cd "{{root}}" && bun run scripts/npm-pack.ts --check
@@ -225,7 +225,7 @@ poll-latency: toolchain-check
 large-message: toolchain-check
     cd "{{root}}" && bun run scripts/measure-large-message.ts
 
-# R2-04 performance baseline (host workloads + protocol-cost models). Prints to stdout.
+# R2-04 performance baseline (latency / CPU / mem primary; copy-path and wire secondary). Prints to stdout.
 [group('quality')]
 perf-baseline: toolchain-check
     cd "{{root}}" && bun run scripts/measure-perf-baseline.ts

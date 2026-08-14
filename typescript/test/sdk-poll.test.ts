@@ -10,6 +10,7 @@ import {
   pollEngine,
   resolveIoWorkerUrl,
 } from "../src/internal.ts";
+import { decodeStdMsgsStringAt, hostRetainPrefixLen } from "../src/wasm/abi.ts";
 import { scriptedPeerFixtures } from "./scripted-peer.ts";
 
 const wasmPath = path.join(import.meta.dir, "..", "wasm", "rclweb.wasm");
@@ -25,7 +26,7 @@ test("sdk package identity and privacy", () => {
     files: string[];
   };
   expect(pkg.name).toBe("rcl-web");
-  expect(pkg.version).toBe("0.0.3");
+  expect(pkg.version).toBe("0.0.4");
   expect(pkg.private).toBe(false);
   expect(pkg.type).toBe("module");
   expect(pkg.files).toEqual(["dist", "wasm", "README.md", "LICENSE", "NOTICE"]);
@@ -138,12 +139,36 @@ test("wasm artifact loads and exports the poll ABI", async () => {
   expect(result.outbound.length).toBe(1);
   expect(result.outbound[0]!.bytes.length).toBeGreaterThan(12);
   expect(typeof wasm.rclweb_decode_generated).toBe("function");
+  expect(typeof wasm.rclweb_poll_ws).toBe("function");
   // Result codec round-trip
   const reencoded = encodeHostBatch([]);
   expect(reencoded[0]).toBeDefined();
   void batch;
   void decodePollResult;
   wasm.rclweb_engine_free(handle);
+});
+
+test("hostRetainPrefixLen copies only the R2WP header for application frames", () => {
+  const fixtures = scriptedPeerFixtures();
+  expect(hostRetainPrefixLen(fixtures.sample)).toBe(32);
+  expect(hostRetainPrefixLen(fixtures.pointCloud2Sample)).toBe(32);
+  expect(hostRetainPrefixLen(fixtures.serverHello)).toBeNull();
+  expect(hostRetainPrefixLen(fixtures.sessionReady)).toBeNull();
+  expect(hostRetainPrefixLen(new Uint8Array(8))).toBeNull();
+});
+
+test("decodeStdMsgsStringAt reads a filled (possibly uninit) wasm alloc", async () => {
+  const bytes = readFileSync(wasmPath);
+  const wasm = await loadWasm(bytes.buffer.slice(
+    bytes.byteOffset,
+    bytes.byteOffset + bytes.byteLength,
+  ));
+  const cdr = scriptedPeerFixtures().sample.subarray(32);
+  const ptr = wasm.rclweb_alloc(cdr.length);
+  expect(ptr).toBeGreaterThan(0);
+  new Uint8Array(wasm.memory.buffer, ptr, cdr.length).set(cdr);
+  expect(decodeStdMsgsStringAt(wasm, ptr, cdr.length)).toBe("hello-from-fixture");
+  wasm.rclweb_free(ptr, cdr.length);
 });
 
 test("scripted peer: connect → subscribe → String sample + lease release", async () => {
@@ -189,7 +214,52 @@ test("scripted peer: connect → subscribe → String sample + lease release", a
 
   expect(saw).not.toBeNull();
   expect(saw!.data).toBe("hello-from-fixture");
-  expect(saw!.leaseId).toBeGreaterThan(0);
+  expect(saw!.leaseId).toBeGreaterThanOrEqual(0x80000000);
+
+  await client.close();
+});
+
+test("scripted peer: idle-queue ROS_SAMPLE delivers without flushSync", async () => {
+  const { client, host, fixtures } = await offlineReady();
+  const subPromise = client.session.subscribe("/chatter", std_msgs.msg.String);
+  host.ingestBytes(fixtures.channelReady);
+  host.flushSync();
+  const sub = await subPromise;
+
+  let saw: string | null = null;
+  sub.onMessage((msg, lease) => {
+    saw = msg.data;
+    lease.release();
+  });
+
+  host.ingestBytes(fixtures.sample);
+  expect(saw).toBe("hello-from-fixture");
+
+  host.flushSync();
+  const telemetry = client.telemetry();
+  expect(telemetry!.leasesReleased).toBe(telemetry!.samplesEmitted);
+
+  await client.close();
+});
+
+test("scripted peer: ROS_SAMPLE behind a queued control frame waits for flush", async () => {
+  const { client, host, fixtures } = await offlineReady();
+  const subPromise = client.session.subscribe("/chatter", std_msgs.msg.String);
+  host.ingestBytes(fixtures.channelReady);
+  host.flushSync();
+  const sub = await subPromise;
+
+  let saw: string | null = null;
+  sub.onMessage((msg, lease) => {
+    saw = msg.data;
+    lease.release();
+  });
+
+  host.ingestBytes(fixtures.graphSnapshot);
+  host.ingestBytes(fixtures.sample);
+  expect(saw).toBeNull();
+  host.flushSync();
+  expect(saw).toBe("hello-from-fixture");
 
   await client.close();
 });
@@ -345,7 +415,7 @@ function readXyz(data: Uint8Array, index: number): [number, number, number] {
   ];
 }
 
-test("scripted peer: PointCloud2 sample is a borrowed wasm view", async () => {
+test("scripted peer: PointCloud2 sample is a borrowed view of the WS buffer", async () => {
   const fixtures = scriptedPeerFixtures();
   const wasmBytes = readFileSync(wasmPath);
   const client = await connectOfflineForTests(
@@ -370,6 +440,8 @@ test("scripted peer: PointCloud2 sample is a borrowed wasm view", async () => {
   const sub = await subPromise;
   expect(sub.typeName).toBe(sensor_msgs.msg.PointCloud2.typeName);
 
+  const bytesBefore = client.telemetry()?.bytesCopiedIntoEngine ?? 0;
+
   let saw: {
     width: number;
     height: number;
@@ -386,7 +458,7 @@ test("scripted peer: PointCloud2 sample is a borrowed wasm view", async () => {
       width: msg.width,
       height: msg.height,
       dataLen: msg.data.length,
-      borrowed: msg.data.buffer === host.engineMemory(),
+      borrowed: msg.data.buffer === fixtures.pointCloud2Sample.buffer,
       frameId: msg.frameId,
       stampSec: msg.stampSec,
       field0: msg.fields[0]?.name ?? "",
@@ -417,6 +489,7 @@ test("scripted peer: PointCloud2 sample is a borrowed wasm view", async () => {
   const telemetry = client.telemetry();
   expect(telemetry).not.toBeNull();
   expect(telemetry!.leasesReleased).toBe(telemetry!.samplesEmitted);
+  expect(telemetry!.bytesCopiedIntoEngine - bytesBefore).toBe(0);
 
   await client.close();
 });

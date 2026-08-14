@@ -6,8 +6,9 @@
 
 #![allow(unsafe_code)]
 
-use crate::engine::ClientEngine;
-use crate::host::batch::{BatchError, decode_host_batch, encode_poll_result};
+use crate::engine::{ClientEngine, HostEvent, PollOutcome};
+use crate::host::batch::{BatchError, decode_host_batch, encode_poll_result_into};
+use std::alloc::{Layout, alloc, dealloc};
 use std::cell::RefCell;
 use std::collections::HashMap;
 
@@ -28,17 +29,26 @@ fn map_batch_err(err: BatchError) -> i32 {
   }
 }
 
+fn alloc_layout(len: usize) -> Option<Layout> {
+  Layout::array::<u8>(len).ok()
+}
+
 /// Allocate `len` bytes in wasm linear memory. Returns null on failure.
+///
+/// The region is **uninitialized**. The host (or a wasm writer) must fill it
+/// before any read. Zeroing here was a full memset before the required ingest
+/// copy (header prefix on the sample path; full frame for control/bootstrap).
 #[unsafe(no_mangle)]
 pub extern "C" fn rclweb_alloc(len: u32) -> *mut u8 {
   if len == 0 {
     return std::ptr::null_mut();
   }
-  let mut buf = vec![0u8; len as usize];
-  let ptr = buf.as_mut_ptr();
-  // Leak the Vec so the host owns the region until rclweb_free.
-  std::mem::forget(buf);
-  ptr
+  let Some(layout) = alloc_layout(len as usize) else {
+    return std::ptr::null_mut();
+  };
+  // SAFETY: `len > 0` so the layout is non-zero. Matching [`rclweb_free`] and
+  // `Vec::from_raw_parts` in [`rclweb_poll`] use this same layout.
+  unsafe { alloc(layout) }
 }
 
 /// Free a region previously returned by [`rclweb_alloc`].
@@ -50,8 +60,11 @@ pub unsafe extern "C" fn rclweb_free(ptr: *mut u8, len: u32) {
   if ptr.is_null() || len == 0 {
     return;
   }
-  // SAFETY: host contract — ptr/len pair from rclweb_alloc.
-  let _ = unsafe { Vec::from_raw_parts(ptr, len as usize, len as usize) };
+  let Some(layout) = alloc_layout(len as usize) else {
+    return;
+  };
+  // SAFETY: host contract — ptr/len pair from rclweb_alloc with the same layout.
+  unsafe { dealloc(ptr, layout) };
 }
 
 /// Create a client engine. Returns a non-zero handle, or 0 on failure.
@@ -107,8 +120,9 @@ pub unsafe extern "C" fn rclweb_poll(handle: u32, batch_ptr: *const u8, batch_le
       return Err(BatchError::Truncated);
     }
     // SAFETY: host allocated the WS payload with rclweb_alloc and filled it.
-    // Take ownership so the retain path moves bytes without a second deep copy
-    // (R2-02 large-message controllable-copy budget).
+    // Take ownership so the retain path moves those wasm bytes without a
+    // second deep copy. Application samples copy only the R2WP prefix
+    // (ADR 0017) via `rclweb_poll_ws`.
     let vec = unsafe { Vec::from_raw_parts(ptr as *mut u8, len as usize, len as usize) };
     Ok(vec)
   }) {
@@ -116,29 +130,66 @@ pub unsafe extern "C" fn rclweb_poll(handle: u32, batch_ptr: *const u8, batch_le
     Err(err) => return map_batch_err(err),
   };
 
-  let encoded = ENGINES.with(|engines| {
-    let mut map = engines.borrow_mut();
-    let engine = map.get_mut(&handle)?;
-    let outcome = engine.poll(events);
-    let result =
-      encode_poll_result(&outcome, |lease_id| match engine.lease_payload_view(lease_id) {
-        Some(view) => (view.as_ptr() as u32, view.len() as u32),
-        None => (0, 0),
-      });
-    Some(result)
-  });
-  let Some(outcome) = encoded else {
-    return -6;
-  };
+  run_poll(handle, events)
+}
 
-  let len = outcome.len();
-  if len > i32::MAX as usize {
-    return -5;
-  }
+/// Ingest one external-ptr WebSocket frame without a host-batch header.
+///
+/// Same ownership as [`rclweb_poll`]: `ptr`/`len` is a [`rclweb_alloc`] region
+/// the engine takes (including when this returns an error other than -1).
+/// Skips encoding a 28-byte batch on the sample hot path. The host may pass
+/// only the R2WP header+extension prefix; the engine infers the declared
+/// frame size from the header (ADR 0017).
+///
+/// # Safety
+/// `ptr` must be a [`rclweb_alloc`] region of `len` bytes the host has filled,
+/// or null when `len` is 0.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn rclweb_poll_ws(
+  handle: u32,
+  buffer_id: u32,
+  ptr: *mut u8,
+  len: u32,
+) -> i32 {
+  let bytes = if len == 0 {
+    Vec::new()
+  } else {
+    if ptr.is_null() {
+      return -1;
+    }
+    // SAFETY: host allocated and filled this region; we take ownership.
+    unsafe { Vec::from_raw_parts(ptr, len as usize, len as usize) }
+  };
+  ENGINES.with(|engines| {
+    let mut map = engines.borrow_mut();
+    let Some(engine) = map.get_mut(&handle) else {
+      return -6;
+    };
+    let outcome = engine.poll_ws_bytes(buffer_id, bytes);
+    encode_outcome(handle, engine, &outcome)
+  })
+}
+
+fn run_poll(handle: u32, events: Vec<HostEvent>) -> i32 {
+  ENGINES.with(|engines| {
+    let mut map = engines.borrow_mut();
+    let Some(engine) = map.get_mut(&handle) else {
+      return -6;
+    };
+    let outcome = engine.poll(events);
+    encode_outcome(handle, engine, &outcome)
+  })
+}
+
+fn encode_outcome(handle: u32, engine: &ClientEngine, outcome: &PollOutcome) -> i32 {
   SCRATCH.with(|scratch| {
-    scratch.borrow_mut().insert(handle, outcome);
-  });
-  len as i32
+    let mut smap = scratch.borrow_mut();
+    let buf = smap.entry(handle).or_insert_with(|| Vec::with_capacity(256));
+    buf.clear();
+    encode_poll_result_into(buf, outcome, |lease_id| engine.lease_payload_abi(lease_id));
+    let len = buf.len();
+    if len > i32::MAX as usize { -5 } else { len as i32 }
+  })
 }
 
 /// Pointer to the last poll result for `handle`, or null.

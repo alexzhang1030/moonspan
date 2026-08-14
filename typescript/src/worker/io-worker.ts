@@ -77,6 +77,7 @@ function copyAndRelease(
     payloadLen: number;
     leaseId: number;
     operationId: Uint8Array;
+    hostPayload?: Uint8Array;
   },
   channelId: number,
   op?: GeneratedOpKind,
@@ -84,9 +85,22 @@ function copyAndRelease(
   const typeName = channelTypes.get(channelId);
   const section = op && typeName ? generatedOpTypeName(typeName, op) : undefined;
   const payload = section
-    ? (host!.copyGeneratedBytes(section, event.payloadPtr, event.payloadLen) ??
-      host!.copyPayload(event.payloadPtr, event.payloadLen))
-    : host!.copyPayload(event.payloadPtr, event.payloadLen);
+    ? (host!.copyGeneratedBytes(
+        section,
+        event.payloadPtr,
+        event.payloadLen,
+        event.hostPayload,
+      ) ??
+      host!.copyPayload(
+        event.payloadPtr,
+        event.payloadLen,
+        event.hostPayload,
+      ))
+    : host!.copyPayload(
+        event.payloadPtr,
+        event.payloadLen,
+        event.hostPayload,
+      );
   const operationId = Array.from(event.operationId);
   host!.releaseLease(event.leaseId);
   host!.flushSync();
@@ -158,7 +172,11 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
                 pendingPublish.delete(event.channelId);
                 break;
               }
-              case "sample":
+              case "sample": {
+                host?.fillStringSample(
+                  event,
+                  channelTypes.get(event.channelId),
+                );
                 if (event.stringData != null) {
                   post({
                     type: "sample",
@@ -173,6 +191,7 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
                       typeName,
                       event.payloadPtr,
                       event.payloadLen,
+                      event.hostPayload,
                     );
                     host?.releaseLease(event.leaseId);
                     host?.flushSync();
@@ -192,6 +211,7 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
                     const copied = host?.copyPointCloud2(
                       event.payloadPtr,
                       event.payloadLen,
+                      event.hostPayload,
                     );
                     host?.releaseLease(event.leaseId);
                     host?.flushSync();
@@ -209,6 +229,7 @@ self.onmessage = async (ev: MessageEvent<MainToWorker>) => {
                   }
                 }
                 break;
+              }
               case "serviceReady": {
                 const pending = pendingService.get(event.channelId);
                 post({

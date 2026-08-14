@@ -162,7 +162,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          code="$(curl -sS -o /tmp/crates-rclweb.json -w '%{http_code}' -A 'rclweb-release/0.0.2 (https://github.com/alexzhang1030/rclweb)' https://crates.io/api/v1/crates/rclweb)"
+          code="$(curl -sS -o /tmp/crates-rclweb.json -w '%{http_code}' -A 'rclweb-release/0.0.3 (https://github.com/alexzhang1030/rclweb)' https://crates.io/api/v1/crates/rclweb)"
           if [[ "${code}" == "404" ]]; then
             echo "error: rclweb is not on crates.io yet. First publish is a human cargo publish (docs/release.md)." >&2
             exit 1

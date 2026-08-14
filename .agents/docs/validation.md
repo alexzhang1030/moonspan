@@ -18,12 +18,12 @@ Each accepted claim records:
 - stdout from the reproducing command (not committed);
 - errors, variance, reviewer, and gate disposition.
 
-Historical evidence stays in git history. Promotion to **Qualified** is a human edit of the [support matrix](../../docs/support-matrix.md), not a CI stamp and not a committed JSON pile. The current TypeScript package is `rcl-web@0.0.3` (`0.0.1` on npm shipped source). Publish is GitHub OIDC ([release](../../docs/release.md)).
+Historical evidence stays in git history. Promotion to **Qualified** is a human edit of the [support matrix](../../docs/support-matrix.md), not a CI stamp and not a committed JSON pile. The current TypeScript package is `rcl-web@0.0.4` (`0.0.1` on npm shipped source). Publish is GitHub OIDC ([release](../../docs/release.md)).
 
 ## Review triggers
 
 - CDR differences reopen codec and type-system review.
-- Timing, copies, allocations, memory growth, or toolchain drift reopen runtime-boundary review; the copy budget (two controllable payload copies) is a standing contract.
+- Timing, copies, allocations, memory growth, or toolchain drift reopen runtime-boundary review; the copy budget (one controllable payload copy: the RMW take) is a standing contract. The published baseline's primary metrics are ingest latency, CPU, and RSS ([performance](../../docs/performance.md)).
 - Transport, proxy, reconnect, or roaming gaps reopen channel and compatibility review.
 - QoS or semantic differences reopen runtime and RMW review.
 - Security, deployment, soak, fault, or recovery findings reopen release review.

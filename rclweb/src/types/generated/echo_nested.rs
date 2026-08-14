@@ -31,7 +31,7 @@ pub fn encode_request(v: &EchoNestedRequest, endian: CdrEndian) -> Result<Vec<u8
   let root = w.root_nesting();
   let n = w.enter_nested(root)?;
   encode_nested_sample(&mut w, &v.input, n)?;
-  Ok(w.to_bytes())
+  Ok(w.into_bytes())
 }
 
 pub fn decode_response(
@@ -53,5 +53,5 @@ pub fn encode_response(v: &EchoNestedResponse, endian: CdrEndian) -> Result<Vec<
   let n = w.enter_nested(root)?;
   encode_nested_sample(&mut w, &v.output, n)?;
   w.write_bool(v.accepted)?;
-  Ok(w.to_bytes())
+  Ok(w.into_bytes())
 }

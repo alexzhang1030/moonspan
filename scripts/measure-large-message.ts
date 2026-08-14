@@ -24,7 +24,7 @@ import {
   sharedArrayBufferConstructible,
   type BufferStrategy,
   type BufferStrategyStats,
-} from "../typescript/src/index.ts";
+} from "../typescript/src/internal.ts";
 
 const root = path.resolve(import.meta.dir, "..");
 const wasmPath = path.join(root, "typescript/wasm/rclweb.wasm");
@@ -115,7 +115,7 @@ async function measureEngineRetainCopy(wasmBytes: ArrayBuffer) {
       bytesCopiedIntoEngineDelta:
         after.bytesCopiedIntoEngine - before.bytesCopiedIntoEngine,
       pollMs: Number(pollMs.toFixed(4)),
-      note: "External-ptr large-frame path: one controllable retain copy (budget slot 2). Frame body is synthetic (not a valid R2WP sample); copy accounting is the gate.",
+      note: "External-ptr WS ingest of a synthetic bootstrap-plane frame (not a valid R2WP sample); copy accounting is the gate.",
     };
   } finally {
     wasm.rclweb_engine_free(handle);

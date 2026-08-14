@@ -47,6 +47,7 @@ export {
 export type {
   EngineTelemetrySnapshot,
   PointCloud2Meta,
+  SampleAppEvent,
 } from "./wasm/abi.ts";
 
 export {
