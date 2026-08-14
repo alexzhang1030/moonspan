@@ -1,0 +1,79 @@
+{
+  "revision": "rclweb-acl-v0.1-wide",
+  "rules": [
+    {
+      "subjects": ["*"],
+      "operations": ["subscribe"],
+      "names": ["*"]
+    },
+    {
+      "subjects": ["*"],
+      "operations": ["service_client"],
+      "names": ["*"]
+    },
+    {
+      "subjects": ["*"],
+      "operations": ["action_client"],
+      "names": ["*"]
+    },
+    {
+      "subjects": ["*"],
+      "operations": ["publish"],
+      "names": [
+        "/chatter",
+        "/cmd_vel*",
+        "/joy*",
+        "/teleop*",
+        "/goal_pose",
+        "/initialpose",
+        "/clicked_point",
+        "/waypoints",
+        "/points*",
+        "/scan*",
+        "/imu*",
+        "/odom*",
+        "/map*",
+        "/amcl*",
+        "/joint_states*",
+        "/robot_description*",
+        "/camera*",
+        "/image*",
+        "/color*",
+        "/depth*",
+        "/rgb*",
+        "/stereo*",
+        "/velodyne*",
+        "/lidar*",
+        "/marker*",
+        "/visualization*",
+        "/battery*",
+        "/demo*",
+        "/rclweb*",
+        "/navigate*",
+        "/backup",
+        "/spin",
+        "/follow*"
+      ]
+    },
+    {
+      "subjects": ["*"],
+      "operations": ["service_server"],
+      "names": [
+        "/add_two_ints",
+        "/echo*",
+        "/demo*",
+        "/rclweb*"
+      ]
+    },
+    {
+      "subjects": ["*"],
+      "operations": ["action_server"],
+      "names": [
+        "/fibonacci",
+        "/measure_sequence",
+        "/demo*",
+        "/rclweb*"
+      ]
+    }
+  ]
+}

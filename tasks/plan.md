@@ -16,25 +16,24 @@ The product is one Rust core (`rclweb`) for gateway and browser, `rclwebd` at th
 | npm registry name | Unscoped `rclweb` is blocked as too similar to `rrweb`. Publish and import name is `rcl-web` ([ADR 0014](../docs/adr/0014-typescript-package-rcl-web.md)) |
 | Gateway distribution | Prebuilt GHCR images (six rows) and release binaries; support row auto-detects from the sourced environment ([ADR 0018](../docs/adr/0018-prebuilt-gateway-distribution.md)) |
 | ros-feature test gate | CI `ros-feature-check` / `just ros-check-docker` compile `cargo check -p rclwebd --features ros --tests` in digest-pinned Jazzy; they do not run `cargo test` ([gotcha](../.agents/docs/gotchas.md#no-ci-lane-compiles-the-ros-feature-tests)) |
+| Copyright line | Keep `Copyright 2026 Alex` in [NOTICE](../NOTICE). No reason given. |
+| Authenticate / SROS2 | Do not name an OIDC tenant or SROS2 keystore. Auth stays `off`. No reason given. |
+| ACL matrix | Wide reference allow-rules at [acl-reference.json](../docs/acl-reference.json) (`RCLWEBD_ACL_PATH`). Human asked for coverage, no reason given. Default process mode stays `off`. |
+| Qualification environment | The digest-pinned compose lanes in the [support matrix](../docs/support-matrix.md). No separate lab or artifact store ([qualification](../.agents/docs/qualification.md)). |
+| Owners | Repository owner `alexzhang1030`; NOTICE name Alex. No separate workstream owners. |
+| Benchmark retention | Stdout only. Do not commit measurement JSON ([gotcha](../.agents/docs/gotchas.md#do-not-commit-measurement-json)). No retention store. |
+| Support-matrix **Qualified** | Do not stamp. Keep **Qualification target** and continue the work. No reason given. |
 
 ## Open — needs a human ruling
 
-| Topic | What would close it |
-|---|---|
-| Qualification environment | Reviewed environment manifest and artifact storage |
-| Owners | Named workstream, integration, and review owners |
-| OIDC tenant and SROS2 | Issuer/audience/JWKS tenant record and SROS2 keystore; the gateway only consumes env |
-| ACL matrix content | Reviewed allow-rule set for `RCLWEBD_ACL_MODE=enforce` |
-| Benchmark retention | Storage, retention, access, and integrity policy for perf output |
-| Support-matrix **Qualified** | Human edit of [support-matrix.md](../docs/support-matrix.md) |
-| Copyright line | `NOTICE` currently says `Copyright 2026 Alex` |
+None. The 2026-08-14 replies are in Settled. Reopen a row only if the human names a tenant, stamps **Qualified**, or changes the copyright / ACL / retention pins.
 
 ## Open — engineering follow-ups
 
 | Topic | Notes |
 |---|---|
 | Audit sink | Integrity, retention, and export beyond stderr JSON lines ([security](../docs/security.md)) |
-| SROS2 enclave | Enclave identity, keystore provenance, browser-to-ROS mapping |
+| SROS2 enclave | Parked: auth is out of scope until the human names a tenant / keystore |
 | Production TLS | Runtime images speak plaintext HTTP/WS; PKI stays a follow-up ([deploy](../docs/deploy.md)) |
 | Remote telemetry | `/metrics` is scrape-only; no OTLP export yet |
 | Orchestrators | Kubernetes / systemd units beyond compose |

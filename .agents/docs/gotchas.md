@@ -8,11 +8,11 @@ Traps already paid for in this repository, each with its why.
 
 ## Authenticate defaults to off
 
-`RCLWEBD_AUTH_MODE` defaults to `off`: any credential is accepted, SessionReady field 21 stays `anonymous`, and no audit line is emitted. `dev` is an alias for `off`. Opt in with `oidc` plus issuer/audience/keys; missing keys fail process start, bad JWT is wire code 26. Do not treat a green e2e lane as proof that identity is on. The named OIDC tenant remains [open work](../../tasks/plan.md). Landed in [`301c987`](https://github.com/alexzhang1030/rclweb/commit/301c987) (#18).
+`RCLWEBD_AUTH_MODE` defaults to `off`: any credential is accepted, SessionReady field 21 stays `anonymous`, and no audit line is emitted. `dev` is an alias for `off`. Opt in with `oidc` plus issuer/audience/keys; missing keys fail process start, bad JWT is wire code 26. Do not treat a green e2e lane as proof that identity is on. A named OIDC tenant and SROS2 keystore are out of scope ([open work](../../tasks/plan.md)); leave auth `off`. Landed in [`301c987`](https://github.com/alexzhang1030/rclweb/commit/301c987) (#18).
 
 ## ACLs default to off; enforce is default-deny
 
-`RCLWEBD_ACL_MODE` defaults to `off`: every OpenChannel is admitted — a green e2e lane proves nothing about authorization. `enforce` flips to **default-deny**: only `{subjects, operations, names}` allow rules admit a channel (wire code 12 `permission_denied` otherwise), and a missing/invalid policy fails process start. There are no deny rules — express policy as allows. The subject is whatever Authenticate produced (`anonymous` when auth is off), so ACLs work without OIDC but only distinguish users with it. The policy body never appears on `/configz` (rule count only). Rule *content* is the reviewed policy matrix — a human input ([security](../../docs/security.md)).
+`RCLWEBD_ACL_MODE` defaults to `off`: every OpenChannel is admitted — a green e2e lane proves nothing about authorization. `enforce` flips to **default-deny**: only `{subjects, operations, names}` allow rules admit a channel (wire code 12 `permission_denied` otherwise), and a missing/invalid policy fails process start. There are no deny rules — express policy as allows. The subject is whatever Authenticate produced (`anonymous` when auth is off), so ACLs work without OIDC but only distinguish users with it. The policy body never appears on `/configz` (rule count only). The reference matrix is [`docs/acl-reference.json`](../../docs/acl-reference.json) (wide client surface; still default-deny on unlisted publish/server names). Default process mode stays `off`. [security](../../docs/security.md).
 
 ## `/healthz` is liveness, not readiness
 

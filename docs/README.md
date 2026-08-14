@@ -26,7 +26,7 @@ These pages are for people changing this repository, not for calling `Node`.
 | Related projects | [Landscape](./landscape.md), [references](./references.md) |
 | Wire protocol | [R2WP](./protocol/r2wp.md) |
 | Rust core / CDR | [`rclweb` core](./runtime/core.md), [CDR](./runtime/cdr.md), [generated types](./runtime/generated-types.md) |
-| Gateway internals | [`rclwebd`](./gateway/rclwebd.md), [security](./security.md) |
+| Gateway internals | [`rclwebd`](./gateway/rclwebd.md), [security](./security.md), [ACL reference](./acl-reference.json) |
 | Support rows | [Support matrix](./support-matrix.md), [compatibility](./compatibility.md) |
 | How CI proves claims | [Validation](./validation.md) |
 | License | [Licensing](./licensing.md), [third-party inventory](./third-party.md) |

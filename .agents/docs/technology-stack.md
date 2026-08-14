@@ -73,7 +73,7 @@ Committed rustfmt/clippy knobs, workspace lints, shared crate versions, and name
 
 ## ROS profile
 
-Live talker e2e covers all six rows (H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN). Corpus data for those rows stays committed. Humble uses `rclweb-schema-v1` bundle identity and Jazzy uses `rep2011-rihs` ([ADR 0012](../../docs/adr/0012-rclweb-schema-identifiers.md)). Promotion to **Qualified** is a human edit of the [support matrix](../../docs/support-matrix.md).
+Live talker e2e covers all six rows (H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN). Corpus data for those rows stays committed. Humble uses `rclweb-schema-v1` bundle identity and Jazzy uses `rep2011-rihs` ([ADR 0012](../../docs/adr/0012-rclweb-schema-identifiers.md)). Promotion to **Qualified** is a human edit of the [support matrix](../../docs/support-matrix.md) and is not happening on this cut ([qualification](./qualification.md)).
 
 ## Optional local ROS prefix
 

@@ -13,13 +13,13 @@
 
 Robot private keys stay in the edge enclave.
 
-Authenticate is evaluated at the gateway. Default `off` accepts any credential and keeps SessionReady field 21 as `anonymous` (no audit). `oidc` mode verifies JWT issuer, audience, expiry, and signature (HS256 secret or JWKS) and fails with wire code 26. The named OIDC tenant and SROS2 keystore remain open work; this process does not embed a vendor.
+Authenticate is evaluated at the gateway. Default `off` accepts any credential and keeps SessionReady field 21 as `anonymous` (no audit). `oidc` mode verifies JWT issuer, audience, expiry, and signature (HS256 secret or JWKS) and fails with wire code 26. A named OIDC tenant and SROS2 keystore are out of scope ([open work](../tasks/plan.md)); leave `RCLWEBD_AUTH_MODE` off. This process does not embed a vendor.
 
 ## Authorization
 
 Policy can scope access by subject, tenant, robot, gateway, support row, ROS domain, operation kind, ROS name, type, schema identity, QoS, resource budget, and diagnostic visibility.
 
-Channel ACLs are enforced at OpenChannel. Default `off` admits every channel. `RCLWEBD_ACL_MODE=enforce` is default-deny over `{subjects, operations, names}` allow rules (`RCLWEBD_ACL` / `RCLWEBD_ACL_PATH`); denials fail the channel with wire code 12 (`permission_denied`) and emit an audit line. The rule content — the reviewed policy matrix — is a human input.
+Channel ACLs are enforced at OpenChannel. Default `off` admits every channel. `RCLWEBD_ACL_MODE=enforce` is default-deny over `{subjects, operations, names}` allow rules (`RCLWEBD_ACL` / `RCLWEBD_ACL_PATH`); denials fail the channel with wire code 12 (`permission_denied`) and emit an audit line. The reference matrix is [acl-reference.json](./acl-reference.json): subscribe / service_client / action_client are open, publish and *server* stay on listed names. Point `RCLWEBD_ACL_PATH` at that file to opt in. Auth is off, so the subject is `anonymous` and `"*"` matches it.
 
 The gateway derives `gateway_instance_id` and `support_row_id`; the active channel supplies `domain_id`. The TypeScript package receives the effective capability set and policy revision so applications can present authorized operations and stable denial reasons.
 
@@ -41,9 +41,7 @@ Sessions and channels receive hard ceilings for connections, streams, channels, 
 
 ## SROS2
 
-The gateway runs in a dedicated SROS2 enclave and maps browser capabilities to ROS graph and operation permissions. Qualification records enclave identity, keystore provenance, ROS rules, browser-to-ROS mapping, graph visibility, credential rotation, denials, and audit behavior.
-
-The design follows ROS 2 [access-control policy](https://design.ros2.org/articles/ros2_access_control_policies.html) and [security enclave](https://design.ros2.org/articles/ros2_security_enclaves.html) concepts.
+SROS2 enclave wiring is parked ([open work](../tasks/plan.md)). The design still follows ROS 2 [access-control policy](https://design.ros2.org/articles/ros2_access_control_policies.html) and [security enclave](https://design.ros2.org/articles/ros2_security_enclaves.html) concepts; this process does not ship a keystore.
 
 ## Audit
 
@@ -55,4 +53,4 @@ Audit sinks define integrity, availability, buffering, redaction, retention, exp
 
 Security tests cover credential misuse, graph and schema disclosure, malformed or high-rate traffic, unauthorized operations, stale policy, session resume, deployment provenance, profile mismatch, parser and media pressure, dependency outages, restart behavior, browser isolation, and configuration drift.
 
-A release review needs a threat model, reviewed policy matrix, automated authorization tests, protocol and schema fuzzing, dependency and secret scans, SROS2 deployment evidence, audit integrity tests, incident procedures, and human security approval.
+A release review needs a threat model, the reference [policy matrix](./acl-reference.json), automated authorization tests, protocol and schema fuzzing, dependency and secret scans, audit integrity tests, incident procedures, and human security approval. SROS2 deployment evidence is parked with auth.

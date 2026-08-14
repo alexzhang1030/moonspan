@@ -17,6 +17,7 @@ Documentation describes the product. It is not a delivery-phase ledger. Historic
 | Rust workspace (fmt, clippy, lints, just recipes) | [Technology stack — Rust workspace infrastructure](./technology-stack.md#rust-workspace-infrastructure) |
 | Traps already paid for | [Gotchas](./gotchas.md) |
 | Evidence and gate authority | [Validation](./validation.md) |
+| Qualification environment, owners, retention | [Qualification](./qualification.md) |
 | TypeScript package | [How to](../../docs/typescript.md), [API reference](../../docs/api.md), [ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md), [ADR 0015](../../docs/adr/0015-tsdown-ship-bundle.md) |
 | Publish | [Release](../../docs/release.md), [ADR 0016](../../docs/adr/0016-oidc-trusted-publish.md) |
 | License | [Licensing](../../docs/licensing.md) |
@@ -31,7 +32,8 @@ Documentation describes the product. It is not a delivery-phase ledger. Historic
 | Humble scheme / corpus / ROS package names | [ADR 0012](../../docs/adr/0012-rclweb-schema-identifiers.md), [gotchas](./gotchas.md#bundle-files-are-named-by-type) |
 | Local WebTransport TLS | [ADR 0011](../../docs/adr/0011-local-dev-webtransport-tls.md) |
 | Runtime images and operations endpoints | [Deploy](../../docs/deploy.md) |
-| Support-matrix status | [Support matrix](../../docs/support-matrix.md) |
+| Support-matrix status | [Support matrix](../../docs/support-matrix.md) (do not stamp **Qualified**) |
+| Wide ACL reference | [acl-reference.json](../../docs/acl-reference.json), [security](../../docs/security.md) |
 | Open work | [Open work](../../tasks/plan.md), [checklist](../../tasks/todo.md) |
 
 ## Code routes
@@ -51,7 +53,7 @@ Documentation describes the product. It is not a delivery-phase ledger. Historic
 | `rclwebd/src/ros/backend.rs` | Same-thread loopback must pump ([gotchas](./gotchas.md#same-thread-ros-loopback-must-pump)) |
 | `rclwebd/src/ros/rcl.rs` | Action wait-set index ([gotchas](./gotchas.md#action-client-wait-set-ready-is-not-the-first-client-slot)) |
 | `rclwebd/src/auth.rs` | [security](../../docs/security.md); default `off` is anonymous ([gotchas](./gotchas.md#authenticate-defaults-to-off)) |
-| `rclwebd/src/acl.rs` | [security](../../docs/security.md); `enforce` is default-deny ([gotchas](./gotchas.md#acls-default-to-off-enforce-is-default-deny)) |
+| `rclwebd/src/acl.rs` | [security](../../docs/security.md); `enforce` is default-deny ([gotchas](./gotchas.md#acls-default-to-off-enforce-is-default-deny)). Reference matrix: [acl-reference.json](../../docs/acl-reference.json) |
 | `rclwebd/src/ops.rs` | [deploy](../../docs/deploy.md); `/healthz` is liveness ([gotchas](./gotchas.md#healthz-is-liveness-not-readiness)) |
 | `docker/**` | [deploy](../../docs/deploy.md), digest-pinned `oven/bun` ([gotchas](./gotchas.md#github-releases-downloads-need-retries)) |
 | `typescript/**` | [How to](../../docs/typescript.md), [API](../../docs/api.md), [ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md). npm blocks unscoped `rclweb` vs `rrweb` ([gotchas](./gotchas.md#unscoped-rclweb-is-blocked-on-npm-as-too-similar-to-rrweb)). Reconnect is a fresh session ([gotchas](./gotchas.md#reconnect-is-a-fresh-session-not-sessionresume)); Worker `telemetry()` is the last poll snapshot ([gotchas](./gotchas.md#worker-telemetry-is-the-last-poll-snapshot)); pack copies LICENSE/NOTICE ([gotchas](./gotchas.md#npm-pack-copies-license-and-notice-do-not-commit-them)) |
