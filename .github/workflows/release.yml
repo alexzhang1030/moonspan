@@ -1,4 +1,6 @@
-# Publish rcl-web (npm trusted publishing) and rclweb / rclwebd (crates.io).
+# Publish rcl-web (npm trusted publishing), rclweb / rclwebd (crates.io),
+# the six rclwebd runtime images (GHCR), and prebuilt gateway binaries
+# (GitHub Release assets). ADR 0018 covers the image / binary distribution.
 # npm OIDC identity is this filename only — do not rename without updating
 # npmjs.com. No GitHub environment on the npm job (leave Environment blank
 # on the trusted publisher). See docs/release.md.
@@ -13,6 +15,14 @@ on:
         default: true
       crates:
         description: Publish rclweb and rclwebd to crates.io via OIDC
+        type: boolean
+        default: true
+      images:
+        description: Publish rclwebd runtime images to GHCR
+        type: boolean
+        default: true
+      binaries:
+        description: Upload prebuilt rclwebd binaries to the GitHub Release
         type: boolean
         default: true
   push:
@@ -200,3 +210,188 @@ jobs:
             attempt=$((attempt + 1))
             sleep 20
           done
+
+  # Six-row runtime images (ADR 0018 stage 1). Tags per version:
+  # <version>-<row> plus rolling <row>, and aliases jazzy (J-FT),
+  # humble (H-FT), latest (J-FT). linux/amd64 now; arm64 waits for
+  # native arm runners (QEMU-emulated cargo builds are impractical).
+  publish-images:
+    name: publish-image (${{ matrix.row }})
+    if: github.event_name == 'push' || inputs.images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - row: j-ft
+            dockerfile: docker/Dockerfile.rclwebd
+            build_args: ""
+            aliases: "jazzy latest"
+          - row: j-cy
+            dockerfile: docker/Dockerfile.rclwebd
+            build_args: >-
+              --build-arg SUPPORT_ROW=J-CY
+              --build-arg RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+              --build-arg RMW_APT_PACKAGES=ros-jazzy-rmw-cyclonedds-cpp
+            aliases: ""
+          - row: j-zn
+            dockerfile: docker/Dockerfile.rclwebd
+            build_args: >-
+              --build-arg SUPPORT_ROW=J-ZN
+              --build-arg RMW_IMPLEMENTATION=rmw_zenoh_cpp
+              --build-arg RMW_APT_PACKAGES=ros-jazzy-rmw-zenoh-cpp
+            aliases: ""
+          - row: h-ft
+            dockerfile: docker/Dockerfile.rclwebd-h-ft
+            build_args: ""
+            aliases: "humble"
+          - row: h-cy
+            dockerfile: docker/Dockerfile.rclwebd-h-ft
+            build_args: >-
+              --build-arg SUPPORT_ROW=H-CY
+              --build-arg RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+              --build-arg RMW_APT_PACKAGES=ros-humble-rmw-cyclonedds-cpp
+            aliases: ""
+          - row: h-zn
+            dockerfile: docker/Dockerfile.rclwebd-h-ft
+            build_args: >-
+              --build-arg SUPPORT_ROW=H-ZN
+              --build-arg RMW_IMPLEMENTATION=rmw_zenoh_cpp
+              --build-arg RMW_APT_PACKAGES=ros-humble-rmw-zenoh-cpp
+            aliases: ""
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Resolve release version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="$(awk -F'"' '/^\[workspace\.package\]/{p=1} p && /^version/{print $2; exit}' Cargo.toml)"
+          fi
+          if [[ -z "${version}" ]]; then
+            echo "error: could not resolve a release version" >&2
+            exit 1
+          fi
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Log in to GHCR
+        shell: bash
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          printf '%s' "${GHCR_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+
+      - name: Build and push
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          ROW: ${{ matrix.row }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
+          BUILD_ARGS: ${{ matrix.build_args }}
+          ALIASES: ${{ matrix.aliases }}
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/rclwebd"
+          # shellcheck disable=SC2086 — BUILD_ARGS is a flag list by design
+          docker build -f "${DOCKERFILE}" ${BUILD_ARGS} \
+            -t "${image}:${VERSION}-${ROW}" .
+          docker tag "${image}:${VERSION}-${ROW}" "${image}:${ROW}"
+          docker push "${image}:${VERSION}-${ROW}"
+          docker push "${image}:${ROW}"
+          for alias in ${ALIASES}; do
+            docker tag "${image}:${VERSION}-${ROW}" "${image}:${alias}"
+            docker push "${image}:${alias}"
+          done
+
+  # Prebuilt gateway binaries (ADR 0018 stage 4). Built inside the same
+  # digest-pinned builder stages the runtime images use, so the glibc floor
+  # matches each distro's Ubuntu base and Humble gets regenerated bindings.
+  # Uploaded to the GitHub Release for the version tag (created if missing).
+  publish-binaries:
+    name: publish-binary (${{ matrix.distro }})
+    if: github.event_name == 'push' || inputs.binaries
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: jazzy
+            dockerfile: docker/Dockerfile.rclwebd
+          - distro: humble
+            dockerfile: docker/Dockerfile.rclwebd-h-ft
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Resolve release version and tag
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="$(awk -F'"' '/^\[workspace\.package\]/{p=1} p && /^version/{print $2; exit}' Cargo.toml)"
+          fi
+          if [[ -z "${version}" ]]; then
+            echo "error: could not resolve a release version" >&2
+            exit 1
+          fi
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "tag=v${version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Build gateway binary in the builder stage
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          DISTRO: ${{ matrix.distro }}
+          DOCKERFILE: ${{ matrix.dockerfile }}
+        run: |
+          set -euo pipefail
+          case "$(uname -m)" in
+            x86_64) arch=amd64 ;;
+            aarch64) arch=arm64 ;;
+            *) echo "error: unsupported runner architecture $(uname -m)" >&2; exit 1 ;;
+          esac
+          asset="rclwebd-${VERSION}-${DISTRO}-${arch}"
+          docker build --target builder -f "${DOCKERFILE}" \
+            -t "rclwebd-builder-${DISTRO}" .
+          cid="$(docker create "rclwebd-builder-${DISTRO}")"
+          docker cp "${cid}:/src/target/release/rclwebd" "${asset}"
+          docker rm "${cid}"
+          sha256sum "${asset}" > "${asset}.sha256"
+          echo "asset=${asset}" >> "${GITHUB_ENV}"
+
+      - name: Upload to the GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          if ! gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            # The two matrix jobs can race create; losing the race is fine
+            # as long as the release exists afterwards.
+            gh release create "${TAG}" --repo "${GITHUB_REPOSITORY}" \
+              --verify-tag --generate-notes \
+              || gh release view "${TAG}" --repo "${GITHUB_REPOSITORY}" >/dev/null
+          fi
+          gh release upload "${TAG}" "${asset}" "${asset}.sha256" \
+            --repo "${GITHUB_REPOSITORY}" --clobber

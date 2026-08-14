@@ -4,6 +4,37 @@ Operator profile for the runtime images (all six support rows) and process
 operations. The gateway remains the trust boundary ([security](./security.md));
 this page covers how to run it.
 
+## Prebuilt artifacts
+
+The release workflow publishes every support row to GHCR and attaches
+prebuilt binaries to the GitHub Release
+([ADR 0018](./adr/0018-prebuilt-gateway-distribution.md), [release](./release.md)).
+No clone or toolchain required:
+
+```bash
+docker run --rm --network host ghcr.io/alexzhang1030/rclwebd:jazzy
+```
+
+| Tag | Row |
+|---|---|
+| `<version>-j-ft` … `<version>-h-zn` | Pinned version, one tag per row |
+| `j-ft` / `j-cy` / `j-zn` / `h-ft` / `h-cy` / `h-zn` | Rolling latest per row |
+| `jazzy` | Rolling J-FT |
+| `humble` | Rolling H-FT |
+| `latest` | Rolling J-FT |
+
+Images are `linux/amd64`; arm64 waits for native arm runners
+([open work](../tasks/plan.md)). Zenoh-row containers still need the
+router companion described under [Artifact](#artifact).
+
+Host binaries (`rclwebd-<version>-{jazzy,humble}-amd64` plus `.sha256`)
+are built in the same digest-pinned builder stages and run against a
+sourced matching prefix:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/alexzhang1030/rclweb/main/scripts/install-rclwebd.sh | bash
+```
+
 ## Artifact
 
 One support row per process ([ADR 0008](./adr/0008-one-adapter-row-per-gateway-process.md)).
@@ -63,7 +94,12 @@ should survive ordinary restart. Unset keeps a random id (a replacement
 instance every process start). Pair `RCLWEBD_SUPPORT_ROW` with the matching
 prefix (`J-*` ↔ `/opt/ros/jazzy`, `H-*` ↔ `/opt/ros/humble`) and keep
 `RMW_IMPLEMENTATION` on the row's RMW — the adapter probe fails start-up on a
-mismatch. `ROS_DOMAIN_ID` selects the domain.
+mismatch. When `RCLWEBD_SUPPORT_ROW` is unset (host binaries; the container
+entrypoint bakes the row), the process derives it from the sourced
+environment: `ROS_DISTRO` plus `RMW_IMPLEMENTATION` (Fast DDS default),
+falling back to J-FT without a sourced environment
+([ADR 0018](./adr/0018-prebuilt-gateway-distribution.md)). `ROS_DOMAIN_ID`
+selects the domain.
 
 Authenticate stays **off** unless `RCLWEBD_AUTH_MODE=oidc` ([security](./security.md)).
 
@@ -105,4 +141,5 @@ robot-edge shape, not a cloud overlay network.
 ## Follow-ups
 
 Production PKI, remote metrics/trace export, Kubernetes or systemd units,
-upgrade/rollback playbooks, and the SROS2 keystore remain [open work](../tasks/plan.md).
+upgrade/rollback playbooks, arm64 images and binaries, and the SROS2
+keystore remain [open work](../tasks/plan.md).

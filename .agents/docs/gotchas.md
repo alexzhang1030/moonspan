@@ -181,6 +181,23 @@ The owner deleted `docs/evidence/*.json`. Nothing in CI read those files. `just 
 
 Bun on Linux can throw `SystemError: Failed to get memory usage` with errno 4 (`EINTR`), especially right after `Bun.gc(true)`. The perf-baseline harness retries (`scripts/perf-baseline/resources.ts`). Do not treat one failed snapshot as a leak, and do not skip RSS because of it.
 
+## No CI lane compiles the ros-feature tests
+
+`just test` builds default (ROS-free) features, and the Docker e2e lanes
+build only the `rclwebd` binary with `--features ros` — nothing compiles
+the `--features ros` **tests**. When ADR 0017 moved the backend
+serialized-payload API from `Vec<u8>` to `Bytes`,
+`rclwebd/tests/ros_rcl.rs` kept the old calls and `just ros-test` was
+broken on `main` for multiple releases without any signal; the drift
+surfaced (and was fixed with `.into()` at the call sites) during
+[ADR 0018](../../docs/adr/0018-prebuilt-gateway-distribution.md)
+verification. Until a gate exists ([open work](../../tasks/plan.md)),
+run `just ros-test` — or at least
+`cargo check --locked -p rclwebd --features ros --tests` inside a ROS
+container — whenever backend signatures change. The live service/action
+loopbacks additionally need `example_interfaces` installed, as the
+[gateway doc](../../docs/gateway/rclwebd.md#environment-contract) says.
+
 ## Do not wrap cargo tests in a Docker mock lane
 
 `docker/compose.r3-03-h-ft.yml` once existed whose image only re-ran `cargo test` inside `rust:1.97.1`. Foundation already runs those tests via `just test`. The CI job was `workflow_dispatch`-only, so it never gated. Live Humble remains [`docker/compose.r3-03-h-ft-e2e.yml`](../../docker/compose.r3-03-h-ft-e2e.yml). Do not add a compose file whose only command is cargo tests the workspace already runs.
