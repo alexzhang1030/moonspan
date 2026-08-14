@@ -26,6 +26,7 @@ The product is one Rust core (`rclweb`) for gateway and browser, `rclwebd` at th
 | Benchmark retention | Storage, retention, access, and integrity policy for perf output |
 | Support-matrix **Qualified** | Human edit of [support-matrix.md](../docs/support-matrix.md) |
 | Copyright line | `NOTICE` currently says `Copyright 2026 Alex` |
+| Gateway install / usage UX | Accept or reject [ADR 0018](../docs/adr/0018-prebuilt-gateway-distribution.md) (GHCR images, support-row auto-detection, quickstart docs, release binaries) |
 
 ## Open — engineering follow-ups
 
