@@ -43,6 +43,8 @@ Live gates are the engineering evidence. A row becomes **Qualified** only after 
 
 The remaining-row lanes share one image per distro ([compose](../docker/compose.r4-03-remaining-rows-e2e.yml)) and run one gateway process per row (ADR 0008). Zenoh lanes start `rmw_zenohd` before the nodes. Each lane's harness asserts the gateway `/configz` support row, and the gateway adapter probe fails start-up when `RMW_IMPLEMENTATION` does not name the row's RMW. Do not treat a green corpus or a green e2e job as **Qualified**.
 
+**Do not stamp Qualified.** Continue the work. Proven today: live talker e2e on all six rows, committed corpus, foundation CI, multi-arch images. Still open for a later review: browser / Playwright runner, soak and large-cloud duration, production TLS, SessionResume (parked in v0.1). Auth / SROS2 are out of scope. Environment, owners, and retention: [qualification](../.agents/docs/qualification.md).
+
 ## ROS base images
 
 | ROS | Image |

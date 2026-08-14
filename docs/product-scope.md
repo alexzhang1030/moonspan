@@ -27,7 +27,7 @@ rclweb gives browser applications typed, secure access to ROS 2. Robotics develo
 - ROS semantics execute in browser Wasm through the `rclweb` core.
 - CDR stays on the binary data path. There is no JSON transcoding on the sample path.
 - Every queue and resource-sensitive operation has visible budgets and telemetry.
-- Identity, SROS2 policy, operation ACLs, resource control, and audit meet at `rclwebd`.
+- Operation ACLs, resource control, and audit meet at `rclwebd`. Authenticate and SROS2 stay off / parked ([open work](../tasks/plan.md)). The reference ACL matrix is [acl-reference.json](./acl-reference.json).
 - WebTransport and binary WebSocket share one R2WP semantic contract.
 - Generated and dynamic types share a schema-identity registry.
 - A support row is **Qualified** only when a human updates the [support matrix](./support-matrix.md).

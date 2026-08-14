@@ -102,7 +102,9 @@ falling back to J-FT without a sourced environment
 ([ADR 0018](./adr/0018-prebuilt-gateway-distribution.md)). `ROS_DOMAIN_ID`
 selects the domain.
 
-Authenticate stays **off** unless `RCLWEBD_AUTH_MODE=oidc` ([security](./security.md)).
+Authenticate stays **off**. Do not set `RCLWEBD_AUTH_MODE=oidc` until a tenant is named ([security](./security.md), [open work](../tasks/plan.md)).
+
+Channel ACLs stay **off** unless `RCLWEBD_ACL_MODE=enforce` plus `RCLWEBD_ACL` or `RCLWEBD_ACL_PATH`. The reference matrix is [acl-reference.json](./acl-reference.json).
 
 ## Operations endpoints
 
@@ -142,5 +144,5 @@ robot-edge shape, not a cloud overlay network.
 ## Follow-ups
 
 Production PKI, remote metrics/trace export, Kubernetes or systemd units,
-upgrade/rollback playbooks, and the SROS2 keystore remain
-[open work](../tasks/plan.md).
+and upgrade/rollback playbooks remain [open work](../tasks/plan.md).
+SROS2 is parked while auth is out of scope.
