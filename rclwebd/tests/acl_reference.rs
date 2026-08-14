@@ -58,7 +58,7 @@ fn reference_matrix_stays_default_deny_on_unlisted_commands() {
   let policy = load_reference();
   assert!(!policy.allow("anonymous", AclOperation::Publish, "/clock"));
   assert!(!policy.allow("anonymous", AclOperation::Publish, "/rosout"));
-  assert!(!policy.allow("anonymous", AclOperation::Publish, "/rclweb_unlisted"));
+  assert!(!policy.allow("anonymous", AclOperation::Publish, "/unlisted_admin"));
   assert!(!policy.allow("anonymous", AclOperation::ServiceServer, "/kill"));
   assert!(!policy.allow("anonymous", AclOperation::ActionServer, "/navigate_to_pose"));
 }
