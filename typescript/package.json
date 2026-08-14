@@ -1,6 +1,6 @@
 {
   "name": "rcl-web",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "private": false,
   "license": "Apache-2.0",
   "description": "Browser TypeScript package for rclweb (R2WP client around the rclweb wasm core)",

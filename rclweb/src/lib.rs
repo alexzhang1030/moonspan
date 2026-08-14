@@ -77,6 +77,6 @@ mod tests {
   #[test]
   fn crate_identity() {
     assert_eq!(env!("CARGO_PKG_NAME"), "rclweb");
-    assert_eq!(env!("CARGO_PKG_VERSION"), "0.0.3");
+    assert_eq!(env!("CARGO_PKG_VERSION"), "0.0.5");
   }
 }

@@ -66,8 +66,8 @@ Bump the version in the tree (`typescript/package.json` and/or
 merge to `main`, then either:
 
 ```bash
-git tag v0.0.4
-git push origin v0.0.4
+git tag v0.0.5
+git push origin v0.0.5
 ```
 
 or run **Actions → release → Run workflow** (`npm` / `crates` / `images`
@@ -92,8 +92,12 @@ yet — so the GitHub Release page is no longer a separate human step,
 though editing its notes still is. `scripts/install-rclwebd.sh` is the
 consumer of those assets.
 
-This cut: `rcl-web@0.0.4` and crates `0.0.3`. First OIDC automatic
-publish landed 2026-08-13 from tag `v0.0.3` on `e8365a8`
+This cut: `0.0.5` everywhere — npm and crate versions align from
+`v0.0.5` on so the tag-named images and binaries
+([ADR 0018](./adr/0018-prebuilt-gateway-distribution.md)) match the
+crate version; independent versioning (ADR 0003) still stands as
+policy. Earlier cuts: `rcl-web@0.0.4` with crates `0.0.3`. First OIDC
+automatic publish landed 2026-08-13 from tag `v0.0.3` on `e8365a8`
 ([release run](https://github.com/alexzhang1030/rclweb/actions/runs/31713576156)).
 The GitHub Release is a separate step from the tag
 ([v0.0.4](https://github.com/alexzhang1030/rclweb/releases/tag/v0.0.4);
