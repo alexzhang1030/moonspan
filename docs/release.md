@@ -75,6 +75,15 @@ or run **Actions → release → Run workflow** (`npm` / `crates` / `images`
 version from `Cargo.toml`, and the binary upload requires the matching
 `v<version>` tag to exist).
 
+To republish only the images and binaries of an existing version (for
+example after a workflow fix), push `rebuild-v<version>`; the npm and
+crates jobs skip (the registries refuse duplicates anyway; GHCR tags
+and release assets are replaced):
+
+```bash
+git tag rebuild-v0.0.5 && git push origin rebuild-v0.0.5
+```
+
 The npm job builds with Bun, then publishes with the official npm CLI
 (`npm publish` from `typescript/`). The CLI detects the GitHub OIDC
 token; provenance is automatic — do not pass `--provenance`. Do not set
@@ -83,9 +92,11 @@ The crates job stages `LICENSE` / `NOTICE`, publishes `rclweb`, then
 retries `rclwebd` until crates.io's index sees the new core crate.
 
 The images job builds the six row images from the committed Dockerfiles
-and pushes `ghcr.io/alexzhang1030/rclwebd` (tag table in
+per architecture (amd64 and arm64, each on a native runner) and pushes
+`ghcr.io/alexzhang1030/rclwebd:<version>-<row>-<arch>`; the manifests
+job then combines them into the user-facing multi-arch tags (table in
 [deploy](./deploy.md#prebuilt-artifacts)). The binaries job builds
-`rclwebd-<version>-{jazzy,humble}-amd64` (+ `.sha256`) with
+`rclwebd-<version>-{jazzy,humble}-{amd64,arm64}` (+ `.sha256`) with
 `docker build --target builder` and uploads them to the release for the
 tag, creating the release with generated notes when it does not exist
 yet — so the GitHub Release page is no longer a separate human step,

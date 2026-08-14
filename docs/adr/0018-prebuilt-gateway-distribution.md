@@ -41,10 +41,14 @@ Staged delivery; each stage is independently shippable, in this order.
    (H-FT), and `:latest` (J-FT).
    Authentication is the workflow `GITHUB_TOKEN` with `packages: write` —
    no new long-lived secrets, consistent with the
-   [ADR 0016](./0016-oidc-trusted-publish.md) direction. Start with
-   `linux/amd64`; add `linux/arm64` on native arm runners
-   (`ubuntu-24.04-arm`) because robot compute is commonly arm64. The
-   quickstart becomes one line with zero repository access:
+   [ADR 0016](./0016-oidc-trusted-publish.md) direction. Every tag is a
+   `linux/amd64` + `linux/arm64` manifest list — robot compute is
+   commonly arm64 — with each arch built natively (`ubuntu-24.04-arm`
+   for arm64; QEMU-emulated cargo builds are impractical) and per-arch
+   tags kept for platform pinning (owner ruling 2026-08-14: both
+   architectures are required, superseding the amd64-first staging in
+   the accepted proposal). The quickstart becomes one line with zero
+   repository access:
 
    ```bash
    docker run --rm --network host ghcr.io/alexzhang1030/rclwebd:jazzy
@@ -68,11 +72,11 @@ Staged delivery; each stage is independently shippable, in this order.
    "gateway in one minute" block per distro.
 
 4. **Prebuilt binaries on GitHub Releases with an install script.**
-   Build `rclwebd-<version>-{jazzy,humble}-amd64` (arm64 follows the
-   same native-arm-runner condition as the images) inside the same
-   digest-pinned ROS builder stages the images use, so the glibc floor
-   matches each distro's Ubuntu base (22.04 Humble, 24.04 Jazzy) and
-   the Humble binaries get the regenerated bindings. Runtime still
+   Build `rclwebd-<version>-{jazzy,humble}-{amd64,arm64}` (arm64 on the
+   same native arm runners as the images) inside the same digest-pinned
+   ROS builder stages the images use, so the glibc floor matches each
+   distro's Ubuntu base (22.04 Humble, 24.04 Jazzy) and the Humble
+   binaries get the regenerated bindings. Runtime still
    needs a matching sourced prefix — typesupport stays dlopen, which is
    the environment a ROS user already has. An `install.sh` detects
    `ROS_DISTRO` and architecture, downloads with retries
@@ -109,12 +113,12 @@ after stages 1–4 land if users ask for apt.
 
 ## Consequences
 
-- `release.yml` grows an images job (and later a binaries job). Image
-  names and tags become public contract; renames need the same care as
-  crate names.
-- Per-release CI time grows (six rows, later two architectures).
-  Mitigate with a build matrix and registry layer caching; arm64 waits
-  for native arm runners rather than QEMU-emulated cargo builds.
+- `release.yml` grows images, manifests, and binaries jobs. Image names
+  and tags become public contract; renames need the same care as crate
+  names.
+- Per-release CI time grows (six rows × two architectures plus four
+  binary builds, all parallel matrix jobs on native runners —
+  `ubuntu-24.04-arm` for arm64).
 - Stage 2 changes default behavior: a sourced Humble environment that
   previously selected J-FT (and failed the probe) now selects H-FT and
   starts. That is the intended fix; no working configuration changes
