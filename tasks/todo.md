@@ -7,6 +7,7 @@ Authoritative detail lives in the [open-work list](./plan.md) and the topic docu
 - [ ] Promote support-matrix rows from live e2e to **Qualified**
 - [x] Configure the npm trusted publisher for `rcl-web` (environment blank) and crates.io trusted publishers
 - [x] First crates.io publish of `rclweb` / `rclwebd` `0.0.1` (human `cargo publish`; then OIDC)
+- [x] First OIDC automatic publish (`v0.0.3` → `rcl-web@0.0.3`, crates `0.0.2`; [run](https://github.com/alexzhang1030/rclweb/actions/runs/31713576156))
 - [ ] Name the OIDC tenant and SROS2 reference environment
 - [ ] Supply the reviewed ACL policy matrix
 - [ ] Confirm or correct the `NOTICE` copyright line
