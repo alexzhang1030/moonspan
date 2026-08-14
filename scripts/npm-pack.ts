@@ -12,7 +12,7 @@ import { spawnSync } from "node:child_process";
 
 export const PACKAGE_DIR_REL = "typescript";
 export const EXPECTED_PACKAGE_NAME = "rcl-web";
-export const EXPECTED_PACKAGE_VERSION = "0.0.3";
+export const EXPECTED_PACKAGE_VERSION = "0.0.4";
 
 export const REQUIRED_TARBALL_MEMBERS = [
   "package/LICENSE",
