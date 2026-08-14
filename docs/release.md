@@ -62,8 +62,8 @@ Bump the version in the tree (`typescript/package.json` and/or
 merge to `main`, then either:
 
 ```bash
-git tag v0.0.3
-git push origin v0.0.3
+git tag v0.0.4
+git push origin v0.0.4
 ```
 
 or run **Actions → release → Run workflow** (`npm` / `crates` checkboxes).
@@ -75,7 +75,7 @@ token; provenance is automatic — do not pass `--provenance`. Do not set
 The crates job stages `LICENSE` / `NOTICE`, publishes `rclweb`, then
 retries `rclwebd` until crates.io's index sees the new core crate.
 
-This cut: `rcl-web@0.0.3` and crates `0.0.2`. Tag `v0.0.3` after merge
+This cut: `rcl-web@0.0.4` and crates `0.0.3`. Tag `v0.0.4` after merge
 to fire both jobs. Do not retag a version already on the registry.
 
 ## Local checks

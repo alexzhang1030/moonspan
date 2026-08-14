@@ -23,7 +23,7 @@ A production edge + browser path: one Rust core ([ADR 0010](../../docs/adr/0010-
 - `rclwebd` owns ROS attachment, identity, policy, scheduling, schema, audit, and operations at the edge.
 - Supported profiles carry conformance, performance, security, and deployment evidence.
 - The TypeScript package `rcl-web` exposes an rclcpp-shaped public application contract (`init` / `Node`).
-- The current package version is `0.0.3`. `0.0.1` on npm shipped TypeScript source; `0.0.2` was the first tsdown tarball. The npm tarball must include the repository `LICENSE` and `NOTICE`. `rclweb` and `rclwebd` are `0.0.2` on crates.io. Publish is GitHub OIDC ([release](../../docs/release.md), [ADR 0016](../../docs/adr/0016-oidc-trusted-publish.md)). Unscoped `rclweb` is blocked on npm as too similar to `rrweb`; the publish name is `rcl-web` ([ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md)).
+- The current package version is `0.0.4`. `0.0.1` on npm shipped TypeScript source; `0.0.2` was the first tsdown tarball. The npm tarball must include the repository `LICENSE` and `NOTICE`. `rclweb` and `rclwebd` are `0.0.3` on crates.io. Publish is GitHub OIDC ([release](../../docs/release.md), [ADR 0016](../../docs/adr/0016-oidc-trusted-publish.md)). Unscoped `rclweb` is blocked on npm as too similar to `rrweb`; the publish name is `rcl-web` ([ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md)).
 - The repository is Apache-2.0; third-party crates on the published surface stay OSI-permissive ([licensing](../../docs/licensing.md)).
 
 ## Non-goals
