@@ -79,7 +79,8 @@ This cut: `rcl-web@0.0.4` and crates `0.0.3`. First OIDC automatic
 publish landed 2026-08-13 from tag `v0.0.3` on `e8365a8`
 ([release run](https://github.com/alexzhang1030/rclweb/actions/runs/31713576156)).
 The GitHub Release is a separate step from the tag
-([v0.0.3](https://github.com/alexzhang1030/rclweb/releases/tag/v0.0.3)).
+([v0.0.4](https://github.com/alexzhang1030/rclweb/releases/tag/v0.0.4);
+first page was [v0.0.3](https://github.com/alexzhang1030/rclweb/releases/tag/v0.0.3)).
 Do not retag a version already on the registry.
 
 ## Local checks
