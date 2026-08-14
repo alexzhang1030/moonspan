@@ -12,7 +12,7 @@ The product is one Rust core (`rclweb`) for gateway and browser, `rclwebd` at th
 | Support rows | Six rows of corpus data stay committed; live talker e2e covers all six; **Qualified** is a human matrix edit |
 | Bun | 1.3.14, workspace manifests, lockfile, root checks |
 | License | Apache-2.0; OSI-permissive third-party policy ([licensing](../docs/licensing.md)) |
-| Published versions | `rcl-web@0.0.4` (tsdown) is the current npm cut (`0.0.1` source, `0.0.2` first tsdown). `rclweb` / `rclwebd` are `0.0.3` on crates.io. First OIDC automatic publish landed from tag `v0.0.3` ([release](../docs/release.md), [ADR 0016](../docs/adr/0016-oidc-trusted-publish.md)). Fixture crates stay `publish = false`. |
+| Published versions | `0.0.5` across npm and crates (aligned from `v0.0.5` so tag-named images/binaries match the crate version; earlier: `rcl-web@0.0.4`, crates `0.0.3`). First OIDC automatic publish landed from tag `v0.0.3` ([release](../docs/release.md), [ADR 0016](../docs/adr/0016-oidc-trusted-publish.md)). Fixture crates stay `publish = false`. |
 | npm registry name | Unscoped `rclweb` is blocked as too similar to `rrweb`. Publish and import name is `rcl-web` ([ADR 0014](../docs/adr/0014-typescript-package-rcl-web.md)) |
 | Gateway distribution | Prebuilt GHCR images (six rows) and release binaries; support row auto-detects from the sourced environment ([ADR 0018](../docs/adr/0018-prebuilt-gateway-distribution.md)) |
 
