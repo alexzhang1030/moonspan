@@ -77,7 +77,7 @@ Live talker e2e covers all six rows (H-FT, H-CY, H-ZN, J-FT, J-CY, J-ZN). Corpus
 
 ## Optional local ROS prefix
 
-`just check` / `just test` / `just build` stay ROS-free. Live rcl tests (`just ros-test`) need a Jazzy prefix matching the committed bindings (typically `source /opt/ros/jazzy/setup.bash`).
+`just check` / `just test` / `just build` stay ROS-free. Compiling the ros-feature tests (`just ros-check`, or `just ros-check-docker` / CI `ros-feature-check`) and running them (`just ros-test`) need a Jazzy prefix matching the committed bindings (typically `source /opt/ros/jazzy/setup.bash`).
 
 For machines where apt ROS or Docker is too heavy, `pixi.toml` installs a RoboStack Jazzy prefix (`just ros-test-pixi` / `pixi run just ros-test`). That path is optional: pixi is not a toolchain pin, not checked by `just toolchain-check`, and not CI evidence. Digest-pinned Docker compose (`just e2e` / `just e2e-h-ft`) remains the talker → gateway → SDK gate. This env is J-FT only; H-FT still needs Humble (the existing Docker image or a second prefix).
 

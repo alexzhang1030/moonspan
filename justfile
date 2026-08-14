@@ -190,6 +190,32 @@ ros-test: toolchain-check
     cargo test --locked -p rclwebd --features ros
     cargo clippy --locked -p rclwebd --features ros --all-targets -- -D warnings
 
+# Compile rclwebd --features ros --tests (sourced Jazzy). Does not run tests.
+# CI equivalent: `just ros-check-docker`.
+[group('quality')]
+ros-check: toolchain-check
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{root}}"
+    if [ -z "${AMENT_PREFIX_PATH:-}" ]; then
+        echo "error: source a ROS 2 environment first (e.g. /opt/ros/jazzy/setup.bash) or use just ros-check-docker" >&2
+        exit 1
+    fi
+    cargo check --locked -p rclwebd --features ros --tests
+    cargo clippy --locked -p rclwebd --features ros --all-targets -- -D warnings
+
+# Compile-only ros-feature gate in the digest-pinned Jazzy image. Does not run cargo test.
+[group('quality')]
+ros-check-docker: toolchain-check
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{root}}"
+    if ! command -v docker >/dev/null 2>&1; then
+        echo "error: docker is required for just ros-check-docker" >&2
+        exit 1
+    fi
+    docker compose -f docker/compose.ros-feature-check.yml build
+
 # Same as ros-test, using the optional RoboStack Jazzy prefix (pixi).
 # Not a toolchain pin and not a substitute for digest-pinned Docker e2e evidence.
 [group('quality')]

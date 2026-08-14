@@ -15,6 +15,7 @@ Authoritative detail lives in the [open-work list](./plan.md) and the topic docu
 
 ## Engineering follow-ups
 
+- [x] ros-feature compile gate (`just ros-check` / CI `ros-feature-check`)
 - [ ] Audit file sink (integrity, retention, export)
 - [ ] SROS2 enclave wiring (parked until auth is reopened)
 - [ ] Production TLS / reverse-proxy profile

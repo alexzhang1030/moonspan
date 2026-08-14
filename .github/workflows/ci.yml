@@ -107,6 +107,24 @@ jobs:
         shell: bash
         run: just build
 
+  # Compile rclwebd --features ros --tests against digest-pinned Jazzy.
+  # Does not run cargo test (foundation already does) and is not a live talker.
+  ros-feature-check:
+    name: ros-feature-check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Compile rclwebd --features ros --tests (Jazzy)
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose -f docker/compose.ros-feature-check.yml build
+
   e2e:
     name: e2e-ros-talker
     runs-on: ubuntu-24.04

@@ -15,6 +15,7 @@ The product is one Rust core (`rclweb`) for gateway and browser, `rclwebd` at th
 | Published versions | `0.0.5` across npm and crates (aligned from `v0.0.5` so tag-named images/binaries match the crate version; earlier: `rcl-web@0.0.4`, crates `0.0.3`). First OIDC automatic publish landed from tag `v0.0.3` ([release](../docs/release.md), [ADR 0016](../docs/adr/0016-oidc-trusted-publish.md)). Fixture crates stay `publish = false`. |
 | npm registry name | Unscoped `rclweb` is blocked as too similar to `rrweb`. Publish and import name is `rcl-web` ([ADR 0014](../docs/adr/0014-typescript-package-rcl-web.md)) |
 | Gateway distribution | Prebuilt GHCR images (six rows) and release binaries; support row auto-detects from the sourced environment ([ADR 0018](../docs/adr/0018-prebuilt-gateway-distribution.md)) |
+| ros-feature test gate | CI `ros-feature-check` / `just ros-check-docker` compile `cargo check -p rclwebd --features ros --tests` in digest-pinned Jazzy; they do not run `cargo test` ([gotcha](../.agents/docs/gotchas.md#no-ci-lane-compiles-the-ros-feature-tests)) |
 | Copyright line | Keep `Copyright 2026 Alex` in [NOTICE](../NOTICE). No reason given. |
 | Authenticate / SROS2 | Do not name an OIDC tenant or SROS2 keystore. Auth stays `off`. No reason given. |
 | ACL matrix | Wide reference allow-rules at [acl-reference.json](../docs/acl-reference.json) (`RCLWEBD_ACL_PATH`). Human asked for coverage, no reason given. Default process mode stays `off`. |
@@ -37,7 +38,6 @@ None. The 2026-08-14 replies are in Settled. Reopen a row only if the human name
 | Remote telemetry | `/metrics` is scrape-only; no OTLP export yet |
 | Orchestrators | Kubernetes / systemd units beyond compose |
 | Soak / upgrade | Rollback, soak, and fault evidence |
-| ros-feature test gate | Nothing in CI compiles `cargo check -p rclwebd --features ros --tests`; the ros tests drifted once unnoticed ([gotcha](../.agents/docs/gotchas.md#no-ci-lane-compiles-the-ros-feature-tests)). A gate must not duplicate `just test` ([gotcha](../.agents/docs/gotchas.md#do-not-wrap-cargo-tests-in-a-docker-mock-lane)) |
 | apt / buildfarm | Deferred in [ADR 0018](../docs/adr/0018-prebuilt-gateway-distribution.md); reopens if cargo-in-colcon matures or users ask for apt |
 | Studio | Post-release UI prototype ([studio-ui](../docs/prototypes/studio-ui.md)) |
 

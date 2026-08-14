@@ -1,0 +1,50 @@
+# Compile-only gate for `rclwebd --features ros --tests` (J-FT).
+# Digest-pinned Jazzy matches docs/support-matrix.md and the committed FFI
+# bindings. This image must not run `cargo test`: foundation already runs
+# ROS-free workspace tests, and live talker remains just e2e.
+FROM docker.io/library/ros:jazzy-ros-base-noble@sha256:da725acf8b0f9f30c683e33ffbdcd6482d077af96d6fdc7688c5f4f280b7d923
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    curl \
+    git \
+    pkg-config \
+  && rm -rf /var/lib/apt/lists/*
+
+COPY rust-toolchain.toml /tmp/rust-toolchain.toml
+ENV CARGO_NET_RETRY=8
+RUN curl --retry 8 --retry-all-errors --retry-delay 2 --connect-timeout 20 \
+      --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
+      --default-toolchain "$(awk -F'"' '/^[[:space:]]*channel[[:space:]]*=/{print $2; exit}' /tmp/rust-toolchain.toml)" \
+      --profile minimal \
+  && . "$HOME/.cargo/env" \
+  && rustup component add clippy
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+WORKDIR /workspace
+COPY . /workspace
+
+# The repo rust-toolchain.toml also asks for wasm32. This gate is native
+# compile-only; keep the pinned channel and drop that target so rustup
+# does not fetch it here.
+RUN channel="$(awk -F'"' '/^[[:space:]]*channel[[:space:]]*=/{print $2; exit}' rust-toolchain.toml)" \
+  && test -n "${channel}" \
+  && printf '%s\n' \
+      '[toolchain]' \
+      "channel = \"${channel}\"" \
+      'profile = "minimal"' \
+      'components = ["clippy"]' \
+      > rust-toolchain.toml
+
+ENV ROS_PREFIX=/opt/ros/jazzy
+ENV RCLWEBD_SUPPORT_ROW=J-FT
+ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+
+RUN . /opt/ros/jazzy/setup.sh \
+  && cargo check --locked -p rclwebd --features ros --tests \
+  && cargo clippy --locked -p rclwebd --features ros --all-targets -- -D warnings
+
+CMD ["echo", "ros-feature-check: compiled"]

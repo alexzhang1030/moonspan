@@ -135,7 +135,7 @@ Canonical bundles live at `conformance/cdr/fixtures/bundles/<type with / → .>.
 
 ## Unscoped `rclweb` is blocked on npm as too similar to `rrweb`
 
-The exact name `rclweb` is unpublished (`GET https://registry.npmjs.org/rclweb` → 404; search total 0). A logged-in `npm publish` still returns **403**: npm's confusion / typo-squatting rule rejects it as too similar to [`rrweb`](https://www.npmjs.com/package/rrweb) (session replay; ~2.7M weekly downloads). The first attempt looked like a 404 because npm hides unauthorized PUTs; after `npm login` the real reason is the similarity check. Do not retry unscoped `rclweb`. The publish and import name is `rcl-web` ([ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md)). `rcl-web@0.0.1` is on the registry (TypeScript source). The first tsdown ship is `0.0.2`; current is `0.0.4`. npm will not overwrite a published version.
+The exact name `rclweb` is unpublished (`GET https://registry.npmjs.org/rclweb` → 404; search total 0). A logged-in `npm publish` still returns **403**: npm's confusion / typo-squatting rule rejects it as too similar to [`rrweb`](https://www.npmjs.com/package/rrweb) (session replay; ~2.7M weekly downloads). The first attempt looked like a 404 because npm hides unauthorized PUTs; after `npm login` the real reason is the similarity check. Do not retry unscoped `rclweb`. The publish and import name is `rcl-web` ([ADR 0014](../../docs/adr/0014-typescript-package-rcl-web.md)). `rcl-web@0.0.1` is on the registry (TypeScript source). The first tsdown ship is `0.0.2`; current is `0.0.5`. npm will not overwrite a published version.
 
 ## License inventory looks in the declaring workspace first
 
@@ -147,7 +147,7 @@ The published `rcl-web` tarball is tsdown ESM + `.d.ts` under `dist/`, plus `was
 
 ## npm pack copies LICENSE and NOTICE; do not commit them
 
-npm `files` cannot include `../LICENSE`. `scripts/npm-pack.ts --stage` (also the package `prepack` script) copies the repository `LICENSE` and `NOTICE` into `typescript/`. Those copies are gitignored. `just npm-pack-check` requires them in the tarball for `rcl-web@0.0.4`. Do not commit `typescript/LICENSE` or `typescript/NOTICE`.
+npm `files` cannot include `../LICENSE`. `scripts/npm-pack.ts --stage` (also the package `prepack` script) copies the repository `LICENSE` and `NOTICE` into `typescript/`. Those copies are gitignored. `just npm-pack-check` requires them in the tarball for `rcl-web@0.0.5`. Do not commit `typescript/LICENSE` or `typescript/NOTICE`.
 
 ## Crate LICENSE/NOTICE copies are committed
 
@@ -184,20 +184,21 @@ Bun on Linux can throw `SystemError: Failed to get memory usage` with errno 4 (`
 ## No CI lane compiles the ros-feature tests
 
 `just test` builds default (ROS-free) features, and the Docker e2e lanes
-build only the `rclwebd` binary with `--features ros` — nothing compiles
-the `--features ros` **tests**. When ADR 0017 moved the backend
-serialized-payload API from `Vec<u8>` to `Bytes`,
-`rclwebd/tests/ros_rcl.rs` kept the old calls and `just ros-test` was
-broken on `main` for multiple releases without any signal; the drift
-surfaced (and was fixed with `.into()` at the call sites) during
+build only the `rclwebd` binary with `--features ros`. CI
+`ros-feature-check` / `just ros-check-docker` compile
+`cargo check --locked -p rclwebd --features ros --tests` (and Clippy)
+inside the digest-pinned Jazzy image — the gate that would have caught
+the ADR 0017 `Vec<u8>` → `Bytes` drift in `rclwebd/tests/ros_rcl.rs`
+(`just ros-test` stayed broken on `main` until
 [ADR 0018](../../docs/adr/0018-prebuilt-gateway-distribution.md)
-verification. Until a gate exists ([open work](../../tasks/plan.md)),
-run `just ros-test` — or at least
-`cargo check --locked -p rclwebd --features ros --tests` inside a ROS
-container — whenever backend signatures change. The live service/action
-loopbacks additionally need `example_interfaces` installed, as the
-[gateway doc](../../docs/gateway/rclwebd.md#environment-contract) says.
+verification). Host `just ros-check` is the same compile without Docker
+(sourced Jazzy). Do not replace this with `cargo test` inside Docker —
+foundation already runs ROS-free tests, and live talker remains
+`just e2e`. `just ros-test` still *runs* the ros-feature tests. The live
+service/action loopbacks additionally need `example_interfaces`
+installed, as the [gateway doc](../../docs/gateway/rclwebd.md#environment-contract)
+says.
 
 ## Do not wrap cargo tests in a Docker mock lane
 
-`docker/compose.r3-03-h-ft.yml` once existed whose image only re-ran `cargo test` inside `rust:1.97.1`. Foundation already runs those tests via `just test`. The CI job was `workflow_dispatch`-only, so it never gated. Live Humble remains [`docker/compose.r3-03-h-ft-e2e.yml`](../../docker/compose.r3-03-h-ft-e2e.yml). Do not add a compose file whose only command is cargo tests the workspace already runs.
+`docker/compose.r3-03-h-ft.yml` once existed whose image only re-ran `cargo test` inside `rust:1.97.1`. Foundation already runs those tests via `just test`. The CI job was `workflow_dispatch`-only, so it never gated. Live Humble remains [`docker/compose.r3-03-h-ft-e2e.yml`](../../docker/compose.r3-03-h-ft-e2e.yml). Do not add a compose file whose only command is cargo tests the workspace already runs. The ros-feature compile image ([`docker/compose.ros-feature-check.yml`](../../docker/compose.ros-feature-check.yml)) is not that anti-pattern: it runs `cargo check --tests`, not `cargo test`.
