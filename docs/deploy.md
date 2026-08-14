@@ -23,13 +23,14 @@ docker run --rm --network host ghcr.io/alexzhang1030/rclwebd:jazzy
 | `humble` | Rolling H-FT |
 | `latest` | Rolling J-FT |
 
-Images are `linux/amd64`; arm64 waits for native arm runners
-([open work](../tasks/plan.md)). Zenoh-row containers still need the
+Every tag is a multi-arch manifest (`linux/amd64` + `linux/arm64`, both
+built on native runners); per-arch tags (`<version>-<row>-<arch>`) also
+exist for pinning one platform. Zenoh-row containers still need the
 router companion described under [Artifact](#artifact).
 
-Host binaries (`rclwebd-<version>-{jazzy,humble}-amd64` plus `.sha256`)
-are built in the same digest-pinned builder stages and run against a
-sourced matching prefix:
+Host binaries (`rclwebd-<version>-{jazzy,humble}-{amd64,arm64}` plus
+`.sha256`) are built in the same digest-pinned builder stages and run
+against a sourced matching prefix:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/alexzhang1030/rclweb/main/scripts/install-rclwebd.sh | bash
@@ -141,5 +142,5 @@ robot-edge shape, not a cloud overlay network.
 ## Follow-ups
 
 Production PKI, remote metrics/trace export, Kubernetes or systemd units,
-upgrade/rollback playbooks, arm64 images and binaries, and the SROS2
-keystore remain [open work](../tasks/plan.md).
+upgrade/rollback playbooks, and the SROS2 keystore remain
+[open work](../tasks/plan.md).

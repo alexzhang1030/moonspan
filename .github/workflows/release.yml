@@ -211,14 +211,16 @@ jobs:
             sleep 20
           done
 
-  # Six-row runtime images (ADR 0018 stage 1). Tags per version:
+  # Six-row runtime images (ADR 0018 stage 1), linux/amd64 + linux/arm64.
+  # Each arch builds natively (arm64 on ubuntu-24.04-arm; QEMU-emulated
+  # cargo builds are impractical) and pushes <version>-<row>-<arch>;
+  # publish-image-manifests combines them into the user-facing tags:
   # <version>-<row> plus rolling <row>, and aliases jazzy (J-FT),
-  # humble (H-FT), latest (J-FT). linux/amd64 now; arm64 waits for
-  # native arm runners (QEMU-emulated cargo builds are impractical).
+  # humble (H-FT), latest (J-FT).
   publish-images:
-    name: publish-image (${{ matrix.row }})
+    name: publish-image (${{ matrix.row }}, ${{ matrix.arch }})
     if: github.event_name == 'push' || inputs.images
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 120
     permissions:
       contents: read
@@ -226,43 +228,39 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        arch: [amd64, arm64]
+        row: [j-ft, j-cy, j-zn, h-ft, h-cy, h-zn]
         include:
           - row: j-ft
             dockerfile: docker/Dockerfile.rclwebd
             build_args: ""
-            aliases: "jazzy latest"
           - row: j-cy
             dockerfile: docker/Dockerfile.rclwebd
             build_args: >-
               --build-arg SUPPORT_ROW=J-CY
               --build-arg RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
               --build-arg RMW_APT_PACKAGES=ros-jazzy-rmw-cyclonedds-cpp
-            aliases: ""
           - row: j-zn
             dockerfile: docker/Dockerfile.rclwebd
             build_args: >-
               --build-arg SUPPORT_ROW=J-ZN
               --build-arg RMW_IMPLEMENTATION=rmw_zenoh_cpp
               --build-arg RMW_APT_PACKAGES=ros-jazzy-rmw-zenoh-cpp
-            aliases: ""
           - row: h-ft
             dockerfile: docker/Dockerfile.rclwebd-h-ft
             build_args: ""
-            aliases: "humble"
           - row: h-cy
             dockerfile: docker/Dockerfile.rclwebd-h-ft
             build_args: >-
               --build-arg SUPPORT_ROW=H-CY
               --build-arg RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
               --build-arg RMW_APT_PACKAGES=ros-humble-rmw-cyclonedds-cpp
-            aliases: ""
           - row: h-zn
             dockerfile: docker/Dockerfile.rclwebd-h-ft
             build_args: >-
               --build-arg SUPPORT_ROW=H-ZN
               --build-arg RMW_IMPLEMENTATION=rmw_zenoh_cpp
               --build-arg RMW_APT_PACKAGES=ros-humble-rmw-zenoh-cpp
-            aliases: ""
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -293,42 +291,102 @@ jobs:
           set -euo pipefail
           printf '%s' "${GHCR_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
 
-      - name: Build and push
+      - name: Build and push per-arch image
         shell: bash
         env:
           VERSION: ${{ steps.version.outputs.version }}
           ROW: ${{ matrix.row }}
+          ARCH: ${{ matrix.arch }}
           DOCKERFILE: ${{ matrix.dockerfile }}
           BUILD_ARGS: ${{ matrix.build_args }}
-          ALIASES: ${{ matrix.aliases }}
         run: |
           set -euo pipefail
           image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/rclwebd"
           # shellcheck disable=SC2086 — BUILD_ARGS is a flag list by design
           docker build -f "${DOCKERFILE}" ${BUILD_ARGS} \
-            -t "${image}:${VERSION}-${ROW}" .
-          docker tag "${image}:${VERSION}-${ROW}" "${image}:${ROW}"
-          docker push "${image}:${VERSION}-${ROW}"
-          docker push "${image}:${ROW}"
-          for alias in ${ALIASES}; do
-            docker tag "${image}:${VERSION}-${ROW}" "${image}:${alias}"
-            docker push "${image}:${alias}"
+            -t "${image}:${VERSION}-${ROW}-${ARCH}" .
+          docker push "${image}:${VERSION}-${ROW}-${ARCH}"
+
+  # Combine the per-arch pushes into multi-arch manifest lists for the
+  # user-facing tags. Runs once after every (row, arch) build succeeds.
+  publish-image-manifests:
+    name: publish-image-manifests
+    if: github.event_name == 'push' || inputs.images
+    needs: publish-images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Resolve release version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="$(awk -F'"' '/^\[workspace\.package\]/{p=1} p && /^version/{print $2; exit}' Cargo.toml)"
+          fi
+          if [[ -z "${version}" ]]; then
+            echo "error: could not resolve a release version" >&2
+            exit 1
+          fi
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+
+      - name: Log in to GHCR
+        shell: bash
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          printf '%s' "${GHCR_TOKEN}" | docker login ghcr.io -u "${GITHUB_ACTOR}" --password-stdin
+
+      - name: Create and push multi-arch manifests
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/rclwebd"
+          for row in j-ft j-cy j-zn h-ft h-cy h-zn; do
+            case "${row}" in
+              j-ft) aliases="jazzy latest" ;;
+              h-ft) aliases="humble" ;;
+              *) aliases="" ;;
+            esac
+            tags=(-t "${image}:${VERSION}-${row}" -t "${image}:${row}")
+            for alias in ${aliases}; do
+              tags+=(-t "${image}:${alias}")
+            done
+            docker buildx imagetools create "${tags[@]}" \
+              "${image}:${VERSION}-${row}-amd64" \
+              "${image}:${VERSION}-${row}-arm64"
           done
 
-  # Prebuilt gateway binaries (ADR 0018 stage 4). Built inside the same
-  # digest-pinned builder stages the runtime images use, so the glibc floor
-  # matches each distro's Ubuntu base and Humble gets regenerated bindings.
-  # Uploaded to the GitHub Release for the version tag (created if missing).
+  # Prebuilt gateway binaries (ADR 0018 stage 4), amd64 + arm64 (native
+  # runners). Built inside the same digest-pinned builder stages the runtime
+  # images use, so the glibc floor matches each distro's Ubuntu base and
+  # Humble gets regenerated bindings. Uploaded to the GitHub Release for the
+  # version tag (created if missing).
   publish-binaries:
-    name: publish-binary (${{ matrix.distro }})
+    name: publish-binary (${{ matrix.distro }}, ${{ matrix.arch }})
     if: github.event_name == 'push' || inputs.binaries
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 120
     permissions:
       contents: write
     strategy:
       fail-fast: false
       matrix:
+        arch: [amd64, arm64]
+        distro: [jazzy, humble]
         include:
           - distro: jazzy
             dockerfile: docker/Dockerfile.rclwebd

@@ -83,9 +83,11 @@ The crates job stages `LICENSE` / `NOTICE`, publishes `rclweb`, then
 retries `rclwebd` until crates.io's index sees the new core crate.
 
 The images job builds the six row images from the committed Dockerfiles
-and pushes `ghcr.io/alexzhang1030/rclwebd` (tag table in
+per architecture (amd64 and arm64, each on a native runner) and pushes
+`ghcr.io/alexzhang1030/rclwebd:<version>-<row>-<arch>`; the manifests
+job then combines them into the user-facing multi-arch tags (table in
 [deploy](./deploy.md#prebuilt-artifacts)). The binaries job builds
-`rclwebd-<version>-{jazzy,humble}-amd64` (+ `.sha256`) with
+`rclwebd-<version>-{jazzy,humble}-{amd64,arm64}` (+ `.sha256`) with
 `docker build --target builder` and uploads them to the release for the
 tag, creating the release with generated notes when it does not exist
 yet — so the GitHub Release page is no longer a separate human step,
