@@ -18,7 +18,7 @@ Each accepted claim records:
 - stdout from the reproducing command (not committed);
 - errors, variance, reviewer, and gate disposition.
 
-Historical evidence stays in git history. Promotion to **Qualified** is a human edit of the [support matrix](../../docs/support-matrix.md), not a CI stamp and not a committed JSON pile. The current TypeScript package is `rcl-web@0.0.4` (`0.0.1` on npm shipped source). Publish is GitHub OIDC ([release](../../docs/release.md)).
+Historical evidence stays in git history. Promotion to **Qualified** is a human edit of the [support matrix](../../docs/support-matrix.md), not a CI stamp and not a committed JSON pile. The current TypeScript package is `rcl-web@0.0.5` (`0.0.1` on npm shipped source). Publish is GitHub OIDC ([release](../../docs/release.md)). CI `ros-feature-check` compiles `rclwebd --features ros --tests` in digest-pinned Jazzy; it does not run `cargo test`.
 
 ## Review triggers
 
