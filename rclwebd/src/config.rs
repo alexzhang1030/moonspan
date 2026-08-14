@@ -80,6 +80,63 @@ pub fn parse_support_row(id: &str) -> Option<SupportRow> {
   }
 }
 
+/// Derive the support row from a sourced ROS environment (`ROS_DISTRO` +
+/// `RMW_IMPLEMENTATION`) when `RCLWEBD_SUPPORT_ROW` is unset ([ADR 0018](../../docs/adr/0018-prebuilt-gateway-distribution.md)).
+///
+/// `None` / empty inputs use the historical defaults (no distro → J-FT, no
+/// RMW → Fast DDS, matching the `rmw_implementation` shim). An explicit but
+/// unsupported distro or RMW is an error so start-up names the six rows
+/// instead of silently probing the wrong one. The adapter probe remains the
+/// consistency authority; this only chooses the default.
+pub fn detect_support_row(distro: Option<&str>, rmw: Option<&str>) -> Result<SupportRow, String> {
+  let distro = distro.map(str::trim).filter(|s| !s.is_empty());
+  let rmw = rmw.map(str::trim).filter(|s| !s.is_empty()).unwrap_or("rmw_fastrtps_cpp");
+  let Some(distro) = distro else {
+    if rmw == SUPPORT_ROW_J_FT.rmw_identifier {
+      return Ok(SUPPORT_ROW_J_FT);
+    }
+    return Err(format!(
+      "no support row for RMW_IMPLEMENTATION={rmw:?} without ROS_DISTRO; \
+       source a ROS 2 environment or set RCLWEBD_SUPPORT_ROW explicitly"
+    ));
+  };
+  let rows = [
+    SUPPORT_ROW_J_FT,
+    SUPPORT_ROW_J_CY,
+    SUPPORT_ROW_J_ZN,
+    SUPPORT_ROW_H_FT,
+    SUPPORT_ROW_H_CY,
+    SUPPORT_ROW_H_ZN,
+  ];
+  rows.into_iter().find(|row| row.ros_distro == distro && row.rmw_identifier == rmw).ok_or_else(
+    || {
+      format!(
+        "no support row for ROS_DISTRO={distro:?} with RMW_IMPLEMENTATION={rmw:?}; \
+         supported rows are J-FT, J-CY, J-ZN (jazzy) and H-FT, H-CY, H-ZN (humble) — \
+         set RCLWEBD_SUPPORT_ROW explicitly to override"
+      )
+    },
+  )
+}
+
+/// Resolve the process support row from the environment: explicit
+/// `RCLWEBD_SUPPORT_ROW` wins (empty counts as unset); otherwise derive via
+/// [`detect_support_row`]. `Err` carries a start-up message.
+pub fn support_row_from_env() -> Result<SupportRow, String> {
+  match std::env::var("RCLWEBD_SUPPORT_ROW") {
+    Ok(raw) if !raw.trim().is_empty() => parse_support_row(&raw).ok_or_else(|| {
+      format!(
+        "unsupported RCLWEBD_SUPPORT_ROW={raw:?}; expected one of \
+         J-FT, J-CY, J-ZN, H-FT, H-CY, H-ZN"
+      )
+    }),
+    _ => detect_support_row(
+      std::env::var("ROS_DISTRO").ok().as_deref(),
+      std::env::var("RMW_IMPLEMENTATION").ok().as_deref(),
+    ),
+  }
+}
+
 /// Which transport is carrying the current R2WP session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ActiveTransport {
@@ -218,5 +275,48 @@ mod tests {
     assert!(parse_support_row("").is_none());
     assert!(parse_support_row("J-XX").is_none());
     assert!(parse_support_row("j-ft").is_none());
+  }
+
+  #[test]
+  fn detect_derives_all_six_rows_from_env_pairs() {
+    let expected = [
+      ("jazzy", "rmw_fastrtps_cpp", "J-FT"),
+      ("jazzy", "rmw_cyclonedds_cpp", "J-CY"),
+      ("jazzy", "rmw_zenoh_cpp", "J-ZN"),
+      ("humble", "rmw_fastrtps_cpp", "H-FT"),
+      ("humble", "rmw_cyclonedds_cpp", "H-CY"),
+      ("humble", "rmw_zenoh_cpp", "H-ZN"),
+    ];
+    for (distro, rmw, id) in expected {
+      let row = detect_support_row(Some(distro), Some(rmw))
+        .unwrap_or_else(|e| panic!("{distro}+{rmw} must detect: {e}"));
+      assert_eq!(row.id, id);
+    }
+  }
+
+  #[test]
+  fn detect_defaults_without_a_sourced_environment() {
+    assert_eq!(detect_support_row(None, None).unwrap().id, "J-FT");
+    assert_eq!(detect_support_row(Some(""), Some("  ")).unwrap().id, "J-FT");
+    // No distro but an explicit RMW keeps the historical J-FT default only
+    // when the RMW matches; otherwise there is no row to pick.
+    assert_eq!(detect_support_row(None, Some("rmw_fastrtps_cpp")).unwrap().id, "J-FT");
+  }
+
+  #[test]
+  fn detect_rejects_unknown_distro_or_rmw() {
+    let err = detect_support_row(Some("iron"), None).unwrap_err();
+    assert!(err.contains("iron"), "message names the distro: {err}");
+    assert!(err.contains("RCLWEBD_SUPPORT_ROW"), "message names the override: {err}");
+    let err = detect_support_row(Some("jazzy"), Some("rmw_connextdds")).unwrap_err();
+    assert!(err.contains("rmw_connextdds"), "message names the rmw: {err}");
+    // Unset distro with an unsupported RMW cannot silently fall back to J-FT.
+    assert!(detect_support_row(None, Some("rmw_connextdds")).is_err());
+  }
+
+  #[test]
+  fn detect_trims_whitespace() {
+    let row = detect_support_row(Some("  humble\n"), Some(" rmw_cyclonedds_cpp ")).unwrap();
+    assert_eq!(row.id, "H-CY");
   }
 }

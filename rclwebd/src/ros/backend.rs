@@ -12,7 +12,7 @@ use crate::backend::{
   ActionInbound, BackendError, ChannelSpec, EntityId, GraphEndpointInfo, GraphNodeInfo, GraphView,
   RosBackend, ServiceRequest, SubscriptionSample,
 };
-use crate::config::{SUPPORT_ROW_J_FT, parse_support_row};
+use crate::config::{SUPPORT_ROW_J_FT, support_row_from_env};
 use bytes::Bytes;
 use std::collections::HashMap;
 use std::sync::mpsc::{SyncSender, sync_channel};
@@ -405,9 +405,10 @@ fn map_pump_error(err: BackendError) -> super::rcl::RclError {
 }
 
 fn check_adapter_probe() -> Result<(), BackendError> {
-  let row_raw =
-    std::env::var("RCLWEBD_SUPPORT_ROW").unwrap_or_else(|_| SUPPORT_ROW_J_FT.id.to_owned());
-  let row = parse_support_row(&row_raw).unwrap_or(SUPPORT_ROW_J_FT);
+  // Same resolution as main.rs (explicit row wins, else derived from the
+  // sourced env — ADR 0018) so the probe and SessionReady agree. A resolution
+  // error falls back to J-FT; the compatibility check below still fails it.
+  let row = support_row_from_env().unwrap_or(SUPPORT_ROW_J_FT);
   let distro = std::env::var("ROS_DISTRO").unwrap_or_else(|_| row.ros_distro.to_owned());
   // Unset RMW_IMPLEMENTATION makes the rmw_implementation shim load the
   // distro default (Fast DDS), so probe that — CY/ZN rows must set the env

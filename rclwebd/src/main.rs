@@ -5,8 +5,11 @@
 //! - `RCLWEBD_GATEWAY_INSTANCE_ID` — stable deployment id (default: random per process)
 //! - `RCLWEBD_POLICY_REVISION` — SessionReady policy revision (default `r1-dev`)
 //! - `ROS_DOMAIN_ID` — ROS domain to attach (default 0)
-//! - `RCLWEBD_SUPPORT_ROW` — support row id (`J-FT` default; any Phase 1 row:
-//!   `J-FT` / `J-CY` / `J-ZN` / `H-FT` / `H-CY` / `H-ZN`)
+//! - `RCLWEBD_SUPPORT_ROW` — support row id (any Phase 1 row: `J-FT` / `J-CY`
+//!   / `J-ZN` / `H-FT` / `H-CY` / `H-ZN`). Unset (or empty) derives the row
+//!   from the sourced environment: `ROS_DISTRO` + `RMW_IMPLEMENTATION`
+//!   (Fast DDS when unset), falling back to `J-FT` without a sourced
+//!   environment (ADR 0018)
 //! - `RCLWEBD_LOCAL_DEV_TLS` — `1`/`true` enables ADR 0011 local-dev TLS
 //! - `RCLWEBD_OFFER_WEBTRANSPORT` — `1`/`true` AND-negotiates WT + starts accept
 //! - `RCLWEBD_AUTH_MODE` — `off` (default) or `oidc` (JWT; requires issuer/keys)
@@ -27,8 +30,8 @@
 
 use rclwebd::ros::RclBackend;
 use rclwebd::{
-  AclMode, AclPolicy, AuthMode, GatewayConfig, OidcSettings, SUPPORT_ROW_J_FT, parse_support_row,
-  serve_with_os_signals,
+  AclMode, AclPolicy, AuthMode, GatewayConfig, OidcSettings, serve_with_os_signals,
+  support_row_from_env,
 };
 use std::sync::Arc;
 
@@ -47,15 +50,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   let domain_id: u8 =
     std::env::var("ROS_DOMAIN_ID").ok().map(|v| v.parse()).transpose()?.unwrap_or(0);
 
-  let support_row = match std::env::var("RCLWEBD_SUPPORT_ROW") {
-    Ok(raw) => parse_support_row(&raw).ok_or_else(|| {
-      format!(
-        "unsupported RCLWEBD_SUPPORT_ROW={raw:?}; expected one of \
-         J-FT, J-CY, J-ZN, H-FT, H-CY, H-ZN"
-      )
-    })?,
-    Err(_) => SUPPORT_ROW_J_FT,
-  };
+  let support_row = support_row_from_env()?;
+  if std::env::var("RCLWEBD_SUPPORT_ROW").map_or(true, |raw| raw.trim().is_empty()) {
+    eprintln!(
+      "rclwebd: support row {} auto-detected from the environment \
+       (ROS_DISTRO={}, RMW_IMPLEMENTATION={}); set RCLWEBD_SUPPORT_ROW to override",
+      support_row.id,
+      std::env::var("ROS_DISTRO").unwrap_or_else(|_| "<unset>".to_owned()),
+      std::env::var("RMW_IMPLEMENTATION").unwrap_or_else(|_| "<unset>".to_owned()),
+    );
+  }
   if let Ok(distro) = std::env::var("ROS_DISTRO") {
     let distro = distro.trim();
     if !distro.is_empty() && distro != support_row.ros_distro {

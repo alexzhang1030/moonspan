@@ -1,9 +1,13 @@
 # Release
 
 `rcl-web` publishes to npm with [trusted publishing](https://docs.npmjs.com/trusted-publishers)
-(OIDC). `rclweb` / `rclwebd` publish to crates.io. There is no `NPM_TOKEN`
-or `CARGO_REGISTRY_TOKEN` in GitHub secrets after the crates.io bootstrap
-below.
+(OIDC). `rclweb` / `rclwebd` publish to crates.io. The six `rclwebd`
+runtime images publish to GHCR and prebuilt gateway binaries attach to
+the GitHub Release ([ADR 0018](./adr/0018-prebuilt-gateway-distribution.md)).
+There is no `NPM_TOKEN` or `CARGO_REGISTRY_TOKEN` in GitHub secrets
+after the crates.io bootstrap below; images and binaries use the
+workflow `GITHUB_TOKEN` (`packages: write` / `contents: write` on those
+jobs only).
 
 npm's trusted-publisher identity is the workflow **filename**
 `release.yml` (not the path). Do not put a GitHub `environment:` on the
@@ -66,7 +70,10 @@ git tag v0.0.4
 git push origin v0.0.4
 ```
 
-or run **Actions → release → Run workflow** (`npm` / `crates` checkboxes).
+or run **Actions → release → Run workflow** (`npm` / `crates` / `images`
+/ `binaries` checkboxes; dispatched image and binary jobs resolve the
+version from `Cargo.toml`, and the binary upload requires the matching
+`v<version>` tag to exist).
 
 The npm job builds with Bun, then publishes with the official npm CLI
 (`npm publish` from `typescript/`). The CLI detects the GitHub OIDC
@@ -74,6 +81,16 @@ token; provenance is automatic — do not pass `--provenance`. Do not set
 `NODE_AUTH_TOKEN`. The job refuses a version already on the registry.
 The crates job stages `LICENSE` / `NOTICE`, publishes `rclweb`, then
 retries `rclwebd` until crates.io's index sees the new core crate.
+
+The images job builds the six row images from the committed Dockerfiles
+and pushes `ghcr.io/alexzhang1030/rclwebd` (tag table in
+[deploy](./deploy.md#prebuilt-artifacts)). The binaries job builds
+`rclwebd-<version>-{jazzy,humble}-amd64` (+ `.sha256`) with
+`docker build --target builder` and uploads them to the release for the
+tag, creating the release with generated notes when it does not exist
+yet — so the GitHub Release page is no longer a separate human step,
+though editing its notes still is. `scripts/install-rclwebd.sh` is the
+consumer of those assets.
 
 This cut: `rcl-web@0.0.4` and crates `0.0.3`. First OIDC automatic
 publish landed 2026-08-13 from tag `v0.0.3` on `e8365a8`

@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 ## Date
 
@@ -37,7 +37,8 @@ Staged delivery; each stage is independently shippable, in this order.
    Per released version, push the six row images built from the existing
    Dockerfiles as `ghcr.io/alexzhang1030/rclwebd:<version>-<row>`
    (row in `j-ft`, `j-cy`, `j-zn`, `h-ft`, `h-cy`, `h-zn`), plus rolling
-   aliases `:jazzy` (J-FT), `:humble` (H-FT), and `:latest` (J-FT).
+   per-row tags (`:<row>`) and aliases `:jazzy` (J-FT), `:humble`
+   (H-FT), and `:latest` (J-FT).
    Authentication is the workflow `GITHUB_TOKEN` with `packages: write` —
    no new long-lived secrets, consistent with the
    [ADR 0016](./0016-oidc-trusted-publish.md) direction. Start with
@@ -67,10 +68,11 @@ Staged delivery; each stage is independently shippable, in this order.
    "gateway in one minute" block per distro.
 
 4. **Prebuilt binaries on GitHub Releases with an install script.**
-   Build `rclwebd-<version>-{jazzy,humble}-{amd64,arm64}` inside the
-   same digest-pinned ROS builder stages the images use, so the glibc
-   floor matches each distro's Ubuntu base (22.04 Humble, 24.04 Jazzy)
-   and the Humble binaries get the regenerated bindings. Runtime still
+   Build `rclwebd-<version>-{jazzy,humble}-amd64` (arm64 follows the
+   same native-arm-runner condition as the images) inside the same
+   digest-pinned ROS builder stages the images use, so the glibc floor
+   matches each distro's Ubuntu base (22.04 Humble, 24.04 Jazzy) and
+   the Humble binaries get the regenerated bindings. Runtime still
    needs a matching sourced prefix — typesupport stays dlopen, which is
    the environment a ROS user already has. An `install.sh` detects
    `ROS_DISTRO` and architecture, downloads with retries
@@ -133,5 +135,6 @@ after stages 1–4 land if users ask for apt.
 
 Owner request 2026-08-14 (task): "rclwebd 的安装方式和使用方式现在还是太难了。
 考虑使用更好的方式" — installation and usage of `rclwebd` are still too
-hard; propose a better way. This record is the proposal; it is not
-accepted until the owner rules on it.
+hard; propose a better way. Owner accepted the staged proposal the same
+day ("可以，你都搞一下把" — go ahead with all of it) without further
+conditions.

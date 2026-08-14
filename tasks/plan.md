@@ -14,6 +14,7 @@ The product is one Rust core (`rclweb`) for gateway and browser, `rclwebd` at th
 | License | Apache-2.0; OSI-permissive third-party policy ([licensing](../docs/licensing.md)) |
 | Published versions | `rcl-web@0.0.4` (tsdown) is the current npm cut (`0.0.1` source, `0.0.2` first tsdown). `rclweb` / `rclwebd` are `0.0.3` on crates.io. First OIDC automatic publish landed from tag `v0.0.3` ([release](../docs/release.md), [ADR 0016](../docs/adr/0016-oidc-trusted-publish.md)). Fixture crates stay `publish = false`. |
 | npm registry name | Unscoped `rclweb` is blocked as too similar to `rrweb`. Publish and import name is `rcl-web` ([ADR 0014](../docs/adr/0014-typescript-package-rcl-web.md)) |
+| Gateway distribution | Prebuilt GHCR images (six rows) and release binaries; support row auto-detects from the sourced environment ([ADR 0018](../docs/adr/0018-prebuilt-gateway-distribution.md)) |
 
 ## Open — needs a human ruling
 
@@ -26,7 +27,6 @@ The product is one Rust core (`rclweb`) for gateway and browser, `rclwebd` at th
 | Benchmark retention | Storage, retention, access, and integrity policy for perf output |
 | Support-matrix **Qualified** | Human edit of [support-matrix.md](../docs/support-matrix.md) |
 | Copyright line | `NOTICE` currently says `Copyright 2026 Alex` |
-| Gateway install / usage UX | Accept or reject [ADR 0018](../docs/adr/0018-prebuilt-gateway-distribution.md) (GHCR images, support-row auto-detection, quickstart docs, release binaries) |
 
 ## Open — engineering follow-ups
 
@@ -38,6 +38,8 @@ The product is one Rust core (`rclweb`) for gateway and browser, `rclwebd` at th
 | Remote telemetry | `/metrics` is scrape-only; no OTLP export yet |
 | Orchestrators | Kubernetes / systemd units beyond compose |
 | Soak / upgrade | Rollback, soak, and fault evidence |
+| arm64 distribution | GHCR images and release binaries for `linux/arm64` on native arm runners ([ADR 0018](../docs/adr/0018-prebuilt-gateway-distribution.md)); first cut is amd64-only |
+| apt / buildfarm | Deferred in [ADR 0018](../docs/adr/0018-prebuilt-gateway-distribution.md); reopens if cargo-in-colcon matures or users ask for apt |
 | Studio | Post-release UI prototype ([studio-ui](../docs/prototypes/studio-ui.md)) |
 
 ## Definition of done
