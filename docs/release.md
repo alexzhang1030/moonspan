@@ -75,6 +75,15 @@ or run **Actions → release → Run workflow** (`npm` / `crates` / `images`
 version from `Cargo.toml`, and the binary upload requires the matching
 `v<version>` tag to exist).
 
+To republish only the images and binaries of an existing version (for
+example after a workflow fix), push `rebuild-v<version>`; the npm and
+crates jobs skip (the registries refuse duplicates anyway; GHCR tags
+and release assets are replaced):
+
+```bash
+git tag rebuild-v0.0.5 && git push origin rebuild-v0.0.5
+```
+
 The npm job builds with Bun, then publishes with the official npm CLI
 (`npm publish` from `typescript/`). The CLI detects the GitHub OIDC
 token; provenance is automatic — do not pass `--provenance`. Do not set

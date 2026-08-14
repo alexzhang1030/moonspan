@@ -1,6 +1,8 @@
 # Publish rcl-web (npm trusted publishing), rclweb / rclwebd (crates.io),
 # the six rclwebd runtime images (GHCR), and prebuilt gateway binaries
 # (GitHub Release assets). ADR 0018 covers the image / binary distribution.
+# A rebuild-v<version> tag republishes only images and binaries for an
+# existing version (registries refuse duplicates; GHCR tags move).
 # npm OIDC identity is this filename only — do not rename without updating
 # npmjs.com. No GitHub environment on the npm job (leave Environment blank
 # on the trusted publisher). See docs/release.md.
@@ -28,6 +30,7 @@ on:
   push:
     tags:
       - "v*"
+      - "rebuild-v*"
 
 permissions:
   contents: read
@@ -39,7 +42,7 @@ concurrency:
 jobs:
   publish-npm:
     name: publish-npm
-    if: github.event_name == 'push' || inputs.npm
+    if: (github.event_name == 'push' && !startsWith(github.ref_name, 'rebuild-')) || inputs.npm
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -131,7 +134,7 @@ jobs:
 
   publish-crates:
     name: publish-crates
-    if: github.event_name == 'push' || inputs.crates
+    if: (github.event_name == 'push' && !startsWith(github.ref_name, 'rebuild-')) || inputs.crates
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
@@ -273,7 +276,8 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
-            version="${GITHUB_REF_NAME#v}"
+            version="${GITHUB_REF_NAME#rebuild-}"
+            version="${version#v}"
           else
             version="$(awk -F'"' '/^\[workspace\.package\]/{p=1} p && /^version/{print $2; exit}' Cargo.toml)"
           fi
@@ -330,7 +334,8 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
-            version="${GITHUB_REF_NAME#v}"
+            version="${GITHUB_REF_NAME#rebuild-}"
+            version="${version#v}"
           else
             version="$(awk -F'"' '/^\[workspace\.package\]/{p=1} p && /^version/{print $2; exit}' Cargo.toml)"
           fi
@@ -404,7 +409,8 @@ jobs:
         run: |
           set -euo pipefail
           if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
-            version="${GITHUB_REF_NAME#v}"
+            version="${GITHUB_REF_NAME#rebuild-}"
+            version="${version#v}"
           else
             version="$(awk -F'"' '/^\[workspace\.package\]/{p=1} p && /^version/{print $2; exit}' Cargo.toml)"
           fi
