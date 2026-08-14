@@ -39,6 +39,7 @@ The product is one Rust core (`rclweb`) for gateway and browser, `rclwebd` at th
 | Orchestrators | Kubernetes / systemd units beyond compose |
 | Soak / upgrade | Rollback, soak, and fault evidence |
 | arm64 distribution | GHCR images and release binaries for `linux/arm64` on native arm runners ([ADR 0018](../docs/adr/0018-prebuilt-gateway-distribution.md)); first cut is amd64-only |
+| ros-feature test gate | Nothing in CI compiles `cargo check -p rclwebd --features ros --tests`; the ros tests drifted once unnoticed ([gotcha](../.agents/docs/gotchas.md#no-ci-lane-compiles-the-ros-feature-tests)). A gate must not duplicate `just test` ([gotcha](../.agents/docs/gotchas.md#do-not-wrap-cargo-tests-in-a-docker-mock-lane)) |
 | apt / buildfarm | Deferred in [ADR 0018](../docs/adr/0018-prebuilt-gateway-distribution.md); reopens if cargo-in-colcon matures or users ask for apt |
 | Studio | Post-release UI prototype ([studio-ui](../docs/prototypes/studio-ui.md)) |
 

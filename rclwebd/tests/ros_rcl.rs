@@ -81,7 +81,7 @@ async fn serialized_loopback_publish_take_and_graph() {
   let message = cdr_string_message("hello rclwebd loopback");
   let deadline = Instant::now() + Duration::from_secs(15);
   let sample = loop {
-    backend.publish(pub_entity, message.clone()).await.expect("serialized publish");
+    backend.publish(pub_entity, message.clone().into()).await.expect("serialized publish");
     match tokio::time::timeout(Duration::from_millis(200), samples.recv()).await {
       Ok(Some(sample)) => break sample,
       Ok(None) => panic!("sample channel closed"),
@@ -145,7 +145,7 @@ async fn live_service_add_two_ints_round_trip() {
   let opid = [0x11u8; 16];
 
   tokio::pin! {
-      let call_fut = backend.call(client_entity, opid, request_cdr);
+      let call_fut = backend.call(client_entity, opid, request_cdr.into());
       let service_fut = async {
           let deadline = Instant::now() + Duration::from_secs(10);
           while Instant::now() < deadline {
@@ -158,7 +158,7 @@ async fn live_service_add_two_ints_round_trip() {
                       writer.write_i64(a + b).expect("sum");
                       let response_cdr = writer.to_bytes();
                       backend
-                          .send_service_response(service_entity, request.operation_id, response_cdr)
+                          .send_service_response(service_entity, request.operation_id, response_cdr.into())
                           .await
                           .expect("send response");
                       return;
@@ -229,7 +229,7 @@ async fn live_action_fibonacci_round_trip() {
   let opid = [0x22u8; 16];
 
   tokio::pin! {
-      let call_fut = backend.send_action_goal(client_entity, opid, goal_cdr.clone());
+      let call_fut = backend.send_action_goal(client_entity, opid, goal_cdr.clone().into());
       let server_fut = async {
           let deadline = Instant::now() + Duration::from_secs(10);
           while Instant::now() < deadline {
@@ -240,7 +240,7 @@ async fn live_action_fibonacci_round_trip() {
                       assert_eq!(inbound.payload(), goal_cdr.as_slice());
                       let result_cdr = cdr_fibonacci_get_result_response(4);
                       backend
-                          .send_action_result(server_entity, inbound.operation_id(), result_cdr)
+                          .send_action_result(server_entity, inbound.operation_id(), result_cdr.into())
                           .await
                           .expect("send action result");
                       return;
