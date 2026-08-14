@@ -31,6 +31,7 @@ tsdown ship bundle).
 | `just cargo-publish` / `just cargo-publish-check` | crates.io pack for `rclweb` / `rclwebd` |
 | `just e2e` / `just e2e-h-ft` | Live talker → gateway → `rcl-web` |
 | `just gateway` / `just gateway-h-ft` | Packaged gateway on the host network |
+| `just ros-check` / `just ros-check-docker` | Compile `rclwebd --features ros --tests` (no `cargo test`) |
 | `just ros-test` / `just ros-test-pixi` | Gateway tests against real rcl |
 | `just protocol-check` / `just cdr-corpus-check` | Registry, CDDL, CDR corpus |
 | `just license-inventory` / `just license-inventory-check` | Third-party allowlist |

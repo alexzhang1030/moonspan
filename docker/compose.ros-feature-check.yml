@@ -1,0 +1,8 @@
+# Compile-only gate for rclwebd --features ros --tests (J-FT).
+# `docker compose build` is the gate. Do not run cargo test here —
+# foundation already runs ROS-free tests; live talker remains compose.r1-e2e.yml.
+services:
+  ros-check:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ros-feature-check
