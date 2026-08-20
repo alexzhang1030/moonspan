@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { resolveGatewayConnect } from "../src/gateway-url.ts";
+import {
+  IntranetQuicRequiresSecureContextError,
+  WebTransportUnavailableError,
+  resolveGatewayConnect,
+} from "../src/gateway-url.ts";
 
 const browserWt = { webTransport: true, secureContext: true };
 const lanIpPage = { webTransport: true, secureContext: false };
@@ -34,22 +38,35 @@ describe("resolveGatewayConnect", () => {
     });
   });
 
-  test("LAN-IP page falls back to WebSocket without a certificate", () => {
-    const resolved = resolveGatewayConnect("192.168.1.10", {}, lanIpPage);
-    expect(resolved.transport).toBe("websocket");
-    expect(resolved.url).toBe("ws://192.168.1.10:8794/ws");
-    expect(resolved.note).toContain("http://127.0.0.1");
+  test("LAN-IP page refuses silent WebSocket so QUIC stays the default", () => {
+    expect(() => resolveGatewayConnect("192.168.1.10", {}, lanIpPage)).toThrow(
+      IntranetQuicRequiresSecureContextError,
+    );
+    try {
+      resolveGatewayConnect("192.168.1.10", {}, lanIpPage);
+    } catch (err) {
+      expect(err).toBeInstanceOf(IntranetQuicRequiresSecureContextError);
+      expect((err as IntranetQuicRequiresSecureContextError).code).toBe(
+        "intranet_quic_requires_secure_context",
+      );
+      expect((err as Error).message).toContain("http://127.0.0.1");
+    }
   });
 
-  test("explicit webtransport still falls back on an insecure page", () => {
-    const resolved = resolveGatewayConnect(
-      "https://10.0.0.5:4433/",
-      { transport: "webtransport" },
-      lanIpPage,
-    );
-    expect(resolved.transport).toBe("websocket");
-    expect(resolved.url).toBe("ws://10.0.0.5:8794/ws");
-    expect(resolved.note).toContain("WebSocket");
+  test("explicit webtransport on an insecure page still refuses WebSocket", () => {
+    expect(() =>
+      resolveGatewayConnect(
+        "https://10.0.0.5:4433/",
+        { transport: "webtransport" },
+        lanIpPage,
+      ),
+    ).toThrow(IntranetQuicRequiresSecureContextError);
+  });
+
+  test("explicit webtransport without the API refuses WebSocket", () => {
+    expect(() =>
+      resolveGatewayConnect("192.168.1.10", { transport: "webtransport" }, bunNoWt),
+    ).toThrow(WebTransportUnavailableError);
   });
 
   test("explicit websocket never upgrades", () => {
@@ -59,6 +76,12 @@ describe("resolveGatewayConnect", () => {
         { transport: "websocket" },
         browserWt,
       ),
+    ).toEqual({
+      url: "ws://192.168.1.10:8794/ws",
+      transport: "websocket",
+    });
+    expect(
+      resolveGatewayConnect("192.168.1.10", { transport: "websocket" }, lanIpPage),
     ).toEqual({
       url: "ws://192.168.1.10:8794/ws",
       transport: "websocket",

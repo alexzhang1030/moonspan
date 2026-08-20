@@ -1,10 +1,11 @@
 /**
- * Pick a gateway URL and transport without asking the operator for a CA.
+ * Pick a gateway URL and transport so intranet `init` uses QUIC.
  *
  * Chromium + `http://127.0.0.1` can use WebTransport (hash-pinned local-dev
  * cert). A page opened via a LAN IP is not a secure context, so the same
- * `init("192.168.1.10")` falls back to WebSocket. Do not serve the page over
- * a self-signed HTTPS URL — that interstitial is more trouble than this path.
+ * `init("192.168.1.10")` throws — pass `{ transport: "websocket" }` only to
+ * skip QUIC. Do not serve the page over a self-signed HTTPS URL; that
+ * interstitial is more trouble than opening localhost.
  */
 
 import {
@@ -27,8 +28,33 @@ export type ResolvedGatewayConnect = {
   note?: string;
 };
 
-const FALLBACK_NOTE =
-  "WebTransport needs Chromium and a secure context (open this page at http://127.0.0.1). Using WebSocket; no certificate to install.";
+export const INTRANET_QUIC_SECURE_CONTEXT_HINT =
+  "WebTransport (QUIC) needs a secure context. Open this page at http://127.0.0.1 or http://localhost, then init(\"robot-ip\"). Pass { transport: \"websocket\" } only to skip QUIC.";
+
+const NO_WEBTRANSPORT_API_NOTE =
+  "WebTransport (QUIC) is not available in this runtime. Using WebSocket. Use Chromium with this page at http://127.0.0.1 for QUIC, or pass { transport: \"websocket\" } to silence this.";
+
+/** Chromium has `WebTransport` but the page is `http://<lan-ip>`. */
+export class IntranetQuicRequiresSecureContextError extends Error {
+  readonly code = "intranet_quic_requires_secure_context" as const;
+
+  constructor() {
+    super(INTRANET_QUIC_SECURE_CONTEXT_HINT);
+    this.name = "IntranetQuicRequiresSecureContextError";
+  }
+}
+
+/** `transport: "webtransport"` in a runtime that has no `WebTransport`. */
+export class WebTransportUnavailableError extends Error {
+  readonly code = "webtransport_unavailable" as const;
+
+  constructor() {
+    super(
+      'WebTransport (QUIC) is not available in this runtime. Use Chromium, or pass { transport: "websocket" }.',
+    );
+    this.name = "WebTransportUnavailableError";
+  }
+}
 
 /** `isSecureContext === false` is a LAN-IP page. Unset (bun) is not insecure. */
 export function detectGatewayRuntime(
@@ -111,8 +137,18 @@ function canUseWebTransport(runtime: GatewayRuntime): boolean {
   return runtime.webTransport && runtime.secureContext;
 }
 
+function refuseUnlessWebTransport(runtime: GatewayRuntime): never {
+  if (runtime.webTransport && !runtime.secureContext) {
+    throw new IntranetQuicRequiresSecureContextError();
+  }
+  throw new WebTransportUnavailableError();
+}
+
 /**
  * Resolve `init` / `connect` input to a concrete URL and transport.
+ *
+ * Intranet defaults use WebTransport (QUIC). A LAN-IP page is not a
+ * secure context — this throws unless `{ transport: "websocket" }`.
  *
  * Pass `runtime` in tests. Applications leave it unset.
  */
@@ -133,20 +169,22 @@ export function resolveGatewayConnect(
     if (canWt) {
       return { url: asWebTransportUrl(parsed), transport: "webtransport" };
     }
+    refuseUnlessWebTransport(runtime);
+  }
+
+  if (impliesIntranetWebTransport(parsed)) {
+    if (canWt) {
+      return { url: asWebTransportUrl(parsed), transport: "webtransport" };
+    }
+    if (runtime.webTransport && !runtime.secureContext) {
+      throw new IntranetQuicRequiresSecureContextError();
+    }
     return {
       url: asWebSocketUrl(parsed),
       transport: "websocket",
-      note: FALLBACK_NOTE,
+      note: NO_WEBTRANSPORT_API_NOTE,
     };
   }
 
-  if (canWt && impliesIntranetWebTransport(parsed)) {
-    return { url: asWebTransportUrl(parsed), transport: "webtransport" };
-  }
-
-  const url = asWebSocketUrl(parsed);
-  if (!canWt && impliesIntranetWebTransport(parsed)) {
-    return { url, transport: "websocket", note: FALLBACK_NOTE };
-  }
-  return { url, transport: "websocket" };
+  return { url: asWebSocketUrl(parsed), transport: "websocket" };
 }

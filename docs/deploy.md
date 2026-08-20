@@ -108,20 +108,21 @@ unset, and a WebTransport UDP bind on the HTTP bind host at port 4433
 
 On the laptop, open the page at `http://127.0.0.1` or `http://localhost`
 (those are secure contexts). Type the robot host — no CA, no transport
-flag:
+flag. That is the QUIC path:
 
 ```ts
 await init("192.168.1.10");
 ```
 
-The package picks WebTransport, fetches
+The package uses WebTransport, fetches
 `http://192.168.1.10:8794/local-dev/tls` for `serverCertificateHashes`
 (default WT `4433` maps to HTTP `8794`), and never asks the operator to
 install a certificate. A page opened via `http://192.168.x.x` is not a
-secure context, so the same `init` falls back to WebSocket. Do not put
-the page on self-signed HTTPS — Chrome's interstitial is more trouble
-than this path. Production PKI stays the [open](../tasks/plan.md)
-follow-up. UDP 4433 must be reachable from the laptop when WT is used.
+secure context, so the same `init` throws instead of quietly using TCP.
+Pass `{ transport: "websocket" }` only to skip QUIC. Do not put the page
+on self-signed HTTPS — Chrome's interstitial is more trouble than
+opening localhost. Production PKI stays the [open](../tasks/plan.md)
+follow-up. UDP 4433 must be reachable from the laptop.
 
 Remaining-row compose services are not named `rclwebd`; set
 `RCLWEBD_OFFER_WEBTRANSPORT=1` on that service instead of the J-FT/H-FT
@@ -149,15 +150,15 @@ open in the address bar.
 
 | Page origin | What the operator does |
 |---|---|
-| `http://127.0.0.1` / `http://localhost` | Nothing. Secure context; `init("192.168.1.10")` uses WebTransport. |
-| `http://<lan-ip>/…` | Nothing. Not a secure context; the same `init` uses WebSocket. |
+| `http://127.0.0.1` / `http://localhost` | Nothing. Secure context; `init("192.168.1.10")` uses WebTransport (QUIC). |
+| `http://<lan-ip>/…` | Open the page on localhost instead. Not a secure context; `init` throws. `{ transport: "websocket" }` skips QUIC. |
 | `https://<lan-ip>/…` | Do not. Needs a CA the browser already trusts (mkcert / internal CA / reverse proxy). Not this recipe. |
 
 Sharing the auto-minted WT cert as the page cert does not skip Chrome's
 interstitial. This project does not ask operators to install mkcert or
-click through a warning: keep the page on localhost, or accept the
-automatic WebSocket fallback. Production WSS / HTTPS stays the
-[open](../tasks/plan.md) follow-up.
+click through a warning: keep the page on localhost so QUIC works. A
+runtime without `WebTransport` still falls back to WebSocket.
+Production WSS / HTTPS stays the [open](../tasks/plan.md) follow-up.
 
 ## Identity and row
 

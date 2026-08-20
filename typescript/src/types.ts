@@ -88,10 +88,11 @@ export type ConnectOptions = {
   /** Max reconnect attempts (default 3). */
   reconnectAttempts?: number;
   /**
-   * Transport for the session plane. Unset is automatic: WebTransport when
-   * the page is a secure context and `WebTransport` exists (intranet
-   * `https://` / default `:8794`), otherwise WebSocket. No CA to install.
-   * Set `websocket` to force the fallback (tests; custom ports stay WS).
+   * Transport for the session plane. Unset is automatic: WebTransport
+   * (QUIC) for intranet-shaped URLs on a secure context. A LAN-IP page
+   * is not a secure context — `init` throws unless this is `websocket`.
+   * Runtimes without `WebTransport` still fall back to WebSocket.
+   * Custom ports stay WS. No CA to install.
    */
   transport?: "websocket" | "webtransport";
   /**

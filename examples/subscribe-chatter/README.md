@@ -3,8 +3,8 @@
 Browser page that connects to `rclwebd`, subscribes to `/chatter`, and
 can publish `std_msgs/msg/String` samples. This is the public `rcl-web`
 demo ([how to](../../docs/typescript.md), [API](../../docs/api.md)).
-`init` picks WebTransport on `http://127.0.0.1` and WebSocket on a
-LAN-IP tab — no certificate to install.
+`init` uses WebTransport (QUIC) from `http://127.0.0.1` — no
+certificate to install. The demo binds loopback only.
 
 ## Run
 
@@ -38,8 +38,8 @@ LAN-IP tab — no certificate to install.
    ROS talker on `/chatter`.
 
    Intranet WebTransport: `just gateway-wt` on the robot, keep this page
-   on `http://127.0.0.1:4173`, type the robot IP. Chromium. A tab opened
-   via a LAN IP uses WebSocket by itself.
+   on `http://127.0.0.1:4173`, type the robot IP. Chromium. That is the
+   QUIC path. A tab opened via a LAN IP cannot use WebTransport.
 
 | Variable | Default | Role |
 |---|---|---|

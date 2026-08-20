@@ -2303,9 +2303,11 @@ class WorkerClient implements RclwebClient {
 }
 
 /**
- * Open a session to an rclwebd WebSocket endpoint.
+ * Open a session to an rclwebd endpoint (WebTransport or WebSocket).
  *
  * `connect(url)` → session subscribe/publish/service/action/graph.
+ * Intranet defaults use QUIC; a LAN-IP page throws unless
+ * `{ transport: "websocket" }`.
  */
 export async function connect(
   url: string,

@@ -42,7 +42,9 @@ Intranet WebTransport after `just gateway-wt` on the robot — page on
 await init("192.168.1.10");
 ```
 
-The package picks WebTransport when it can, otherwise WebSocket. Recipe:
+That is WebTransport (QUIC). A tab opened via a LAN IP is not a secure
+context — `init` throws instead of silently using WebSocket. Pass
+`{ transport: "websocket" }` only to skip QUIC. Recipe:
 [Intranet WebTransport](./deploy.md#intranet-webtransport).
 
 Call `init` once. A second call throws until `shutdown()`.

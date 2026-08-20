@@ -47,7 +47,7 @@ All fields optional. Leave the object off unless you need one of these.
 |---|---|---|
 | `reconnect` | `false` | On transport close, start a new session and re-open channels. In-flight calls reject with `"session reconnected"`. |
 | `reconnectAttempts` | `3` | Cap for `reconnect`. |
-| `transport` | auto | Unset: WebTransport on a secure context when the URL looks like the intranet default, else WebSocket. |
+| `transport` | auto | Unset: WebTransport (QUIC) on a secure context when the URL looks like the intranet default. A LAN-IP page throws. Set `websocket` to skip QUIC. |
 | `serverCertificateHashes` | — | Local-dev WebTransport hashes (`algorithm: "sha-256"`). |
 | `fetchLocalDevTls` | — | Fetch `{origin}/local-dev/tls` when hashes are omitted. |
 | `localDevTlsOrigin` | WT `:4433` → HTTP `:8794` | HTTP origin for that fetch. Custom WT ports need this. |
@@ -56,8 +56,9 @@ All fields optional. Leave the object off unless you need one of these.
 | `workerUrl` | next to the bundle | Override the I/O Worker module. |
 
 Helpers: `fetchLocalDevTlsHashes`, `decodeCertificateHashValue`,
-`httpOriginFromWebTransportUrl`, `resolveGatewayConnect`. See
-[local-dev TLS](./adr/0011-local-dev-webtransport-tls.md) and
+`httpOriginFromWebTransportUrl`, `resolveGatewayConnect`. Intranet
+`init` on a LAN-IP page throws `IntranetQuicRequiresSecureContextError`.
+See [local-dev TLS](./adr/0011-local-dev-webtransport-tls.md) and
 [intranet certificates](./deploy.md#intranet-certificates).
 
 ## Node

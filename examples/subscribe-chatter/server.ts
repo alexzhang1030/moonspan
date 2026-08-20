@@ -2,8 +2,8 @@
  * Demo server: serves the built `rclweb` bundle and a page that connects to rclwebd.
  * Build first (`just build` or `bun run --filter rcl-web build`), then:
  * `RCLWEB_GATEWAY_URL=192.168.1.10 bun run start`
- * Open the page at http://127.0.0.1:4173 (WebTransport, no CA). A LAN-IP
- * page uses WebSocket automatically.
+ * Open the page at http://127.0.0.1:4173 (WebTransport / QUIC, no CA).
+ * The demo binds loopback only — a LAN-IP origin cannot speak QUIC.
  */
 import { serve } from "bun";
 import path from "node:path";
@@ -132,7 +132,7 @@ const html = `<!doctype html>
 <body>
   <main>
     <h1>rclweb</h1>
-    <p class="lede">Live <code>/chatter</code>. Keep this page on <code>http://127.0.0.1</code> for WebTransport (no certificate). A LAN-IP tab uses WebSocket.</p>
+    <p class="lede">Live <code>/chatter</code>. This page stays on <code>http://127.0.0.1</code> so Connect uses WebTransport (QUIC) — no certificate. A LAN-IP tab cannot do that.</p>
     <input id="gw" type="text" spellcheck="false" value="${configuredGateway.replace(/"/g, "&quot;")}" placeholder="Robot host, e.g. 192.168.1.10" />
     <button id="go" type="button">Connect</button>
     <form id="compose" hidden>
@@ -190,6 +190,7 @@ const html = `<!doctype html>
 
 serve({
   port,
+  hostname: "127.0.0.1",
   async fetch(req) {
     const url = new URL(req.url);
     if (url.pathname === "/" || url.pathname === "/index.html") {
