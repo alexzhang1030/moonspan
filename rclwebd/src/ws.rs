@@ -185,7 +185,7 @@ async fn metrics<B: RosBackend>(State(state): State<AppState<B>>) -> Response {
       (header::CONTENT_TYPE, "text/plain; version=0.0.4; charset=utf-8"),
       (header::CACHE_CONTROL, "no-store"),
     ],
-    metrics_text(state.ops.as_ref()),
+    metrics_text(state.config.as_ref(), state.ops.as_ref()),
   )
     .into_response()
 }

@@ -23,6 +23,7 @@ The product is one Rust core (`rclweb`) for gateway and browser, `rclwebd` at th
 | Owners | Repository owner `alexzhang1030`; NOTICE name Alex. No separate workstream owners. |
 | Benchmark retention | Stdout only. Do not commit measurement JSON ([gotcha](../.agents/docs/gotchas.md#do-not-commit-measurement-json)). No retention store. |
 | Support-matrix **Qualified** | Do not stamp. Keep **Qualification target** and continue the work. No reason given. |
+| Audit sink | Opt-in file JSONL (`RCLWEBD_AUDIT_SINK=file`) with a SHA-256 hash chain, size rotation, and copy/verify export. Default remains stderr. `/configz` reports health, not event bodies. A write failure does not change the channel decision. |
 
 ## Open — needs a human ruling
 
@@ -32,7 +33,6 @@ None. The 2026-08-14 replies are in Settled. Reopen a row only if the human name
 
 | Topic | Notes |
 |---|---|
-| Audit sink | Integrity, retention, and export beyond stderr JSON lines ([security](../docs/security.md)) |
 | SROS2 enclave | Parked: auth is out of scope until the human names a tenant / keystore |
 | Production TLS | Runtime images speak plaintext HTTP/WS; PKI stays a follow-up ([deploy](../docs/deploy.md)) |
 | Remote telemetry | `/metrics` is scrape-only; no OTLP export yet |
