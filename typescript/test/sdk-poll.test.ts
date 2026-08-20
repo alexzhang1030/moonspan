@@ -71,6 +71,7 @@ test("public runtime exports stay application-facing", async () => {
     "init",
     "ok",
     "rclweb_cdr_interfaces",
+    "resolveGatewayConnect",
     "sensor_msgs",
     "shutdown",
     "spin",

@@ -106,22 +106,22 @@ That one flag implies local-dev TLS, CORS `*` when `RCLWEBD_CORS_ORIGINS` is
 unset, and a WebTransport UDP bind on the HTTP bind host at port 4433
 (`0.0.0.0:8794` → `0.0.0.0:4433`). Set `RCLWEBD_WT_BIND` only to override.
 
-On the laptop, serve the page from `http://127.0.0.1` or `http://localhost`
-(those are secure contexts). Point the SDK at the robot:
+On the laptop, open the page at `http://127.0.0.1` or `http://localhost`
+(those are secure contexts). Type the robot host — no CA, no transport
+flag:
 
 ```ts
-await init("https://192.168.1.10:4433/", { transport: "webtransport" });
+await init("192.168.1.10");
 ```
 
-The package fetches `http://192.168.1.10:8794/local-dev/tls` for
-`serverCertificateHashes` (default WT `4433` maps to HTTP `8794`). Custom
-ports need `localDevTlsOrigin`. The subscribe-chatter demo does the same
-rewrite when `RCLWEB_TRANSPORT=webtransport` or the URL is `https://`.
-
-`http://192.168.x.x` is **not** a secure context; `WebTransport` will not
-construct. Opening the page via a LAN IP needs page HTTPS (proxy / future
-PKI) — that is the [production TLS](../tasks/plan.md) follow-up, not this
-recipe. UDP 4433 must be reachable from the laptop.
+The package picks WebTransport, fetches
+`http://192.168.1.10:8794/local-dev/tls` for `serverCertificateHashes`
+(default WT `4433` maps to HTTP `8794`), and never asks the operator to
+install a certificate. A page opened via `http://192.168.x.x` is not a
+secure context, so the same `init` falls back to WebSocket. Do not put
+the page on self-signed HTTPS — Chrome's interstitial is more trouble
+than this path. Production PKI stays the [open](../tasks/plan.md)
+follow-up. UDP 4433 must be reachable from the laptop when WT is used.
 
 Remaining-row compose services are not named `rclwebd`; set
 `RCLWEBD_OFFER_WEBTRANSPORT=1` on that service instead of the J-FT/H-FT
@@ -147,16 +147,17 @@ production PKI.
 `WebTransport` constructor option only — it cannot trust a document you
 open in the address bar.
 
-| Page origin | Cert to install |
+| Page origin | What the operator does |
 |---|---|
-| `http://127.0.0.1` / `http://localhost` | None. Already a secure context. This is the intranet recipe. |
-| `https://<lan-ip>/…` | A CA the **browser** already trusts: mkcert or an internal CA on the laptop, or a reverse proxy with real/internal certs. |
-| Public CA on a LAN IP | Usually impossible (no public DNS name). |
+| `http://127.0.0.1` / `http://localhost` | Nothing. Secure context; `init("192.168.1.10")` uses WebTransport. |
+| `http://<lan-ip>/…` | Nothing. Not a secure context; the same `init` uses WebSocket. |
+| `https://<lan-ip>/…` | Do not. Needs a CA the browser already trusts (mkcert / internal CA / reverse proxy). Not this recipe. |
 
 Sharing the auto-minted WT cert as the page cert does not skip Chrome's
-interstitial, and clicking through a self-signed warning is not this
-recipe. Production WSS / HTTPS stays the [open](../tasks/plan.md)
-follow-up.
+interstitial. This project does not ask operators to install mkcert or
+click through a warning: keep the page on localhost, or accept the
+automatic WebSocket fallback. Production WSS / HTTPS stays the
+[open](../tasks/plan.md) follow-up.
 
 ## Identity and row
 

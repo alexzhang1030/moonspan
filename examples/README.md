@@ -5,7 +5,7 @@ Runnable consumers of `rcl-web`.
 
 | Path | Role |
 |---|---|
-| [`subscribe-chatter`](./subscribe-chatter/) | Browser demo: `init` → `Node` subscribe and publish `/chatter`. `RCLWEB_TRANSPORT=webtransport` is the intranet WT path; keep the page on localhost. |
+| [`subscribe-chatter`](./subscribe-chatter/) | Browser demo: type the robot host, `init` picks WebTransport or WebSocket. Keep the page on localhost for WT. |
 | [`e2e-harness`](./e2e-harness/) | Headless inline-host subscribe. Gate for `just e2e` and `just e2e-h-ft`; not a human demo |
 
 Both packages depend on `"rcl-web": "workspace:*"`. That specifier

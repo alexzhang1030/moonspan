@@ -1,35 +1,15 @@
 /**
  * Demo server: serves the built `rclweb` bundle and a page that connects to rclwebd.
  * Build first (`just build` or `bun run --filter rcl-web build`), then:
- * `RCLWEB_GATEWAY_URL=ws://127.0.0.1:8794/ws bun run start`
- *
- * Intranet WebTransport (page stays on http://127.0.0.1 — secure context):
- * `RCLWEB_TRANSPORT=webtransport bun run start`
- * or `RCLWEB_GATEWAY_URL=https://192.168.1.10:4433/`
+ * `RCLWEB_GATEWAY_URL=192.168.1.10 bun run start`
+ * Open the page at http://127.0.0.1:4173 (WebTransport, no CA). A LAN-IP
+ * page uses WebSocket automatically.
  */
 import { serve } from "bun";
 import path from "node:path";
 
 const port = Number(process.env.PORT ?? "4173");
-const defaultWs = "ws://127.0.0.1:8794/ws";
-const configuredGateway = process.env.RCLWEB_GATEWAY_URL ?? defaultWs;
-const transportEnv = (process.env.RCLWEB_TRANSPORT ?? "").trim().toLowerCase();
-const useWebTransport =
-  transportEnv === "webtransport" ||
-  (transportEnv !== "websocket" && configuredGateway.startsWith("https://"));
-
-function intranetWebTransportUrl(gatewayUrl: string): string {
-  const u = new URL(gatewayUrl);
-  if (u.protocol === "https:") return gatewayUrl;
-  return `https://${u.hostname}:4433/`;
-}
-
-const gatewayUrl = useWebTransport
-  ? intranetWebTransportUrl(configuredGateway)
-  : configuredGateway;
-const initOptions = useWebTransport
-  ? ', { transport: "webtransport" }'
-  : "";
+const configuredGateway = process.env.RCLWEB_GATEWAY_URL ?? "127.0.0.1";
 const root = import.meta.dir;
 const sdkWasm = path.resolve(root, "../../typescript/wasm/rclweb.wasm");
 const sdkDist = path.resolve(root, "../../typescript/dist");
@@ -97,6 +77,15 @@ const html = `<!doctype html>
       animation: rise 700ms ease-out 140ms both;
     }
     button:disabled { opacity: 0.5; cursor: default; }
+    #gw {
+      width: 100%;
+      font: inherit;
+      padding: 0.7rem 0.8rem;
+      margin: 0 0 0.75rem;
+      border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+      background: color-mix(in srgb, white 70%, transparent);
+      animation: rise 700ms ease-out 120ms both;
+    }
     #compose {
       display: flex;
       gap: 0.5rem;
@@ -143,27 +132,33 @@ const html = `<!doctype html>
 <body>
   <main>
     <h1>rclweb</h1>
-    <p class="lede">Live <code>/chatter</code> through <code>rclweb</code>.</p>
+    <p class="lede">Live <code>/chatter</code>. Keep this page on <code>http://127.0.0.1</code> for WebTransport (no certificate). A LAN-IP tab uses WebSocket.</p>
+    <input id="gw" type="text" spellcheck="false" value="${configuredGateway.replace(/"/g, "&quot;")}" placeholder="Robot host, e.g. 192.168.1.10" />
     <button id="go" type="button">Connect</button>
     <form id="compose" hidden>
       <input id="out" type="text" maxlength="200" placeholder="Publish to /chatter" autocomplete="off" />
       <button id="send" type="submit">Send</button>
     </form>
-    <p id="status">Idle · gateway <code>${gatewayUrl}</code></p>
+    <p id="status">Idle · type the robot host and connect</p>
     <ul id="log" aria-live="polite"></ul>
   </main>
   <script type="module">
-    import { init, Node, std_msgs } from "/sdk/index.js";
+    import { init, Node, std_msgs, resolveGatewayConnect } from "/sdk/index.js";
     const status = document.getElementById("status");
     const log = document.getElementById("log");
     const go = document.getElementById("go");
+    const gw = document.getElementById("gw");
     const compose = document.getElementById("compose");
     const out = document.getElementById("out");
     go.addEventListener("click", async () => {
       go.disabled = true;
-      status.textContent = "Connecting…";
+      const target = gw.value.trim() || "127.0.0.1";
+      const planned = resolveGatewayConnect(target);
+      status.textContent = planned.note
+        ? ("Connecting via " + planned.transport + " — " + planned.note)
+        : ("Connecting via " + planned.transport + " · " + planned.url);
       try {
-        await init(${JSON.stringify(gatewayUrl)}${initOptions});
+        await init(target);
         const node = new Node("subscribe_chatter");
         const publisher = node.createPublisher(std_msgs.msg.String, "/chatter", 10);
         node.createSubscription(std_msgs.msg.String, "/chatter", 10, (msg) => {

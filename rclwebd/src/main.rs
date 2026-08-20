@@ -203,6 +203,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
           "isolation_headers": config.isolation_headers,
       })
     );
+    if config.offer_webtransport {
+      eprintln!(
+        "rclwebd: intranet WebTransport on (auto-minted cert, no CA). \
+         On the laptop open http://127.0.0.1 — not a LAN IP — then init(\"<robot-ip>\"). \
+         A LAN-IP page uses WebSocket by itself."
+      );
+    }
     serve_with_os_signals(listener, Arc::new(config), backend).await?;
     Ok::<(), Box<dyn std::error::Error>>(())
   })?;

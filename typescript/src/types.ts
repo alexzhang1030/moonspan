@@ -88,9 +88,10 @@ export type ConnectOptions = {
   /** Max reconnect attempts (default 3). */
   reconnectAttempts?: number;
   /**
-   * Transport for the session plane. Default `websocket`. `webtransport`
-   * requires a host that exposes `globalThis.WebTransport` (browsers); bun
-   * tests without WT should keep the default.
+   * Transport for the session plane. Unset is automatic: WebTransport when
+   * the page is a secure context and `WebTransport` exists (intranet
+   * `https://` / default `:8794`), otherwise WebSocket. No CA to install.
+   * Set `websocket` to force the fallback (tests; custom ports stay WS).
    */
   transport?: "websocket" | "webtransport";
   /**

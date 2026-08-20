@@ -1,9 +1,10 @@
 # subscribe-chatter
 
-Browser page that connects to `rclwebd` over WebSocket, subscribes to
-`/chatter`, and can publish `std_msgs/msg/String` samples. This is the
-public `rcl-web` demo ([how to](../../docs/typescript.md),
-[API](../../docs/api.md)).
+Browser page that connects to `rclwebd`, subscribes to `/chatter`, and
+can publish `std_msgs/msg/String` samples. This is the public `rcl-web`
+demo ([how to](../../docs/typescript.md), [API](../../docs/api.md)).
+`init` picks WebTransport on `http://127.0.0.1` and WebSocket on a
+LAN-IP tab — no certificate to install.
 
 ## Run
 
@@ -32,22 +33,18 @@ public `rcl-web` demo ([how to](../../docs/typescript.md),
    bun run --filter @rclweb/subscribe-chatter start
    ```
 
-   Open http://127.0.0.1:4173, click **Connect**, then send from the
-   page or from a ROS talker on `/chatter`.
+   Open http://127.0.0.1:4173, type the robot host (or leave
+   `127.0.0.1`), click **Connect**, then send from the page or from a
+   ROS talker on `/chatter`.
 
-   Intranet WebTransport: start the gateway with
-   `just gateway-wt` (or `RCLWEBD_OFFER_WEBTRANSPORT=1` on an image
-   compiled with `--features webtransport`), keep this page on
-   `http://127.0.0.1:4173`, and set `RCLWEB_TRANSPORT=webtransport`
-   (rewrites the default URL to `https://127.0.0.1:4433/`) or
-   `RCLWEB_GATEWAY_URL=https://<robot-ip>:4433/`. Do not open the page
-   via a LAN IP — that is not a secure context. Chromium only.
+   Intranet WebTransport: `just gateway-wt` on the robot, keep this page
+   on `http://127.0.0.1:4173`, type the robot IP. Chromium. A tab opened
+   via a LAN IP uses WebSocket by itself.
 
 | Variable | Default | Role |
 |---|---|---|
 | `PORT` | `4173` | HTTP port for the demo page |
-| `RCLWEB_GATEWAY_URL` | `ws://127.0.0.1:8794/ws` | Gateway WebSocket, or `https://<host>:4433/` for WT |
-| `RCLWEB_TRANSPORT` | (unset → WebSocket) | `webtransport` rewrites a `ws://` URL to `https://<host>:4433/` |
+| `RCLWEB_GATEWAY_URL` | `127.0.0.1` | Prefills the host field (`192.168.1.10` is enough) |
 
 The page loads `typescript/dist/index.js` (Worker path, not
 `inline: true`). `just build` must have produced `dist/` first; the
