@@ -127,6 +127,37 @@ Remaining-row compose services are not named `rclwebd`; set
 `RCLWEBD_OFFER_WEBTRANSPORT=1` on that service instead of the J-FT/H-FT
 overlay.
 
+## Intranet certificates
+
+Two HTTPS surfaces. They do not share a trust API.
+
+**WebTransport** already has a cert. `new WebTransport("https://…")`
+requires TLS; the intranet path does **not** buy a public certificate and
+does **not** install mkcert. `RCLWEBD_OFFER_WEBTRANSPORT=1` auto-mints an
+ECDSA P-256 self-signed cert (validity ≤13 days, default 7, remint when
+less than 24h remain). The SDK fetches `GET /local-dev/tls` over plain HTTP and
+passes the SHA-256 SPKI hash into `serverCertificateHashes`. Chromium
+pins that exact key for the QUIC handshake. SANs are `localhost` /
+`127.0.0.1` / `::1`; the hash check does not need the robot LAN IP in the
+SAN. The private key never leaves the gateway process
+([ADR 0011](./adr/0011-local-dev-webtransport-tls.md)). This is not
+production PKI.
+
+**The page** cannot use that hash. `serverCertificateHashes` is a
+`WebTransport` constructor option only — it cannot trust a document you
+open in the address bar.
+
+| Page origin | Cert to install |
+|---|---|
+| `http://127.0.0.1` / `http://localhost` | None. Already a secure context. This is the intranet recipe. |
+| `https://<lan-ip>/…` | A CA the **browser** already trusts: mkcert or an internal CA on the laptop, or a reverse proxy with real/internal certs. |
+| Public CA on a LAN IP | Usually impossible (no public DNS name). |
+
+Sharing the auto-minted WT cert as the page cert does not skip Chrome's
+interstitial, and clicking through a self-signed warning is not this
+recipe. Production WSS / HTTPS stays the [open](../tasks/plan.md)
+follow-up.
+
 ## Identity and row
 
 Set `RCLWEBD_GATEWAY_INSTANCE_ID` to a stable deployment id if the instance

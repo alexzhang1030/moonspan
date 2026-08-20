@@ -31,7 +31,7 @@ Documentation describes the product. It is not a delivery-phase ledger. Historic
 | Architecture decisions | [ADR register](../../docs/adr/README.md) |
 | Humble scheme / corpus / ROS package names | [ADR 0012](../../docs/adr/0012-rclweb-schema-identifiers.md), [gotchas](./gotchas.md#bundle-files-are-named-by-type) |
 | Local WebTransport TLS | [ADR 0011](../../docs/adr/0011-local-dev-webtransport-tls.md) |
-| Intranet / lab WebTransport | [Deploy — Intranet WebTransport](../../docs/deploy.md#intranet-webtransport), [gotchas](./gotchas.md#intranet-webtransport-is-one-env-not-production-tls) |
+| Intranet / lab WebTransport | [Deploy — Intranet WebTransport](../../docs/deploy.md#intranet-webtransport), [certificates](../../docs/deploy.md#intranet-certificates), [gotchas](./gotchas.md#intranet-webtransport-is-one-env-not-production-tls) |
 | Runtime images and operations endpoints | [Deploy](../../docs/deploy.md) |
 | Support-matrix status | [Support matrix](../../docs/support-matrix.md) (do not stamp **Qualified**) |
 | Wide ACL reference | [acl-reference.json](../../docs/acl-reference.json), [security](../../docs/security.md) |

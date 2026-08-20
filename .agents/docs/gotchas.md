@@ -72,11 +72,17 @@ The hash fetch is HTTP, not UDP: `httpOriginFromWebTransportUrl` maps
 default WT `4433` to HTTP `8794`. Custom ports need `localDevTlsOrigin`.
 Serve the page from `http://127.0.0.1` / `http://localhost` (secure
 context). `http://192.168.x.x` is not; `WebTransport` will not construct.
-Opening the page via a LAN IP needs page HTTPS — that is the production
-TLS follow-up, not this path. Chromium only; UDP 4433 must be reachable
-(host-network compose already shares host UDP). `serverCertificateHashes`
-does not need a LAN IP in the cert SAN. Recipe:
-[Intranet WebTransport](../../docs/deploy.md#intranet-webtransport).
+Opening the page via a LAN IP needs page HTTPS — that is a **different**
+cert from the WT socket. `serverCertificateHashes` cannot trust a
+document in the address bar; page HTTPS needs a CA the browser already
+trusts (mkcert / internal CA / reverse proxy), or you keep the page on
+localhost and skip a page cert. Sharing the auto-minted WT cert as the
+page cert does not skip Chrome's interstitial. Production TLS stays
+open. Chromium only; UDP 4433 must be reachable (host-network compose
+already shares host UDP). The WT hash check does not need a LAN IP in
+the cert SAN. Recipe:
+[Intranet WebTransport](../../docs/deploy.md#intranet-webtransport),
+[Intranet certificates](../../docs/deploy.md#intranet-certificates).
 
 ## WebTransport local certs are ≤14 days by browser rule
 
