@@ -783,7 +783,6 @@ async fn file_audit_sink_records_open_channel_and_configz_omits_bodies() {
   assert_eq!(config["audit_last_seq"], 2);
   assert_eq!(config["audit_last_sha256"], verified.last_sha256);
   assert_eq!(config["audit_path"], path.to_string_lossy().as_ref());
-  assert!(body.contains(&path.to_string_lossy().as_ref()));
   assert!(!body.contains("open_channel"), "configz must not dump event bodies");
   assert!(!body.contains("/chatter"), "configz must not dump ROS names from audit");
 

@@ -319,8 +319,7 @@ impl AuditSink {
     let line = match self.inner.mode {
       AuditMode::Stderr => {
         let mut chain = lock(&self.inner.stderr_chain);
-        let line = next_line(&mut chain, event);
-        line
+        next_line(&mut chain, event)
       }
       AuditMode::File => {
         let mut guard = lock(&self.inner.file);
@@ -662,7 +661,7 @@ fn corrupt_aside_path(live: &Path) -> PathBuf {
 fn hash_record(prev_hex: &str, canonical: &[u8]) -> [u8; 32] {
   let mut hasher = Sha256::new();
   hasher.update(prev_hex.as_bytes());
-  hasher.update([b'\n']);
+  hasher.update(b"\n");
   hasher.update(canonical);
   hasher.finalize().into()
 }
@@ -842,8 +841,9 @@ mod tests {
   #[test]
   fn rotation_stitches_and_export_verifies() {
     let path = temp_path("rotate");
-    // Tiny ceiling so a handful of test events rotate.
-    let sink = AuditSink::file(&path, 180, 2, OnCorrupt::Fail).unwrap();
+    // ~230-byte test lines: 400 bytes holds two records, then the next
+    // emit rotates. retain=5 keeps every rotation from eight events.
+    let sink = AuditSink::file(&path, 400, 5, OnCorrupt::Fail).unwrap();
     emit_n(&sink, 8);
     assert!(rotation_path(&path, 1).is_file(), "expected at least one rotation");
     let live = verify_file(&path).expect("live after rotate");
@@ -852,7 +852,7 @@ mod tests {
 
     let dest = temp_path("export");
     let report = export_chain(&path, &dest).expect("export");
-    assert!(report.records >= 8);
+    assert_eq!(report.records, 8, "retain must keep the full eight-event chain");
     assert!(report.files >= 2);
     let exported = verify_file(&dest).expect("exported chain");
     assert_eq!(exported.records, report.records);
