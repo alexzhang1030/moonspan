@@ -106,7 +106,10 @@ export type ConnectOptions = {
    * `{httpOrigin}/local-dev/tls` and use the advertised SPKI hashes.
    */
   fetchLocalDevTls?: boolean;
-  /** HTTP origin for `/local-dev/tls` (defaults from the WT URL). */
+  /**
+   * HTTP origin for `/local-dev/tls`. Default maps WT `:4433` to HTTP
+   * `:8794`; set this when those ports differ.
+   */
   localDevTlsOrigin?: string;
 };
 

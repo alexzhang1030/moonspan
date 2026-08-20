@@ -51,7 +51,7 @@ Committed rustfmt/clippy knobs, workspace lints, shared crate versions, and name
 | Clippy pedantic / nursery / restriction | Off | `unwrap_used`, `panic`, `indexing_slicing`, `print_stderr` would fail `just check` across tests and the daemon; enable in a dedicated pass with allow-list rationale |
 | `[workspace.dependencies]` | Shared crate versions; members use `*.workspace = true` | One place to bump serde/tokio/bytes |
 | `[profile.release]` | thin LTO, `codegen-units = 1`, `strip = "symbols"` | Native gateway binaries. `release-wasm` inherits this then overrides to fat LTO / `panic = abort` / `opt-level = z` and **keeps `strip = "symbols"` explicit** so a later native-strip change cannot silently move R-D1. Inheriting strip dropped staged `rclweb.wasm` from 593631 bytes to 376519 ([gotcha](./gotchas.md#release-wasm-inherits-native-release-settings)) |
-| `just fmt` / `fmt-check` / `clippy` / `lint-rust` / `fix-rust` / `doctor` / `setup` | Named recipes | Faster rust-only loops. `just check` stays the full foundation gate (docs, protocol, corpus, fmt, clippy, SDK) |
+| `just fmt` / `fmt-check` / `clippy` / `clippy-webtransport` / `lint-rust` / `fix-rust` / `doctor` / `setup` | Named recipes | Faster rust-only loops. `just check` stays the full foundation gate (docs, protocol, corpus, fmt, clippy, `rclwebd --features webtransport` clippy, SDK) |
 | `.gitattributes` | `* text=auto eol=lf` | LF in the repo |
 
 `fuzz/` stays outside the workspace (cargo-fuzz). Vendored `rclwebd/src/ros/ffi/bindings.rs` is `rustfmt::skip` so regenerate does not fight the formatter; `scripts/generate-rcl-bindings.sh` emits that attribute.

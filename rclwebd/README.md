@@ -18,12 +18,13 @@ curl -fsSL https://raw.githubusercontent.com/alexzhang1030/rclweb/main/scripts/i
 ```
 
 Building from source requires `--features ros` and a sourced ROS 2
-prefix (`ROS_PREFIX` / `AMENT_PREFIX_PATH`). Default builds stay
-ROS-free (library + tests). `RCLWEBD_SUPPORT_ROW` is auto-detected from
-the sourced environment when unset.
+prefix (`ROS_PREFIX` / `AMENT_PREFIX_PATH`). Add `webtransport` for the
+HTTP/3 accept loop (intranet: `RCLWEBD_OFFER_WEBTRANSPORT=1`). Default
+builds stay ROS-free (library + tests). `RCLWEBD_SUPPORT_ROW` is
+auto-detected from the sourced environment when unset.
 
 ```bash
-cargo install rclwebd --features ros
+cargo install rclwebd --features ros,webtransport
 ```
 
 Operator contract: [`docs/gateway/rclwebd.md`](../docs/gateway/rclwebd.md).

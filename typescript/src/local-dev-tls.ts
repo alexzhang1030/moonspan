@@ -58,12 +58,22 @@ export async function fetchLocalDevTlsHashes(
   return hashes;
 }
 
+/** Default WebTransport UDP port (`RCLWEBD_WT_BIND`). */
+export const DEFAULT_WEBTRANSPORT_PORT = "4433";
+/** Default HTTP listen port (`RCLWEBD_BIND`) that serves `/local-dev/tls`. */
+export const DEFAULT_HTTP_PORT = "8794";
+
 /** Derive an HTTP origin from a WebTransport `https://` URL. */
 export function httpOriginFromWebTransportUrl(wtUrl: string): string {
   const u = new URL(wtUrl);
   // Local-dev advertise endpoint is on the axum HTTP listener, not UDP WT.
-  // Callers should prefer ConnectOptions.localDevTlsOrigin when ports differ.
+  // The default pair is WT 4433 → HTTP 8794. Custom ports still need
+  // ConnectOptions.localDevTlsOrigin.
   if (u.protocol === "https:") {
+    const port = u.port || "443";
+    if (port === DEFAULT_WEBTRANSPORT_PORT) {
+      return `http://${u.hostname}:${DEFAULT_HTTP_PORT}`;
+    }
     return `http://${u.hostname}${u.port && u.port !== "443" ? `:${u.port}` : ""}`;
   }
   return `${u.protocol}//${u.host}`;

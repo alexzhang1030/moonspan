@@ -2,13 +2,34 @@
  * Demo server: serves the built `rclweb` bundle and a page that connects to rclwebd.
  * Build first (`just build` or `bun run --filter rcl-web build`), then:
  * `RCLWEB_GATEWAY_URL=ws://127.0.0.1:8794/ws bun run start`
+ *
+ * Intranet WebTransport (page stays on http://127.0.0.1 — secure context):
+ * `RCLWEB_TRANSPORT=webtransport bun run start`
+ * or `RCLWEB_GATEWAY_URL=https://192.168.1.10:4433/`
  */
 import { serve } from "bun";
 import path from "node:path";
 
 const port = Number(process.env.PORT ?? "4173");
-const gatewayUrl =
-  process.env.RCLWEB_GATEWAY_URL ?? "ws://127.0.0.1:8794/ws";
+const defaultWs = "ws://127.0.0.1:8794/ws";
+const configuredGateway = process.env.RCLWEB_GATEWAY_URL ?? defaultWs;
+const transportEnv = (process.env.RCLWEB_TRANSPORT ?? "").trim().toLowerCase();
+const useWebTransport =
+  transportEnv === "webtransport" ||
+  (transportEnv !== "websocket" && configuredGateway.startsWith("https://"));
+
+function intranetWebTransportUrl(gatewayUrl: string): string {
+  const u = new URL(gatewayUrl);
+  if (u.protocol === "https:") return gatewayUrl;
+  return `https://${u.hostname}:4433/`;
+}
+
+const gatewayUrl = useWebTransport
+  ? intranetWebTransportUrl(configuredGateway)
+  : configuredGateway;
+const initOptions = useWebTransport
+  ? ', { transport: "webtransport" }'
+  : "";
 const root = import.meta.dir;
 const sdkWasm = path.resolve(root, "../../typescript/wasm/rclweb.wasm");
 const sdkDist = path.resolve(root, "../../typescript/dist");
@@ -142,7 +163,7 @@ const html = `<!doctype html>
       go.disabled = true;
       status.textContent = "Connecting…";
       try {
-        await init(${JSON.stringify(gatewayUrl)});
+        await init(${JSON.stringify(gatewayUrl)}${initOptions});
         const node = new Node("subscribe_chatter");
         const publisher = node.createPublisher(std_msgs.msg.String, "/chatter", 10);
         node.createSubscription(std_msgs.msg.String, "/chatter", 10, (msg) => {

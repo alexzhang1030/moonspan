@@ -34,7 +34,7 @@ None. The 2026-08-14 replies are in Settled. Reopen a row only if the human name
 |---|---|
 | Audit sink | Integrity, retention, and export beyond stderr JSON lines ([security](../docs/security.md)) |
 | SROS2 enclave | Parked: auth is out of scope until the human names a tenant / keystore |
-| Production TLS | Runtime images speak plaintext HTTP/WS; PKI stays a follow-up ([deploy](../docs/deploy.md)) |
+| Production TLS | Runtime images speak plaintext HTTP/WS by default; PKI stays a follow-up. Intranet / lab WebTransport is the ADR 0011 opt-in (`RCLWEBD_OFFER_WEBTRANSPORT`), not this row ([deploy](../docs/deploy.md#intranet-webtransport)) |
 | Remote telemetry | `/metrics` is scrape-only; no OTLP export yet |
 | Orchestrators | Kubernetes / systemd units beyond compose |
 | Soak / upgrade | Rollback, soak, and fault evidence |

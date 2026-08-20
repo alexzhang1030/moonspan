@@ -50,7 +50,7 @@ All fields optional. Leave the object off unless you need one of these.
 | `transport` | `"websocket"` | `"webtransport"` needs `globalThis.WebTransport`. |
 | `serverCertificateHashes` | — | Local-dev WebTransport hashes (`algorithm: "sha-256"`). |
 | `fetchLocalDevTls` | — | Fetch `{origin}/local-dev/tls` when hashes are omitted. |
-| `localDevTlsOrigin` | from the WT URL | HTTP origin for that fetch. |
+| `localDevTlsOrigin` | WT `:4433` → HTTP `:8794` | HTTP origin for that fetch. Custom WT ports need this. |
 | `inline` | `false` | Run wasm on the calling thread. Tests only; browsers leave this off. |
 | `wasmUrl` | next to the bundle | Override `rclweb.wasm`. |
 | `workerUrl` | next to the bundle | Override the I/O Worker module. |

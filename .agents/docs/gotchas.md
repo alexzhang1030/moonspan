@@ -58,6 +58,26 @@ The engine reclaims a retained inbound slab only when every lease on it is relea
 
 Spread-pushing a byte array into a `number[]` (`out.push(...bytes)`) throws a RangeError on large frames — every element becomes a call argument, and hundreds of KB / ~1 MiB (PointCloud2 scale) exceeds the engine's argument/call-stack limit. `encodeHostBatch` in `typescript/src/wasm/abi.ts` is a two-pass preallocated `Uint8Array` encoder (size, then write). Do not reintroduce `push(...bytes)` or per-byte `number[]` builders on the data path. Live WS ingest uses `rclweb_poll_ws` (header prefix for application frames). `encodeHostBatch` stays for command-only batches and tests.
 
+## Intranet WebTransport is one env, not production TLS
+
+Runtime images compile `--features ros,webtransport` so
+`RCLWEBD_OFFER_WEBTRANSPORT=1` can start the accept loop. E2e images stay
+`--features ros` only. The flag implies local-dev TLS, CORS `*` when
+`RCLWEBD_CORS_ORIGINS` is unset (a localhost page fetching
+`http://robot:8794/local-dev/tls` is cross-origin), and a WT UDP bind on
+the HTTP bind host at port 4433. Setting the env on an older image that
+was built `ros`-only logs “WT accept deferred”.
+
+The hash fetch is HTTP, not UDP: `httpOriginFromWebTransportUrl` maps
+default WT `4433` to HTTP `8794`. Custom ports need `localDevTlsOrigin`.
+Serve the page from `http://127.0.0.1` / `http://localhost` (secure
+context). `http://192.168.x.x` is not; `WebTransport` will not construct.
+Opening the page via a LAN IP needs page HTTPS — that is the production
+TLS follow-up, not this path. Chromium only; UDP 4433 must be reachable
+(host-network compose already shares host UDP). `serverCertificateHashes`
+does not need a LAN IP in the cert SAN. Recipe:
+[Intranet WebTransport](../../docs/deploy.md#intranet-webtransport).
+
 ## WebTransport local certs are ≤14 days by browser rule
 
 `serverCertificateHashes` rejects certificates whose validity window exceeds 14 days. Local-dev TLS therefore auto-mints short-lived ECDSA P-256 certs and **rotates** (default lifetime 7 days, remint when <24h remain); it does not lengthen the cert. After notAfter, new handshakes fail closed until rotate/restart. See [ADR 0011](../../docs/adr/0011-local-dev-webtransport-tls.md).

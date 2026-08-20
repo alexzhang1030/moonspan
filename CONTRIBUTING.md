@@ -31,6 +31,7 @@ tsdown ship bundle).
 | `just cargo-publish` / `just cargo-publish-check` | crates.io pack for `rclweb` / `rclwebd` |
 | `just e2e` / `just e2e-h-ft` | Live talker → gateway → `rcl-web` |
 | `just gateway` / `just gateway-h-ft` | Packaged gateway on the host network |
+| `just gateway-wt` / `just gateway-wt-h-ft` | Same + intranet WebTransport (`RCLWEBD_OFFER_WEBTRANSPORT=1`) |
 | `just ros-check` / `just ros-check-docker` | Compile `rclwebd --features ros --tests` (no `cargo test`) |
 | `just ros-test` / `just ros-test-pixi` | Gateway tests against real rcl |
 | `just protocol-check` / `just cdr-corpus-check` | Registry, CDDL, CDR corpus |

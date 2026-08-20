@@ -35,8 +35,9 @@ pub use backend::{
 };
 pub use budgets::{Disposition, DispositionCounters, SampleWriteQueue};
 pub use config::{
-  ActiveTransport, GatewayConfig, SUPPORT_ROW_H_CY, SUPPORT_ROW_H_FT, SUPPORT_ROW_H_ZN,
-  SUPPORT_ROW_J_CY, SUPPORT_ROW_J_FT, SUPPORT_ROW_J_ZN, SupportRow, detect_support_row,
+  ActiveTransport, DEFAULT_HTTP_PORT, DEFAULT_WEBTRANSPORT_PORT, GatewayConfig, SUPPORT_ROW_H_CY,
+  SUPPORT_ROW_H_FT, SUPPORT_ROW_H_ZN, SUPPORT_ROW_J_CY, SUPPORT_ROW_J_FT, SUPPORT_ROW_J_ZN,
+  SupportRow, default_webtransport_bind, detect_support_row, implied_local_dev_cors,
   parse_support_row, support_row_from_env,
 };
 pub use connection::{Transport, TransportError, run_connection};

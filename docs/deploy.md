@@ -45,13 +45,15 @@ rows build from the same two Dockerfiles with the row identity baked in:
 ```bash
 just image-rclwebd          # docker build -t rclwebd:j-ft
 just gateway                # host-network compose (J-FT)
+just gateway-wt             # same + intranet WebTransport (rebuilds)
 just image-rclwebd-h-ft     # docker build -t rclwebd:h-ft (regenerates FFI)
 just gateway-h-ft           # host-network compose (H-FT)
+just gateway-wt-h-ft        # H-FT + intranet WebTransport (rebuilds)
 just image-rclwebd-row j-cy # rclwebd:j-cy (also j-zn, h-cy, h-zn)
 just gateway-row j-zn       # host-network compose; zn rows start rmw_zenohd
 ```
 
-All images are multi-stage: builder compiles `rclwebd --features ros`, runtime
+All images are multi-stage: builder compiles `rclwebd --features ros,webtransport`, runtime
 is the digest-pinned ROS base plus the binary, running as uid `10001`.
 `HEALTHCHECK` probes `GET /readyz`. Extra ROS interface packages must be
 installed in the image or mounted into `ROS_PREFIX` — typesupport is dlopen,
@@ -86,7 +88,44 @@ running the companion.
 Do not treat a container publish of 8794 as TLS. Put a reverse proxy in front
 for production WSS / HTTPS. Local-dev WebTransport TLS stays opt-in
 ([ADR 0011](./adr/0011-local-dev-webtransport-tls.md)) and must not be the
-default on this image.
+default on this image. Images compile the accept loop; they do not enable it.
+
+## Intranet WebTransport
+
+Robot LAN / lab path. Not production PKI. Chromium only.
+
+On the robot (host-network compose already shares UDP):
+
+```bash
+just gateway-wt
+# or, on any image built from these Dockerfiles:
+#   RCLWEBD_OFFER_WEBTRANSPORT=1
+```
+
+That one flag implies local-dev TLS, CORS `*` when `RCLWEBD_CORS_ORIGINS` is
+unset, and a WebTransport UDP bind on the HTTP bind host at port 4433
+(`0.0.0.0:8794` → `0.0.0.0:4433`). Set `RCLWEBD_WT_BIND` only to override.
+
+On the laptop, serve the page from `http://127.0.0.1` or `http://localhost`
+(those are secure contexts). Point the SDK at the robot:
+
+```ts
+await init("https://192.168.1.10:4433/", { transport: "webtransport" });
+```
+
+The package fetches `http://192.168.1.10:8794/local-dev/tls` for
+`serverCertificateHashes` (default WT `4433` maps to HTTP `8794`). Custom
+ports need `localDevTlsOrigin`. The subscribe-chatter demo does the same
+rewrite when `RCLWEB_TRANSPORT=webtransport` or the URL is `https://`.
+
+`http://192.168.x.x` is **not** a secure context; `WebTransport` will not
+construct. Opening the page via a LAN IP needs page HTTPS (proxy / future
+PKI) — that is the [production TLS](../tasks/plan.md) follow-up, not this
+recipe. UDP 4433 must be reachable from the laptop.
+
+Remaining-row compose services are not named `rclwebd`; set
+`RCLWEBD_OFFER_WEBTRANSPORT=1` on that service instead of the J-FT/H-FT
+overlay.
 
 ## Identity and row
 
@@ -140,6 +179,9 @@ headers.
 (J-CY / J-ZN / H-CY / H-ZN plus zenoh router companions) use
 `network_mode: host` so the RMW can see the robot domain. That is a local /
 robot-edge shape, not a cloud overlay network.
+[`docker/compose.webtransport.yml`](../docker/compose.webtransport.yml) overlays
+`RCLWEBD_OFFER_WEBTRANSPORT=1` on the `rclwebd` service (`just gateway-wt` /
+`just gateway-wt-h-ft`).
 
 ## Follow-ups
 

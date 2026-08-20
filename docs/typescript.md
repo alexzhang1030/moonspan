@@ -35,6 +35,17 @@ import {
 await init("ws://127.0.0.1:8794/ws");
 ```
 
+Intranet WebTransport (page on `http://127.0.0.1`, Chromium) after
+`just gateway-wt` on the robot:
+
+```ts
+await init("https://192.168.1.10:4433/", { transport: "webtransport" });
+```
+
+The package fetches hashes from `http://192.168.1.10:8794/local-dev/tls`
+unless you pass `serverCertificateHashes` or `localDevTlsOrigin`. Recipe:
+[Intranet WebTransport](./deploy.md#intranet-webtransport).
+
 Call `init` once. A second call throws until `shutdown()`.
 
 | Function | What it does |
