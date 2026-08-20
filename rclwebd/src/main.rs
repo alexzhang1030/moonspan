@@ -138,7 +138,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     audit,
     isolation_headers: env_flag("RCLWEBD_ISOLATION_HEADERS"),
     cors_origins: {
-      let configured = std::env::var("RCLWEBD_CORS_ORIGINS")
+      let configured: Vec<String> = std::env::var("RCLWEBD_CORS_ORIGINS")
         .ok()
         .map(|raw| raw.split(',').map(|s| s.trim().to_owned()).filter(|s| !s.is_empty()).collect())
         .unwrap_or_default();
