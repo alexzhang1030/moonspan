@@ -44,5 +44,5 @@ One gateway process may expose multiple domain IDs within its support row. Fleet
 - Service/action channels use `OPERATION_ID` streams; graph state arrives as GraphSnapshot/Delta after SessionReady.
 - Fixtures are the single conformance oracle; there is no cross-implementation agreement apparatus.
 - Security-sensitive work records effective policy, audit identity, and failure behavior.
-- Process operations (`/livez`, `/readyz`, `/configz`, `/metrics`, `POST /drain`) and the runtime images are the deploy surface ([deploy](../../docs/deploy.md)); `/healthz` stays liveness.
+- Process operations (`/livez`, `/readyz`, `/configz`, `/metrics`, `POST /drain`) and the runtime images are the deploy surface ([deploy](../../docs/deploy.md)); `/healthz` stays liveness. Audit file-sink health lives on `/configz` / `/metrics`, not as event bodies.
 - Platform expansion enters through the [support matrix](../../docs/support-matrix.md) and [validation](../../docs/validation.md).

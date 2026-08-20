@@ -12,6 +12,7 @@
 
 pub mod acl;
 pub mod adapter;
+pub mod audit;
 pub mod auth;
 pub mod backend;
 pub mod budgets;
@@ -28,6 +29,9 @@ pub mod ws;
 pub mod wt;
 
 pub use acl::{AclMode, AclOperation, AclPolicy, AclRule, PERMISSION_DENIED};
+pub use audit::{
+  AuditIntegrity, AuditMode, AuditSink, AuditSnapshot, OnCorrupt, export_chain, verify_file,
+};
 pub use auth::{AUTHENTICATION_FAILED, AuthMode, AuthResult, OidcSettings, mint_hs256_token};
 pub use backend::{
   ActionInbound, BackendError, ChannelSpec, EntityId, GraphEndpointInfo, GraphNodeInfo, GraphView,

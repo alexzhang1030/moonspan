@@ -137,6 +137,7 @@ pub fn configz_json(config: &GatewayConfig, ops: &OpsState) -> String {
         "has_jwks": settings.jwks.is_some(),
     })
   });
+  let audit = config.audit.snapshot();
   serde_json::json!({
       "gateway_instance_id": config.gateway_instance_id,
       "support_row_id": config.support_row.id,
@@ -149,6 +150,17 @@ pub fn configz_json(config: &GatewayConfig, ops: &OpsState) -> String {
       "oidc": oidc,
       "acl_mode": acl_mode_name(config),
       "acl_rules": config.acl.as_ref().map(|policy| policy.rules.len()),
+      "audit_sink": audit.mode.as_str(),
+      "audit_path": audit.path.as_ref().map(|p| p.display().to_string()),
+      "audit_max_bytes": audit.max_bytes,
+      "audit_retain": audit.retain,
+      "audit_on_corrupt": audit.on_corrupt.as_str(),
+      "audit_events": audit.events,
+      "audit_write_errors": audit.write_errors,
+      "audit_last_seq": audit.last_seq,
+      "audit_last_sha256": audit.last_sha256,
+      "audit_bytes": audit.bytes,
+      "audit_integrity": audit.integrity.as_str(),
       "local_dev_tls": config.local_dev_tls_enabled,
       "offer_webtransport": config.offer_webtransport,
       "webtransport_bind": config.webtransport_bind,
@@ -181,8 +193,9 @@ pub fn drain_json(ops: &OpsState) -> String {
 /// Open scrape format, not a vendor. Identity lives on `/configz` / `/readyz`
 /// so these series stay low-cardinality.
 #[must_use]
-pub fn metrics_text(ops: &OpsState) -> String {
+pub fn metrics_text(config: &GatewayConfig, ops: &OpsState) -> String {
   let snap = PROCESS_TELEMETRY.snapshot();
+  let audit = config.audit.snapshot();
   let draining = u64::from(ops.is_draining());
   format!(
     "# HELP rclwebd_payload_copies_total Serialized payloads copied into framed sample buffers.\n\
@@ -211,7 +224,13 @@ pub fn metrics_text(ops: &OpsState) -> String {
          rclwebd_sessions {}\n\
          # HELP rclwebd_draining 1 when POST /drain or SIGTERM drain is active.\n\
          # TYPE rclwebd_draining gauge\n\
-         rclwebd_draining {}\n",
+         rclwebd_draining {}\n\
+         # HELP rclwebd_audit_events_total Audit events emitted to stderr and the optional file.\n\
+         # TYPE rclwebd_audit_events_total counter\n\
+         rclwebd_audit_events_total {}\n\
+         # HELP rclwebd_audit_write_errors_total File-sink write or rotate failures.\n\
+         # TYPE rclwebd_audit_write_errors_total counter\n\
+         rclwebd_audit_write_errors_total {}\n",
     snap.payload_copies,
     snap.bytes_copied,
     snap.samples_framed,
@@ -221,6 +240,8 @@ pub fn metrics_text(ops: &OpsState) -> String {
     snap.reliable_queue_drop,
     ops.session_count(),
     draining,
+    audit.events,
+    audit.write_errors,
   )
 }
 
@@ -272,20 +293,26 @@ mod tests {
     assert!(json.contains("https://issuer.test"));
     assert!(json.contains("\"has_hs_secret\":true"));
     assert!(!json.contains("super-secret-value"));
+    assert!(json.contains("\"audit_sink\":\"stderr\""));
+    assert!(json.contains("\"audit_integrity\":\"n/a\""));
+    assert!(!json.contains("\"event\":\"authenticate\""));
   }
 
   #[test]
   fn metrics_exposes_session_gauges() {
     let ops = Arc::new(OpsState::new());
-    let text = metrics_text(&ops);
+    let config = GatewayConfig::default();
+    let text = metrics_text(&config, &ops);
     assert!(text.contains("rclwebd_payload_copies_total"));
     assert!(text.contains("rclwebd_sessions 0"));
     assert!(text.contains("rclwebd_draining 0"));
     let _guard = ops.session_guard();
     ops.begin_drain();
-    let text = metrics_text(&ops);
+    let text = metrics_text(&config, &ops);
     assert!(text.contains("rclwebd_sessions 1"));
     assert!(text.contains("rclwebd_draining 1"));
+    assert!(text.contains("rclwebd_audit_events_total 0"));
+    assert!(text.contains("rclwebd_audit_write_errors_total 0"));
   }
 
   #[test]
