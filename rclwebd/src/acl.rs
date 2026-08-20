@@ -157,20 +157,22 @@ pub fn emit_channel_audit(
   type_name: &str,
   allow: bool,
 ) {
-  let event = serde_json::json!({
-      "event": "open_channel",
-      "decision": if allow { "allow" } else { "deny" },
-      "reason": if allow { "acl_match" } else { "permission_denied" },
-      "subject": subject,
-      "operation": operation.as_str(),
-      "name": name,
-      "type": type_name,
-      "gateway_instance_id": config.gateway_instance_id,
-      "support_row_id": config.support_row.id,
-      "domain_id": config.domain_id,
-      "policy_revision": config.policy_revision,
-  });
-  eprintln!("rclwebd audit {event}");
+  crate::audit::emit(
+    config,
+    serde_json::json!({
+        "event": "open_channel",
+        "decision": if allow { "allow" } else { "deny" },
+        "reason": if allow { "acl_match" } else { "permission_denied" },
+        "subject": subject,
+        "operation": operation.as_str(),
+        "name": name,
+        "type": type_name,
+        "gateway_instance_id": config.gateway_instance_id,
+        "support_row_id": config.support_row.id,
+        "domain_id": config.domain_id,
+        "policy_revision": config.policy_revision,
+    }),
+  );
 }
 
 #[cfg(test)]

@@ -14,6 +14,22 @@ Traps already paid for in this repository, each with its why.
 
 `RCLWEBD_ACL_MODE` defaults to `off`: every OpenChannel is admitted — a green e2e lane proves nothing about authorization. `enforce` flips to **default-deny**: only `{subjects, operations, names}` allow rules admit a channel (wire code 12 `permission_denied` otherwise), and a missing/invalid policy fails process start. There are no deny rules — express policy as allows. The subject is whatever Authenticate produced (`anonymous` when auth is off), so ACLs work without OIDC but only distinguish users with it. The policy body never appears on `/configz` (rule count only). The reference matrix is [`docs/acl-reference.json`](../../docs/acl-reference.json) (wide client surface; still default-deny on unlisted publish/server names). Default process mode stays `off`. [security](../../docs/security.md).
 
+## Audit file sink is opt-in; `/configz` never dumps events
+
+`RCLWEBD_AUDIT_SINK` defaults to `stderr`: the same `rclwebd audit {json}` lines as before. `file` requires `RCLWEBD_AUDIT_PATH` and fails start when the live file does not verify (`RCLWEBD_AUDIT_ON_CORRUPT=fail`) unless the operator chooses `rotate`. Each JSONL line is a sorted-key object; `sha256` is hex(`SHA-256(prev_sha256 || LF || canonical-without-sha256)`). A mid-line crash is corrupt. Size rotation (`RCLWEBD_AUDIT_MAX_BYTES` / `RCLWEBD_AUDIT_RETAIN`) stitches the chain — export is copy + verify of live plus `.1`..`.N`, not an HTTP dump. `/configz` reports path, last hash, and counters only. A write failure increments `audit_write_errors` and does not change the Authenticate / OpenChannel decision. Close the live fd before renaming it on rotate or further writes land on `.1`. [security](../../docs/security.md#audit).
+
+## `pull_request` CI does not start on a conflicted PR
+
+`on: pull_request` needs GitHub's speculative merge (`refs/pull/N/merge`).
+A conflict with the base (`mergeable_state: dirty`, `merge_commit_sha`
+null) means that ref is never created, and the `ci` workflow does not
+enqueue — no Actions run, no `github-actions` check suite. Head-SHA
+apps still run (GitGuardian did), which looks like “CI passed” with one
+check. Draft is not the skip: #58 ran `ci` while still a draft. Resolve
+by merging `main` into the PR branch. `workflow_dispatch` can still run.
+GitHub documents this under
+[events that trigger workflows](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request).
+
 ## `/healthz` is liveness, not readiness
 
 `GET /healthz` must stay HTTP 200 with body `ok` (when local-dev TLS is off) even while the process is draining. The e2e harness treats that exact body as “gateway is up”. Load balancers and deploy hooks must probe `GET /readyz` (503 after `POST /drain` / SIGTERM) and must not treat `/healthz` as admission. `/livez` is the JSON liveness twin. [Deploy](../../docs/deploy.md).

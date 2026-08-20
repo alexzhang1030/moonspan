@@ -193,6 +193,8 @@ pub struct GatewayConfig {
   pub isolation_headers: bool,
   /// Allowed CORS origins for HTTP ops and `/local-dev/tls`. Empty = none.
   pub cors_origins: Vec<String>,
+  /// Audit sink. Default is stderr JSON lines; file is opt-in.
+  pub audit: crate::audit::AuditSink,
 }
 
 impl Default for GatewayConfig {
@@ -219,6 +221,7 @@ impl Default for GatewayConfig {
       drain_timeout_secs: 15,
       isolation_headers: false,
       cors_origins: Vec::new(),
+      audit: crate::audit::AuditSink::stderr(),
     }
   }
 }

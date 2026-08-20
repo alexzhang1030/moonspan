@@ -28,4 +28,6 @@ cargo install rclwebd --features ros,webtransport
 ```
 
 Operator contract: [`docs/gateway/rclwebd.md`](../docs/gateway/rclwebd.md).
+Audit default is stderr; set `RCLWEBD_AUDIT_SINK=file` and `RCLWEBD_AUDIT_PATH`
+for a hash-chained JSONL ([security](../docs/security.md#audit)).
 License: Apache-2.0 ([LICENSE](./LICENSE), [NOTICE](./NOTICE)).

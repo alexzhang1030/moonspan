@@ -47,7 +47,7 @@ SROS2 enclave wiring is parked ([open work](../tasks/plan.md)). The design still
 
 Audit records identify time and clock, subject, session, robot, gateway, support row, domain, target, operation, type, schema, policy revision, decision, resource envelope, correlation, result, latency, and trace reference. Payload capture follows an explicit field and retention policy.
 
-Audit sinks define integrity, availability, buffering, redaction, retention, export, and recovery. Sink health is visible, and outages follow a configured operation policy. The current sink is stderr JSON lines; a file sink with integrity and export remains [open work](../tasks/plan.md).
+Audit sinks define integrity, availability, buffering, redaction, retention, export, and recovery. Sink health is visible, and outages follow a configured operation policy. Default is stderr JSON lines (`rclwebd audit {json}`). `RCLWEBD_AUDIT_SINK=file` also appends a hash-chained JSONL at `RCLWEBD_AUDIT_PATH`: `sha256` is hex(`SHA-256(prev_sha256 || LF || canonical)`) over the line's keys except `sha256` (sorted). A truncated or edited line fails verification and, on restart, `RCLWEBD_AUDIT_ON_CORRUPT=fail` (default) refuses start; `rotate` moves the live file aside. Size rotation keeps `<name>.1`..`<name>.N` (`RCLWEBD_AUDIT_MAX_BYTES`, `RCLWEBD_AUDIT_RETAIN`) and stitches the hash chain so a concatenated copy still verifies. `/configz` reports sink health (`audit_integrity`, `audit_last_sha256`, counters) and never event bodies. A write failure increments `audit_write_errors` and does not change the Authenticate / OpenChannel decision. Payloads stay off the log.
 
 ## Qualification
 

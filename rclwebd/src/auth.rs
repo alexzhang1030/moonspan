@@ -113,7 +113,7 @@ pub fn authenticate(config: &GatewayConfig, scheme: &str, token: &[u8]) -> AuthR
           reason: "oidc_not_configured".to_owned(),
         },
       };
-      emit_audit(config, scheme, &result);
+      crate::audit::emit(config, audit_event(config, scheme, &result));
       result
     }
   }
@@ -161,9 +161,9 @@ fn decoding_key(settings: &OidcSettings, header: &jsonwebtoken::Header) -> Optio
   DecodingKey::from_jwk(jwk).ok()
 }
 
-fn emit_audit(config: &GatewayConfig, scheme: &str, result: &AuthResult) {
+fn audit_event(config: &GatewayConfig, scheme: &str, result: &AuthResult) -> serde_json::Value {
   let ros_security = std::env::var("ROS_SECURITY_ENABLE").ok().filter(|v| !v.is_empty());
-  let event = serde_json::json!({
+  serde_json::json!({
       "event": "authenticate",
       "decision": if result.allow { "allow" } else { "deny" },
       "reason": result.reason,
@@ -177,8 +177,7 @@ fn emit_audit(config: &GatewayConfig, scheme: &str, result: &AuthResult) {
           AuthMode::Oidc => "oidc",
       },
       "ros_security_enable": ros_security,
-  });
-  eprintln!("rclwebd audit {event}");
+  })
 }
 
 /// Mint an HS256 JWT for tests and local oidc bring-up (not a production issuer).

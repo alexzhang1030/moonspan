@@ -20,6 +20,11 @@
 //! - `RCLWEBD_OIDC_HS_SECRET` or `RCLWEBD_OIDC_JWKS` / `RCLWEBD_OIDC_JWKS_PATH`
 //! - `RCLWEBD_ACL_MODE` — `off` (default) or `enforce` (default-deny OpenChannel)
 //! - `RCLWEBD_ACL` (inline JSON) or `RCLWEBD_ACL_PATH` — required in `enforce` mode
+//! - `RCLWEBD_AUDIT_SINK` — `stderr` (default) or `file` (hash-chained JSONL)
+//! - `RCLWEBD_AUDIT_PATH` — required when `file`; live JSONL plus `.1`..`.N` rotations
+//! - `RCLWEBD_AUDIT_MAX_BYTES` — rotate the live file at this size (default 8388608)
+//! - `RCLWEBD_AUDIT_RETAIN` — rotated copies to keep (default 3, max 64)
+//! - `RCLWEBD_AUDIT_ON_CORRUPT` — `fail` (default) or `rotate` when the live file is broken
 //! - `RCLWEBD_ISOLATION_HEADERS` — `1`/`true` adds COOP/COEP/CORP on HTTP
 //! - `RCLWEBD_CORS_ORIGINS` — comma-separated origins (`*` allowed); empty = none.
 //!   Unset + offer WT + local-dev TLS implies `*` so a localhost page can
@@ -35,7 +40,7 @@
 
 use rclwebd::ros::RclBackend;
 use rclwebd::{
-  AclMode, AclPolicy, AuthMode, GatewayConfig, OidcSettings, default_webtransport_bind,
+  AclMode, AclPolicy, AuditSink, AuthMode, GatewayConfig, OidcSettings, default_webtransport_bind,
   implied_local_dev_cors, serve_with_os_signals, support_row_from_env,
 };
 use std::sync::Arc;
@@ -118,6 +123,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     AclMode::Off => None,
     AclMode::Enforce => Some(AclPolicy::from_env()?),
   };
+  let audit = AuditSink::from_env()?;
 
   let mut config = GatewayConfig {
     domain_id,
@@ -129,6 +135,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     oidc,
     acl_mode,
     acl,
+    audit,
     isolation_headers: env_flag("RCLWEBD_ISOLATION_HEADERS"),
     cors_origins: {
       let configured = std::env::var("RCLWEBD_CORS_ORIGINS")
@@ -177,6 +184,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
   runtime.block_on(async move {
     let listener = tokio::net::TcpListener::bind(&bind).await?;
     let local = listener.local_addr()?;
+    let audit = config.audit.snapshot();
     eprintln!(
       "rclwebd listening on ws://{local}/ws (domain {domain_id}, row {})",
       config.support_row.id
@@ -197,6 +205,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
               AclMode::Off => "off",
               AclMode::Enforce => "enforce",
           },
+          "audit_sink": audit.mode.as_str(),
+          "audit_path": audit.path.as_ref().map(|p| p.display().to_string()),
           "local_dev_tls": config.local_dev_tls_enabled,
           "offer_webtransport": config.offer_webtransport,
           "webtransport_bind": config.webtransport_bind,

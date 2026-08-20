@@ -178,6 +178,8 @@ Authenticate stays **off**. Do not set `RCLWEBD_AUTH_MODE=oidc` until a tenant i
 
 Channel ACLs stay **off** unless `RCLWEBD_ACL_MODE=enforce` plus `RCLWEBD_ACL` or `RCLWEBD_ACL_PATH`. The reference matrix is [acl-reference.json](./acl-reference.json).
 
+Audit stays on **stderr** unless `RCLWEBD_AUDIT_SINK=file` plus `RCLWEBD_AUDIT_PATH`. The file is hash-chained JSONL ([security](./security.md#audit)); `/configz` reports the path, last hash, and integrity, not event bodies. Rotate at `RCLWEBD_AUDIT_MAX_BYTES` (default 8 MiB) and keep `RCLWEBD_AUDIT_RETAIN` copies (default 3). A broken live file fails start (`RCLWEBD_AUDIT_ON_CORRUPT=fail`) or is moved aside (`rotate`). Export is a verified concatenation of the live file plus `.1`..`.N` — copy those files off the host and check `audit_last_sha256` against `/configz`.
+
 ## Operations endpoints
 
 | Method | Path | Role |
@@ -185,9 +187,9 @@ Channel ACLs stay **off** unless `RCLWEBD_ACL_MODE=enforce` plus `RCLWEBD_ACL` o
 | GET | `/healthz` | Liveness. Plain `ok` when local-dev TLS is off. 200 during drain. The e2e harness treats that exact body as “gateway is up”. |
 | GET | `/livez` | Liveness JSON. 200 during drain. |
 | GET | `/readyz` | Readiness JSON. 503 after drain. Use this for load balancers. |
-| GET | `/configz` | Non-secret config (row, domain, auth mode, budgets). No OIDC secrets. |
+| GET | `/configz` | Non-secret config (row, domain, auth mode, budgets, audit sink health). No OIDC secrets and no audit event bodies. |
 | GET | `/telemetryz` | JSON copy/disposition counters. |
-| GET | `/metrics` | Prometheus text 0.0.4 of those counters plus session gauges. |
+| GET | `/metrics` | Prometheus text 0.0.4 of those counters plus session gauges and audit counters. |
 | POST | `/drain` | Mark not-ready; reject new `/ws`. Existing sessions continue. |
 | GET | `/ws` | R2WP binary WebSocket. 503 while draining. |
 | GET | `/local-dev/tls` | ADR 0011 advertisement when local-dev TLS is on. |

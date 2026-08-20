@@ -714,6 +714,90 @@ async fn acl_enforce_scopes_by_oidc_subject() {
   assert_eq!(backend.created.lock().unwrap().len(), 1, "bob never reached the backend");
 }
 
+#[tokio::test]
+async fn file_audit_sink_records_open_channel_and_configz_omits_bodies() {
+  let mut path = std::env::temp_dir();
+  path.push(format!(
+    "rclwebd-audit-ws-{}-{}",
+    std::process::id(),
+    std::time::SystemTime::now()
+      .duration_since(std::time::UNIX_EPOCH)
+      .map(|d| d.as_nanos())
+      .unwrap_or(0)
+  ));
+  let _ = std::fs::remove_file(&path);
+  let policy = r#"{
+    "revision": "audit-file-1",
+    "rules": [{"subjects": ["*"], "operations": ["subscribe"], "names": ["/chatter"]}]
+  }"#;
+  let sink = rclwebd::AuditSink::file(&path, 1024 * 1024, 2, rclwebd::OnCorrupt::Fail)
+    .expect("open audit file");
+  let (addr, _backend) = start_gateway_with_config(rclwebd::GatewayConfig {
+    gateway_instance_id: "gw-test".to_owned(),
+    acl_mode: rclwebd::AclMode::Enforce,
+    acl: Some(rclwebd::AclPolicy::from_json(policy).expect("test policy")),
+    audit: sink,
+    ..rclwebd::GatewayConfig::default()
+  })
+  .await;
+
+  let mut client = TestClient::connect(&addr).await;
+  ready_session(&mut client).await;
+  client
+    .send_control(&TestClient::open_topic_msg(
+      &corr(0xD1),
+      4,
+      0,
+      "/chatter",
+      "std_msgs/msg/String",
+      1,
+    ))
+    .await;
+  let _ = expect_channel_ready_then_optional_delta(&mut client).await;
+  client
+    .send_control(&TestClient::open_topic_msg(
+      &corr(0xD2),
+      5,
+      1,
+      "/chatter",
+      "std_msgs/msg/String",
+      1,
+    ))
+    .await;
+  expect_channel_denied(&mut client, 5, 12).await;
+
+  let verified = rclwebd::verify_file(&path).expect("hash chain");
+  assert_eq!(verified.records, 2);
+  let text = std::fs::read_to_string(&path).expect("read audit");
+  assert!(text.contains("\"event\":\"open_channel\""));
+  assert!(text.contains("\"decision\":\"allow\""));
+  assert!(text.contains("\"decision\":\"deny\""));
+  assert!(text.contains("\"name\":\"/chatter\""));
+
+  let (status, _, body) = http_get(&addr, "/configz").await;
+  assert_eq!(status, 200);
+  let config: serde_json::Value = serde_json::from_str(&body).expect("configz json");
+  assert_eq!(config["audit_sink"], "file");
+  assert_eq!(config["audit_integrity"], "ok");
+  assert_eq!(config["audit_events"], 2);
+  assert_eq!(config["audit_last_seq"], 2);
+  assert_eq!(config["audit_last_sha256"], verified.last_sha256);
+  assert_eq!(config["audit_path"], path.to_string_lossy().as_ref());
+  assert!(!body.contains("open_channel"), "configz must not dump event bodies");
+  assert!(!body.contains("/chatter"), "configz must not dump ROS names from audit");
+
+  let (status, _, metrics) = http_get(&addr, "/metrics").await;
+  assert_eq!(status, 200);
+  assert!(metrics.contains("rclwebd_audit_events_total 2"));
+  assert!(metrics.contains("rclwebd_audit_write_errors_total 0"));
+
+  let dest = path.with_extension("export.jsonl");
+  let report = rclwebd::export_chain(&path, &dest).expect("export");
+  assert_eq!(report.records, 2);
+  let _ = std::fs::remove_file(&path);
+  let _ = std::fs::remove_file(&dest);
+}
+
 async fn http_exchange(addr: &str, request: &str) -> (u16, String, String) {
   use tokio::io::{AsyncReadExt, AsyncWriteExt};
   let mut last = String::new();
@@ -780,6 +864,8 @@ async fn configz_and_metrics_are_scrapeable() {
   assert_eq!(status, 200);
   assert!(body.contains("\"support_row_id\":\"J-FT\""));
   assert!(body.contains("\"auth_mode\":\"off\""));
+  assert!(body.contains("\"audit_sink\":\"stderr\""));
+  assert!(body.contains("\"audit_integrity\":\"n/a\""));
   assert!(!body.contains("super-secret-value"));
 
   let (status, headers, body) = http_get(&addr, "/metrics").await;
@@ -788,6 +874,7 @@ async fn configz_and_metrics_are_scrapeable() {
   assert!(body.contains("rclwebd_payload_copies_total"));
   assert!(body.contains("rclwebd_sessions 0"));
   assert!(body.contains("rclwebd_draining 0"));
+  assert!(body.contains("rclwebd_audit_events_total 0"));
 }
 
 #[tokio::test]
