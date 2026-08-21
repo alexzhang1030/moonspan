@@ -237,6 +237,36 @@ console.log(node.countSubscribers("chatter"));
 These are the last graph the gateway pushed. Relative topic names in
 `countPublishers` / `countSubscribers` resolve under this node.
 
+## Generate types from ROS interfaces
+
+`rcl-web` ships typed classes for `std_msgs`, `sensor_msgs`,
+`builtin_interfaces`, and `rclweb_cdr_interfaces`. For your own
+`.msg` / `.srv` / `.action` files, generate matching TypeScript
+declarations (and optional runtime classes):
+
+```bash
+bun run scripts/rosidl-dts.ts --package path/to/my_interfaces --out src/my_interfaces.d.ts
+bun run scripts/rosidl-dts.ts --package path/to/my_interfaces --out src/my_interfaces.ts
+bun run scripts/rosidl-dts.ts --root path/to/share --out generated/
+```
+
+The output uses the same `pkg.msg.Type` / `pkg.srv.Name` /
+`pkg.action.Name` shape as this package (`typeName`, ROS field names,
+`int64` / `uint64` as `bigint`, `uint8[]` as `Uint8Array`). OMG `.idl`
+is not accepted — use the ROS 2 interface files.
+
+The generator does not emit CDR codecs. Topic encode/decode still
+covers only the shipped types above; other services and actions stay
+`{ typeName }` plus `Uint8Array` CDR. Dynamic projection of arbitrary
+runtime types remains later work.
+
+The shipped classes themselves are generated from
+[`typescript/rosidl/`](../typescript/rosidl/) and
+[`conformance/interfaces/rclweb_cdr_interfaces/`](../conformance/interfaces/rclweb_cdr_interfaces/).
+`bun run rosidl-dts:check` requires byte identity with
+[`typescript/generated/rosidl.d.ts`](../typescript/generated/rosidl.d.ts)
+and [`typescript/src/interfaces.generated.ts`](../typescript/src/interfaces.generated.ts).
+
 ## Public vs internal
 
 | Import | Use |

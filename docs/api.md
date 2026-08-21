@@ -240,6 +240,10 @@ Anything else: pass `{ typeName: "pkg/srv/Foo" }` or
 `{ typeName: "pkg/action/Bar" }` and use `Uint8Array` CDR. Unknown
 **topic** types are not delivered.
 
+To generate the same class / `.d.ts` shape from your own ROS 2
+`.msg` / `.srv` / `.action` files, see
+[Generate types from ROS interfaces](./typescript.md#generate-types-from-ros-interfaces).
+
 ## NamesAndTypes
 
 ```ts

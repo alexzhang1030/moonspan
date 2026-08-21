@@ -14,9 +14,9 @@ just test
 just build
 ```
 
-`just check` is the foundation gate (docs, protocol, corpus, license
-inventory, npm/crate pack members, `cargo fmt`, Clippy with `-D warnings`,
-tsdown ship bundle).
+`just check` is the foundation gate (docs, protocol, corpus, ROSIDL DTS,
+license inventory, npm/crate pack members, `cargo fmt`, Clippy with
+`-D warnings`, tsdown ship bundle).
 
 | Command | Purpose |
 |---|---|
@@ -35,6 +35,7 @@ tsdown ship bundle).
 | `just ros-check` / `just ros-check-docker` | Compile `rclwebd --features ros --tests` (no `cargo test`) |
 | `just ros-test` / `just ros-test-pixi` | Gateway tests against real rcl |
 | `just protocol-check` / `just cdr-corpus-check` | Registry, CDDL, CDR corpus |
+| `just rosidl-dts-check` / `just rosidl-dts-write` | ROS 2 `.msg`/`.srv`/`.action` → `rcl-web` DTS |
 | `just license-inventory` / `just license-inventory-check` | Third-party allowlist |
 
 Pins: Bun `.bun-version`, Rust `rust-toolchain.toml` (1.97.1 +

@@ -268,3 +268,4 @@ Error payloads carry the fault code and stable diagnostic context (offending fie
 - Gateway schema cache implementation details beyond shared `SchemaKey` identity
 - XCDR2 payload codecs (R2WP encoding value `2`)
 - Studio or application-level type browsers
+- TypeScript `.d.ts` / runtime classes from ROS 2 `.msg` / `.srv` / `.action` — that is a separate generator (`scripts/rosidl-dts.ts`; [how to](../typescript.md#generate-types-from-ros-interfaces))
