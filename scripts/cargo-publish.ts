@@ -11,7 +11,7 @@ import { spawnSync } from "node:child_process";
 
 export const PUBLISHED_CRATES = ["rclweb", "rclwebd"] as const;
 export const UNPUBLISHED_CRATES = ["protocol-fixtures", "r1_04_fixture_gen"] as const;
-export const EXPECTED_CRATE_VERSION = "0.0.5";
+export const EXPECTED_CRATE_VERSION = "0.0.6";
 
 export type CargoPublishMode = "stage" | "check";
 

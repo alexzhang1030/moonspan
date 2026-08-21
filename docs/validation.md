@@ -10,7 +10,7 @@ rclweb turns design targets into release authority through reproducible conforma
 | Live path | Talker → `rclwebd` → TypeScript subscribe in CI (`just e2e`, `just e2e-h-ft`, `just e2e-row`) |
 | Ros-feature compile | `cargo check -p rclwebd --features ros --tests` in digest-pinned Jazzy (`just ros-check-docker` / CI `ros-feature-check`) |
 | Browser runtime | Wasm core plus real ROS operations (subscribe, publish, service, action, graph, parameters) |
-| Release | Identity, policy, deployment, reviewed matrix, and package `rcl-web@0.0.5` |
+| Release | Identity, policy, deployment, reviewed matrix, and package `rcl-web@0.0.6` |
 
 ## Live path
 

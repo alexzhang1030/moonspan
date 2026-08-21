@@ -27,7 +27,7 @@ test("sdk package identity and privacy", () => {
     bin?: Record<string, string>;
   };
   expect(pkg.name).toBe("rcl-web");
-  expect(pkg.version).toBe("0.0.5");
+  expect(pkg.version).toBe("0.0.6");
   expect(pkg.private).toBe(false);
   expect(pkg.type).toBe("module");
   expect(pkg.bin).toEqual({ "rcl-web": "./dist/cli.js" });
