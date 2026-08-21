@@ -2,7 +2,9 @@
 # Digest-pinned base matches docs/support-matrix.md Humble pin.
 # Regenerates vendored rcl bindings against Humble headers before linking so the
 # artifact matches the process support row (ADR 0008: one row per process).
-# Builder compiles only the gateway; the runtime has no Rust toolchain.
+# Builder compiles the gateway with `ros,webtransport` so intranet
+# `RCLWEBD_OFFER_WEBTRANSPORT=1` can start the accept loop. The flag stays
+# off in this image. E2e Dockerfiles remain `--features ros` only.
 # R4-02 remaining rows: SUPPORT_ROW / RMW_IMPLEMENTATION bake the row identity
 # and RMW_APT_PACKAGES installs the row's RMW into the runtime stage
 # (typesupport and RMW load via dlopen, not link-time):
@@ -40,7 +42,7 @@ ENV AMENT_PREFIX_PATH=/opt/ros/humble
 ENV RCLWEBD_SUPPORT_ROW=H-FT
 RUN . /opt/ros/humble/setup.sh \
   && ROS_PREFIX=/opt/ros/humble bash scripts/generate-rcl-bindings.sh \
-  && cargo build --locked -p rclwebd --features ros --release
+  && cargo build --locked -p rclwebd --features ros,webtransport --release
 
 FROM ${ROS_IMAGE}
 
@@ -65,6 +67,7 @@ ENV RCLWEBD_BIND=0.0.0.0:8794 \
 
 USER rclweb
 EXPOSE 8794
+EXPOSE 4433/udp
 HEALTHCHECK --interval=10s --timeout=3s --start-period=15s --retries=3 \
   CMD curl -fsS http://127.0.0.1:8794/readyz || exit 1
 ENTRYPOINT ["/entrypoint.sh"]

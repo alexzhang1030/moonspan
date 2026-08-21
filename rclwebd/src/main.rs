@@ -11,7 +11,10 @@
 //!   (Fast DDS when unset), falling back to `J-FT` without a sourced
 //!   environment (ADR 0018)
 //! - `RCLWEBD_LOCAL_DEV_TLS` — `1`/`true` enables ADR 0011 local-dev TLS
-//! - `RCLWEBD_OFFER_WEBTRANSPORT` — `1`/`true` AND-negotiates WT + starts accept
+//! - `RCLWEBD_OFFER_WEBTRANSPORT` — `1`/`true` AND-negotiates WT + starts accept.
+//!   Also implies local-dev TLS. Runtime images compile `--features webtransport`
+//!   but leave this off (intranet / lab, not production PKI).
+//! - `RCLWEBD_WT_BIND` — UDP bind (default: HTTP bind host + port 4433)
 //! - `RCLWEBD_AUTH_MODE` — `off` (default) or `oidc` (JWT; requires issuer/keys)
 //! - `RCLWEBD_OIDC_ISSUER` / `RCLWEBD_OIDC_AUDIENCE` — required in `oidc` mode
 //! - `RCLWEBD_OIDC_HS_SECRET` or `RCLWEBD_OIDC_JWKS` / `RCLWEBD_OIDC_JWKS_PATH`
@@ -23,7 +26,9 @@
 //! - `RCLWEBD_AUDIT_RETAIN` — rotated copies to keep (default 3, max 64)
 //! - `RCLWEBD_AUDIT_ON_CORRUPT` — `fail` (default) or `rotate` when the live file is broken
 //! - `RCLWEBD_ISOLATION_HEADERS` — `1`/`true` adds COOP/COEP/CORP on HTTP
-//! - `RCLWEBD_CORS_ORIGINS` — comma-separated origins (`*` allowed); empty = none
+//! - `RCLWEBD_CORS_ORIGINS` — comma-separated origins (`*` allowed); empty = none.
+//!   Unset + offer WT + local-dev TLS implies `*` so a localhost page can
+//!   fetch `/local-dev/tls` from another machine.
 //! - `RCLWEBD_DRAIN_TIMEOUT_SECS` — wait for sessions after SIGTERM (default 15)
 //!
 //! The `ros` feature links whatever ROS prefix is on `ROS_PREFIX` /
@@ -35,8 +40,8 @@
 
 use rclwebd::ros::RclBackend;
 use rclwebd::{
-  AclMode, AclPolicy, AuditSink, AuthMode, GatewayConfig, OidcSettings, serve_with_os_signals,
-  support_row_from_env,
+  AclMode, AclPolicy, AuditSink, AuthMode, GatewayConfig, OidcSettings, default_webtransport_bind,
+  implied_local_dev_cors, serve_with_os_signals, support_row_from_env,
 };
 use std::sync::Arc;
 
@@ -77,10 +82,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
   }
 
-  let local_dev_tls_enabled = env_flag("RCLWEBD_LOCAL_DEV_TLS");
   let offer_webtransport = env_flag("RCLWEBD_OFFER_WEBTRANSPORT");
-  let webtransport_bind =
-    std::env::var("RCLWEBD_WT_BIND").unwrap_or_else(|_| "127.0.0.1:4433".to_owned());
+  let local_dev_tls_from_env = env_flag("RCLWEBD_LOCAL_DEV_TLS");
+  let local_dev_tls_enabled = local_dev_tls_from_env || offer_webtransport;
+  if offer_webtransport && !local_dev_tls_from_env {
+    eprintln!(
+      "rclwebd: RCLWEBD_OFFER_WEBTRANSPORT implies RCLWEBD_LOCAL_DEV_TLS \
+       (ADR 0011 local-dev hashes; not production PKI)"
+    );
+  }
+  let webtransport_bind = match std::env::var("RCLWEBD_WT_BIND") {
+    Ok(raw) if !raw.trim().is_empty() => raw,
+    _ => default_webtransport_bind(&bind),
+  };
+  if offer_webtransport
+    && std::env::var("RCLWEBD_WT_BIND").map_or(true, |raw| raw.trim().is_empty())
+  {
+    eprintln!(
+      "rclwebd: RCLWEBD_WT_BIND unset; WebTransport UDP bind derived from \
+       RCLWEBD_BIND host → {webtransport_bind}"
+    );
+  }
 
   let auth_mode = match std::env::var("RCLWEBD_AUTH_MODE") {
     Ok(raw) => AuthMode::parse(&raw)
@@ -115,10 +137,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     acl,
     audit,
     isolation_headers: env_flag("RCLWEBD_ISOLATION_HEADERS"),
-    cors_origins: std::env::var("RCLWEBD_CORS_ORIGINS")
-      .ok()
-      .map(|raw| raw.split(',').map(|s| s.trim().to_owned()).filter(|s| !s.is_empty()).collect())
-      .unwrap_or_default(),
+    cors_origins: {
+      let configured: Vec<String> = std::env::var("RCLWEBD_CORS_ORIGINS")
+        .ok()
+        .map(|raw| raw.split(',').map(|s| s.trim().to_owned()).filter(|s| !s.is_empty()).collect())
+        .unwrap_or_default();
+      match implied_local_dev_cors(offer_webtransport, local_dev_tls_enabled, &configured) {
+        Some(implied) => {
+          eprintln!(
+            "rclwebd: RCLWEBD_CORS_ORIGINS unset; implying * so a localhost \
+             page can fetch /local-dev/tls (intranet WebTransport)"
+          );
+          implied
+        }
+        None => configured,
+      }
+    },
     ..GatewayConfig::default()
   };
   if let Ok(id) = std::env::var("RCLWEBD_GATEWAY_INSTANCE_ID") {
@@ -174,9 +208,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
           "audit_sink": audit.mode.as_str(),
           "audit_path": audit.path.as_ref().map(|p| p.display().to_string()),
           "local_dev_tls": config.local_dev_tls_enabled,
+          "offer_webtransport": config.offer_webtransport,
+          "webtransport_bind": config.webtransport_bind,
           "isolation_headers": config.isolation_headers,
       })
     );
+    if config.offer_webtransport {
+      eprintln!(
+        "rclwebd: intranet WebTransport on (auto-minted cert, no CA). \
+         On the laptop open http://127.0.0.1 — not a LAN IP — then init(\"<robot-ip>\"). \
+         A LAN-IP page uses WebSocket by itself."
+      );
+    }
     serve_with_os_signals(listener, Arc::new(config), backend).await?;
     Ok::<(), Box<dyn std::error::Error>>(())
   })?;

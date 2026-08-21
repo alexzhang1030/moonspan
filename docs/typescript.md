@@ -35,6 +35,18 @@ import {
 await init("ws://127.0.0.1:8794/ws");
 ```
 
+Intranet WebTransport after `just gateway-wt` on the robot — page on
+`http://127.0.0.1`, Chromium. No CA and no second argument:
+
+```ts
+await init("192.168.1.10");
+```
+
+That is WebTransport (QUIC). A tab opened via a LAN IP is not a secure
+context — `init` throws instead of silently using WebSocket. Pass
+`{ transport: "websocket" }` only to skip QUIC. Recipe:
+[Intranet WebTransport](./deploy.md#intranet-webtransport).
+
 Call `init` once. A second call throws until `shutdown()`.
 
 | Function | What it does |

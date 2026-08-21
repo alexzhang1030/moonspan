@@ -52,6 +52,7 @@ import {
   reviveGenerated,
 } from "./generated-value.ts";
 import type { MainToWorker, WorkerToMain } from "./worker/messages.ts";
+import { resolveGatewayConnect } from "./gateway-url.ts";
 
 export type {
   ActionClient,
@@ -2302,26 +2303,36 @@ class WorkerClient implements RclwebClient {
 }
 
 /**
- * Open a session to an rclwebd WebSocket endpoint.
+ * Open a session to an rclwebd endpoint (WebTransport or WebSocket).
  *
  * `connect(url)` → session subscribe/publish/service/action/graph.
+ * Intranet defaults use QUIC; a LAN-IP page throws unless
+ * `{ transport: "websocket" }`.
  */
 export async function connect(
   url: string,
   options: ConnectOptions = {},
 ): Promise<RclwebClient> {
-  const wasmUrl = options.wasmUrl
-    ? String(options.wasmUrl)
+  const resolved = resolveGatewayConnect(url, options);
+  if (resolved.note) {
+    console.info(`rcl-web: ${resolved.note}`);
+  }
+  const resolvedOptions: ConnectOptions = {
+    ...options,
+    transport: resolved.transport,
+  };
+  const wasmUrl = resolvedOptions.wasmUrl
+    ? String(resolvedOptions.wasmUrl)
     : defaultWasmUrl();
-  if (options.inline) {
+  if (resolvedOptions.inline) {
     const response = await fetch(wasmUrl);
     if (!response.ok) {
       throw new Error(`failed to fetch wasm: ${response.status}`);
     }
     const bytes = await response.arrayBuffer();
-    return InlineClient.create(url, bytes, options);
+    return InlineClient.create(resolved.url, bytes, resolvedOptions);
   }
-  return WorkerClient.create(url, wasmUrl, options);
+  return WorkerClient.create(resolved.url, wasmUrl, resolvedOptions);
 }
 
 /** @internal Test helper: offline inline client for scripted peer bytes. */

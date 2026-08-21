@@ -1,0 +1,9 @@
+# Intranet / lab WebTransport overlay (ADR 0011 local-dev TLS).
+# Not production PKI. Pair with compose.r4-02-gateway.yml or
+# compose.r4-02-gateway-h-ft.yml. Rebuild so the image was compiled with
+# `--features ros,webtransport`. One env is enough: OFFER implies
+# local-dev TLS, CORS `*` when unset, and WT UDP on the HTTP bind host.
+services:
+  rclwebd:
+    environment:
+      RCLWEBD_OFFER_WEBTRANSPORT: "1"

@@ -88,9 +88,11 @@ export type ConnectOptions = {
   /** Max reconnect attempts (default 3). */
   reconnectAttempts?: number;
   /**
-   * Transport for the session plane. Default `websocket`. `webtransport`
-   * requires a host that exposes `globalThis.WebTransport` (browsers); bun
-   * tests without WT should keep the default.
+   * Transport for the session plane. Unset is automatic: WebTransport
+   * (QUIC) for intranet-shaped URLs on a secure context. A LAN-IP page
+   * is not a secure context — `init` throws unless this is `websocket`.
+   * Runtimes without `WebTransport` still fall back to WebSocket.
+   * Custom ports stay WS. No CA to install.
    */
   transport?: "websocket" | "webtransport";
   /**
@@ -106,7 +108,10 @@ export type ConnectOptions = {
    * `{httpOrigin}/local-dev/tls` and use the advertised SPKI hashes.
    */
   fetchLocalDevTls?: boolean;
-  /** HTTP origin for `/local-dev/tls` (defaults from the WT URL). */
+  /**
+   * HTTP origin for `/local-dev/tls`. Default maps WT `:4433` to HTTP
+   * `:8794`; set this when those ports differ.
+   */
   localDevTlsOrigin?: string;
 };
 

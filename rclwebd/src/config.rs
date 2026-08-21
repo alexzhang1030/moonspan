@@ -173,7 +173,9 @@ pub struct GatewayConfig {
   /// offers it. Together with local-dev TLS (and `--features webtransport`)
   /// starts the WT accept loop.
   pub offer_webtransport: bool,
-  /// UDP bind for the WebTransport listener (default `127.0.0.1:4433`).
+  /// UDP bind for the WebTransport listener. When `RCLWEBD_WT_BIND` is
+  /// unset, [`default_webtransport_bind`] copies the HTTP bind host and
+  /// uses port [`DEFAULT_WEBTRANSPORT_PORT`].
   pub webtransport_bind: String,
   /// Authenticate evaluation. Default [`crate::auth::AuthMode::Off`] leaves
   /// the R1–R3 accept-all path unchanged. `oidc` is opt-in.
@@ -211,7 +213,7 @@ impl Default for GatewayConfig {
       sample_queue_max_bytes: 4 * 1024 * 1024,
       local_dev_tls_enabled: false,
       offer_webtransport: false,
-      webtransport_bind: "127.0.0.1:4433".to_owned(),
+      webtransport_bind: default_webtransport_bind("127.0.0.1:8794"),
       auth_mode: crate::auth::AuthMode::Off,
       oidc: None,
       acl_mode: crate::acl::AclMode::Off,
@@ -221,6 +223,63 @@ impl Default for GatewayConfig {
       cors_origins: Vec::new(),
       audit: crate::audit::AuditSink::stderr(),
     }
+  }
+}
+
+/// Default HTTP listen port (`RCLWEBD_BIND`).
+pub const DEFAULT_HTTP_PORT: u16 = 8794;
+/// Default WebTransport UDP port (`RCLWEBD_WT_BIND`).
+pub const DEFAULT_WEBTRANSPORT_PORT: u16 = 4433;
+
+/// When `RCLWEBD_WT_BIND` is unset, listen on the HTTP bind host at UDP 4433.
+///
+/// Containers already use `RCLWEBD_BIND=0.0.0.0:8794`; deriving the WT host
+/// from that address is what makes intranet clients reach the accept loop.
+/// A host default of `127.0.0.1:8794` stays loopback WT.
+#[must_use]
+pub fn default_webtransport_bind(http_bind: &str) -> String {
+  let bind = http_bind.trim();
+  if let Ok(addr) = bind.parse::<std::net::SocketAddr>() {
+    return std::net::SocketAddr::new(addr.ip(), DEFAULT_WEBTRANSPORT_PORT).to_string();
+  }
+  if let Some(host) = host_of_bind(bind) {
+    return format!("{host}:{DEFAULT_WEBTRANSPORT_PORT}");
+  }
+  format!("127.0.0.1:{DEFAULT_WEBTRANSPORT_PORT}")
+}
+
+fn host_of_bind(bind: &str) -> Option<String> {
+  if let Some(rest) = bind.strip_prefix('[') {
+    let (host, after) = rest.split_once(']')?;
+    if after.is_empty() || after.starts_with(':') {
+      return Some(format!("[{host}]"));
+    }
+    return None;
+  }
+  // Unbracketed IPv6 has more than one colon; do not treat it as host:port.
+  if bind.matches(':').count() > 1 {
+    return None;
+  }
+  let (host, _port) = bind.rsplit_once(':')?;
+  if host.is_empty() {
+    return None;
+  }
+  Some(host.to_owned())
+}
+
+/// Intranet WT: a laptop page at `http://localhost:4173` fetching
+/// `http://robot:8794/local-dev/tls` is cross-origin. When WT + local-dev
+/// TLS are on and the operator left CORS empty, allow any origin.
+#[must_use]
+pub fn implied_local_dev_cors(
+  offer_webtransport: bool,
+  local_dev_tls: bool,
+  configured: &[String],
+) -> Option<Vec<String>> {
+  if offer_webtransport && local_dev_tls && configured.is_empty() {
+    Some(vec!["*".to_owned()])
+  } else {
+    None
   }
 }
 
@@ -321,5 +380,30 @@ mod tests {
   fn detect_trims_whitespace() {
     let row = detect_support_row(Some("  humble\n"), Some(" rmw_cyclonedds_cpp ")).unwrap();
     assert_eq!(row.id, "H-CY");
+  }
+
+  #[test]
+  fn default_wt_bind_copies_http_host() {
+    assert_eq!(default_webtransport_bind("127.0.0.1:8794"), "127.0.0.1:4433");
+    assert_eq!(default_webtransport_bind("0.0.0.0:8794"), "0.0.0.0:4433");
+    assert_eq!(default_webtransport_bind("[::]:8794"), "[::]:4433");
+    assert_eq!(default_webtransport_bind("[::1]:8794"), "[::1]:4433");
+    assert_eq!(default_webtransport_bind("localhost:8794"), "localhost:4433");
+    assert_eq!(default_webtransport_bind("192.168.1.10:9000"), "192.168.1.10:4433");
+    assert_eq!(default_webtransport_bind("  10.0.0.5:8794  "), "10.0.0.5:4433");
+  }
+
+  #[test]
+  fn default_wt_bind_falls_back_when_bind_is_not_host_port() {
+    assert_eq!(default_webtransport_bind(""), "127.0.0.1:4433");
+    assert_eq!(default_webtransport_bind("::1"), "127.0.0.1:4433");
+  }
+
+  #[test]
+  fn implied_cors_only_when_wt_and_tls_and_unset() {
+    assert_eq!(implied_local_dev_cors(true, true, &[]), Some(vec!["*".to_owned()]));
+    assert_eq!(implied_local_dev_cors(true, true, &["https://app".to_owned()]), None);
+    assert_eq!(implied_local_dev_cors(false, true, &[]), None);
+    assert_eq!(implied_local_dev_cors(true, false, &[]), None);
   }
 }

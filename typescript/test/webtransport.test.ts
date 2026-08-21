@@ -20,9 +20,21 @@ describe("local-dev TLS helpers", () => {
     expect([...decoded]).toEqual([...bytes]);
   });
 
-  test("httpOriginFromWebTransportUrl maps https WT URL to http origin", () => {
+  test("httpOriginFromWebTransportUrl maps default WT 4433 to HTTP 8794", () => {
     expect(httpOriginFromWebTransportUrl("https://127.0.0.1:4433/r2wp")).toBe(
-      "http://127.0.0.1:4433",
+      "http://127.0.0.1:8794",
+    );
+    expect(httpOriginFromWebTransportUrl("https://192.168.1.10:4433/")).toBe(
+      "http://192.168.1.10:8794",
+    );
+  });
+
+  test("httpOriginFromWebTransportUrl keeps a custom WT port", () => {
+    expect(httpOriginFromWebTransportUrl("https://127.0.0.1:9443/r2wp")).toBe(
+      "http://127.0.0.1:9443",
+    );
+    expect(httpOriginFromWebTransportUrl("https://example.com/")).toBe(
+      "http://example.com",
     );
   });
 

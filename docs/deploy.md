@@ -45,13 +45,15 @@ rows build from the same two Dockerfiles with the row identity baked in:
 ```bash
 just image-rclwebd          # docker build -t rclwebd:j-ft
 just gateway                # host-network compose (J-FT)
+just gateway-wt             # same + intranet WebTransport (rebuilds)
 just image-rclwebd-h-ft     # docker build -t rclwebd:h-ft (regenerates FFI)
 just gateway-h-ft           # host-network compose (H-FT)
+just gateway-wt-h-ft        # H-FT + intranet WebTransport (rebuilds)
 just image-rclwebd-row j-cy # rclwebd:j-cy (also j-zn, h-cy, h-zn)
 just gateway-row j-zn       # host-network compose; zn rows start rmw_zenohd
 ```
 
-All images are multi-stage: builder compiles `rclwebd --features ros`, runtime
+All images are multi-stage: builder compiles `rclwebd --features ros,webtransport`, runtime
 is the digest-pinned ROS base plus the binary, running as uid `10001`.
 `HEALTHCHECK` probes `GET /readyz`. Extra ROS interface packages must be
 installed in the image or mounted into `ROS_PREFIX` — typesupport is dlopen,
@@ -86,7 +88,77 @@ running the companion.
 Do not treat a container publish of 8794 as TLS. Put a reverse proxy in front
 for production WSS / HTTPS. Local-dev WebTransport TLS stays opt-in
 ([ADR 0011](./adr/0011-local-dev-webtransport-tls.md)) and must not be the
-default on this image.
+default on this image. Images compile the accept loop; they do not enable it.
+
+## Intranet WebTransport
+
+Robot LAN / lab path. Not production PKI. Chromium only.
+
+On the robot (host-network compose already shares UDP):
+
+```bash
+just gateway-wt
+# or, on any image built from these Dockerfiles:
+#   RCLWEBD_OFFER_WEBTRANSPORT=1
+```
+
+That one flag implies local-dev TLS, CORS `*` when `RCLWEBD_CORS_ORIGINS` is
+unset, and a WebTransport UDP bind on the HTTP bind host at port 4433
+(`0.0.0.0:8794` → `0.0.0.0:4433`). Set `RCLWEBD_WT_BIND` only to override.
+
+On the laptop, open the page at `http://127.0.0.1` or `http://localhost`
+(those are secure contexts). Type the robot host — no CA, no transport
+flag. That is the QUIC path:
+
+```ts
+await init("192.168.1.10");
+```
+
+The package uses WebTransport, fetches
+`http://192.168.1.10:8794/local-dev/tls` for `serverCertificateHashes`
+(default WT `4433` maps to HTTP `8794`), and never asks the operator to
+install a certificate. A page opened via `http://192.168.x.x` is not a
+secure context, so the same `init` throws instead of quietly using TCP.
+Pass `{ transport: "websocket" }` only to skip QUIC. Do not put the page
+on self-signed HTTPS — Chrome's interstitial is more trouble than
+opening localhost. Production PKI stays the [open](../tasks/plan.md)
+follow-up. UDP 4433 must be reachable from the laptop.
+
+Remaining-row compose services are not named `rclwebd`; set
+`RCLWEBD_OFFER_WEBTRANSPORT=1` on that service instead of the J-FT/H-FT
+overlay.
+
+## Intranet certificates
+
+Two HTTPS surfaces. They do not share a trust API.
+
+**WebTransport** already has a cert. `new WebTransport("https://…")`
+requires TLS; the intranet path does **not** buy a public certificate and
+does **not** install mkcert. `RCLWEBD_OFFER_WEBTRANSPORT=1` auto-mints an
+ECDSA P-256 self-signed cert (validity ≤13 days, default 7, remint when
+less than 24h remain). The SDK fetches `GET /local-dev/tls` over plain HTTP and
+passes the SHA-256 SPKI hash into `serverCertificateHashes`. Chromium
+pins that exact key for the QUIC handshake. SANs are `localhost` /
+`127.0.0.1` / `::1`; the hash check does not need the robot LAN IP in the
+SAN. The private key never leaves the gateway process
+([ADR 0011](./adr/0011-local-dev-webtransport-tls.md)). This is not
+production PKI.
+
+**The page** cannot use that hash. `serverCertificateHashes` is a
+`WebTransport` constructor option only — it cannot trust a document you
+open in the address bar.
+
+| Page origin | What the operator does |
+|---|---|
+| `http://127.0.0.1` / `http://localhost` | Nothing. Secure context; `init("192.168.1.10")` uses WebTransport (QUIC). |
+| `http://<lan-ip>/…` | Open the page on localhost instead. Not a secure context; `init` throws. `{ transport: "websocket" }` skips QUIC. |
+| `https://<lan-ip>/…` | Do not. Needs a CA the browser already trusts (mkcert / internal CA / reverse proxy). Not this recipe. |
+
+Sharing the auto-minted WT cert as the page cert does not skip Chrome's
+interstitial. This project does not ask operators to install mkcert or
+click through a warning: keep the page on localhost so QUIC works. A
+runtime without `WebTransport` still falls back to WebSocket.
+Production WSS / HTTPS stays the [open](../tasks/plan.md) follow-up.
 
 ## Identity and row
 
@@ -142,6 +214,9 @@ headers.
 (J-CY / J-ZN / H-CY / H-ZN plus zenoh router companions) use
 `network_mode: host` so the RMW can see the robot domain. That is a local /
 robot-edge shape, not a cloud overlay network.
+[`docker/compose.webtransport.yml`](../docker/compose.webtransport.yml) overlays
+`RCLWEBD_OFFER_WEBTRANSPORT=1` on the `rclwebd` service (`just gateway-wt` /
+`just gateway-wt-h-ft`).
 
 ## Follow-ups
 

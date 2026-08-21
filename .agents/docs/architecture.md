@@ -45,4 +45,5 @@ One gateway process may expose multiple domain IDs within its support row. Fleet
 - Fixtures are the single conformance oracle; there is no cross-implementation agreement apparatus.
 - Security-sensitive work records effective policy, audit identity, and failure behavior.
 - Process operations (`/livez`, `/readyz`, `/configz`, `/metrics`, `POST /drain`) and the runtime images are the deploy surface ([deploy](../../docs/deploy.md)); `/healthz` stays liveness. Audit file-sink health lives on `/configz` / `/metrics`, not as event bodies.
+- Intranet / lab WebTransport is ADR 0011 local-dev TLS plus `RCLWEBD_OFFER_WEBTRANSPORT`. `init("192.168.1.10")` uses WebTransport (QUIC) from a localhost page. A LAN-IP page is not a secure context — `init` throws unless `{ transport: "websocket" }`. Do not ask operators to install a CA. Production PKI is a separate follow-up ([intranet recipe](../../docs/deploy.md#intranet-webtransport)).
 - Platform expansion enters through the [support matrix](../../docs/support-matrix.md) and [validation](../../docs/validation.md).

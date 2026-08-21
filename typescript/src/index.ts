@@ -42,5 +42,10 @@ export {
   decodeCertificateHashValue,
   httpOriginFromWebTransportUrl,
 } from "./local-dev-tls.ts";
+export {
+  IntranetQuicRequiresSecureContextError,
+  WebTransportUnavailableError,
+  resolveGatewayConnect,
+} from "./gateway-url.ts";
 
 export type { ServerCertificateHash } from "./types.ts";

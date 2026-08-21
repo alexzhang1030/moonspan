@@ -51,6 +51,11 @@ fmt-check:
 clippy:
     cd "{{root}}" && cargo clippy --locked --workspace --all-targets -- -D warnings
 
+# Clippy the WebTransport accept loop (off in the default workspace clippy).
+[group('quality')]
+clippy-webtransport:
+    cd "{{root}}" && cargo clippy --locked -p rclwebd --features webtransport --all-targets -- -D warnings
+
 # Rust-only fmt + clippy. The full gate remains `just check`.
 [group('quality')]
 lint-rust: fmt-check clippy
@@ -162,6 +167,7 @@ check: toolchain-check
     bun run scripts/cargo-publish.ts --check
     just fmt-check
     just clippy
+    just clippy-webtransport
     bun run --filter rcl-web check
 
 # Bun tests (root scripts and TypeScript package) and Cargo workspace tests.
@@ -340,6 +346,18 @@ gateway: toolchain-check
     fi
     docker compose -f docker/compose.r4-02-gateway.yml up --build
 
+# Packaged J-FT gateway with intranet WebTransport (host network). Rebuilds.
+[group('quality')]
+gateway-wt: toolchain-check
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{root}}"
+    if ! command -v docker >/dev/null 2>&1; then
+        echo "error: docker is required for just gateway-wt" >&2
+        exit 1
+    fi
+    docker compose -f docker/compose.r4-02-gateway.yml -f docker/compose.webtransport.yml up --build
+
 # H-FT runtime image for rclwebd (R4-02). Regenerates FFI against Humble.
 [group('quality')]
 image-rclwebd-h-ft: toolchain-check
@@ -363,6 +381,18 @@ gateway-h-ft: toolchain-check
         exit 1
     fi
     docker compose -f docker/compose.r4-02-gateway-h-ft.yml up --build
+
+# Packaged H-FT gateway with intranet WebTransport (host network). Rebuilds.
+[group('quality')]
+gateway-wt-h-ft: toolchain-check
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd "{{root}}"
+    if ! command -v docker >/dev/null 2>&1; then
+        echo "error: docker is required for just gateway-wt-h-ft" >&2
+        exit 1
+    fi
+    docker compose -f docker/compose.r4-02-gateway-h-ft.yml -f docker/compose.webtransport.yml up --build
 
 # Remaining-row runtime image (R4-02): row is j-cy, j-zn, h-cy, or h-zn.
 [group('quality')]

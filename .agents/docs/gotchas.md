@@ -18,6 +18,18 @@ Traps already paid for in this repository, each with its why.
 
 `RCLWEBD_AUDIT_SINK` defaults to `stderr`: the same `rclwebd audit {json}` lines as before. `file` requires `RCLWEBD_AUDIT_PATH` and fails start when the live file does not verify (`RCLWEBD_AUDIT_ON_CORRUPT=fail`) unless the operator chooses `rotate`. Each JSONL line is a sorted-key object; `sha256` is hex(`SHA-256(prev_sha256 || LF || canonical-without-sha256)`). A mid-line crash is corrupt. Size rotation (`RCLWEBD_AUDIT_MAX_BYTES` / `RCLWEBD_AUDIT_RETAIN`) stitches the chain — export is copy + verify of live plus `.1`..`.N`, not an HTTP dump. `/configz` reports path, last hash, and counters only. A write failure increments `audit_write_errors` and does not change the Authenticate / OpenChannel decision. Close the live fd before renaming it on rotate or further writes land on `.1`. [security](../../docs/security.md#audit).
 
+## `pull_request` CI does not start on a conflicted PR
+
+`on: pull_request` needs GitHub's speculative merge (`refs/pull/N/merge`).
+A conflict with the base (`mergeable_state: dirty`, `merge_commit_sha`
+null) means that ref is never created, and the `ci` workflow does not
+enqueue — no Actions run, no `github-actions` check suite. Head-SHA
+apps still run (GitGuardian did), which looks like “CI passed” with one
+check. Draft is not the skip: #58 ran `ci` while still a draft. Resolve
+by merging `main` into the PR branch. `workflow_dispatch` can still run.
+GitHub documents this under
+[events that trigger workflows](https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request).
+
 ## `/healthz` is liveness, not readiness
 
 `GET /healthz` must stay HTTP 200 with body `ok` (when local-dev TLS is off) even while the process is draining. The e2e harness treats that exact body as “gateway is up”. Load balancers and deploy hooks must probe `GET /readyz` (503 after `POST /drain` / SIGTERM) and must not treat `/healthz` as admission. `/livez` is the JSON liveness twin. [Deploy](../../docs/deploy.md).
@@ -61,6 +73,33 @@ The engine reclaims a retained inbound slab only when every lease on it is relea
 ## encodeHostBatch large-frame encoder
 
 Spread-pushing a byte array into a `number[]` (`out.push(...bytes)`) throws a RangeError on large frames — every element becomes a call argument, and hundreds of KB / ~1 MiB (PointCloud2 scale) exceeds the engine's argument/call-stack limit. `encodeHostBatch` in `typescript/src/wasm/abi.ts` is a two-pass preallocated `Uint8Array` encoder (size, then write). Do not reintroduce `push(...bytes)` or per-byte `number[]` builders on the data path. Live WS ingest uses `rclweb_poll_ws` (header prefix for application frames). `encodeHostBatch` stays for command-only batches and tests.
+
+## Intranet WebTransport is one env, not production TLS
+
+Runtime images compile `--features ros,webtransport` so
+`RCLWEBD_OFFER_WEBTRANSPORT=1` can start the accept loop. E2e images stay
+`--features ros` only. The flag implies local-dev TLS, CORS `*` when
+`RCLWEBD_CORS_ORIGINS` is unset (a localhost page fetching
+`http://robot:8794/local-dev/tls` is cross-origin), and a WT UDP bind on
+the HTTP bind host at port 4433. Setting the env on an older image that
+was built `ros`-only logs “WT accept deferred”.
+
+The hash fetch is HTTP, not UDP: `httpOriginFromWebTransportUrl` maps
+default WT `4433` to HTTP `8794`. Custom ports need `localDevTlsOrigin`.
+`init("192.168.1.10")` (or the default `:8794` WS URL) uses WebTransport
+(QUIC) when the page is a secure context and `WebTransport` exists. A
+LAN-IP page is not a secure context — `init` throws
+`IntranetQuicRequiresSecureContextError` instead of quietly using TCP.
+Pass `{ transport: "websocket" }` only to skip QUIC. Runtimes without
+the `WebTransport` API still fall back to WebSocket. Do not put the
+page on self-signed HTTPS and do not ask operators to install mkcert —
+that interstitial is more trouble than opening `http://127.0.0.1`.
+`serverCertificateHashes` cannot trust a document in the address bar.
+Production TLS stays open. Chromium only for WT; UDP 4433 must be
+reachable. The WT hash check does not need a LAN IP in the cert SAN.
+Recipe:
+[Intranet WebTransport](../../docs/deploy.md#intranet-webtransport),
+[Intranet certificates](../../docs/deploy.md#intranet-certificates).
 
 ## WebTransport local certs are ≤14 days by browser rule
 

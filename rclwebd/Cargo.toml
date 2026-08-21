@@ -19,8 +19,10 @@ workspace = true
 # docs/gateway/rclwebd.md for the environment contract). Typesupport is
 # resolved at runtime via dlopen (R3-04); pair ROS_PREFIX with RCLWEBD_SUPPORT_ROW.
 ros = ["dep:libloading"]
-# HTTP/3 WebTransport accept loop (wtransport/quinn). Off by default so
-# `just check` stays light; enable for local WT bring-up.
+# HTTP/3 WebTransport accept loop (wtransport/quinn). Off for the default
+# workspace clippy; `just check` also clippy's this feature so the accept
+# loop cannot rot. Runtime images compile `ros,webtransport` but still
+# require `RCLWEBD_OFFER_WEBTRANSPORT=1` to listen.
 webtransport = ["dep:wtransport"]
 
 [dependencies]
