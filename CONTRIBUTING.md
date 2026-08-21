@@ -35,7 +35,7 @@ license inventory, npm/crate pack members, `cargo fmt`, Clippy with
 | `just ros-check` / `just ros-check-docker` | Compile `rclwebd --features ros --tests` (no `cargo test`) |
 | `just ros-test` / `just ros-test-pixi` | Gateway tests against real rcl |
 | `just protocol-check` / `just cdr-corpus-check` | Registry, CDDL, CDR corpus |
-| `just rosidl-dts-check` / `just rosidl-dts-write` | ROS 2 `.msg`/`.srv`/`.action` → `rcl-web` DTS |
+| `just rosidl-dts-check` / `just rosidl-dts-write` | Repo check for shipped generated classes. Users run `npx rcl-web gen` |
 | `just license-inventory` / `just license-inventory-check` | Third-party allowlist |
 
 Pins: Bun `.bun-version`, Rust `rust-toolchain.toml` (1.97.1 +

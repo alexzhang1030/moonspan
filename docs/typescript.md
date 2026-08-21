@@ -237,35 +237,48 @@ console.log(node.countSubscribers("chatter"));
 These are the last graph the gateway pushed. Relative topic names in
 `countPublishers` / `countSubscribers` resolve under this node.
 
-## Generate types from ROS interfaces
+## Your own message types
 
-`rcl-web` ships typed classes for `std_msgs`, `sensor_msgs`,
-`builtin_interfaces`, and `rclweb_cdr_interfaces`. For your own
-`.msg` / `.srv` / `.action` files, generate matching TypeScript
-declarations (and optional runtime classes):
+After `npm install rcl-web`, generate TypeScript from a ROS 2 interface
+package (the directory that contains `msg/`, `srv/`, and/or `action/`):
 
 ```bash
-bun run scripts/rosidl-dts.ts --package path/to/my_interfaces --out src/my_interfaces.d.ts
-bun run scripts/rosidl-dts.ts --package path/to/my_interfaces --out src/my_interfaces.ts
-bun run scripts/rosidl-dts.ts --root path/to/share --out generated/
+npx rcl-web gen --package ./my_interfaces --out src/generated/my_interfaces.ts
 ```
 
-The output uses the same `pkg.msg.Type` / `pkg.srv.Name` /
-`pkg.action.Name` shape as this package (`typeName`, ROS field names,
-`int64` / `uint64` as `bigint`, `uint8[]` as `Uint8Array`). OMG `.idl`
-is not accepted — use the ROS 2 interface files.
+Several packages in one folder:
 
-The generator does not emit CDR codecs. Topic encode/decode still
-covers only the shipped types above; other services and actions stay
-`{ typeName }` plus `Uint8Array` CDR. Dynamic projection of arbitrary
-runtime types remains later work.
+```bash
+npx rcl-web gen --root /opt/ros/jazzy/share --out src/generated
+```
 
-The shipped classes themselves are generated from
-[`typescript/rosidl/`](../typescript/rosidl/) and
-[`conformance/interfaces/rclweb_cdr_interfaces/`](../conformance/interfaces/rclweb_cdr_interfaces/).
-`bun run rosidl-dts:check` requires byte identity with
-[`typescript/generated/rosidl.d.ts`](../typescript/generated/rosidl.d.ts)
-and [`typescript/src/interfaces.generated.ts`](../typescript/src/interfaces.generated.ts).
+`--out file.ts` writes runtime classes. `--out file.d.ts` writes types
+only. A directory writes one file per package.
+
+```ts
+import { init, Node } from "rcl-web";
+import { my_interfaces } from "./generated/my_interfaces.ts";
+
+await init("ws://127.0.0.1:8794/ws");
+const node = new Node("ui");
+
+const status = new my_interfaces.msg.Status();
+status.battery = 0.8;
+
+const setMode = node.createClient(my_interfaces.srv.SetMode, "set_mode");
+```
+
+The classes match `std_msgs.msg.String`: `typeName`, ROS field names,
+`int64` / `uint64` as `bigint`, `uint8[]` as `Uint8Array`. OMG `.idl`
+is not accepted.
+
+Topic encode/decode still covers only the types this package ships
+(`std_msgs.msg.String`, `sensor_msgs.msg.PointCloud2`,
+`rclweb_cdr_interfaces.msg.*`). A generated topic type is a typed
+object and a `typeName`; inbound samples of other topic types are
+dropped. Generated services and actions open the channel by
+`typeName`; `sendRequest` / `sendGoal` still take `Uint8Array` CDR
+unless the type is `EchoNested` or `MeasureSequence`.
 
 ## Public vs internal
 

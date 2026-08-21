@@ -10,7 +10,7 @@ Start here if you are writing a browser app against ROS 2:
 | Call or host a service | [Services](./typescript.md#services) |
 | Send or host an action | [Actions](./typescript.md#actions) |
 | Look up every method | [API reference](./api.md) |
-| Generate types from `.msg` / `.action` | [ROS interface DTS](./typescript.md#generate-types-from-ros-interfaces) |
+| Generate types from `.msg` / `.action` | [Your own message types](./typescript.md#your-own-message-types) |
 | Run the gateway | [Deploy `rclwebd`](./deploy.md) |
 
 Runnable demo: [`examples/subscribe-chatter`](../examples/subscribe-chatter/).

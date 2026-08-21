@@ -29,6 +29,20 @@ node.createSubscription(std_msgs.msg.String, "chatter", 10, (incoming) => {
 npm install rcl-web
 ```
 
+Your own `.msg` / `.srv` / `.action` files:
+
+```bash
+npx rcl-web gen --package ./my_interfaces --out src/generated/my_interfaces.ts
+```
+
+```ts
+import { my_interfaces } from "./generated/my_interfaces.ts";
+const msg = new my_interfaces.msg.Status();
+```
+
+[How to](./docs/typescript.md#your-own-message-types). Topic encode/decode
+still covers the types `rcl-web` ships.
+
 The page talks to ROS through a gateway on the robot (or on your laptop).
 Run the prebuilt image — no clone, no toolchain (`:humble` for Humble):
 

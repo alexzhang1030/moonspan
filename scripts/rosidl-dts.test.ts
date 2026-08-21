@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import {
   PROJECT_PACKAGE_RELS,
+  USER_HELP,
   buildFromDirs,
   buildIr,
   buildProject,
@@ -15,6 +16,7 @@ import {
   parseTypeExpr,
   resolveNamedType,
   runCli,
+  runUserCli,
   tsTypeFor,
 } from "./rosidl-dts.ts";
 
@@ -139,6 +141,10 @@ describe("rosidl-dts emit", () => {
     expect(parseCli(["--write"])).toEqual({ ok: true, cli: { mode: "write" } });
     expect(parseCli(["--check"])).toEqual({ ok: true, cli: { mode: "check" } });
     expect(parseCli(["--write", "--check"]).ok).toBe(false);
+    expect(parseCli(["gen", "--package", "p", "--out", "p.d.ts"])).toMatchObject({
+      ok: true,
+      cli: { mode: "emit", dirs: ["p"], out: "p.d.ts", runtime: false },
+    });
     expect(parseCli(["--package", "p", "--out", "p.d.ts"])).toMatchObject({
       ok: true,
       cli: { mode: "emit", dirs: ["p"], out: "p.d.ts", runtime: false },
@@ -299,5 +305,24 @@ describe("rosidl-dts project artifacts", () => {
     // Before the first write this may drift; the generate step in this change
     // commits matching artifacts. A missing file is a hard fail after write.
     expect(code).toBe(0);
+  });
+
+  test("npx rcl-web gen prints help and rejects repo --write", async () => {
+    const help = await runUserCli([]);
+    expect(help).toBe(2);
+    const write = await runUserCli(["--write"], ROOT);
+    expect(write).toBe(2);
+    const dir = await mkdtemp(path.join(tmpdir(), "rcl-web-gen-"));
+    await mkdir(path.join(dir, "msg"));
+    await writeFile(path.join(dir, "msg", "Status.msg"), "float64 battery\n");
+    await writeFile(path.join(dir, "package.xml"), "<package><name>my_interfaces</name></package>\n");
+    const out = path.join(dir, "my_interfaces.ts");
+    const code = await runUserCli(["gen", "--package", dir, "--out", out], ROOT);
+    expect(code).toBe(0);
+    const ts = await readFile(out, "utf8");
+    expect(ts).toContain("npx rcl-web gen");
+    expect(ts).toContain('static readonly typeName = "my_interfaces/msg/Status" as const');
+    expect(ts).toContain("export const my_interfaces = {");
+    expect(USER_HELP).toContain("npx rcl-web gen --package");
   });
 });

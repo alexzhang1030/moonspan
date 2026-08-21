@@ -190,7 +190,7 @@ The exact name `rclweb` is unpublished (`GET https://registry.npmjs.org/rclweb` 
 
 ## npm pack ships the tsdown dist, not TypeScript source
 
-The published `rcl-web` tarball is tsdown ESM + `.d.ts` under `dist/`, plus `wasm/rclweb.wasm`. `files` must not include `src/`. `just npm-pack-check` fails if the tarball contains `package/src/`. Run tsdown through Bun (`bun --bun tsdown`) so the config loader does not require the optional `unrun` peer. Workspace `import from "rcl-web"` resolves to that `dist/` — live e2e/perf images must run `bun run --filter rcl-web build` after staging wasm; they used to load `src/` through the export map. [ADR 0015](../../docs/adr/0015-tsdown-ship-bundle.md).
+The published `rcl-web` tarball is tsdown ESM + `.d.ts` under `dist/`, plus `wasm/rclweb.wasm` and `dist/cli.js` (`npx rcl-web gen`). `files` must not include `src/`. `just npm-pack-check` fails if the tarball contains `package/src/`. Run tsdown through Bun (`bun --bun tsdown`) so the config loader does not require the optional `unrun` peer. Workspace `import from "rcl-web"` resolves to that `dist/` — live e2e/perf images must run `bun run --filter rcl-web build` after staging wasm; they used to load `src/` through the export map. [ADR 0015](../../docs/adr/0015-tsdown-ship-bundle.md).
 
 ## npm pack copies LICENSE and NOTICE; do not commit them
 
