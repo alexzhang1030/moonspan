@@ -29,7 +29,7 @@ One gateway process may expose multiple domain IDs within its support row. Fleet
 |---|---|
 | R2WP | Frames, control messages, channels, schema identity, errors, versioning, and provenance |
 | `rclweb` core | Protocol codecs, CDR ([core contract](../../docs/runtime/cdr.md)), session/channel state, type registry, ROS state, QoS, and host poll contract |
-| TypeScript package | Public API (`init` / `Node` / pub / sub / service / action). Host, session `connect`, and wasm ABI stay on `rcl-web/internal` ([how to](../../docs/typescript.md), [API](../../docs/api.md)) |
+| TypeScript package | Public API (`init` / `Node` / pub / sub / service / action). Host, session `connect`, and wasm ABI stay on `rcl-web/internal` ([how to](../../docs/typescript.md), [API](../../docs/api.md)). ROS interface classes come from `.msg` / `.srv` / `.action` via `scripts/rosidl-dts.ts` |
 | `rclwebd` | ROS attachment (versioned serialized adapter ABI + dlopen typesupport), sessions, schema cache, scheduling, policy, audit, and operations |
 | Conformance system | Fixtures (single oracle), corpus, workloads, environment identity, and the support matrix |
 | Studio | Optional post-release workspace, panels, rendering, media, and command presentation |
@@ -47,3 +47,4 @@ One gateway process may expose multiple domain IDs within its support row. Fleet
 - Process operations (`/livez`, `/readyz`, `/configz`, `/metrics`, `POST /drain`) and the runtime images are the deploy surface ([deploy](../../docs/deploy.md)); `/healthz` stays liveness. Audit file-sink health lives on `/configz` / `/metrics`, not as event bodies.
 - Intranet / lab WebTransport is ADR 0011 local-dev TLS plus `RCLWEBD_OFFER_WEBTRANSPORT`. `init("192.168.1.10")` uses WebTransport (QUIC) from a localhost page. A LAN-IP page is not a secure context — `init` throws unless `{ transport: "websocket" }`. Do not ask operators to install a CA. Production PKI is a separate follow-up ([intranet recipe](../../docs/deploy.md#intranet-webtransport)).
 - Platform expansion enters through the [support matrix](../../docs/support-matrix.md) and [validation](../../docs/validation.md).
+- Application TypeScript bindings for ROS interfaces are generated from `.msg` / `.srv` / `.action` with `npx rcl-web gen` (published `dist/cli.js`). That path does not emit CDR codecs or accept OMG `.idl`. Topic encode/decode stays on the shipped surface; dynamic projection remains later work.

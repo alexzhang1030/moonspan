@@ -21,6 +21,8 @@
     "cdr-tail-slack:check": "bun run scripts/cdr-tail-slack.ts --check",
     "generated-types:write": "bun run scripts/generated-types.ts --write",
     "generated-types:check": "bun run scripts/generated-types.ts --check",
+    "rosidl-dts:write": "bun run scripts/rosidl-dts.ts --write",
+    "rosidl-dts:check": "bun run scripts/rosidl-dts.ts --check",
     "license-inventory:write": "bun run scripts/license-inventory.ts --write",
     "license-inventory:check": "bun run scripts/license-inventory.ts --check",
     "npm-pack:stage": "bun run scripts/npm-pack.ts --stage",
@@ -30,12 +32,13 @@
     "toolchain-check": "bun run scripts/toolchain-check.ts",
     "test:license-inventory": "bun test scripts/license-inventory.test.ts",
     "test:npm-pack": "bun test scripts/npm-pack.test.ts",
-    "check": "bun run docs:check && bun run protocol-check && bun run cdr-corpus:check && bun run cdr-tail-slack:check && bun run generated-types:check",
+    "check": "bun run docs:check && bun run protocol-check && bun run cdr-corpus:check && bun run cdr-tail-slack:check && bun run generated-types:check && bun run rosidl-dts:check",
     "test:docs": "bun test scripts/docs-check.test.ts",
     "test:protocol": "bun test scripts/protocol-check.test.ts",
     "test:cdr-corpus": "bun test scripts/cdr-corpus.test.ts",
     "test:cdr-tail-slack": "bun test scripts/cdr-tail-slack.test.ts",
     "test:generated-types": "bun test scripts/generated-types.test.ts",
+    "test:rosidl-dts": "bun test scripts/rosidl-dts.test.ts",
     "test": "bun test"
   }
 }

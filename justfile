@@ -119,6 +119,16 @@ generated-types-check: toolchain-check
 generated-types-write: toolchain-check
     cd "{{root}}" && bun run generated-types:write
 
+# ROS 2 .msg/.srv/.action → rcl-web TypeScript DTS / runtime classes.
+[group('quality')]
+rosidl-dts-check: toolchain-check
+    cd "{{root}}" && bun run rosidl-dts:check
+
+# Regenerate typescript/src/interfaces.generated.ts and typescript/generated/rosidl.d.ts.
+[group('quality')]
+rosidl-dts-write: toolchain-check
+    cd "{{root}}" && bun run rosidl-dts:write
+
 # Regenerate docs/third-party.md from lockfiles (D-06).
 [group('quality')]
 license-inventory: toolchain-check
@@ -154,7 +164,7 @@ cargo-publish: toolchain-check
 cargo-publish-check: toolchain-check
     cd "{{root}}" && bun run scripts/cargo-publish.ts --check
 
-# Docs, protocol, corpus, and license inventory; npm/crate pack members; Rust fmt/clippy; tsdown ship bundle.
+# Docs, protocol, corpus, generated-types, rosidl-dts, and license inventory; npm/crate pack members; Rust fmt/clippy; tsdown ship bundle.
 [group('quality')]
 check: toolchain-check
     #!/usr/bin/env bash

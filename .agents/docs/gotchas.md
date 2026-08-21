@@ -160,6 +160,10 @@ Do not rename those array keys without updating both the Bun generator and `rclw
 
 Canonical CDR bundles for `*_Request` / `*_Response` / `*_Goal` / `*_Result` / `*_Feedback` store interface text under the parent `.srv` / `.action` type, while `dependency_graph` edges use the sectioned `root_type_name` as `from`. Join validation must accept `root_type_name` as a known endpoint alongside `sources[].type_name`; requiring every `from` to appear in `sources` rejects the committed corpus.
 
+## ROS interface bounds are not constant assignments
+
+`float64[<=4] bounded_f64` and `string<=16 name` contain `=`. Treating any `=` as a ROS constant drops those fields (`scripts/generated-types.ts` `parseFieldNames` still does this for metadata names). `scripts/rosidl-dts.ts` strips `<=` before looking for `TYPE NAME = value`. Do not copy the metadata skip into the DTS parser — Collections would lose `bounded_f64`, `bounded_string`, and `bounded_wstring`.
+
 ## GitHub Releases downloads need retries
 
 Foundation CI installs Bun with SHA-pinned `oven-sh/setup-bun` (`.bun-version`) and just with SHA-pinned `extractions/setup-just` (`.just-version`); a failed just step waits 15s and retries once. `dtolnay/rust-toolchain` installs the channel in `rust-toolchain.toml`. E2e images copy `/usr/local/bin/bun` from digest-pinned `oven/bun` (must match `.bun-version`); do not pipe `bun.sh/install`. Cloud-agent setup has no Actions, so it uses [`scripts/install-pinned-bun.sh`](../../scripts/install-pinned-bun.sh) and [`scripts/github-release-curl.sh`](../../scripts/github-release-curl.sh). Paid flakes were GitHub Releases 503/curl 56, not a broken setup-just. Landed in [`45cacd5`](https://github.com/alexzhang1030/rclweb/commit/45cacd5) (#19).
@@ -186,7 +190,7 @@ The exact name `rclweb` is unpublished (`GET https://registry.npmjs.org/rclweb` 
 
 ## npm pack ships the tsdown dist, not TypeScript source
 
-The published `rcl-web` tarball is tsdown ESM + `.d.ts` under `dist/`, plus `wasm/rclweb.wasm`. `files` must not include `src/`. `just npm-pack-check` fails if the tarball contains `package/src/`. Run tsdown through Bun (`bun --bun tsdown`) so the config loader does not require the optional `unrun` peer. Workspace `import from "rcl-web"` resolves to that `dist/` — live e2e/perf images must run `bun run --filter rcl-web build` after staging wasm; they used to load `src/` through the export map. [ADR 0015](../../docs/adr/0015-tsdown-ship-bundle.md).
+The published `rcl-web` tarball is tsdown ESM + `.d.ts` under `dist/`, plus `wasm/rclweb.wasm` and `dist/cli.js` (`npx rcl-web gen`). `files` must not include `src/`. `just npm-pack-check` fails if the tarball contains `package/src/`. Run tsdown through Bun (`bun --bun tsdown`) so the config loader does not require the optional `unrun` peer. Workspace `import from "rcl-web"` resolves to that `dist/` — live e2e/perf images must run `bun run --filter rcl-web build` after staging wasm; they used to load `src/` through the export map. [ADR 0015](../../docs/adr/0015-tsdown-ship-bundle.md).
 
 ## npm pack copies LICENSE and NOTICE; do not commit them
 

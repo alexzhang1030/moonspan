@@ -45,9 +45,12 @@ just cdr-tail-slack-check
 just cdr-tail-slack-write
 just generated-types-check
 just generated-types-write
+just rosidl-dts-check
+just rosidl-dts-write
 ```
 
-Root `bun run check` runs `cdr-corpus:check`, `cdr-tail-slack:check`, and `generated-types:check`.
+Root `bun run check` runs `cdr-corpus:check`, `cdr-tail-slack:check`,
+`generated-types:check`, and `rosidl-dts:check`.
 
 ## Top-level tail slack
 

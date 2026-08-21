@@ -21,7 +21,8 @@ must be a bundle, and the bundler is tsdown.
 - The npm tarball for `rcl-web` is the tsdown ESM + `.d.ts` output under
   `typescript/dist/`, plus `wasm/rclweb.wasm`, `LICENSE`, and `NOTICE`.
 - It must not include `src/`.
-- Entries are `index`, `internal`, and `worker/io-worker`.
+- Browser entries are `index`, `internal`, and `worker/io-worker`.
+  `dist/cli.js` is the Node bin for `npx rcl-web gen`.
 - Bun remains the workspace, lockfile, script, and test runner.
   `just build` / `prepack` invoke tsdown through Bun (`bun --bun tsdown`).
 - This supersedes “Bun is the ship bundler” inside ADR 0002. Workspaces,

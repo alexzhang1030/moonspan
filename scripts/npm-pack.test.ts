@@ -35,6 +35,7 @@ describe("tarballMemberMissing", () => {
       "package/dist/internal.js",
       "package/dist/internal.d.ts",
       "package/dist/worker/io-worker.js",
+      "package/dist/cli.js",
       "package/wasm/rclweb.wasm",
       "package/dist/host-chunk.js",
     ].join("\n");
@@ -50,6 +51,7 @@ describe("tarballMemberMissing", () => {
       "package/dist/internal.js",
       "package/dist/internal.d.ts",
       "package/dist/worker/io-worker.js",
+      "package/dist/cli.js",
       "package/wasm/rclweb.wasm",
     ].join("\n");
     expect(tarballMemberMissing(listing)).toEqual(["package/LICENSE", "package/NOTICE"]);

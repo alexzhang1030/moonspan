@@ -237,6 +237,49 @@ console.log(node.countSubscribers("chatter"));
 These are the last graph the gateway pushed. Relative topic names in
 `countPublishers` / `countSubscribers` resolve under this node.
 
+## Your own message types
+
+After `npm install rcl-web`, generate TypeScript from a ROS 2 interface
+package (the directory that contains `msg/`, `srv/`, and/or `action/`):
+
+```bash
+npx rcl-web gen --package ./my_interfaces --out src/generated/my_interfaces.ts
+```
+
+Several packages in one folder:
+
+```bash
+npx rcl-web gen --root /opt/ros/jazzy/share --out src/generated
+```
+
+`--out file.ts` writes runtime classes. `--out file.d.ts` writes types
+only. A directory writes one file per package.
+
+```ts
+import { init, Node } from "rcl-web";
+import { my_interfaces } from "./generated/my_interfaces.ts";
+
+await init("ws://127.0.0.1:8794/ws");
+const node = new Node("ui");
+
+const status = new my_interfaces.msg.Status();
+status.battery = 0.8;
+
+const setMode = node.createClient(my_interfaces.srv.SetMode, "set_mode");
+```
+
+The classes match `std_msgs.msg.String`: `typeName`, ROS field names,
+`int64` / `uint64` as `bigint`, `uint8[]` as `Uint8Array`. OMG `.idl`
+is not accepted.
+
+Topic encode/decode still covers only the types this package ships
+(`std_msgs.msg.String`, `sensor_msgs.msg.PointCloud2`,
+`rclweb_cdr_interfaces.msg.*`). A generated topic type is a typed
+object and a `typeName`; inbound samples of other topic types are
+dropped. Generated services and actions open the channel by
+`typeName`; `sendRequest` / `sendGoal` still take `Uint8Array` CDR
+unless the type is `EchoNested` or `MeasureSequence`.
+
 ## Public vs internal
 
 | Import | Use |

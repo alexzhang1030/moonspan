@@ -24,11 +24,13 @@ test("sdk package identity and privacy", () => {
     type: string;
     exports: Record<string, { types?: string; import?: string; default?: string }>;
     files: string[];
+    bin?: Record<string, string>;
   };
   expect(pkg.name).toBe("rcl-web");
   expect(pkg.version).toBe("0.0.5");
   expect(pkg.private).toBe(false);
   expect(pkg.type).toBe("module");
+  expect(pkg.bin).toEqual({ "rcl-web": "./dist/cli.js" });
   expect(pkg.files).toEqual(["dist", "wasm", "README.md", "LICENSE", "NOTICE"]);
   expect(pkg.files).not.toContain("src");
   expect(pkg.exports["."]).toEqual({

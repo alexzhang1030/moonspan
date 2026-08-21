@@ -19,6 +19,20 @@ node.createSubscription(std_msgs.msg.String, "chatter", 10, (msg) => {
 npm install rcl-web
 ```
 
+Your own ROS interfaces (a package with `msg/` / `srv/` / `action/`):
+
+```bash
+npx rcl-web gen --package ./my_interfaces --out src/generated/my_interfaces.ts
+```
+
+```ts
+import { my_interfaces } from "./generated/my_interfaces.ts";
+const msg = new my_interfaces.msg.Status();
+```
+
+[How to](../docs/typescript.md#your-own-message-types). Topic codecs
+still cover only the types this package ships.
+
 - [How to: node, topics, services, actions](../docs/typescript.md)
 - [API reference](../docs/api.md)
 

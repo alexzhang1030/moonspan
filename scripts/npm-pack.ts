@@ -24,6 +24,7 @@ export const REQUIRED_TARBALL_MEMBERS = [
   "package/dist/internal.js",
   "package/dist/internal.d.ts",
   "package/dist/worker/io-worker.js",
+  "package/dist/cli.js",
   "package/wasm/rclweb.wasm",
 ] as const;
 
